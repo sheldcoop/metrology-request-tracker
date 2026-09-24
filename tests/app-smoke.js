@@ -310,6 +310,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.getElementById('main'), 'Register lot').click(); await settle();
   dlg2 = openDialog();
   check('...the part number waits for the project', /pick the project first/.test(fieldIn(dlg2, 'Part number').textContent));
+  check('...the lot fields are asked too (Purpose, Started on, Lot status ...)', !!fieldIn(dlg2, 'Purpose of the lot') && !!fieldIn(dlg2, 'Started on') && !!fieldIn(dlg2, 'Lot status'));
   setVal(fieldIn(dlg2, 'Lot number'), '18178-A'); buttonByText(dlg2, 'Save').click(); await settle();
   check('...a bad lot number is refused in the dialog', openDialog() === dlg2 && /split lot adds .01/.test(dlg2.textContent));
   const c4f = MRT.store.list('projects').filter(p => p.code === 'C4F')[0], bu1 = MRT.store.list('buildups')[0];
@@ -317,12 +318,18 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   setVal(fieldIn(dlg2, 'Project'), c4f.id); await settle();
   check('...picking C4F offers its one part number, already picked', fieldIn(dlg2, 'Part number').value === pn77.id);
   setVal(fieldIn(dlg2, 'Build-up'), bu1.id);
+  const purposeF = MRT.store.list('lot_fields').filter(f => f.label === 'Purpose of the lot')[0];
+  setVal(fieldIn(dlg2, 'Purpose of the lot'), purposeF.choices[1].id);
   buttonByText(dlg2, 'Save').click(); await settle();
   const lot1 = (MRT.store.data().lots || []).filter(l => l.lot_number === '18178')[0];
   check('...lot 18178 is registered with project, part number, build-up, 12 panels, owner',
         !!lot1 && lot1.project_id === c4f.id && lot1.part_number_id === pn77.id && lot1.buildup_id === bu1.id && lot1.panel_count === 12 &&
         lot1.owner_id === MRT.store.currentUser().id && !openDialog());
   check('...and listed', /18178/.test(mainText()) && /PN-77/.test(mainText()) && /1 of 1 lots/.test(mainText()));
+  check('...with its purpose (DOE) stored', lot1.extra[purposeF.id] === purposeF.choices[1].id);
+  $$('#main a.lot-link').filter(a => a.textContent === '18178')[0].click(); await settle();
+  check('the lot number opens all its details, lot fields included', !!openDialog() && /Purpose of the lot/.test(openDialog().textContent) && /DOE/.test(openDialog().textContent));
+  buttonByText(openDialog(), 'Close').click(); await settle();
   buttonByText(doc.getElementById('main'), 'Register lot').click(); await settle();
   dlg2 = openDialog();
   setVal(fieldIn(dlg2, 'Lot number'), '18178'); setVal(fieldIn(dlg2, 'Panels'), '4');
@@ -339,6 +346,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   win.setHash('#/lab'); await settle(); win.setHash('#/lots'); await settle();
   check('an engineer sees the lots but cannot edit someone else\'s', /18178/.test(mainText()) && !doc.getElementById('main').querySelectorAll('button').some(b => /Edit lot/.test(b.getAttribute('aria-label') || '')));
   MRT.store.setCurrentUser(me0);
+  await tab('data');
+  buttonByText(doc.getElementById('main'), 'Add 3 sample lots').click(); await settle();
+  check('Data: "Add 3 sample lots" adds 99901, 99902, 99902.01 tagged Sample', ['99901', '99902', '99902.01'].every(n => MRT.store.data().lots.some(l => l.lot_number === n && l.sample)));
+  win.setHash('#/lots'); await settle();
+  check('...shown on Lots with the Sample tag', /99902.01/.test(mainText()) && $$('#main .sample-tag').length === 3);
 
   // a non-admin is kept out
   const saved = MRT.store.currentUser().id;

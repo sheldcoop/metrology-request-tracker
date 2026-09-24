@@ -236,6 +236,13 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 - **M2-16** No warning when priority and date do not match - the date is optional.
 - **M2-17** The tool's quality engineers may change a request's priority; a comment is optional.
   The change shows in the timeline and the audit log; the engineer is notified from M4.
+- **M2-18** (2026-09-24, Prince) **Lot fields** are admin-defined in Settings > Lists, like a tool's
+  extra fields (same 8 kinds, rename/hide/required, answers stored by field ID). Seven sample ones
+  to start, shaped with the team later: Purpose of the lot, Started on, Started by, DOE /
+  experiment ID, Customer, Expected finish, Lot status. Lots are registered on the Lots page;
+  Settings > Lists links there.
+- **M2-19** (2026-09-24, Prince) Settings > Data & PIN > "Add 3 sample lots" (99901, 99902,
+  99902.01, tagged Sample) to try the app with a real data file; Health lists them until deleted.
 - **M2 build order** (one branch per step, Prince reviews each): 1 `m2-settings` (process-step
   list, "destructive" per tool) - 2 `lots` - 3 `panel-map` - 4 `request-form` (drafts, submit
   warnings Q44, request ID Q29, duplicate) - 5 `request-page` (traveller card, status rail,

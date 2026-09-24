@@ -231,7 +231,11 @@
     /* =============== store: first run and seed =============== */
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 4, revision 0', [seed.schema_version, seed.revision], [4, 0]);
+    eq('schema 5, revision 0', [seed.schema_version, seed.revision], [5, 0]);
+    eq('seven sample lot fields (first ideas)', seed.lot_fields.map(function (f) { return f.label + (f.sample ? '*' : ''); }),
+       ['Purpose of the lot*', 'Started on*', 'Started by*', 'DOE / experiment ID*', 'Customer*', 'Expected finish*', 'Lot status*']);
+    ok('...all valid, choices with IDs', seed.lot_fields.every(function (f) { return !D.validateEntry('lot_fields', f, seed).length; }) &&
+       seed.lot_fields[0].choices.length === 6 && /^ch_/.test(seed.lot_fields[0].choices[0].id));
     eq('no lots in a new file', seed.lots, []);
     ok('every collection is present', ST.COLLECTIONS.every(function (c) { return Array.isArray(seed[c]); }));
     eq('no people in a new file', seed.users.length, 0);
@@ -472,6 +476,33 @@
     await ST.deleteLot(tomLot.id, 'typo');
     eq('...and deletes their own unused lot', ST.byId('lots', tomLot.id), null);
     ST.setCurrentUser(adminL);
+
+    group('Store: lot fields and sample lots');
+    var purpose = ST.list('lot_fields')[0], startOn = ST.list('lot_fields')[1];
+    var devId = purpose.choices[0].id;
+    var lx = await ST.saveLot({ fields: { lot_number: '18190', project_id: prjL.id, buildup_id: buL.id, panel_count: 6,
+      extra: (function () { var e = {}; e[purpose.id] = devId; e[startOn.id] = '2026-09-01'; e[ST.list('lot_fields')[2].id] = '  '; return e; })() } });
+    eq('a lot stores its lot-field answers by field ID, empty ones dropped', Object.keys(lx.extra).sort(), [purpose.id, startOn.id].sort());
+    await refused('a bad date is refused', ST.saveLot({ id: lx.id, fields: { extra: (function () { var e = {}; e[startOn.id] = '1.9.2026'; return e; })() } }), 'invalid');
+    await refused('a choice must be one of the field\'s', ST.saveLot({ id: lx.id, fields: { extra: (function () { var e = {}; e[purpose.id] = 'ch_nope'; return e; })() } }), 'invalid');
+    await refused('an unknown field is refused', ST.saveLot({ id: lx.id, fields: { extra: { lfld_nope: 'x' } } }), 'invalid');
+    var req = await ST.saveEntry('lot_fields', { fields: { label: 'Customer PO', type: 'text', required: true } });
+    await refused('a new required lot field must be answered on the next edit', ST.saveLot({ id: lx.id, fields: { panel_count: 7 } }), 'invalid');
+    await ST.saveEntry('lot_fields', { id: req.id, fields: { required: false } });
+    await ST.saveEntry('lot_fields', { id: purpose.id, fields: { choices: purpose.choices.slice(1) } });
+    eq('a removed choice is hidden; the lot keeps its answer', [ST.byId('lots', lx.id).extra[purpose.id], ST.byId('lot_fields', purpose.id).choices.filter(function (c) { return c.id === devId; })[0].active], [devId, false]);
+    await ST.saveLot({ id: lx.id, fields: { panel_count: 7 } });
+    eq('...and the lot still saves', ST.byId('lots', lx.id).panel_count, 7);
+    eq('a lot field with answers counts as used', ST.entryUsage('lot_fields', purpose.id).text, '1 lot');
+    await refused('...so it cannot be deleted', ST.deleteEntry('lot_fields', purpose.id, 'x'), 'in_use');
+    var added = await ST.addSampleLots();
+    var sl = ST.data().lots.filter(function (l) { return l.sample; });
+    eq('3 sample lots, tagged, owned by the admin', [added, sl.map(function (l) { return l.lot_number; }).join(), sl.every(function (l) { return l.owner_id === adminL; })], [3, '99901,99902,99902.01', true]);
+    ok('...listed in Health', codes(ST.health().todo).indexOf('sample_lots') !== -1);
+    await refused('...not twice', ST.addSampleLots(), 'no_change');
+    ST.setCurrentUser(tomL.id);
+    await refused('...only admins add them', ST.addSampleLots(), 'not_admin');
+    ST.setCurrentUser(adminL);
     var fibT = await ST.saveEntry('tools', { id: tool('FIB').id, fields: { destructive: false } });
     eq('"destructive" can be switched per tool', fibT.destructive, false);
     eq('an unused part number can be deleted', ST.byId('part_numbers', pn.id), null);
@@ -511,6 +542,7 @@
     ok('...a single admin is flagged', codes(todo).indexOf('one_admin') !== -1);
     ok('...no part numbers yet', codes(todo).indexOf('no_part_numbers') !== -1);
     ok('...no process steps yet', codes(todo).indexOf('no_process_steps') !== -1);
+    ok('...sample lot fields', codes(todo).indexOf('sample_lot_fields') !== -1);
     ok('every item says where to fix it', todo.every(function (x) { return x.severity === 'todo' && !!x.tab; }));
     var hs2 = JSON.parse(JSON.stringify(hs));
     hs2.measurement_types.forEach(function (m) { delete m.sample; });
@@ -520,6 +552,7 @@
     hs2.holidays.push({ id: 'hx', date: '2026-12-24', name: 'Christmas Eve', kind: 'closing' });
     hs2.part_numbers.push({ id: 'pnx', code: 'PN-1', project_ids: [hs2.projects[0].id], active: true });
     hs2.process_steps.push({ id: 'psx', name: 'After desmear', sort: 1, active: true });
+    hs2.lot_fields.forEach(function (f) { delete f.sample; });
     eq('all set up: the list is empty', D.setupTodo(hs2, { today_ymd: '2026-09-24', calendar_confirmed: true }), []);
     ok('late in the year without next year\'s holidays: flagged', codes(D.setupTodo(hs2, { today_ymd: '2027-11-01', calendar_confirmed: true })).indexOf('no_holidays_next_year') !== -1);
     hs2.users.push({ id: 'u4', name: 'New Nora', roles: ['engineer'], active: true, needs_review: true });
@@ -653,12 +686,13 @@
     eq('...and left as it was', a.files[cfg.data_file], '{ not json');
 
     // Schema 1 -> 2 adds part numbers (M1-13); 2 -> 3 process steps and "destructive" (M2-7, M2-11).
-    var v1 = ST._pure.seedData(); v1.schema_version = 1; delete v1.part_numbers; delete v1.process_steps; delete v1.lots;
+    var v1 = ST._pure.seedData(); v1.schema_version = 1; delete v1.part_numbers; delete v1.process_steps; delete v1.lots; delete v1.lot_fields;
     v1.tools.forEach(function (t) { delete t.destructive; });
     P.migrate(v1);
     eq('schema 1 -> 3: part numbers and process steps start empty', [v1.part_numbers, v1.process_steps], [[], []]);
     eq('...FIB becomes destructive, the others not', v1.tools.map(function (t) { return t.code + ':' + t.destructive; }), ['HRM:false', 'AOI:false', 'PRF:false', 'QVM:false', 'FIB:true']);
-    eq('...and the file says schema 4, with no lots', [v1.schema_version, v1.lots], [4, []]);
+    eq('...and the file says schema 5, with no lots', [v1.schema_version, v1.lots], [5, []]);
+    eq('...schema 4 -> 5 brings the sample lot fields', v1.lot_fields.map(function (f) { return f.label; }).length, 7);
 
     // An extra upgrade step, for this test only: schema 0 -> 1 (then 1 -> 2).
     P.MIGRATIONS[0] = function (d) { d.upgraded = true; };
@@ -668,10 +702,10 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v4_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v5_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [4, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [5, true]);
     eq('...and the status says so until the next save', ST.status().upgradedFrom, 0);
   }
 

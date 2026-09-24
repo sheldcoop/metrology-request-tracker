@@ -2,7 +2,8 @@
  * Metrology Request Tracker - views/lots.js
  *
  * Lots (#/lots, DECISIONS M2-1): every registered lot - lot number, project,
- * part number (of that project), build-up, panel count, owner, note. Any
+ * part number (of that project), build-up, panel count, owner, note, plus
+ * the admin-defined lot fields (Settings > Lists > Lot fields). Any
  * engineer registers a lot (Q7); its owner or an admin changes it or deletes
  * it while no request uses it. Newest first, 100 rows per page.
  *
@@ -23,6 +24,65 @@ window.MRT.views.lots = (function () {
   function K() { return window.MRT.settingsKit; }
   function code(coll, id) { var r = id ? store.byId(coll, id) : null; return r ? r.code : null; }
   function userName(id) { var u = id ? store.byId('users', id) : null; return u ? u.name : null; }
+
+  /* --- Lot fields (admin-defined) -------------------------------------- */
+
+  /** An answer as text: choice labels, Yes/No, the value otherwise. */
+  function answerText(f, v) {
+    if (D.isEmptyAnswer(v)) return '';
+    function label(id) { var c = (f.choices || []).filter(function (x) { return x.id === id; })[0]; return c ? c.label : '?'; }
+    if (f.type === 'choice') return label(v);
+    if (f.type === 'multichoice') return v.map(label).join(', ');
+    if (f.type === 'yesno') return v ? 'Yes' : 'No';
+    if (f.type === 'number') return String(v) + (f.unit ? ' ' + f.unit : '');
+    return String(v);
+  }
+
+  /** Form specs for the lot fields; the key is x_<field id>. Hidden fields show only when the lot has an answer. */
+  function extraSpecs(lot) {
+    var ex = (lot && lot.extra) || {};
+    return store.list('lot_fields', { all: true }).filter(function (f) { return f.active !== false || !D.isEmptyAnswer(ex[f.id]); }).map(function (f) {
+      var cur = ex[f.id];
+      var live = (f.choices || []).filter(function (c) { return c.active !== false || c.id === cur || (Array.isArray(cur) && cur.indexOf(c.id) !== -1); })
+        .map(function (c) { return { value: c.id, label: c.label }; });
+      var sp = { key: 'x_' + f.id, label: f.label + (f.required ? '' : ' (optional)'), hint: f.help || null, cls: f.type === 'longtext' || f.type === 'multichoice' ? null : 'half' };
+      switch (f.type) {
+        case 'longtext': sp.kind = 'longtext'; break;
+        case 'number': sp.kind = 'number'; sp.unit = f.unit || null; break;
+        case 'choice': sp.kind = 'select'; sp.options = [{ value: '', label: '- none -' }].concat(live); break;
+        case 'multichoice': sp.kind = 'checks'; sp.options = live; break;
+        case 'yesno': sp.kind = 'select'; sp.options = [{ value: '', label: '- none -' }, { value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]; break;
+        case 'date': sp.kind = 'date'; break;
+        case 'path': sp.kind = 'path'; sp.placeholder = '\\\\server\\share\\...'; break;
+        default: sp.kind = 'text';
+      }
+      return sp;
+    });
+  }
+
+  function extraValues(lot) {
+    var ex = (lot && lot.extra) || {}, out = {};
+    store.list('lot_fields', { all: true }).forEach(function (f) {
+      var v = ex[f.id];
+      if (f.type === 'yesno') v = v === true ? 'yes' : v === false ? 'no' : '';
+      else if (f.type === 'multichoice') v = v || [];
+      else if (v === undefined || v === null) v = f.type === 'number' ? null : '';
+      out['x_' + f.id] = v;
+    });
+    return out;
+  }
+
+  /** Form values back to answers {field id: value}. */
+  function extraFrom(v) {
+    var out = {};
+    store.list('lot_fields', { all: true }).forEach(function (f) {
+      if (!('x_' + f.id in v)) return;
+      var x = v['x_' + f.id];
+      if (f.type === 'yesno') x = x === 'yes' ? true : x === 'no' ? false : null;
+      out[f.id] = x;
+    });
+    return out;
+  }
 
   function render(main, ctx) {
     var me = store.currentUser();
@@ -71,7 +131,8 @@ window.MRT.views.lots = (function () {
       if (view.mine && (!me || l.owner_id !== me.id)) return false;
       if (!q) return true;
       var hay = [l.lot_number, code('projects', l.project_id), code('part_numbers', l.part_number_id),
-                 code('buildups', l.buildup_id), userName(l.owner_id), l.note].join(' ');
+                 code('buildups', l.buildup_id), userName(l.owner_id), l.note].concat(store.list('lot_fields', { all: true }).map(function (f) {
+                   return answerText(f, (l.extra || {})[f.id]); })).join(' ');
       return D.normalizeName(hay).indexOf(q) !== -1;
     }).sort(function (a, b) { return a.created_ts < b.created_ts ? 1 : a.created_ts > b.created_ts ? -1 : 0; });
   }
@@ -82,7 +143,10 @@ window.MRT.views.lots = (function () {
       rows.map(function (l) {
         var edit = D.canEditLot(me, l);
         return { id: 'row-' + l.id, cells: [
-          ui.el('b', { class: 'mono', text: l.lot_number }),
+          ui.el('span', { class: 'cell-main' }, [
+            ui.el('a', { class: 'mono lot-link', href: '#/lots/' + l.id, text: l.lot_number, title: 'All details of lot ' + l.lot_number,
+              onclick: function (ev) { ev.preventDefault(); detailsDialog(l); } }),
+            l.sample ? k.sampleTag() : null]),
           code('projects', l.project_id) || k.muted('?'),
           l.part_number_id ? ui.el('span', { class: 'mono', text: code('part_numbers', l.part_number_id) || '?' }) : k.muted('-'),
           code('buildups', l.buildup_id) || k.muted('?'),
@@ -120,9 +184,9 @@ window.MRT.views.lots = (function () {
     var start = pnOptions(edit ? l.project_id : '', edit ? l.part_number_id : null);
     return K().editDialog({
       title: edit ? 'Edit lot ' + l.lot_number : 'Register a lot', icon: 'lots', wide: true,
-      values: edit ? { lot_number: l.lot_number, panel_count: l.panel_count, project_id: l.project_id, part_number_id: start.value,
+      values: Object.assign(edit ? { lot_number: l.lot_number, panel_count: l.panel_count, project_id: l.project_id, part_number_id: start.value,
                        buildup_id: l.buildup_id, note: l.note || '' }
-                   : { lot_number: '', panel_count: null, project_id: '', part_number_id: '', buildup_id: '', note: '' },
+                   : { lot_number: '', panel_count: null, project_id: '', part_number_id: '', buildup_id: '', note: '' }, extraValues(l)),
       fields: [
         { key: 'lot_number', label: 'Lot number', kind: 'text', mono: true, cls: 'half', placeholder: 'e.g. 18178 or 18178.01',
           hint: 'A split lot adds .01, .02 ...' },
@@ -132,7 +196,7 @@ window.MRT.views.lots = (function () {
           hint: 'The part numbers of the project (Settings > Lists).' },
         { key: 'buildup_id', label: 'Build-up', kind: 'select', cls: 'half', options: options('buildups', edit ? l.buildup_id : null, '- pick a build-up -') },
         { key: 'note', label: 'Note (optional)', kind: 'longtext', placeholder: 'e.g. panels 3-4 have a known scratch' }
-      ],
+      ].concat(extraSpecs(l)),
       onForm: function (f) {
         var prj = f.control('project_id');
         prj.addEventListener('change', function () {
@@ -150,10 +214,30 @@ window.MRT.views.lots = (function () {
         return null;
       },
       save: function (v) {
-        return store.saveLot({ id: edit ? l.id : undefined, version: edit ? l.version : undefined, fields: v });
+        var core = { lot_number: v.lot_number, panel_count: v.panel_count, project_id: v.project_id, part_number_id: v.part_number_id,
+                     buildup_id: v.buildup_id, note: v.note, extra: extraFrom(v) };
+        return store.saveLot({ id: edit ? l.id : undefined, version: edit ? l.version : undefined, fields: core });
       },
       done: edit ? 'Saved.' : 'Lot registered.'
     }).catch(function (e) { if (!K().quiet(e)) ui.toastError(e.message, e); });
+  }
+
+  /** Everything about a lot, lot fields included (the table shows only the core). */
+  function detailsDialog(l) {
+    var ex = l.extra || {};
+    function row(label, value) { return [ui.el('dt', { text: label }), ui.el('dd', {}, value === null || value === '' ? K().muted('-') : value)]; }
+    var rows = [
+      row('Project', code('projects', l.project_id)), row('Part number', code('part_numbers', l.part_number_id)),
+      row('Build-up', code('buildups', l.buildup_id)), row('Panels', String(l.panel_count)),
+      row('Owner', userName(l.owner_id)), row('Registered', ui.formatTs(l.created_ts)), row('Note', l.note || null)
+    ].concat(store.list('lot_fields', { all: true }).filter(function (f) { return f.active !== false || !D.isEmptyAnswer(ex[f.id]); }).map(function (f) {
+      return row(f.label, answerText(f, ex[f.id]) || null);
+    }));
+    var me = store.currentUser();
+    ui.dialog({ title: 'Lot ' + l.lot_number + (l.sample ? ' (sample)' : ''), icon: 'lots', wide: true,
+      body: [ui.el('dl', { class: 'facts' }, [].concat.apply([], rows)), ui.el('p', { class: 'muted', text: 'Requests on this lot appear here from M2 step 4.' })],
+      actions: D.canEditLot(me, l) ? [{ label: 'Close', value: null }, { label: 'Edit', kind: 'primary', value: 'edit' }] : [{ label: 'Close', value: null }]
+    }).then(function (v) { if (v === 'edit') lotDialog(l); });
   }
 
   function deleteButton(l) {

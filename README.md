@@ -18,7 +18,9 @@ BKMs. The tool's quality engineers and admins set the status here.
 
 **Lots** - register a lot: lot number (18178, split lot 18178.01), project,
 part number (of that project), build-up, panel count, note. Any engineer
-registers one; the owner or an admin changes it.
+registers one; the owner or an admin changes it. Admins add further lot
+fields (purpose, started on, status ...) in Settings > Lists > Lot fields.
+To try it: Settings > Data & PIN > "Add 3 sample lots".
 
 **Away** - your name (top right) > "I'm away...": first and last day and an
 optional note, never a reason. Shown on Lab status, People and Health.

@@ -198,6 +198,67 @@ window.MRT.views.settings = (function () {
         } });
     },
 
+    /**
+     * Add / edit an admin-defined field (tool extra field or lot field).
+     * o: {collection, f (the field or null), titleNew, base (fields for a new one, e.g. {tool_id}),
+     *     typeOptions ([{value, label}] for "Only for these measurement types"; omit for lot fields)}
+     */
+    fieldDialog: function (o) {
+      var f = o.f, edit = !!f, hasTypes = !!o.typeOptions;
+      var isChoice = function (v) { return v.type === 'choice' || v.type === 'multichoice'; };
+      var specs = [
+        { key: 'label', label: 'Label', kind: 'text', placeholder: 'e.g. Cut depth' },
+        { key: 'type', label: 'Type', kind: 'select', cls: 'half', options: D.FIELD_TYPES.map(function (t) { return { value: t, label: D.FIELD_TYPE_LABEL[t] }; }) },
+        { key: 'required', label: 'Required', kind: 'check', cls: 'half' },
+        { key: 'unit', label: 'Unit', kind: 'text', cls: 'half', placeholder: 'e.g. µm', showIf: function (v) { return v.type === 'number'; } },
+        { key: 'min', label: 'Min (optional)', kind: 'number', cls: 'half', showIf: function (v) { return v.type === 'number'; } },
+        { key: 'max', label: 'Max (optional)', kind: 'number', cls: 'half', showIf: function (v) { return v.type === 'number'; } },
+        { key: 'choices', label: 'Choices, one per line', kind: 'longtext', showIf: isChoice,
+          hint: 'Renaming keeps old answers. A removed choice is hidden, not deleted.' },
+        { key: 'help', label: 'Help text (optional)', kind: 'text', placeholder: 'Shown under the field on the form' }
+      ];
+      if (hasTypes) specs.push({ key: 'type_ids', label: 'Only for these measurement types (none ticked = all)', kind: 'checks', options: o.typeOptions });
+      specs.push({ key: 'active', label: 'Active (untick to hide)', kind: 'check' });
+      return kit.editDialog({
+        title: edit ? 'Edit field ' + f.label : o.titleNew, icon: 'sliders', wide: true,
+        intro: edit && f.sample ? 'A sample field (first ideas). Change it, or save it as it is to confirm it as real.' : null,
+        values: edit ? { label: f.label, type: f.type, required: !!f.required, help: f.help || '', unit: f.unit || '',
+                         min: f.min, max: f.max, choices: (f.choices || []).filter(function (c) { return c.active !== false; }).map(function (c) { return c.label; }).join('\n'),
+                         type_ids: f.type_ids || [], active: f.active !== false }
+                     : { type: 'text', active: true, type_ids: [] },
+        fields: specs,
+        check: function (v) {
+          if (!v.label) return ['label', 'Enter a label'];
+          if (v.type === 'number' && (isNaN(v.min) || isNaN(v.max))) return [isNaN(v.min) ? 'min' : 'max', 'Enter a number or leave it empty'];
+          if (isChoice(v) && v.choices.split('\n').filter(function (x) { return x.trim(); }).length < 2) return ['choices', 'Enter at least two choices, one per line'];
+          return null;
+        },
+        save: function (v) {
+          var fields = { label: v.label, type: v.type, required: v.required, help: v.help, active: v.active };
+          if (hasTypes) fields.type_ids = v.type_ids;
+          if (v.type === 'number') { fields.unit = v.unit; fields.min = v.min; fields.max = v.max; }
+          if (isChoice(v)) {
+            // match lines to existing choices by name, so their IDs (and old answers) stay
+            var old = (edit && f.choices) || [];
+            fields.choices = v.choices.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).map(function (label) {
+              var same = old.filter(function (c) { return D.normalizeName(c.label) === D.normalizeName(label); })[0];
+              return { id: same ? same.id : undefined, label: label, active: true };
+            });
+          }
+          return store.saveEntry(o.collection, { id: edit ? f.id : undefined, version: edit ? f.version : undefined,
+            fields: edit ? fields : Object.assign({}, o.base || {}, fields), reason: 'Settings' });
+        },
+        done: edit ? 'Saved.' : 'Field added.'
+      });
+    },
+
+    /** "Short text", "Number (µm)", "One choice: A / B" for a field list. */
+    fieldKind: function (f) {
+      var extra = f.type === 'number' && f.unit ? ' (' + f.unit + ')' : (f.type === 'choice' || f.type === 'multichoice')
+        ? ': ' + (f.choices || []).filter(function (c) { return c.active !== false; }).map(function (c) { return c.label; }).join(' / ') : '';
+      return D.FIELD_TYPE_LABEL[f.type] + extra;
+    },
+
     /** Edit button that opens a dialog. */
     editButton: function (label, onClick) {
       return ui.button('', { kind: 'ghost', size: 'sm', icon: 'edit', ariaLabel: 'Edit ' + label, title: 'Edit ' + label, onClick: onClick });
