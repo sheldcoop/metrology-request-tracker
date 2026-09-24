@@ -24,6 +24,8 @@
  *             fields[]: { label, type (text | longtext | number | choice | multichoice |
  *                         yesno | date | path), required, help, unit, min, max,
  *                         choices: ['A', 'B'], only_for: [type names] }
+ *   part_numbers[]: { code (capitals, digits, - . _ /), description, projects: [project codes] }
+ *             (DECISIONS M1-13: one part number may belong to several projects)
  *   closing_days[]: { date: 'YYYY-MM-DD', name }  - company closing days (not public holidays)
  *   public_holidays: Austrian public holidays are added for this year and next, by rule.
  */
@@ -50,6 +52,10 @@ window.MRT.seed = {
     { code: 'SHIFT', name: '' },
     { code: 'HORUS', name: '' }
   ],
+  // Part numbers per project (DECISIONS M1-13). None known yet - admins add them in
+  // Settings > Lists; real ones go here too so a new data file starts with them.
+  part_numbers: [],
+
   buildups: ['BU-01', 'BU-02', 'BU-03', 'BU-04', 'BU-05', 'TEST', 'DOE', 'OPT'],
 
   // Q24 - the five tools are real. Their types and BKMs are SAMPLE (fake) for now;

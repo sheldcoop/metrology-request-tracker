@@ -22,11 +22,11 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 1;
+  var SCHEMA_VERSION = 2;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
-    'projects', 'buildups', 'priorities', 'holidays', 'audit_log'
+    'projects', 'part_numbers', 'buildups', 'priorities', 'holidays', 'audit_log'
   ];
 
   /** In-memory state. `data` is the loaded file; never mutate it from a screen. */
@@ -147,6 +147,13 @@ window.MRT.store = (function () {
     data.projects = (S.projects || []).map(function (p) {
       return { id: newId('prj'), code: p.code, name: p.name || '', active: true, version: 1 };
     });
+    var prjIds = {};
+    data.projects.forEach(function (p) { prjIds[p.code] = p.id; });
+    data.part_numbers = (S.part_numbers || []).map(function (x) {
+      (x.projects || []).forEach(function (c) { assert(prjIds[c], 'seed.js: part number "' + x.code + '" names an unknown project "' + c + '"', 'bad_seed'); });
+      return sampleFlag({ id: newId('pn'), code: x.code, description: x.description || '',
+                          project_ids: (x.projects || []).map(function (c) { return prjIds[c]; }), active: true, version: 1 }, x);
+    });
     data.buildups = (S.buildups || []).map(function (c) {
       return { id: newId('bld'), code: c, name: '', active: true, version: 1 };
     });
@@ -257,9 +264,12 @@ window.MRT.store = (function () {
 
   /**
    * Schema upgrades, one numbered step each: MIGRATIONS[n] turns version n
-   * into n + 1. None yet - version 1 is the first. Add steps here, with a test.
+   * into n + 1. Add steps here, with a test.
    */
-  var MIGRATIONS = {};
+  var MIGRATIONS = {
+    // 1 -> 2: part numbers, linked to projects (DECISIONS M1-13). Old files have none.
+    1: function (d) { if (!Array.isArray(d.part_numbers)) d.part_numbers = []; }
+  };
 
   function migrate(data) {
     assert(data.schema_version <= SCHEMA_VERSION,
@@ -657,6 +667,7 @@ window.MRT.store = (function () {
     tool_fields:       { prefix: 'fld',   label: 'field',            fields: ['tool_id', 'label', 'type', 'required', 'help', 'unit', 'min', 'max', 'choices', 'type_ids', 'active', 'sort'] },
     bkms:              { prefix: 'bkm',   label: 'BKM',              fields: ['tool_id', 'type_id', 'name', 'path', 'doc_version', 'active'] },
     projects:          { prefix: 'prj',   label: 'project',          fields: ['code', 'name', 'active'] },
+    part_numbers:      { prefix: 'pn',    label: 'part number',      fields: ['code', 'description', 'project_ids', 'active'] },
     buildups:          { prefix: 'bld',   label: 'build-up',         fields: ['code', 'name', 'active'] },
     priorities:        { prefix: 'prio',  label: 'priority',         fields: ['code', 'name', 'level', 'needs_reason', 'is_default', 'active'] },
     holidays:          { prefix: 'hol',   label: 'holiday',          fields: ['date', 'name', 'kind'] }
@@ -671,6 +682,7 @@ window.MRT.store = (function () {
     tool_fields: { required: false, help: '', unit: '', min: null, max: null, choices: [], type_ids: [], active: true },
     bkms: { type_id: null, doc_version: '', active: true },
     projects: { name: '', active: true },
+    part_numbers: { description: '', project_ids: [], active: true },
     buildups: { name: '', active: true },
     priorities: { needs_reason: false, is_default: false, active: true },
     holidays: { kind: 'closing', source: 'manual' }
@@ -679,7 +691,7 @@ window.MRT.store = (function () {
   /** Tidy what people type: codes upper case, IDs lower case, text trimmed. */
   function normalize(collection, f) {
     var o = clone(f);
-    ['name', 'label', 'help', 'unit', 'status_note', 'doc_version', 'results_root', 'path'].forEach(function (k) {
+    ['name', 'label', 'help', 'unit', 'status_note', 'doc_version', 'results_root', 'path', 'description'].forEach(function (k) {
       if (typeof o[k] === 'string') o[k] = o[k].trim();
     });
     if (typeof o.code === 'string') o.code = o.code.trim().toUpperCase();
@@ -692,6 +704,7 @@ window.MRT.store = (function () {
       if (o[k] === '') o[k] = null;
     });
     ['min', 'max'].forEach(function (k) { if (o[k] === '') o[k] = null; });
+    if (Array.isArray(o.project_ids)) o.project_ids = o.project_ids.filter(function (id, i) { return id && o.project_ids.indexOf(id) === i; });
     if (Array.isArray(o.choices)) {
       o.choices = o.choices.map(function (c) {
         return { id: c.id || newId('ch'), label: String(c.label || '').trim(), active: c.active !== false };
@@ -791,12 +804,13 @@ window.MRT.store = (function () {
   /**
    * What points at a list entry. An entry can be deleted only while nothing
    * does; otherwise it is hidden instead (Q47). Requests and lots join this
-   * table in M2.
+   * table in M2 (lots will point at projects, part numbers and build-ups).
    */
   var USES = {
     tools: [['measurement_types', 'tool_id', 'measurement type'], ['tool_fields', 'tool_id', 'field'], ['bkms', 'tool_id', 'BKM']],
     measurement_types: [['bkms', 'type_id', 'BKM'], ['tool_fields', 'type_ids', 'field']],
-    tool_fields: [], bkms: [], projects: [], buildups: [], priorities: [], holidays: []
+    projects: [['part_numbers', 'project_ids', 'part number']],
+    tool_fields: [], bkms: [], part_numbers: [], buildups: [], priorities: [], holidays: []
   };
 
   /** {count, text} - text like "5 measurement types, 1 BKM". */

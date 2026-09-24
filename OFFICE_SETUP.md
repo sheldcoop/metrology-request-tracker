@@ -47,6 +47,8 @@ lists it until it is edited or deleted.
       OPEN_QUESTIONS #14.
 - [ ] **Results roots**: the real share folder per tool (e.g. `\\server\lab\FIB`).
 - [ ] **Extra fields per tool**: none yet (OPEN_QUESTIONS #5).
+- [ ] **Part numbers**: none yet. Add them in Settings > Lists and tick their
+      project(s) (DECISIONS M1-13); real ones also go into `js/seed.js`.
 - [ ] **People and roles**: only the first admin exists. Colleagues add
       themselves on first open (as Engineer); set their roles in Settings > Users.
 

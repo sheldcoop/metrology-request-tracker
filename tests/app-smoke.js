@@ -267,6 +267,15 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   doc.getElementById('main').querySelectorAll('button').filter(b => b.getAttribute('aria-label') === 'Edit NOVA')[0].click(); await settle();
   dlg2 = openDialog(); buttonByText(dlg2, 'Save').click(); await settle();
   check('saving unchanged closes quietly (no error in a dialog)', !openDialog() && !/could not|Could not/.test(text('toasts')));
+  const pnPanel = doc.getElementById('main').querySelectorAll('section').filter(x => /Part numbers/.test(x.textContent))[0];
+  check('Lists has a Part numbers panel, empty at first', !!pnPanel && /None yet/.test(pnPanel.textContent));
+  buttonByText(pnPanel, 'Add').click(); await settle();
+  dlg2 = openDialog(); setVal(fieldIn(dlg2, 'Part number'), 'pn-77'); buttonByText(dlg2, 'Save').click(); await settle();
+  check('a part number without a project is refused in the dialog', openDialog() === dlg2 && /at least one project/.test(dlg2.textContent));
+  tickIn(dlg2, 'C4F').checked = true; tickIn(dlg2, 'NOVA').checked = true; buttonByText(dlg2, 'Save').click(); await settle();
+  const pn77 = MRT.store.list('part_numbers').filter(x => x.code === 'PN-77')[0];
+  check('...with two projects it is added (M1-13)', !!pn77 && pn77.project_ids.length === 2 && !openDialog());
+  check('...and shown with its project codes', /PN-77/.test(mainText()) && /NOVA/.test(mainText()));
 
   await tab('calendar');
   check('the calendar says it is not confirmed', /Not confirmed yet/.test(mainText()));

@@ -143,7 +143,8 @@
     var base = { users: [{ id: 'u1', name: 'A', windows_id: 'aa', roles: ['admin'], active: true, email: 'a@corp.com' }],
                  tools: [{ id: 't1', code: 'FIB' }, { id: 't2', code: 'QVM' }],
                  measurement_types: [{ id: 'm1', tool_id: 't1', name: 'Via cross-section' }],
-                 tool_fields: [], bkms: [], projects: [{ id: 'p1', code: 'C4F' }], buildups: [],
+                 tool_fields: [], bkms: [], projects: [{ id: 'p1', code: 'C4F' }, { id: 'p2', code: 'SHIFT' }], buildups: [],
+                 part_numbers: [{ id: 'pn1', code: 'PN-100', project_ids: ['p1'] }],
                  priorities: [{ id: 'r1', code: 'P1' }], holidays: [{ id: 'h1', date: '2026-12-25' }] };
     function probs(c, r) { return D.validateEntry(c, r, base); }
     var goodTool = { code: 'SEM', name: 'SEM', status: 'up' };
@@ -170,6 +171,14 @@
     ok('a BKM type must be of its tool', probs('bkms', { tool_id: 't2', type_id: 'm1', name: 'x', path: 'Z:\\b.pdf' }).length === 1);
     ok('project codes are unique', probs('projects', { code: 'C4F' }).length === 1);
     ok('build-up codes allow dashes', !probs('buildups', { code: 'BU-06' }).length);
+    eq('a part number in two projects (M1-13)', probs('part_numbers', { code: 'PN-200.A/01', project_ids: ['p1', 'p2'] }), []);
+    ok('part numbers are unique across projects', probs('part_numbers', { code: 'PN-100', project_ids: ['p2'] }).length === 1);
+    ok('...editing it keeps its own code', !probs('part_numbers', { id: 'pn1', code: 'PN-100', project_ids: ['p1', 'p2'] }).length);
+    ok('a part number needs a project', probs('part_numbers', { code: 'PN-300', project_ids: [] }).length === 1);
+    ok('...a project that exists', probs('part_numbers', { code: 'PN-300', project_ids: ['gone'] }).length === 1);
+    ok('...ticked once', probs('part_numbers', { code: 'PN-300', project_ids: ['p1', 'p1'] }).length === 1);
+    ok('part numbers: capitals, digits, - . _ / only', !D.isPartNumber('pn-1') && !D.isPartNumber('PN 1') && !D.isPartNumber('-PN') && D.isPartNumber('AB_12.3/4-X'));
+    ok('...up to 30 characters', D.isPartNumber(new Array(31).join('A')) && !D.isPartNumber(new Array(32).join('A')));
     ok('a holiday date is listed once', probs('holidays', { date: '2026-12-25', name: 'x', kind: 'closing' }).length === 1);
     ok('a Windows ID belongs to one person', probs('users', { name: 'B', roles: ['engineer'], windows_id: 'aa' }).length === 1);
     ok('an email belongs to one person', probs('users', { name: 'B', roles: ['engineer'], email: 'A@corp.com' }).length === 1);
@@ -181,7 +190,7 @@
     /* =============== store: first run and seed =============== */
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 1, revision 0', [seed.schema_version, seed.revision], [1, 0]);
+    eq('schema 2, revision 0', [seed.schema_version, seed.revision], [2, 0]);
     ok('every collection is present', ST.COLLECTIONS.every(function (c) { return Array.isArray(seed[c]); }));
     eq('no people in a new file', seed.users.length, 0);
     eq('five tools, all Up', seed.tools.map(function (t) { return t.code + ':' + t.status; }), ['HRM:up', 'AOI:up', 'PRF:up', 'QVM:up', 'FIB:up']);
@@ -194,6 +203,7 @@
     eq('Line stop and Hot need a reason', seed.priorities.filter(function (p) { return p.needs_reason; }).map(function (p) { return p.code; }), ['P1', 'P2']);
     eq('projects as in ABF', seed.projects.map(function (p) { return p.code; }), ['C4F', 'SHIFT', 'HORUS']);
     eq('build-ups as in ABF', seed.buildups.map(function (b) { return b.code; }), ['BU-01', 'BU-02', 'BU-03', 'BU-04', 'BU-05', 'TEST', 'DOE', 'OPT']);
+    eq('no part numbers yet (none known)', seed.part_numbers, []);
     eq('holidays of this year and next', seed.holidays.length, 26);
     eq('first and last holiday', [seed.holidays[0].date, seed.holidays[25].date], ['2026-01-01', '2027-12-26']);
     ok('every seeded list entry is valid', ['tools', 'measurement_types', 'bkms', 'projects', 'buildups', 'priorities', 'holidays'].every(function (c) {
@@ -208,7 +218,9 @@
     // seed.js can carry real extra fields and closing days - no code change needed
     var custom = { calendar: { days: [1, 2, 3, 4, 5, 6], start: '06:00', end: '22:00' },
                    closing_days: [{ date: '2026-12-24', name: 'Christmas Eve' }, { date: '2026-12-25', name: 'dup of a public holiday' }],
-                   priorities: [{ code: 'P1', name: 'Normal', level: 1, is_default: true }], projects: [], buildups: [],
+                   priorities: [{ code: 'P1', name: 'Normal', level: 1, is_default: true }], buildups: [],
+                   projects: [{ code: 'C4F' }, { code: 'NOVA' }],
+                   part_numbers: [{ code: 'PN-1', description: 'Test board', projects: ['C4F', 'NOVA'] }],
                    tools: [{ code: 'SEM', name: 'SEM', glyph: 'generic', results_root: '\\\\srv\\lab\\SEM',
                      types: [{ name: 'Top view' }, { name: 'Tilt view', sample: true }],
                      bkms: [{ name: 'SEM BKM', type: 'Top view', path: 'Z:\\BKM\\sem.pdf', doc_version: 'v3' }],
@@ -220,13 +232,16 @@
     eq('seed: a real BKM links its type by name', cs.bkms[0].type_id, cs.measurement_types[0].id);
     eq('seed: extra fields with unit, limits and "only for"', [cs.tool_fields[0].unit, cs.tool_fields[0].max, cs.tool_fields[0].type_ids[0]], ['deg', 60, cs.measurement_types[1].id]);
     eq('seed: choices get IDs', cs.tool_fields[1].choices.map(function (c) { return c.label + ':' + /^ch_/.test(c.id); }), ['SE:true', 'BSE:true']);
-    ok('seed: every entry is valid', ['tools', 'measurement_types', 'tool_fields', 'bkms', 'holidays'].every(function (c) {
+    eq('seed: a part number links its projects by code', cs.part_numbers[0].project_ids, [cs.projects[0].id, cs.projects[1].id]);
+    ok('seed: every entry is valid', ['tools', 'measurement_types', 'tool_fields', 'bkms', 'holidays', 'part_numbers'].every(function (c) {
       return cs[c].every(function (r) { return !D.validateEntry(c, r, cs).length; }); }));
     eq('seed: closing day added, a date already a public holiday is skipped',
        cs.holidays.filter(function (h) { return h.kind === 'closing'; }).map(function (h) { return h.date; }), ['2026-12-24']);
     ok('seed: holidays in date order', cs.holidays.every(function (h, i) { return !i || cs.holidays[i - 1].date <= h.date; }));
     try { ST._pure.seedData(0, { tools: [{ code: 'X', name: 'X', types: [], bkms: [{ name: 'b', type: 'nope', path: 'Z:\\b' }] }] }); record(false, 'seed: a BKM with an unknown type is refused'); }
     catch (x) { eq('seed: a BKM with an unknown type is refused', x.code, 'bad_seed'); }
+    try { ST._pure.seedData(0, { tools: [], projects: [{ code: 'C4F' }], part_numbers: [{ code: 'PN-1', projects: ['NOPE'] }] }); record(false, 'seed: a part number with an unknown project is refused'); }
+    catch (x) { eq('seed: a part number with an unknown project is refused', x.code, 'bad_seed'); }
 
     var a = await freshStore();
     ok('first load writes the file', !!a.files[cfg.data_file]);
@@ -348,6 +363,20 @@
     await ST.updateCalendar({ days: [6, 1, 2, 3, 4, 5], start: '06:00', end: '22:00' }, 'two shifts');
     eq('a new calendar is stored, days in order', ST.calendar(), { days: [1, 2, 3, 4, 5, 6], start: '06:00', end: '22:00' });
 
+    var prj = ST.list('projects');
+    var pn = await ST.saveEntry('part_numbers', { fields: { code: ' pn-10234-a ', description: ' Test vehicle ', project_ids: [prj[0].id, prj[1].id, prj[0].id] } });
+    eq('a part number: code upper case, text trimmed, projects once', [pn.code, pn.description, pn.project_ids], ['PN-10234-A', 'Test vehicle', [prj[0].id, prj[1].id]]);
+    ok('...ID prefix pn_, audited', /^pn_/.test(pn.id) && ST.data().audit_log.slice(-1)[0].entity === 'part_number');
+    await refused('the same part number twice is refused', ST.saveEntry('part_numbers', { fields: { code: 'PN-10234-A', project_ids: [prj[2].id] } }), 'invalid');
+    await refused('a part number without a project is refused', ST.saveEntry('part_numbers', { fields: { code: 'PN-2', project_ids: [] } }), 'invalid');
+    eq('a project used by a part number counts as used', ST.entryUsage('projects', prj[1].id).text, '1 part number');
+    await refused('...so it cannot be deleted', ST.deleteEntry('projects', prj[1].id, 'test'), 'in_use');
+    await ST.saveEntry('part_numbers', { id: pn.id, fields: { project_ids: [prj[0].id] } });
+    await ST.deleteEntry('projects', prj[1].id, 'unused now');
+    eq('once unlinked, the project can go', ST.byId('projects', prj[1].id), null);
+    await ST.deleteEntry('part_numbers', pn.id, 'test');
+    eq('an unused part number can be deleted', ST.byId('part_numbers', pn.id), null);
+
     /* =============== store: tool status =============== */
     group('Store: tool status (Q27)');
     a = await adminStore();
@@ -381,6 +410,7 @@
     ok('...calendar unconfirmed, no closing days', codes(todo).indexOf('calendar_unconfirmed') !== -1 && codes(todo).indexOf('no_closing_days') !== -1);
     ok('...next year\'s holidays are there already', codes(todo).indexOf('no_holidays_next_year') === -1);
     ok('...a single admin is flagged', codes(todo).indexOf('one_admin') !== -1);
+    ok('...no part numbers yet', codes(todo).indexOf('no_part_numbers') !== -1);
     ok('every item says where to fix it', todo.every(function (x) { return x.severity === 'todo' && !!x.tab; }));
     var hs2 = JSON.parse(JSON.stringify(hs));
     hs2.measurement_types.forEach(function (m) { delete m.sample; });
@@ -388,6 +418,7 @@
     hs2.users.push({ id: 'u2', name: 'Olga', roles: ['quality'], active: true }, { id: 'u3', name: 'Otto', roles: ['quality', 'admin'], active: true });
     hs2.tools.forEach(function (t) { t.primary_operator_id = 'u2'; t.backup_operator_id = 'u3'; t.results_root = '\\\\srv\\lab\\' + t.code; });
     hs2.holidays.push({ id: 'hx', date: '2026-12-24', name: 'Christmas Eve', kind: 'closing' });
+    hs2.part_numbers.push({ id: 'pnx', code: 'PN-1', project_ids: [hs2.projects[0].id], active: true });
     eq('all set up: the list is empty', D.setupTodo(hs2, { today_ymd: '2026-09-24', calendar_confirmed: true }), []);
     ok('late in the year without next year\'s holidays: flagged', codes(D.setupTodo(hs2, { today_ymd: '2027-11-01', calendar_confirmed: true })).indexOf('no_holidays_next_year') !== -1);
     hs2.users.push({ id: 'u4', name: 'New Nora', roles: ['engineer'], active: true, needs_review: true });
@@ -408,6 +439,11 @@
     eq('a primary/backup without the Quality engineer role is a warning', countOf(hi, 'operator_no_role'), 5);
     ok('Down past its until date is a warning', countOf(hi, 'status_overdue') === 1 && /FIB/.test(hi.filter(function (x) { return x.code === 'status_overdue'; })[0].text));
     ok('a user without roles is a warning', countOf(hi, 'user_no_role') === 1);
+    hb.part_numbers.push({ id: 'pny', code: 'PN-2', project_ids: ['gone'], active: true });
+    hb.projects[0].active = false;
+    hi = D.healthIssues(hb, { today_ymd: '2026-09-24' });
+    ok('a part number linked to a missing project is a problem', countOf(hi, 'pn_bad_project') === 1);
+    ok('an active part number whose projects are all hidden is a warning', countOf(hi, 'pn_hidden_projects') === 1);
     ok('problems, warnings, notes only', hi.every(function (x) { return ['problem', 'warning', 'note'].indexOf(x.severity) !== -1; }));
 
     a = await adminStore();
@@ -503,7 +539,12 @@
     await refused('a damaged file is reported, not overwritten', ST.load(), 'bad_json');
     eq('...and left as it was', a.files[cfg.data_file], '{ not json');
 
-    // An upgrade step, for this test only: schema 0 -> 1.
+    // Schema 1 -> 2 adds part numbers (M1-13).
+    var v1 = ST._pure.seedData(); v1.schema_version = 1; delete v1.part_numbers;
+    eq('schema 1 -> 2: part numbers start empty', P.migrate(v1).part_numbers, []);
+    eq('...and the file says schema 2', v1.schema_version, 2);
+
+    // An extra upgrade step, for this test only: schema 0 -> 1 (then 1 -> 2).
     P.MIGRATIONS[0] = function (d) { d.upgraded = true; };
     var v0 = ST._pure.seedData(); v0.schema_version = 0; v0.revision = 7;
     a = window.MRT.adapters.storageMemory({});
@@ -511,10 +552,10 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v1_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v2_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [1, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [2, true]);
     eq('...and the status says so until the next save', ST.status().upgradedFrom, 0);
   }
 
