@@ -270,6 +270,9 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 - **M3-1** On **Accept** the quality engineer may give an **expected done** date (optional). The
   engineer sees it on the traveller card and in My requests; with a needed-by date both show, so a
   later expected date is visible (Q10 "accepts it or proposes another").
+- **M3-2** **Needs clarification** (quality engineer, with a comment saying what is missing, Q11):
+  the engineer answers in the timeline and clicks **Answered** - the request goes back to the status
+  it had (Submitted or Accepted) and shows in the queue again.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
