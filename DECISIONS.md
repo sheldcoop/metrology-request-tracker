@@ -219,6 +219,9 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   MES", "with Anna" or anything else that helps the quality engineer find them. **Required.**
 - **M2-9** Optional **Layer** field on the request (e.g. L3, top SR). Project, part number and
   build-up (BU-01 ...) are picked on the lot and shown on every request of it.
+- **M2-10** No "sites / where on the panel" field: **the BKM says where and what to measure** (Q13 -
+  pick one from the library or paste the path of the engineer's own BKM PowerPoint). Without a BKM
+  the purpose must describe it (Q45).
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
