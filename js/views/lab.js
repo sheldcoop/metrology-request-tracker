@@ -6,8 +6,8 @@
  * Maintenance, off when Down), code, status with its "until" date and
  * note, primary and backup quality engineer, and what is set up for it
  * (measurement types, BKMs). The tool's quality engineers and admins set the
- * status here (Q27). From M3 each plate also shows its queue length, the
- * oldest open request and the typical wait (Q46).
+ * status here (Q27). Each plate also shows its queue: open requests (late
+ * ones counted), the oldest open request and the typical wait (Q46).
  *
  * #/lab/<tool id> scrolls to that tool and marks it (from the search).
  */
@@ -47,7 +47,7 @@ window.MRT.views.lab = (function () {
     var count = { up: 0, maintenance: 0, down: 0 };
     tools.forEach(function (t) { count[t.status] = (count[t.status] || 0) + 1; });
 
-    main.appendChild(ui.pageHead('Lab status', 'Every tool, its state and who runs it. Queue lengths follow in M3.'));
+    main.appendChild(ui.pageHead('Lab status', 'Every tool, its state, who runs it and its queue. Waits count lab time.'));
 
     if (!tools.length) {
       main.appendChild(ui.emptyState({ icon: 'wrench', title: 'No tools yet', text: 'An admin adds tools in Settings.' }));
@@ -80,6 +80,8 @@ window.MRT.views.lab = (function () {
     var samples = types.filter(function (m) { return m.sample; }).length + bkms.filter(function (b) { return b.sample; }).length;
     var canSet = D.canSetToolStatus(me, t);
     var today = D.viennaYmd(Date.now());
+    var q = D.toolQueueStats(store.visibleRequests(), t.id, Date.now(), store.calendar(), D.holidaySet(store.data().holidays));
+    function hrs(ms) { return ui.formatDurationH(ms / 3600000); }
 
     function row(label, value, cls) {
       return [ui.el('dt', { text: label }), typeof value === 'string' ? ui.el('dd', { class: cls || null, text: value }) : ui.el('dd', { class: cls || null }, value)];
@@ -105,7 +107,9 @@ window.MRT.views.lab = (function () {
         row('Backup quality engineer', person(t.backup_operator_id, today) || 'not set', t.backup_operator_id ? null : 'is-missing'),
         row('Measurement types', String(types.length), 'num'),
         row('BKMs', String(bkms.length), 'num'),
-        row('Queue', 'from M3', 'is-missing')
+        row('Queue', q.open ? ui.el('a', { href: '#/board', text: q.open + ' open' + (q.late ? ', ' + q.late + ' late' : '') }) : '0 open', q.late ? 'is-late num' : 'num'),
+        row('Oldest open', q.oldest ? ui.el('a', { class: 'mono', href: '#/request/' + q.oldest.id, text: q.oldest.request_no + '  ·  ' + hrs(q.oldest_lab_ms) }) : '-'),
+        row('Typical wait', q.wait_ms === null ? 'no data yet' : hrs(q.wait_ms) + ' lab time (last ' + q.wait_n + ')', q.wait_ms === null ? 'is-missing' : null)
       ]),
       samples ? ui.el('div', { class: 'tool-plate-sample', title: 'Made-up entries until the engineers confirm them (Settings)' },
                       [ui.icon('info', 14), ui.el('span', { text: samples + ' sample entries' })]) : null,

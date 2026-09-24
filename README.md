@@ -15,7 +15,8 @@ No server, no build step, no internet.
 
 **Lab status** - every tool as a nameplate: its glyph, Up / Maintenance /
 Down with an "until" date, its quality engineers, measurement types and
-BKMs. The tool's quality engineers and admins set the status here.
+BKMs and its queue (open, late, oldest, typical wait). The tool's quality
+engineers and admins set the status here.
 
 **Lots** - register a lot: lot number (18178, split lot 18178.01), project,
 part number (of that project), build-up, panel count, note. Any engineer

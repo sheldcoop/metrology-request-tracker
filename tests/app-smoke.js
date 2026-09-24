@@ -500,6 +500,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const refusedToast = text('toasts'); await settle();
   check('...a drop where it may not go says so and changes nothing', MRT.store.byId('requests', qN.id).status === 'accepted' && /cannot go there/.test(refusedToast));
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
+  win.setHash('#/lab'); await settle();
+  const fibPlateQ = $$('#main .tool-plate').filter(p => /FIB/.test(p.textContent))[0];
+  check('Lab status shows each tool\'s queue: open, oldest open, typical wait (Q46)', /2 open/.test(fibPlateQ.textContent) && /Oldest open/.test(fibPlateQ.textContent) && /lab time \(last/.test(fibPlateQ.textContent));
+  win.setHash('#/board'); await settle();
   check('an engineer reads the board, drags nothing', $$('#main .bcard').length >= 2 && !$$('#main .bcard').some(c => c.getAttribute('draggable') === 'true'));
   MRT.store.setCurrentUser(meP);
 
