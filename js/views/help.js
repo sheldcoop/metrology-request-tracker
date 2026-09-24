@@ -103,7 +103,8 @@ window.MRT.views.help = (function () {
         'Timeline: every status change and comment. Write @Name (or @windowsid) to point someone at a comment - they are notified from M4.',
         'Cancel request (requester, the tool\'s quality engineers, admins): give a reason. A cancelled request stays visible, never deleted.'
       ],
-      tips: ['Edit request (requester): change anything but the tool, with a reason - the timeline shows each change.'],
+      tips: ['Edit request (requester): change anything but the tool, with a reason - the timeline shows each change.',
+             'Print slip: an A6 traveller card with the request ID as a barcode, to put with the panels. A hand scanner reading it (anywhere in the app, not in a text field) opens the request.'],
       link: ['New request', '#/new'] },
 
     { id: 'my-requests', title: 'My requests (engineers)', icon: 'requests',

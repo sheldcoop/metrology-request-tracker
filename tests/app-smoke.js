@@ -39,10 +39,10 @@ console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
 ['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/seed.js', 'js/store.js', 'js/identity.js',
- 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js',
+ 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -453,6 +453,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('the requester now sees Results OK and Reopen (Q34)', !!buttonByText($('#main .req-actbar'), 'Results OK') && !!buttonByText($('#main .req-actbar'), 'Reopen'));
   buttonByText($('#main .req-actbar'), 'Results OK').click(); await settle();
   check('...Results OK: stamp Closed', $('#main .tr-stamp').textContent === 'Closed' && !$('#main .req-actbar'));
+  buttonByText(doc.getElementById('main'), 'Print slip').click(); await settle();
+  check('Print slip: the A6 traveller slip with the ID, its barcode and the panels (Q38)', !!$('#main .slip') && $('#main .slip-id').textContent === req2.request_no &&
+        $('#main .barcode').querySelectorAll('rect').length > 30 && /DESTROYS THESE PANELS/.test($('#main .slip').textContent));
+  win.setHash('#/lab'); await settle();
+  req2.request_no.split('').concat(['Enter']).forEach(k => doc.dispatch('keydown', { key: k, target: doc.body })); await settle();
+  check('a scanner typing the ID + Enter anywhere opens the request (Q38)', win.location.hash === '#/request/' + req2.id);
 
   // --- My queue (M3 step 2)
   const fibType = MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id;
