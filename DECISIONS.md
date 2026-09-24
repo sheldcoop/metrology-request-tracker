@@ -234,6 +234,8 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   run (R1).
 - **M2-15** No picture / drawing attachment for now - the BKM covers it.
 - **M2-16** No warning when priority and date do not match - the date is optional.
+- **M2-17** The tool's quality engineers may change a request's priority; a comment is optional.
+  The change shows in the timeline and the audit log; the engineer is notified from M4.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
