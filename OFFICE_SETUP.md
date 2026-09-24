@@ -71,7 +71,14 @@ lists it until it is edited or deleted.
 - [ ] Avoid `!` in the tool folder path (the launcher cannot handle it).
       Folder names with ä/ö/ü are untested.
 
-## 5. Not built yet (for reference)
+## 5. Before go-live (rollout plan, DECISIONS R1-R4)
+
+- [ ] After M3: one quality engineer and one engineer test for a few days before M4.
+- [ ] Name a second admin; hand over the PIN, backups and restore.
+- [ ] Right before M6: an anonymised sample of the old request list.
+- [ ] IT: a small server / Kubernetes slot (asked now; the shared-file version runs meanwhile).
+
+## 6. Not built yet (for reference)
 
 - ~~M1 step 4: Settings, Health, audit log, backups screen, "Change data folder".~~ Done:
   Settings > Health now shows this checklist live.
