@@ -139,3 +139,10 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   `.gitignore`; only seed/sample data for tests goes into git (under `tests/`). Updates replace
   program files only, never `data\` (README "Updating the app"). A schema upgrade writes a backup
   of the old file first.
+- **M1-5** First run (empty file): the first person becomes Admin and must set the PIN first; name
+  from a short form, Windows ID from the launcher. No seeded people.
+  Unknown Windows ID: the person may add themselves, **Engineer role only**. Before that the app
+  looks for an existing user with the same name (trimmed, case- and accent-insensitive) and asks
+  "Is this you?"; picking yes links the Windows ID (audited). A match that already has a different
+  Windows ID is not relinked: "Ask an admin". Admins are told about every self-added user: in M1 a
+  "New" mark in Settings > Users until an admin reviews it (+ audit entry); from M4 also the bell.
