@@ -26,7 +26,8 @@ const REQUIRED = {
   toast: ['.toast-progress'], tooltip: ['.tip-card'], menu: ['.menu-item'],
   chart: ['.chart-box'], heatmap: ['.heat-cell::after', '.heat-scale'],
   glyph: ['.tool-glyph .tg-beam', '.tool-glyph.is-live', '.tool-glyph.is-off', '.tool-glyph.is-maint'],
-  shell: ['.topbar', '.nav-item', '.save-led', '.undo-btn', '.alert-banner', '.gate-card'],
+  shell: ['.topbar', '.nav-item', '.save-led', '.undo-btn', '.alert-banner', '.gate-card', '.nav-item.is-soon', '.gate-error'],
+  lab: ['.tool-plate::before', '.tool-plate-facts', '.lab-grid'],
   motion: ['[data-motion="reduce"]', '.offscreen']
 };
 for (const [comp, sels] of Object.entries(REQUIRED)) {

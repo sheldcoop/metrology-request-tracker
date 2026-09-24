@@ -242,6 +242,10 @@
     eq('a wrong PIN does not', await ST.verifyPin('1357'), false);
     eq('first run cannot be undone', ST.undoInfo(), null);
     await refused('a second "first admin" is refused', ST.createFirstAdmin({ name: 'Eve', windows_id: 'eve', pin: '1111' }), 'not_first');
+    ST.signOut();
+    eq('sign out: nobody is signed in', ST.currentUser(), null);
+    await refused('...and nothing can be changed', ST.saveEntry('projects', { fields: { code: 'X' } }), 'no_user');
+    ST.setCurrentUser(first.id);
     eq('launcher ID finds the user (any case)', (ST.findUserByIdentity(D.parseWindowsLogin('PKHURANA')) || {}).id, first.id);
     eq('another domain does not', ST.findUserByIdentity(D.parseWindowsLogin('LAB\\pkhurana')), null);
 

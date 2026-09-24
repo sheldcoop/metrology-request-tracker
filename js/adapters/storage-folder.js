@@ -13,7 +13,9 @@
  *   unsupportedMessage()    what to tell the person otherwise
  *   hasSaved()              -> bool   a connection is remembered
  *   connect()               -> void   first use (asks the person)
- *   reconnect()             -> bool   later visits (false = ask again)
+ *   reconnect({silent})     -> bool   later visits (false = ask again). silent:
+ *                                     never prompt - a browser prompt needs a click
+ *   savedLabel()            -> name of the remembered connection, or null
  *   label()                 name to show (the folder name)
  *   read(path)              -> text | null (null = no such file)
  *   write(path, text)       -> void
@@ -85,15 +87,23 @@ window.MRT.adapters.storageFolder = (function () {
     });
   }
 
-  function reconnect() {
+  function reconnect(o) {
+    var silent = !!(o && o.silent);
     return idbGet().then(function (handle) {
       if (!handle) return false;
-      return handle.requestPermission({ mode: 'readwrite' }).then(function (perm) {
+      return handle.queryPermission({ mode: 'readwrite' }).then(function (perm) {
+        if (perm === 'granted' || silent) return perm;
+        return handle.requestPermission({ mode: 'readwrite' });   // needs a click
+      }).then(function (perm) {
         if (perm !== 'granted') return false;
         dir = handle;
         return true;
       });
     });
+  }
+
+  function savedLabel() {
+    return idbGet().then(function (h) { return h && h.name ? h.name : null; }).catch(function () { return null; });
   }
 
   function label() { return dir && dir.name ? dir.name : null; }
@@ -159,6 +169,7 @@ window.MRT.adapters.storageFolder = (function () {
     hasSaved: hasSaved,
     connect: connect,
     reconnect: reconnect,
+    savedLabel: savedLabel,
     label: label,
     read: read,
     write: write,
