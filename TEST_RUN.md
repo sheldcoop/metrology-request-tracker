@@ -4,6 +4,10 @@ One quality engineer (QE) and one engineer use the app for a few days on the rea
 Tick what works; write down what does not (what you did, what you expected, what happened).
 A screenshot helps. Everything else is welcome too: missing fields, confusing words, too many clicks.
 
+## Before the test run (optional)
+- [ ] Click through everything with the big demo file first (README "Trying everything with the
+      big demo file"): `demo-data\` folder, admin PIN 1234.
+
 ## 0. Admin, once (Prince)
 - [ ] Pull `main`, open with `Metrology Tool.cmd` in Edge from the share. The data file upgrades
       (pop-up about backups\ - fine).

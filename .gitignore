@@ -4,6 +4,8 @@ data/
 # ...also when a data folder was picked in the wrong place (e.g. the tool folder itself)
 mrt_data*.json
 backups/
+# the big made-up demo file (node tests/make-demo-data.js)
+demo-data/
 
 # Scratch and OS noise
 .DS_Store

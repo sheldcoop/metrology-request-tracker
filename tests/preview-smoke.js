@@ -56,6 +56,34 @@ async function boot(query, hash) {
   const btns = d.doc.getElementById('main').querySelectorAll('button').filter(b => /Set status/.test(b.textContent));
   check('?as=quality: Olga, who may set FIB and QVM only', d.win.MRT.store.currentUser().name === 'Olga Berger' && btns.length === 2, btns.length);
 
+  d = await boot('?demo=big');
+  check('?demo=big: Prince on My requests of the big demo file', /My requests/.test(d.doc.getElementById('main').textContent) &&
+        d.win.MRT.store.data().requests.length > 200 && d.win.MRT.store.currentUser().name === 'Prince Khurana');
+  d = await boot('?demo=big&as=mia', '#/queue');
+  check('?demo=big&as=mia: Mia\'s queue is full (FIB backup while Olga is away)', d.win.MRT.store.currentUser().name === 'Mia Gruber' &&
+        d.doc.getElementById('main').querySelectorAll('.q-row').length >= 10);
+
+  // every page with the big file: nothing may break, and each render is timed (fake DOM - a rough guide only)
+  d = await boot('?demo=big');
+  const errs = [];
+  const origErr = d.win.console.error;
+  d.win.console.error = (...a) => { errs.push(a.map(String).join(' ')); };
+  const someReq = d.win.MRT.store.data().requests.filter(r => r.status === 'in_progress')[0];
+  const someLot = d.win.MRT.store.data().lots.filter(l => l.load.length)[0];
+  const routes = ['#/lab', '#/queue', '#/requests', '#/new', '#/lots', '#/lots/' + someLot.id, '#/board', '#/request/' + someReq.id, '#/slip/' + someReq.id,
+    '#/settings/health', '#/settings/users', '#/settings/tools', '#/settings/lists', '#/settings/lots', '#/settings/calendar', '#/settings/audit', '#/settings/data', '#/help'];
+  let slowest = ['', 0];
+  for (const h of routes) {
+    const t0 = Date.now();
+    d.win.setHash(h);
+    for (let i = 0; i < 6; i++) { await new Promise(r => setTimeout(r, 2)); d.flush(); }
+    const ms = Date.now() - t0;
+    if (ms > slowest[1]) slowest = [h, ms];
+  }
+  d.win.console.error = origErr;
+  check('?demo=big: all ' + routes.length + ' pages render without an error', errs.length === 0, errs.slice(0, 2).join(' | '));
+  console.log('  slowest page with the big file (fake DOM): ' + slowest[0] + ' ' + slowest[1] + ' ms');
+
   d = await boot('?empty=1');
   check('?empty=1: the first-run screen', /Set up the app/.test(d.doc.getElementById('gateCard').textContent));
 
