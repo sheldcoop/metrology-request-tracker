@@ -10,6 +10,8 @@
  *   tests/preview.html                    Lab status as Prince (Admin + Engineer)
  *   tests/preview.html#/settings/tools    any page; Settings unlock by themselves (demo PIN 1234)
  *   ?as=quality | engineer | operator     sign in as Olga (Quality engineer), Erik, Mia instead
+ *   ?demo=big                             the big made-up file (tests/demo-data.js); ?as=prince|erik|mia|olga|max ...
+ *                                         any of its people by first name; a button downloads the file
  *   ?theme=dark | light | hc              ?motion=reduce       ?empty=1  first run on an empty folder
  *   ?click=<css>                          click that element after load (open a dialog), URL-encoded
  *   ?audit=1                              run tests/a11y-audit.js after load (and after the click)
@@ -118,7 +120,19 @@
   // --- the memory folder the app talks to (it waits until the demo file is ready)
   var files = {};
   var mem = MRT.adapters.storageMemory(files);
-  var ready = /[?&]empty=1/.test(q) ? Promise.resolve() : demoFile().then(function (d) {
+  // ?demo=big: the big made-up file of tests/demo-data.js (people, lots, ~260 requests in every state)
+  var big = /[?&]demo=big/.test(q);
+  function bigFile() {
+    var d = MRT.demoData({ now_ts: Date.now() });
+    return sha256('salt_demo:' + DEMO_PIN).then(function (hash) {
+      d.settings.forEach(function (s) {
+        if (s.key === 'admin_pin_salt') s.value_json = JSON.stringify('salt_demo');
+        if (s.key === 'admin_pin_hash') s.value_json = JSON.stringify(hash);
+      });
+      return d;
+    });
+  }
+  var ready = /[?&]empty=1/.test(q) ? Promise.resolve() : (big ? bigFile() : demoFile()).then(function (d) {
     files[MRT.config.data_file] = JSON.stringify(d);
     var today = new Date().toISOString().slice(0, 10);
     files[MRT.config.backup_dir + '/' + MRT.config.backup_prefix + today + '.json'] = files[MRT.config.data_file];
@@ -131,6 +145,10 @@
   // --- who you are, and your theme
   var as = (q.match(/[?&]as=(\w+)/) || [])[1] || 'admin';
   var me = PEOPLE[as] || PEOPLE.admin;
+  if (big) {           // ?demo=big&as=mia - any person of the big demo file by first name (default: prince)
+    var dp = MRT.demoData.people.filter(function (p) { return p.key === as; })[0] || MRT.demoData.people[0];
+    me = { id: 'usr_demo_' + dp.key, windows_id: dp.windows_id };
+  }
   var theme = (q.match(/[?&]theme=(\w+)/) || [])[1];
   try {
     localStorage.setItem('mrt.identity', JSON.stringify({ windows_id: me.windows_id, domain: 'CORP' }));
@@ -148,6 +166,16 @@
   }
   window.addEventListener('hashchange', function () { setTimeout(autoUnlock, 50); });
   window.addEventListener('load', function () { setTimeout(autoUnlock, 300); });
+
+  // ?demo=big: a button to save the big demo file, for a real folder without Node
+  if (big) window.addEventListener('load', function () {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn btn-sm'; b.textContent = 'Download the demo data file';
+    b.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:50';
+    b.title = 'Save it as mrt_data.json in an empty folder, then user menu > Change data folder (admin PIN 1234)';
+    b.addEventListener('click', function () { MRT.app.downloadText('mrt_data.json', files[MRT.config.data_file]); });
+    document.body.appendChild(b);
+  });
 
   if (/[?&]fakechart=1/.test(q) && !window.Chart) {
     window.Chart = function FakeChart(canvas, cfg) {

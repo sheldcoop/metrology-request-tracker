@@ -17,7 +17,7 @@ function build() {
   const app = '<script src="../js/app.js"></script>';
   if (html.indexOf(app) === -1) throw new Error('index.html has no js/app.js script');
   html = html.replace(app, '<!-- dev only: a memory folder with demo data instead of the data folder -->\n' +
-    '<script src="memory-storage.js"></script>\n<script src="preview.js"></script>\n' + app);
+    '<script src="memory-storage.js"></script>\n<script src="demo-data.js"></script>\n<script src="preview.js"></script>\n' + app);
   return html;
 }
 

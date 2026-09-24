@@ -12,7 +12,7 @@ const win = { console, crypto: globalThis.crypto, TextEncoder, Intl, Date, Math,
 win.window = win;
 const ctx = vm.createContext(win);
 ['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/seed.js', 'js/store.js',
- 'tests/memory-storage.js', 'tests/tests.js'].forEach(f =>
+ 'tests/memory-storage.js', 'tests/demo-data.js', 'tests/tests.js'].forEach(f =>
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const T = win.MRT_TESTS;

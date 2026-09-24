@@ -961,6 +961,49 @@
     eq('...the audit log is kept and grows', auditCount(), auditN + 1);
 
     /* =============== store: file checks and upgrades =============== */
+    /* =============== the big demo data file (tests/demo-data.js) =============== */
+    group('Demo data: every record keeps the app\'s rules');
+    var DD = window.MRT.demoData({ now_ts: Date.parse('2026-09-24T09:30:00Z') });
+    var badUsers = DD.users.filter(function (u) { return D.validateEntry('users', u, DD).length; });
+    eq('17 people, all valid: admin, 7 engineers, 2 operators, 3 QEs, 2 managers + a new one + a switched-off one', [DD.users.length, badUsers.length], [17, 0]);
+    var roleCount = function (r) { return DD.users.filter(function (u) { return u.active !== false && D.hasRole(u, r); }).length; };
+    ok('...roles present: engineers, operators, quality engineers, managers, admin', roleCount('engineer') >= 7 && roleCount('operator') === 2 && roleCount('quality') >= 5 && roleCount('manager') === 2 && roleCount('admin') === 1);
+    var badLots = DD.lots.map(function (l) { return [l.lot_number, D.validateEntry('lots', l, DD)]; }).filter(function (x) { return x[1].length; });
+    eq('every lot is valid (magazines, loading map, lot fields)', badLots.slice(0, 3), []);
+    ok('...split lots and lots in magazines', DD.lots.some(function (l) { return /\.01$/.test(l.lot_number); }) && DD.lots.filter(function (l) { return l.load.length; }).length >= 10);
+    var badReq = DD.requests.map(function (r) { return [r.request_no || r.id, D.requestProblems(r, DD, { submit: r.status !== 'draft', allowScrapped: true })]; }).filter(function (x) { return x[1].length; });
+    eq('every request keeps the request rules', badReq.slice(0, 3), []);
+    var nos = DD.requests.map(function (r) { return r.request_no; }).filter(Boolean);
+    eq('request IDs are unique, in the TOOL-YYMMDD-NN form', [nos.length === Object.keys(nos.reduce(function (m, n) { m[n] = 1; return m; }, {})).length, nos.every(function (n) { return /^[A-Z]+-\d{6}-\d{2}$/.test(n); })], [true, true]);
+    var lastTo = {};
+    DD.request_events.forEach(function (e) { if (e.kind === 'status' || e.kind === 'created') lastTo[e.request_id] = e.to; });
+    eq('each request\'s last status on the timeline is its status', DD.requests.filter(function (r) { return lastTo[r.id] !== r.status; }).map(function (r) { return r.request_no; }).slice(0, 3), []);
+    var states = ['draft', 'submitted', 'accepted', 'in_progress', 'on_hold', 'clarification', 'completed', 'cancelled'];
+    var missing = [];
+    DD.tools.forEach(function (t) { states.forEach(function (st) { if (!DD.requests.some(function (r) { return r.tool_id === t.id && r.status === st; })) missing.push(t.code + ' ' + st); }); });
+    eq('every tool has requests in every state', missing, []);
+    var nowD = Date.parse('2026-09-24T09:30:00Z'), calD = { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' };
+    ok('...late ones, closed ones, reopened ones, an open Line stop per tool, an old draft',
+       DD.requests.filter(function (r) { return D.isLate(r, nowD, calD); }).length >= 5 && DD.requests.some(function (r) { return D.isClosed(r, nowD); }) &&
+       DD.requests.some(function (r) { return r.reopened; }) && DD.tools.every(function (t) { return DD.requests.some(function (r) { return r.tool_id === t.id && D.isOpen(r) && r.priority_id === DD.priorities[0].id; }); }) &&
+       DD.requests.some(function (r) { return D.isOldDraft(r, nowD); }));
+    ok('...comments with @mentions, edits, copies, away routing, take-overs, FIB panels scrapped',
+       DD.request_events.some(function (e) { return e.kind === 'comment' && e.mentions && e.mentions.length; }) && DD.request_events.some(function (e) { return e.kind === 'edit'; }) &&
+       DD.requests.some(function (r) { return r.duplicated_from; }) && DD.request_events.some(function (e) { return e.kind === 'assign' && /is away/.test(e.text || ''); }) &&
+       DD.request_events.some(function (e) { return e.kind === 'assign' && !e.text; }) && DD.lots.some(function (l) { return l.scrapped.length; }));
+    eq('Health: no problems in the demo file (warnings allowed)', D.healthIssues(DD, { today_ymd: '2026-09-24' }).filter(function (x) { return x.severity === 'problem'; }).map(function (x) { return x.text; }), []);
+    var ad = window.MRT.adapters.storageMemory({});
+    ad.files[cfg.data_file] = JSON.stringify(DD);
+    ST.init(ad);
+    await ST.load();
+    ST.setCurrentUser('usr_demo_mia');
+    var mine = ST.visibleRequests(function (r) { return D.isOpen(r) && D.isToolMeasurer(ST.currentUser(), ST.byId('tools', r.tool_id)); });
+    ok('the store loads it; Mia (FIB backup while Olga is away) has open requests to work', mine.length >= 10);
+    var sub1 = mine.filter(function (r) { return r.status === 'submitted'; })[0];
+    await ST.requestAction(sub1.id, 'accept', {});
+    eq('...and can accept one', ST.byId('requests', sub1.id).status, 'accepted');
+    ok('...the bell has something for Olga, for Erik, for Prince', ['usr_demo_olga', 'usr_demo_erik', 'usr_demo_prince'].every(function (uid) { return D.notificationsFor(ST.byId('users', uid), ST.data(), {}).length > 0; }));
+
     group('Store: file checks and schema upgrades');
     var P = ST._pure;
     ok('a missing collection is filled in, not fatal', Array.isArray(P.validateAndFill({ schema_version: 1, revision: 3 }).tools));

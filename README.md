@@ -97,6 +97,23 @@ printable, including "Admin: setting up the office".
 
 ---
 
+## Trying everything with the big demo file
+
+Made-up data for every screen and rule: 17 people (you as admin, 7
+engineers, 2 operators who also measure, 3 quality engineers, 2 managers, a
+new and a switched-off one), 45 lots in magazines, ~260 requests over six
+months in every state on every tool (late, Line stop, on hold, questions,
+reopened, cancelled, drafts, @mentions, away routing, scrapped FIB panels).
+
+- **Quick look, nothing saved:** open `tests/preview.html?demo=big` (add
+  `&as=mia`, `&as=olga`, `&as=erik`, `&as=max` ... to be someone else).
+- **A real folder to click through:** `node tests/make-demo-data.js` writes
+  `demo-data/mrt_data.json`; in the app: user menu > Change data folder >
+  `demo-data`. Admin PIN **1234**. No Node? The preview's "Download the demo
+  data file" button saves the same file - put it in an empty folder.
+
+Your real `data\` folder is never touched; `demo-data/` is not committed.
+
 ## Getting started
 
 1. Put the tool folder on the share (or anywhere) and make an empty folder
