@@ -31,7 +31,7 @@ Prince | Decide: QR code on the slip too (phones)? | today Code 128 only; a phon
 Prince | Real data from the team | types, BKMs, extra fields, process steps, part numbers, magazine numbers
 Prince | Ask IT | server slot, SSO, SMTP (OPEN_QUESTIONS #2, #8, #9, #19)
 Both | R1 test run | `TEST_RUN.md`; notes back -> fixes
-Claude | After R1: fixes, then M5 analytics + exports | -
+Development | After R1: fixes, then M5 analytics + exports | -
 
 ## Left, and why
 | Item | Decision | Why not now |
