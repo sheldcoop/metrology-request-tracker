@@ -1,6 +1,9 @@
 # Live data never goes into git: the data file and its daily backups.
 # Sample data for tests lives in tests/, not here.
 data/
+# ...also when a data folder was picked in the wrong place (e.g. the tool folder itself)
+mrt_data*.json
+backups/
 
 # Scratch and OS noise
 .DS_Store
