@@ -170,3 +170,6 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   - QVM: Via diameter, Line width / space, Pad size, Position / registration, Solder mask opening
   - FIB: Via cross-section, Line cross-section, Interface / void check, Layer thickness,
     TEM lamella prep
+- **M1-9** Lab calendar (one for the whole lab, Europe/Vienna): Mon-Fri 07:00-18:00. Holidays:
+  Austrian public holidays 2026 and 2027 filled in by rule (Easter-based ones computed, tested);
+  admin adds company closing days and later years in Settings. Clock maths comes in M2/M3.
