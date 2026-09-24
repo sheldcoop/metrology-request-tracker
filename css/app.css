@@ -1398,6 +1398,32 @@ table.grid tbody tr { scroll-margin: 80px; }
 .q-clock.is-soon { color: var(--warning-fg); }
 .q-clock.is-late { color: var(--critical-fg); font-weight: 700; }
 
+/* Board (M3-8): tool lanes x status columns, cards are mini travellers */
+.board-wrap { overflow-x: auto; }
+.board { display: grid; gap: 6px; min-width: 980px; }
+.board-colhead { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 8px; border-bottom: 2px solid var(--line-strong); font-size: 13px; }
+.board-lane { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 10px 6px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.board-cell { display: grid; align-content: start; gap: 6px; min-height: 90px; padding: 6px; border: 1px dashed var(--line); border-radius: var(--radius);
+  transition: opacity var(--t) var(--ease); }
+.board-cell.is-target { border: 1px solid var(--accent); background: var(--accent-soft); }
+.board-cell.is-dim { opacity: .35; }
+.bcard { position: relative; display: grid; gap: 3px; padding: 7px 8px 7px 12px; border: 1px solid var(--line-strong); border-radius: 4px;
+  background: var(--surface); color: var(--fg); text-decoration: none; font-size: 12px; transition: transform var(--t-fast) var(--ease); }
+.bcard[draggable="true"] { cursor: grab; }
+.bcard:hover { transform: translateY(-1px); }
+.bcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 4px 0 0 4px; background: var(--ok); }
+.bcard.prio-1::before { background: var(--critical); }
+.bcard.prio-2::before { background: var(--warning); }
+.bcard.prio-4::before { background: var(--fg-faint); }
+.bcard.is-urgent::after { content: ""; position: absolute; inset: -1px; border-radius: 4px; box-shadow: 0 0 10px 1px var(--critical); opacity: .2;
+  animation: stripe-pulse 1.6s ease-in-out infinite; pointer-events: none; }
+.bcard.is-late { border-color: var(--critical); }
+.bcard-top { display: flex; justify-content: space-between; gap: 6px; }
+.bcard-prio { font-weight: 700; }
+.bcard-line { display: flex; align-items: center; gap: 6px; color: var(--fg-muted); }
+.bcard-who { margin-left: auto; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-3); color: var(--fg); font-size: 10px; font-weight: 700; }
+
 /* Panel map (Q6, M2-2): each panel a small board with corner fiducials.
    Picked = lit (accent fill + glow); the light fades in via opacity only. */
 .pm { display: grid; gap: 10px; }

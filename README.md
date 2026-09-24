@@ -6,9 +6,10 @@ lab operators run them and hand back a results folder.
 Zero install: static files on the shared drive, opened in Microsoft Edge.
 No server, no build step, no internet.
 
-> M1 (the shell) is done: Lab status, Settings and Help. M2 is being built:
-> Lots works; the request form and request page follow. The other menu
-> entries are greyed until their milestone.
+> M1 (the shell), M2 (lots, request form, request page) and M3 (workflow,
+> My queue, My requests, board) are built. Next: a short test run with one
+> quality engineer and one engineer (R1), then M4 (notifications). Analytics
+> is greyed until M5.
 
 ## What the pages do (M1)
 
@@ -47,6 +48,10 @@ done; filter by status, tool, or a lot number ("where is my lot").
 **My queue** - quality engineers: the open requests of their tools, Line
 stop on top, then late, then by needed-by date; assigned-to-me first;
 one-click actions per row, Accept all / Start all. It is their start page.
+
+**Board** - one lane per tool, columns Submitted / Accepted / In progress /
+Waiting / Completed (7 days); quality engineers drag cards on (allowed
+columns light up), everyone else reads.
 
 **Away** - your name (top right) > "I'm away...": first and last day and an
 optional note, never a reason. Shown on Lab status, People and Health.

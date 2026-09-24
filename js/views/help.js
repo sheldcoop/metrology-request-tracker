@@ -115,6 +115,17 @@ window.MRT.views.help = (function () {
       ],
       link: ['Open My requests', '#/requests'] },
 
+    { id: 'board', title: 'The board', icon: 'board',
+      intro: 'Every open request at a glance: one lane per tool, one column per status.',
+      steps: [
+        'Columns: Submitted, Accepted, In progress, Waiting (on hold or a question to the engineer), Completed in the last 7 days.',
+        'Cards: request ID, priority, lot and panels, the countdown and who has it. An open Line stop pulses red.',
+        'Quality engineers (and admins) drag a card to move it on: the columns it may go to light up, the others dim. A drop does the same as the button - with its small dialog when a date, reason or path is needed.',
+        'Everyone else reads the board. Click a card for the full request; every action is also a button there.'
+      ],
+      tips: ['"Only my tools" shows just the lanes you work.'],
+      link: ['Open the board', '#/board'] },
+
     { id: 'queue', title: 'My queue (quality engineers)', icon: 'inbox',
       intro: 'The open requests of the tools where you are the primary or backup quality engineer - your start page.',
       steps: [
@@ -249,9 +260,9 @@ window.MRT.views.help = (function () {
 
     { id: 'coming', title: 'What comes next', icon: 'activity',
       steps: [
-        'M2: lots, the request form (tool, measurement type, panels on a panel map, BKM, needed-by date) and the request page with its timeline.',
-        'M3: My queue and My requests, the lab board (Kanban), queue counts in the top strip.',
-        'M4: notifications. M5: analytics and exports. M6: import of the old request list.'
+        'Done: M1 (shell, Settings, Help), M2 (lots, the request form, the request page) and M3 (the workflow, My queue, My requests, the board).',
+        'Next: a few days of testing by one quality engineer and one engineer (rollout R1), then M4: notifications (the bell, pop-ups, Outlook drafts).',
+        'Then M5: analytics and exports. M6: import of the old request list. Later: the Hirata code decoder on lots.'
       ] }
   ];
 
