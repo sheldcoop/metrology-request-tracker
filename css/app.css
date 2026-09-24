@@ -1390,6 +1390,8 @@ table.grid tbody tr { scroll-margin: 80px; }
 .q-row.prio-2 > td:first-child { border-left-color: var(--warning); }
 .q-row.prio-4 > td:first-child { border-left-color: var(--fg-faint); }
 .q-row.is-late > td { background: var(--critical-bg); }
+.q-row.is-mine > td { background: var(--warning-bg); }
+.is-later { color: var(--warning-fg); font-weight: 700; }
 .q-prio { display: grid; line-height: 1.15; }
 .q-prio .mono { font-size: 11px; }
 .q-clock { font: 12px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg-muted); }

@@ -105,6 +105,16 @@ window.MRT.views.help = (function () {
       tips: ['Edit request (requester): change anything but the tool, with a reason - the timeline shows each change.'],
       link: ['New request', '#/new'] },
 
+    { id: 'my-requests', title: 'My requests (engineers)', icon: 'requests',
+      intro: 'Everything you asked the lab for - your start page as an engineer.',
+      steps: [
+        'Waiting on you comes first (yellow): a question to answer (Answered), or completed results to check (Results OK or Reopen with a reason).',
+        'Then your open requests: status, needed-by with the lab-time countdown, the expected done date (bold when later than you need it) and who has it.',
+        'Show: waiting on me, open, completed, cancelled, drafts or all. Type a lot number to see where your lot is across all tools.',
+        'Click a request ID for its page; a draft opens in the form.'
+      ],
+      link: ['Open My requests', '#/requests'] },
+
     { id: 'queue', title: 'My queue (quality engineers)', icon: 'inbox',
       intro: 'The open requests of the tools where you are the primary or backup quality engineer - your start page.',
       steps: [

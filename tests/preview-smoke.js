@@ -40,9 +40,10 @@ async function boot(query, hash) {
 
 (async function () {
   let d = await boot('?theme=light');
-  check('as admin: the shell opens on Lab status', !d.doc.getElementById('shell').hidden && /Lab status/.test(d.doc.getElementById('main').textContent));
+  check('as admin + engineer: the shell opens on My requests (M3-12)', !d.doc.getElementById('shell').hidden && /My requests/.test(d.doc.getElementById('main').textContent));
   check('...signed in as Prince', d.win.MRT.store.currentUser().name === 'Prince Khurana');
   check('...with the theme from ?theme=', d.doc.documentElement.getAttribute('data-theme') === 'light');
+  d = await boot('?theme=light', '#/lab');
   check('...demo tool states: FIB in Maintenance, PRF Down', /Maintenance/.test(d.doc.getElementById('main').textContent) && /Down/.test(d.doc.getElementById('main').textContent));
   check('...the data file name shows "preview"', /preview/.test(d.doc.getElementById('navFolder').textContent));
 
