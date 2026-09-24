@@ -54,6 +54,8 @@ lists it until it is edited or deleted.
       Shape them with the team in Settings > Lists; real ones also into `js/seed.js`.
 - [ ] **Sample lots**: if "Add 3 sample lots" was used, delete 99901, 99902,
       99902.01 on the Lots page before real use (Health lists them).
+- [ ] **Magazines**: 20 sample ones M70345-M70364 (24 slots) and 24 racks (DECISIONS M2-23) -
+      replace with the real magazine numbers in Settings > Lists and `js/seed.js`.
 - [ ] **Process steps**: none yet (DECISIONS M2-7). The steps of the line in order,
       e.g. After desmear, After Cu plating - Settings > Lists and `js/seed.js`.
 - [ ] **People and roles**: only the first admin exists. Colleagues add

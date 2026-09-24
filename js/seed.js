@@ -71,6 +71,10 @@ window.MRT.seed = {
     { label: 'Lot status', type: 'choice', choices: ['Running', 'On hold', 'Finished', 'Scrapped'], sample: true }
   ],
 
+  // Magazines (DECISIONS M2-23): cassettes of 24 slots standing in racks 1-24. SAMPLE numbers for
+  // now (M70345 ...); the real ones replace them. The number of racks is a setting (24).
+  magazines: (function () { var m = []; for (var n = 70345; n < 70365; n++) m.push({ code: 'M' + n, slots: 24, sample: true }); return m; })(),
+
   // Why a request is on hold (DECISIONS M3-4) - admins change them in Settings > Lists.
   hold_reasons: ['Waiting for panels', 'Tool down', 'Waiting for engineer info', 'Higher priority first', 'Other'],
 

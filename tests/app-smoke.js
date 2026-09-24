@@ -39,7 +39,7 @@ console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
 ['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/identity.js',
- 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js',
+ 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
  'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
@@ -538,6 +538,29 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('..."Add several lots" adds 30001-30003 with 6 panels each', ['30001', '30002', '30003'].every(n => MRT.store.data().lots.some(l => l.lot_number === n && l.panel_count === 6)) && !openDialog());
   win.setHash('#/lots'); await settle();
   check('...and they show on the Lots page too', /30002/.test(mainText()));
+
+  // --- magazines (M2-23)
+  await tab('lists');
+  const magPanel = doc.getElementById('main').querySelectorAll('section').filter(x => /Magazines/.test(x.textContent))[0];
+  check('Settings > Lists > Magazines: M70345-M70364, 24 slots, racks setting', !!magPanel && /M70345/.test(magPanel.textContent) && /M70364/.test(magPanel.textContent) && !!fieldIn(magPanel, 'Racks'));
+  const mag1 = MRT.store.list('magazines')[0];
+  await MRT.store.saveLot({ id: lot1.id, fields: { magazine_ids: [mag1.id] } });
+  await MRT.store.saveEntry('magazines', { id: mag1.id, fields: { rack: 7 } });
+  win.setHash('#/lots'); await settle();
+  $$('#main a.lot-link').filter(a => a.textContent === '18178')[0].click(); await settle();
+  check('lot details draw its magazine as a cassette: panels 5-12 in slots 1-8, 1-4 scrapped by the FIB request', !!openDialog() && openDialog().querySelectorAll('.mag-slot.is-full').length === 8 &&
+        /M70345/.test(openDialog().textContent) && /Scrapped: panels 1, 2, 3, 4/.test(openDialog().textContent));
+  buttonByText(openDialog(), 'Move panels').click(); await settle();
+  const mv = openDialog(); const ms = mv.querySelectorAll('button.mag-slot');
+  ms[0].click(); ms[23].click(); buttonByText(mv, 'Save').click(); await settle();
+  check('Move panels: panel 5 to slot 24, saved', MRT.store.byId('lots', lot1.id).load.filter(x => x.panel === 5)[0].slot === 24);
+  win.setHash('#/new?lot=' + lot1.id); await settle();
+  $$('#main .tool-pick-opt').filter(b => b.textContent.indexOf('QVM') === 0)[0].click(); await settle();
+  $$('#main .pm-cell')[0].click(); await settle();
+  check('...a scrapped panel is crossed out and cannot be picked', $$('#main .pm-cell')[0].classList.contains('is-scrapped') && !$$('#main .pm-cell')[0].classList.contains('is-picked'));
+  $$('#main .pm-cell')[5].click(); $$('#main .pm-cell')[6].click(); await settle();
+  check('the form fills in the magazine and its rack from the lot: "M70345 · Rack 7 · slots 2, 3"', fieldIn(doc.getElementById('main'), 'Magazine').value === mag1.id &&
+        fieldIn(doc.getElementById('main'), 'Rack').value === '7' && /M70345 · Rack 7 · slots 2, 3/.test(mainText()));
 
   // a non-admin is kept out
   const saved = MRT.store.currentUser().id;

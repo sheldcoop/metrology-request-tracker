@@ -22,7 +22,7 @@ if(process.argv[2]==='chart'){win.Chart=function(canvas,cfg){charts++;this.cfg=c
   if(cfg.options.onHover)cfg.options.onHover({},[]);
   const a=cfg.options.animations;if(a){a.y.from({index:1,chart:chartObj,datasetIndex:0});a.x.delay({type:'data',index:2})}
   this.destroy=()=>destroyed++;};}const ctx=vm.createContext(win);
-['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
+['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
 let errs=0;
 function check(name,fn){try{fn();flush()}catch(e){errs++;console.log('ERR',name,e.stack.split('\n').slice(0,3).join(' | '))}}
 function expect(name,cond){if(!cond){errs++;console.log('FAIL',name)}}
@@ -72,6 +72,15 @@ check('barcode',()=>{const b=put(ui.code128('FIB-260924-03',{height:40}));const 
   const v=ui.code128Values('FIB-260924-03');expect('code 128: start B, 13 characters, checksum, stop',v.length===16&&v[0]===104&&v[15]===106);
   expect('...3 bars per symbol, 2 more for stop',bars.length===15*3+4);expect('...labelled for screen readers',/FIB-260924-03/.test(b.getAttribute('aria-label')));
   let bad=false;try{ui.code128Values('é')}catch(e){bad=true}expect('...refuses what set B cannot encode',bad)});
+check('magazine map',()=>{let got=null;
+  const mm=put(ui.magazineMap({magazines:[{id:'a',code:'M70345',slots:24,rack:7}],load:[{panel:1,magazine_id:'a',slot:1},{panel:2,magazine_id:'a',slot:2}],panelCount:3,highlight:[2],editable:true,onChange:l=>{got=l}}));
+  const slots=()=>mm.node.querySelectorAll('.mag-slot');
+  expect('magazine: 24 slots, panel 2 lit, panel 3 in the tray',slots().length===24&&slots()[1].classList.contains('is-hi')&&/P3/.test(mm.node.querySelector('.mag-tray').textContent));
+  slots()[0].click();slots()[1].click();expect('click slot 1 then slot 2 swaps panels',got.filter(x=>x.panel===1)[0].slot===2&&got.filter(x=>x.panel===2)[0].slot===1);
+  slots()[4].click();mm.node.querySelector('.mag-loose').click();
+  expect('a tray panel into an empty slot',mm.value().some(x=>x.panel===3&&x.slot===5));
+  slots()[4].click();mm.node.querySelector('.mag-tray').click();expect('a slot, then the tray: taken out',!mm.value().some(x=>x.panel===3));
+  const ro=put(ui.magazineMap({magazines:[{id:'a',code:'M1',slots:4}],load:[],panelCount:2,scrapped:[2]}));expect('read-only: no buttons, scrapped named',!ro.node.querySelector('button')&&/Scrapped/.test(ro.node.textContent))});
 check('heatmap',()=>{put(ui.heatmap({rows:['Mon','Tue'],cols:['07','08','09'],values:[[0,2,5],[1,0,0]],label:'Load',unit:'Requests',colour:'teal'}));put(ui.heatmap({rows:['a'],cols:['b'],values:[[0]]}))});
 check('glyphs',()=>{expect('six glyphs',ui.GLYPHS.length===6);
   ui.GLYPHS.forEach(g=>['idle','live','maint','off'].forEach(s=>{const n=ui.toolGlyph(g.key,{size:40,state:s,label:g.label});root.appendChild(n);
@@ -120,7 +129,7 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
-  expect('the kit builds every section (20)',secs.length===20);
+  expect('the kit builds every section (21)',secs.length===21);
   expect('the kit shows 6 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===24);
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
   for(const i of doc.getElementById('kitBar').querySelectorAll('input')){i.checked=true;i.dispatch('change');flush()}

@@ -71,12 +71,15 @@
       if (o.onChange) o.onChange(list());
     }
 
+    function blocked(n) { return marks[n] === 'scrapped'; }   // a scrapped panel cannot be picked
+
     function toggle(n, shift) {
       if (shift && last !== null) {
         var on = !picked[n] || !picked[last];
         var a = Math.min(last, n), b = Math.max(last, n);
-        for (var k = a; k <= b; k++) { if (on) picked[k] = true; else delete picked[k]; }
-      } else if (picked[n]) delete picked[n];
+        for (var k = a; k <= b; k++) { if (on && !blocked(k)) picked[k] = true; else delete picked[k]; }
+      } else if (blocked(n)) return;
+      else if (picked[n]) delete picked[n];
       else picked[n] = true;
       last = n; focusN = n;
       changed(false);
@@ -105,6 +108,8 @@
       field.input.addEventListener('input', function () {
         var r = o.parse ? o.parse(field.value(), count) : { panels: [], errors: [] };
         if (r.errors.length) { field.setState('invalid', r.errors[0]); return; }
+        var gone = r.panels.filter(blocked);
+        if (gone.length) { field.setState('invalid', 'Panel ' + gone.join(', ') + (gone.length > 1 ? ' are' : ' is') + ' scrapped'); return; }
         picked = {};
         r.panels.forEach(function (x) { picked[x] = true; });
         field.setState(null);
@@ -117,7 +122,7 @@
       el('span', { class: 'ifield-label', text: o.label || 'Panels' }),
       readout,
       el('span', { class: 'spacer' }),
-      o.readOnly ? null : ui.button('All', { size: 'sm', kind: 'ghost', onClick: function () { for (var k = 1; k <= count; k++) picked[k] = true; changed(false); } }),
+      o.readOnly ? null : ui.button('All', { size: 'sm', kind: 'ghost', onClick: function () { for (var k = 1; k <= count; k++) if (!blocked(k)) picked[k] = true; changed(false); } }),
       o.readOnly ? null : ui.button('None', { size: 'sm', kind: 'ghost', onClick: function () { picked = {}; changed(false); } })
     ]);
     var legend = o.readOnly && Object.keys(marks).length ? el('div', { class: 'pm-legend' }, ['measured', 'received', 'scrapped'].filter(function (m) {

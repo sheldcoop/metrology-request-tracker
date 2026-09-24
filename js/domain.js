@@ -329,6 +329,80 @@ window.MRT.domain = (function () {
     return { numbers: out, errors: errors };
   }
 
+  /* ------------------------------------------------------------------ *
+   * Magazines (DECISIONS M2-23): a cassette with numbered slots (24 by
+   * default) standing in a rack (1..24). A lot has one or more magazines and
+   * a loading map - which panel sits in which slot - that people can edit.
+   * ------------------------------------------------------------------ */
+
+  /** M70345 - M and digits (provisional, like the real ones). */
+  function isMagazineCode(s) { return typeof s === 'string' && /^M\d{3,8}$/.test(s); }
+
+  /**
+   * The default loading: panel 1 in slot 1 of the first magazine and on,
+   * then the next magazine. Panels that do not fit stay unplaced.
+   * @param {number} panelCount
+   * @param {Object[]} mags  [{id, slots}] in the lot's order
+   * @param {number[]} skip  panels not to place (scrapped)
+   * @returns {{panel, magazine_id, slot}[]}
+   */
+  function defaultLoad(panelCount, mags, skip) {
+    var out = [], m = 0, slot = 1;
+    for (var p = 1; p <= panelCount; p++) {
+      if ((skip || []).indexOf(p) !== -1) continue;
+      while (mags[m] && slot > (mags[m].slots || 24)) { m++; slot = 1; }
+      if (!mags[m]) break;
+      out.push({ panel: p, magazine_id: mags[m].id, slot: slot++ });
+    }
+    return out;
+  }
+
+  /** Problems of a loading map for a lot. */
+  function loadProblems(load, lot, magsById) {
+    var p = [], seenPanel = {}, seenSlot = {};
+    (load || []).forEach(function (x) {
+      var m = magsById[x.magazine_id];
+      if (!m) { p.push('Panel ' + x.panel + ': magazine not found'); return; }
+      if ((lot.magazine_ids || []).indexOf(x.magazine_id) === -1) p.push('Panel ' + x.panel + ': ' + m.code + ' is not one of the lot\'s magazines');
+      if (!isNum(x.panel) || x.panel < 1 || x.panel > lot.panel_count) p.push('Panel ' + x.panel + ' is not a panel of the lot');
+      if (!isNum(x.slot) || x.slot < 1 || x.slot > (m.slots || 24) || Math.floor(x.slot) !== x.slot) p.push('Panel ' + x.panel + ': ' + m.code + ' has slots 1-' + (m.slots || 24));
+      if (seenPanel[x.panel]) p.push('Panel ' + x.panel + ' is in two slots');
+      var k = x.magazine_id + ':' + x.slot;
+      if (seenSlot[k]) p.push(m.code + ' slot ' + x.slot + ' holds two panels');
+      seenPanel[x.panel] = true; seenSlot[k] = true;
+      if ((lot.scrapped || []).indexOf(x.panel) !== -1) p.push('Panel ' + x.panel + ' is scrapped');
+    });
+    return p;
+  }
+
+  /**
+   * Where panels are, as people say it: "M70345 · Rack 7 · slots 1-4"
+   * (one part per magazine), plus "panel 9 not in a magazine" / "scrapped".
+   * @param {Object} lot
+   * @param {number[]} panels
+   * @param {Object} magsById
+   * @param {number|null} rack   the request's rack, else each magazine's own
+   */
+  function whereText(lot, panels, magsById, rack) {
+    if (!lot) return '';
+    var by = {}, order = [], loose = [], gone = [];
+    (panels || []).forEach(function (n) {
+      if ((lot.scrapped || []).indexOf(n) !== -1) { gone.push(n); return; }
+      var x = (lot.load || []).filter(function (l) { return l.panel === n; })[0];
+      if (!x) { loose.push(n); return; }
+      if (!by[x.magazine_id]) { by[x.magazine_id] = []; order.push(x.magazine_id); }
+      by[x.magazine_id].push(x.slot);
+    });
+    var parts = order.map(function (id) {
+      var m = magsById[id] || {};
+      var r = rack || m.rack;
+      return (m.code || '?') + (r ? ' · Rack ' + r : '') + ' · slot' + (by[id].length > 1 ? 's ' : ' ') + formatPanels(by[id]);
+    });
+    if (loose.length) parts.push('panel' + (loose.length > 1 ? 's ' : ' ') + formatPanels(loose) + ' not in a magazine');
+    if (gone.length) parts.push('panel' + (gone.length > 1 ? 's ' : ' ') + formatPanels(gone) + ' scrapped');
+    return parts.join('; ');
+  }
+
   /** Most panels a lot can have (draws the panel map). */
   var LOT_MAX_PANELS = 200;
   var LOT_NOTE_MAX = 500;
@@ -516,6 +590,13 @@ window.MRT.domain = (function () {
           p.push('Panels: a whole number from 1 to ' + LOT_MAX_PANELS);
         }
         if (!exists('users', r.owner_id)) p.push('Lot owner not found');
+        if (r.magazine_ids && !Array.isArray(r.magazine_ids)) p.push('Magazines must be a list');
+        (r.magazine_ids || []).forEach(function (id) { if (!exists('magazines', id)) p.push('A magazine of the lot no longer exists'); });
+        if (r.load && r.load.length) {
+          var magsById = {};
+          (d.magazines || []).forEach(function (m) { magsById[m.id] = m; });
+          p.push.apply(p, loadProblems(r.load, r, magsById));
+        }
         if (r.note && String(r.note).length > LOT_NOTE_MAX) p.push('Keep the note under ' + LOT_NOTE_MAX + ' characters');
         var ex = r.extra || {};
         (d.lot_fields || []).forEach(function (f) {
@@ -523,6 +604,13 @@ window.MRT.domain = (function () {
           p.push.apply(p, extraValueProblems(f, ex[f.id]));
         });
         Object.keys(ex).forEach(function (k) { if (!(d.lot_fields || []).some(function (f) { return f.id === k; })) p.push('Unknown lot field ' + k); });
+        break;
+
+      case 'magazines':
+        if (!isMagazineCode(r.code)) p.push('Magazine: M and digits, e.g. M70345');
+        else if (dupBy(d.magazines, r.id, 'code', r.code)) p.push(r.code + ' already exists');
+        if (!isNum(r.slots) || r.slots < 1 || r.slots > 99 || Math.floor(r.slots) !== r.slots) p.push('Slots: a whole number, 1-99');
+        if (r.rack !== null && r.rack !== undefined && (!isNum(r.rack) || r.rack < 1 || r.rack > 999 || Math.floor(r.rack) !== r.rack)) p.push('Rack: a whole number');
         break;
 
       case 'process_steps':
@@ -960,6 +1048,8 @@ window.MRT.domain = (function () {
     if (r.bkm_id && (!bkm || bkm.tool_id !== tool.id)) p.push('The BKM belongs to another tool');
     if (r.bkm_path && !isSharePath(r.bkm_path)) p.push('BKM path: a share path like \\\\server\\share\\... or Z:\\...');
     if (r.process_step_id && !byId('process_steps', r.process_step_id)) p.push('Process step not found');
+    if (r.magazine_id && !byId('magazines', r.magazine_id)) p.push('Magazine not found');
+    if (r.rack !== null && r.rack !== undefined && r.rack !== '' && (!isNum(r.rack) || r.rack < 1 || Math.floor(r.rack) !== r.rack)) p.push('Rack: a whole number');
     if (r.after && AFTER_OPTIONS.indexOf(r.after) === -1) p.push('Pick where the panels go afterwards');
     ['purpose', 'panel_location', 'layer', 'priority_reason', 'after_other', 'process_step_other'].forEach(function (k) {
       if (r[k] && String(r[k]).length > REQUEST_TEXT_MAX) p.push('Text too long: ' + k);
@@ -972,10 +1062,12 @@ window.MRT.domain = (function () {
     if (!type) p.push('Pick the measurement type');
     if (!lot) p.push('Pick the lot');
     if (!(r.panels || []).length) p.push('Pick at least one panel');
+    var gone = lot ? (r.panels || []).filter(function (n) { return (lot.scrapped || []).indexOf(n) !== -1; }) : [];
+    if (gone.length && !(o && o.allowScrapped)) p.push('Panel ' + gone.join(', ') + (gone.length > 1 ? ' are' : ' is') + ' scrapped');
     if (!prio) p.push('Pick a priority');
     else if (prio.needs_reason && !isStr(r.priority_reason)) p.push(prio.name + ' needs a reason');
     if (!bkm && !r.bkm_path && !isStr(r.purpose)) p.push('Without a BKM, the purpose must say what to measure');
-    if (!isStr(r.panel_location)) p.push('Say where the panels are now');
+    if (!(r.magazine_id && r.rack) && !isStr(r.panel_location)) p.push('Say where the panels are now: magazine and rack, or a note');
     if (tool.destructive && r.destructive_ok !== true) p.push(tool.code + ' destroys the panels - tick that they may be scrapped');
     if (!r.after) p.push('Say where the panels go afterwards');
     else if (r.after === 'other' && !isStr(r.after_other)) p.push('Say where the panels go afterwards (Other)');
@@ -1178,6 +1270,10 @@ window.MRT.domain = (function () {
     isCode: isCode,
     isPartNumber: isPartNumber,
     isLotNumber: isLotNumber,
+    isMagazineCode: isMagazineCode,
+    defaultLoad: defaultLoad,
+    loadProblems: loadProblems,
+    whereText: whereText,
     parseLotNumbers: parseLotNumbers,
     viennaTs: viennaTs,
     isoWeekday: isoWeekday,

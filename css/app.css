@@ -1434,6 +1434,7 @@ table.grid tbody tr { scroll-margin: 80px; }
 .q-row.is-mine > td { background: var(--warning-bg); }
 .is-later { color: var(--warning-fg); font-weight: 700; }
 .q-prio { display: grid; line-height: 1.15; }
+.q-where { font-size: 11px; color: var(--fg-muted); }
 .q-prio .mono { font-size: 11px; }
 .q-clock { font: 12px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg-muted); }
 .q-clock.is-soon { color: var(--warning-fg); }
@@ -1470,6 +1471,26 @@ table.grid tbody tr { scroll-margin: 80px; }
 .bell-count { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; box-sizing: border-box;
   background: var(--danger); color: var(--on-danger); font: 700 10px/16px var(--font-mono); text-align: center; }
 .bell-count[hidden] { display: none; }
+
+/* Magazine map (M2-23): cassettes with numbered slots, two rails, the panel in each slot */
+.mag-map { display: grid; gap: 10px; }
+.mag-row { display: flex; flex-wrap: wrap; gap: 14px; }
+.mag { display: grid; gap: 4px; }
+.mag-head { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.mag-body { display: grid; gap: 2px; padding: 4px 6px; border-left: 4px solid var(--line-strong); border-right: 4px solid var(--line-strong);
+  border-radius: 3px; background: var(--inset); }
+.mag-slot { display: grid; grid-template-columns: 22px 64px; align-items: center; gap: 4px; padding: 0 4px; height: 18px; border: 0; border-radius: 2px;
+  background: transparent; color: var(--fg-muted); font: 11px/1 var(--font-mono); text-align: left; }
+.mag-slot.is-full .mag-panel { display: block; padding: 2px 4px; border-radius: 2px; background: var(--surface-3); color: var(--fg); }
+.mag-slot.is-hi .mag-panel { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); color: var(--fg); font-weight: 700; }
+.mag-no { color: var(--fg-faint); text-align: right; }
+button.mag-slot { cursor: pointer; }
+button.mag-slot:hover { background: var(--surface-2); }
+button.mag-slot:focus-visible, .mag-loose:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mag-slot.is-sel, .mag-loose.is-sel { box-shadow: 0 0 0 2px var(--accent); }
+.mag-tray { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 30px; padding: 6px 8px; border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+.mag-loose { padding: 2px 6px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-2); color: var(--fg); font: 11px/1.4 var(--font-mono); }
+.mag-loose.is-hi { border-color: var(--accent); }
 
 /* Panel map (Q6, M2-2): each panel a small board with corner fiducials.
    Picked = lit (accent fill + glow); the light fades in via opacity only. */

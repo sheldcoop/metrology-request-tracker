@@ -22,11 +22,11 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 7;
+  var SCHEMA_VERSION = 8;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
-    'projects', 'part_numbers', 'buildups', 'process_steps', 'hold_reasons', 'priorities', 'holidays', 'lot_fields', 'lots', 'requests', 'request_events', 'audit_log'
+    'projects', 'part_numbers', 'buildups', 'process_steps', 'hold_reasons', 'priorities', 'holidays', 'lot_fields', 'magazines', 'lots', 'requests', 'request_events', 'audit_log'
   ];
 
   /** In-memory state. `data` is the loaded file; never mutate it from a screen. */
@@ -95,7 +95,8 @@ window.MRT.store = (function () {
     calendar_confirmed: false,        // setup to-do until an admin saves or confirms the calendar
     admin_pin_salt: null,
     admin_pin_hash: null,
-    last_backup_date: null
+    last_backup_date: null,
+    rack_count: 24                    // racks the magazines stand in (M2-23)
   };
 
   /** Lot fields as records, from seed.js (shape as tool fields, no tool). */
@@ -168,6 +169,7 @@ window.MRT.store = (function () {
     });
     data.lot_fields = lotFieldsFromSeed(S);
     data.hold_reasons = holdReasonsFromSeed(S);
+    data.magazines = magazinesFromSeed(S);
     data.process_steps = (S.process_steps || []).map(function (n, i) {
       return { id: newId('pstep'), name: n, active: true, sort: i + 1, version: 1 };
     });
@@ -309,8 +311,23 @@ window.MRT.store = (function () {
           r.assigned_to = r.status === 'draft' || !t ? null : (t.primary_operator_id || t.backup_operator_id || null);
         }
       });
+    },
+    // 7 -> 8: magazines and racks (M2-23): the list from seed.js; lots get magazines + a loading map;
+    // requests get magazine + rack.
+    7: function (d) {
+      if (!Array.isArray(d.magazines)) d.magazines = magazinesFromSeed(window.MRT.seed);
+      (d.lots || []).forEach(function (l) { if (!l.magazine_ids) l.magazine_ids = []; if (!l.load) l.load = []; if (!l.scrapped) l.scrapped = []; });
+      (d.requests || []).forEach(function (r) { if (r.magazine_id === undefined) r.magazine_id = null; if (r.rack === undefined) r.rack = null; });
     }
   };
+
+  function magazinesFromSeed(S) {
+    return ((S && S.magazines) || []).map(function (m) {
+      var row = { id: newId('mag'), code: m.code, slots: m.slots || 24, rack: m.rack || null, active: true, version: 1 };
+      if (m.sample) row.sample = true;
+      return row;
+    });
+  }
 
   function holdReasonsFromSeed(S) {
     return ((S && S.hold_reasons) || []).map(function (n, i) { return { id: newId('hold'), name: n, active: true, sort: i + 1, version: 1 }; });
@@ -744,6 +761,7 @@ window.MRT.store = (function () {
     buildups:          { prefix: 'bld',   label: 'build-up',         fields: ['code', 'name', 'active'] },
     process_steps:     { prefix: 'pstep', label: 'process step',     fields: ['name', 'active', 'sort'] },
     hold_reasons:      { prefix: 'hold',  label: 'on-hold reason',   fields: ['name', 'active', 'sort'] },
+    magazines:         { prefix: 'mag',   label: 'magazine',         fields: ['code', 'slots', 'rack', 'active'] },
     priorities:        { prefix: 'prio',  label: 'priority',         fields: ['code', 'name', 'level', 'needs_reason', 'is_default', 'active'] },
     holidays:          { prefix: 'hol',   label: 'holiday',          fields: ['date', 'name', 'kind'] }
   };
@@ -762,6 +780,7 @@ window.MRT.store = (function () {
     buildups: { name: '', active: true },
     process_steps: { active: true },
     hold_reasons: { active: true },
+    magazines: { slots: 24, rack: null, active: true },
     priorities: { needs_reason: false, is_default: false, active: true },
     holidays: { kind: 'closing', source: 'manual' }
   };
@@ -778,6 +797,7 @@ window.MRT.store = (function () {
       if (typeof o.domain === 'string') o.domain = o.domain.trim().toUpperCase() || null;
       if (typeof o.email === 'string') o.email = o.email.trim() || null;
     }
+    if (collection === 'magazines' && (o.rack === '' || o.rack === undefined)) delete o.rack;
     ['status_until', 'type_id', 'primary_operator_id', 'backup_operator_id'].forEach(function (k) {
       if (o[k] === '') o[k] = null;
     });
@@ -896,6 +916,7 @@ window.MRT.store = (function () {
     bkms: [['requests', 'bkm_id', 'request']],
     process_steps: [['requests', 'process_step_id', 'request']],
     hold_reasons: [['requests', 'hold_reason_id', 'request']],
+    magazines: [['lots', 'magazine_ids', 'lot'], ['requests', 'magazine_id', 'request']],
     priorities: [['requests', 'priority_id', 'request']],
     holidays: []
   };
@@ -942,7 +963,7 @@ window.MRT.store = (function () {
 
   var REQUEST_FIELDS = ['tool_id', 'type_id', 'lot_id', 'panels', 'priority_id', 'priority_reason', 'needed_by',
     'bkm_id', 'bkm_path', 'purpose', 'process_step_id', 'process_step_other', 'layer', 'panel_location',
-    'destructive_ok', 'after', 'after_other', 'extra', 'duplicated_from'];
+    'destructive_ok', 'after', 'after_other', 'extra', 'duplicated_from', 'magazine_id', 'rack'];
 
   function tidyRequest(f) {
     var o = clone(f || {});
@@ -950,7 +971,8 @@ window.MRT.store = (function () {
     ['priority_reason', 'bkm_path', 'purpose', 'process_step_other', 'layer', 'panel_location', 'after_other'].forEach(function (k) {
       if (typeof o[k] === 'string') o[k] = o[k].trim();
     });
-    ['type_id', 'lot_id', 'priority_id', 'needed_by', 'bkm_id', 'process_step_id', 'after'].forEach(function (k) { if (o[k] === '') o[k] = null; });
+    ['type_id', 'lot_id', 'priority_id', 'needed_by', 'bkm_id', 'process_step_id', 'after', 'magazine_id', 'rack'].forEach(function (k) { if (o[k] === '') o[k] = null; });
+    if (o.rack !== null && o.rack !== undefined) o.rack = Number(o.rack);
     if (Array.isArray(o.panels)) o.panels = o.panels.map(Number).filter(function (n, i, a) { return a.indexOf(n) === i; }).sort(function (a, b) { return a - b; });
     if ('extra' in o) o.extra = tidyExtra(o.extra);
     if ('destructive_ok' in o) o.destructive_ok = o.destructive_ok === true;
@@ -974,7 +996,7 @@ window.MRT.store = (function () {
     assert(D.canRequest(me), 'Only engineers can request measurements', 'not_allowed');
     var blank = { id: newId('req'), request_no: null, status: 'draft', tool_id: null, type_id: null, lot_id: null, panels: [],
       priority_id: null, priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '', purpose: '', process_step_id: null,
-      process_step_other: '', layer: '', panel_location: '', destructive_ok: false, after: null, after_other: '', extra: {},
+      process_step_other: '', layer: '', panel_location: '', magazine_id: null, rack: null, destructive_ok: false, after: null, after_other: '', extra: {},
       duplicated_from: null, requester_id: me.id, created_ts: nowIso(), updated_ts: null, submitted_ts: null, version: 0 };
     return { existing: null, next: Object.assign(blank, f) };
   }
@@ -1036,6 +1058,7 @@ window.MRT.store = (function () {
       r.status = 'submitted';
       r.submitted_ts = nowIso();
       event(r.id, 'status', 'draft', 'submitted', null);
+      placeMagazine(r);
       var who = D.assignOnSubmit(tool, state.data.users, D.viennaYmd(Date.now()));
       r.assigned_to = who.id;
       if (who.note) event(r.id, 'assign', null, who.id, who.note);
@@ -1136,6 +1159,7 @@ window.MRT.store = (function () {
       if (action === 'complete') {
         r.completed_ts = now; r.completed_by = me.id; r.results_path = String(x.results_path).trim();
         r.panels_outcome = x.panels_outcome; r.panels_outcome_note = String(x.note || '').trim();
+        putBack(r, x.panels_outcome, x.put_back);
         text = D.PANEL_OUTCOME_LABEL[x.panels_outcome] + (r.panels_outcome_note ? ': ' + r.panels_outcome_note : '') + ' - results in ' + r.results_path;
       }
       if (action === 'reopen') { r.reopened = (r.reopened || 0) + 1; r.completed_ts = null; r.results_ok_ts = null; }
@@ -1177,6 +1201,51 @@ window.MRT.store = (function () {
       audit('request', r.id, 'assign', 'assigned_to', from, me.id, null);
       return commit().then(function () { return r; });
     });
+  }
+
+  /** The request says where the magazine stands: the magazine remembers its rack (M2-23). */
+  function placeMagazine(r) {
+    var m = r.magazine_id ? byId('magazines', r.magazine_id) : null;
+    if (!m || !r.rack || m.rack === r.rack) return;
+    audit('magazine', m.id, 'update', 'rack', m.rack, r.rack, r.request_no ? 'Where the panels of ' + r.request_no + ' are' : null);
+    m.rack = r.rack; m.version += 1;
+  }
+
+  /**
+   * Complete: where the panels go back (M3-13). Scrapped panels leave the
+   * magazine and are marked scrapped on the lot; others go into the chosen
+   * magazine and rack - the same slots when possible, else the first free.
+   */
+  function putBack(r, outcome, pb) {
+    var lot = byId('lots', r.lot_id);
+    if (!lot) return;
+    lot.load = lot.load || []; lot.scrapped = lot.scrapped || []; lot.magazine_ids = lot.magazine_ids || [];
+    if (outcome === 'scrapped') {
+      r.panels.forEach(function (n) { if (lot.scrapped.indexOf(n) === -1) lot.scrapped.push(n); });
+      lot.load = lot.load.filter(function (x) { return r.panels.indexOf(x.panel) === -1; });
+      lot.version += 1;
+      return;
+    }
+    if (!pb || !pb.magazine_id) return;
+    var m = need('magazines', pb.magazine_id, 'Magazine');
+    if (lot.magazine_ids.indexOf(m.id) === -1) lot.magazine_ids.push(m.id);
+    var others = lot.load.filter(function (x) { return r.panels.indexOf(x.panel) === -1; });
+    var used = {};
+    others.forEach(function (x) { if (x.magazine_id === m.id) used[x.slot] = true; });
+    var placed = [];
+    r.panels.forEach(function (n) {
+      var had = lot.load.filter(function (x) { return x.panel === n; })[0];
+      if (pb.keep_slots !== false && had && had.magazine_id === m.id && !used[had.slot]) { used[had.slot] = true; placed.push(had); return; }
+      var s = 1;
+      while (used[s] && s <= m.slots) s++;
+      assert(s <= m.slots, m.code + ' has no free slot for panel ' + n, 'invalid');
+      used[s] = true;
+      placed.push({ panel: n, magazine_id: m.id, slot: s });
+    });
+    lot.load = others.concat(placed).sort(function (a, b) { return a.panel - b.panel; });
+    lot.version += 1;
+    if (pb.rack) { audit('magazine', m.id, 'update', 'rack', m.rack, pb.rack, r.request_no + ' completed'); m.rack = pb.rack; m.version += 1; }
+    r.put_back = { magazine_id: m.id, rack: pb.rack || null };
   }
 
   /** "panels 1-4 -> 1-6" style lines for the timeline. */
@@ -1221,6 +1290,7 @@ window.MRT.store = (function () {
       changed.forEach(function (k) { audit('request', r.id, 'update', k, r[k], next[k], o.reason.trim()); r[k] = next[k]; });
       r.updated_ts = nowIso();
       r.version += 1;
+      if (changed.indexOf('rack') !== -1 || changed.indexOf('magazine_id') !== -1) placeMagazine(r);
       event(r.id, 'edit', null, null, lines.join('; ') + '. Reason: ' + o.reason.trim());
       return commit().then(function () { return r; });
     });
@@ -1243,7 +1313,10 @@ window.MRT.store = (function () {
    * or an admin changes or deletes it (delete only while no request uses it).
    * ------------------------------------------------------------------ */
 
-  var LOT_FIELDS = ['lot_number', 'project_id', 'part_number_id', 'buildup_id', 'panel_count', 'note', 'extra'];
+  var LOT_FIELDS = ['lot_number', 'project_id', 'part_number_id', 'buildup_id', 'panel_count', 'note', 'extra', 'magazine_ids'];
+
+  /** The lot's magazines as [{id, slots}] in its order. */
+  function lotMags(lot) { return (lot.magazine_ids || []).map(function (id) { return byId('magazines', id); }).filter(Boolean); }
 
   /** Tidy the answers to lot fields: text trimmed, empty answers dropped. */
   function tidyExtra(ex) {
@@ -1270,6 +1343,7 @@ window.MRT.store = (function () {
       if (typeof f.note === 'string') f.note = f.note.trim();
       if (f.part_number_id === '') f.part_number_id = null;
       if ('extra' in f) f.extra = tidyExtra(f.extra);
+      if ('magazine_ids' in f) f.magazine_ids = (f.magazine_ids || []).filter(function (id, i, a) { return id && a.indexOf(id) === i; });
       var existing = o.id ? need('lots', o.id, 'Lot') : null;
       var next;
       if (existing) {
@@ -1278,7 +1352,11 @@ window.MRT.store = (function () {
         next = Object.assign(clone(existing), f);
       } else {
         assert(D.canRegisterLot(me), 'Only engineers can register lots', 'not_allowed');
-        next = Object.assign({ id: newId('lot'), part_number_id: null, note: '', extra: {}, owner_id: me.id, created_ts: nowIso() }, f);
+        next = Object.assign({ id: newId('lot'), part_number_id: null, note: '', extra: {}, magazine_ids: [], load: [], scrapped: [], owner_id: me.id, created_ts: nowIso() }, f);
+      }
+      // new magazines or a new panel count: panel n into slot n again (the map can be edited afterwards)
+      if (!existing || JSON.stringify(existing.magazine_ids || []) !== JSON.stringify(next.magazine_ids || []) || existing.panel_count !== next.panel_count) {
+        next.load = D.defaultLoad(next.panel_count, lotMags(next), next.scrapped);
       }
       var problems = D.validateEntry('lots', next, state.data);
       assert(!problems.length, problems.join('. '), 'invalid', problems);
@@ -1287,6 +1365,7 @@ window.MRT.store = (function () {
         var changes = LOT_FIELDS.filter(function (k) { return JSON.stringify(existing[k]) !== JSON.stringify(next[k]); });
         assert(changes.length, 'Nothing was changed', 'no_change');
         changes.forEach(function (k) { audit('lot', existing.id, 'update', k, existing[k], next[k], reason); existing[k] = next[k]; });
+        existing.load = next.load;
         existing.version += 1;
         return commit().then(function () { return existing; });
       }
@@ -1357,6 +1436,44 @@ window.MRT.store = (function () {
       });
       rows.forEach(function (lot) { state.data.lots.push(lot); audit('lot', lot.id, 'create', null, null, lot.lot_number, 'Added in Settings (' + rows.length + ' at once)'); });
       return commit().then(function () { return rows; });
+    });
+  }
+
+  /**
+   * Change the loading map - which panel sits in which slot (M2-23): the
+   * lot's owner, an admin or any quality engineer (they move the panels).
+   * @param {string} lotId
+   * @param {Object[]} load [{panel, magazine_id, slot}]
+   */
+  function setLotLoad(lotId, load, reason) {
+    return guard(function () {
+      var me = requireUser();
+      var lot = need('lots', lotId, 'Lot');
+      assert(D.canEditLot(me, lot) || D.canMeasure(me), 'Only the lot owner, a quality engineer or an admin can move panels', 'not_allowed');
+      var next = (load || []).map(function (x) { return { panel: Number(x.panel), magazine_id: x.magazine_id, slot: Number(x.slot) }; })
+        .sort(function (a, b) { return a.panel - b.panel; });
+      var mags = {};
+      state.data.magazines.forEach(function (m) { mags[m.id] = m; });
+      var problems = D.loadProblems(next, lot, mags);
+      assert(!problems.length, problems.join('. '), 'invalid', problems);
+      assert(JSON.stringify(next) !== JSON.stringify(lot.load || []), 'Nothing was changed', 'no_change');
+      audit('lot', lot.id, 'update', 'load', (lot.load || []).length + ' panels placed', next.length + ' panels placed', reason ? String(reason).trim() : 'Magazine map');
+      lot.load = next;
+      lot.version += 1;
+      return commit().then(function () { return lot; });
+    });
+  }
+
+  /** Admin: how many racks the magazines stand in (M2-23). */
+  function setRackCount(n, reason) {
+    return guard(function () {
+      requireAdmin();
+      assert(isNum(n) && n >= 1 && n <= 999 && Math.floor(n) === n, 'Racks: a whole number, 1-999', 'invalid');
+      var before = getSetting('rack_count');
+      assert(before !== n, 'Nothing was changed', 'no_change');
+      audit('setting', 'rack_count', 'update', 'rack_count', before, n, reason || 'Settings');
+      setSettingValue('rack_count', n);
+      return commit();
     });
   }
 
@@ -1633,6 +1750,8 @@ window.MRT.store = (function () {
     addSampleLots: addSampleLots,
     addLots: addLots,
     setLotOwner: setLotOwner,
+    setLotLoad: setLotLoad,
+    setRackCount: setRackCount,
     deleteLot: deleteLot,
     lotUsage: lotUsage,
     hasPin: hasPin,
