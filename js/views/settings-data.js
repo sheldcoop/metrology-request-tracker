@@ -26,14 +26,22 @@
     var n = (store.data().lots || []).filter(function (l) { return l.sample; }).length;
     return k.panel('Try it out', 'lots', [], [
       ui.el('p', { class: 'muted', text: 'Adds three made-up lots (99901, 99902 and the split lot 99902.01), tagged Sample, so the Lots page ' +
-        'and later the request form can be tried with this data file. Delete them on the Lots page when done; Health lists them.' +
+        'and the request form can be tried with this data file. Delete them on the Lots page when done; Health lists them.' +
         (n ? ' ' + n + ' sample lot' + (n === 1 ? ' is' : 's are') + ' there now.' : '') }),
-      ui.el('div', { class: 'form-actions' }, ui.button('Add 3 sample lots', { icon: 'plus', onClick: function () {
+      ui.el('div', { class: 'form-actions' }, [ui.button('Add 3 sample lots', { icon: 'plus', onClick: function () {
         store.addSampleLots().then(function (added) {
           ui.toast({ kind: 'success', message: added + ' sample lot' + (added === 1 ? '' : 's') + ' added - see Lots.' });
           window.MRT.app.route();
         }).catch(function (e) { if (e && e.code === 'no_change') ui.toast({ message: e.message }); else ui.toastError(e.message, e); });
-      } }))
+      } }),
+      ui.button('Add the sample magazines', { icon: 'plus', title: 'M70345-M70364, 24 slots each - those already there are skipped', onClick: function () {
+        store.addSampleMagazines().then(function (added) {
+          ui.toast({ kind: 'success', message: added + ' sample magazine' + (added === 1 ? '' : 's') + ' added - see Settings > Lists.' });
+          window.MRT.app.route();
+        }).catch(function (e) { if (e && e.code === 'no_change') ui.toast({ message: e.message }); else ui.toastError(e.message, e); });
+      } })]),
+      ui.el('p', { class: 'muted', text: store.list('magazines').length + ' magazines in this file now. The sample ones are M70345-M70364 (24 slots); ' +
+        'replace them with the real numbers in Settings > Lists > Magazines.' })
     ]);
   }
 

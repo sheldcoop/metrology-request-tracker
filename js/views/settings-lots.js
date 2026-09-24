@@ -3,7 +3,7 @@
  *
  * Settings > Lots (admins): the SAME list as the Lots page - one list, two
  * doors; a lot registered in either place shows in both. Admin extras:
- * add many lots at once (same project, part number, build-up, panels),
+ * add many lots at once (same panel count, note and lot fields),
  * give a lot to another owner, delete any unused lot (with a reason).
  */
 (function () {
@@ -15,7 +15,6 @@
 
   function K() { return window.MRT.settingsKit; }
   function L() { return window.MRT.views.lots; }
-  function code(coll, id) { var r = id ? store.byId(coll, id) : null; return r ? r.code : null; }
 
   var PAGE = 100;
   var shown = PAGE;
@@ -30,14 +29,12 @@
     ], [
       ui.el('p', { class: 'muted' }, ['The same list as the ', ui.el('a', { href: '#/lots', text: 'Lots page' }),
         ' - a lot added here shows there and in the request form, and the other way round. ' + lots.length + ' lots.']),
-      k.table(['Lot', 'Project', 'Part number', 'Build-up', { label: 'Panels', cls: 'num' }, 'Owner', 'Requests', { label: '', cls: 'actions' }], rows.map(function (l) {
+      k.table(['Lot', 'Projects (of its requests)', { label: 'Panels', cls: 'num' }, 'Owner', 'Requests', { label: '', cls: 'actions' }], rows.map(function (l) {
         var owner = store.byId('users', l.owner_id);
         return { id: 'row-' + l.id, cells: [
           ui.el('span', { class: 'cell-main' }, [ui.el('a', { class: 'mono lot-link', href: '#/lots/' + l.id, text: l.lot_number,
             onclick: function (ev) { ev.preventDefault(); L().detailsDialog(l); } }), l.sample ? k.sampleTag() : null]),
-          code('projects', l.project_id) || k.muted('?'),
-          l.part_number_id ? ui.el('span', { class: 'mono', text: code('part_numbers', l.part_number_id) || '?' }) : k.muted('-'),
-          code('buildups', l.buildup_id) || k.muted('?'),
+          L().lotProjects(l) || k.muted('-'),
           ui.el('span', { class: 'num', text: l.panel_count ? String(l.panel_count) : '-' }),
           owner ? owner.name + (owner.active === false ? ' (switched off)' : '') : k.muted('?'),
           ui.el('span', { class: 'num', text: String(store.lotUsage(l.id).count) }),
@@ -54,39 +51,28 @@
     k.focusRow(body, ctx.focusId);
   }
 
-  /** Several lots at once: same project, part number, build-up, panels (and lot fields). */
+  /** Several lots at once: same panel count, note and lot fields. */
   function bulkDialog() {
     var lots = L();
-    var start = lots.pnOptions('', null);
     return K().editDialog({
       title: 'Add several lots', icon: 'lots', wide: true, saveLabel: 'Add lots',
       intro: 'For lots that start together with the same set-up. Each gets its own lot number; you are the owner (change it per lot afterwards).',
-      values: { numbers: '', panel_count: null, project_id: '', part_number_id: '', buildup_id: '', note: '' },
+      values: { numbers: '', panel_count: null, note: '' },
       fields: [
         { key: 'numbers', label: 'Lot numbers', kind: 'longtext', placeholder: 'e.g. 18178, 18179, 18180  or  18178-18180  or one per line',
           hint: 'Commas, spaces or new lines. A run like 18178-18180 adds every number in it.' },
         { key: 'panel_count', label: 'Panels per lot (optional)', kind: 'number', cls: 'half' },
-        { key: 'project_id', label: 'Project', kind: 'select', cls: 'half', options: lots.projectOptions('projects', null, '- pick a project -') },
-        { key: 'part_number_id', label: 'Part number', kind: 'select', cls: 'half', options: start.options },
-        { key: 'buildup_id', label: 'Build-up', kind: 'select', cls: 'half', options: lots.projectOptions('buildups', null, '- pick a build-up -') },
         { key: 'note', label: 'Note (optional, on every lot)', kind: 'longtext' }
       ].concat(lots.extraSpecs(null)),
-      onForm: function (f) {
-        var prj = f.control('project_id');
-        prj.addEventListener('change', function () { var o = lots.pnOptions(prj.value, null); f.setOptions('part_number_id', o.options, o.value); });
-      },
       check: function (v) {
         var p = D.parseLotNumbers(v.numbers);
         if (p.errors.length) return ['numbers', p.errors[0]];
         if (!p.numbers.length) return ['numbers', 'Enter at least one lot number'];
         if (v.panel_count !== null && (!(v.panel_count >= 1 && v.panel_count <= D.LOT_MAX_PANELS) || Math.floor(v.panel_count) !== v.panel_count)) return ['panel_count', 'Empty, or a whole number from 1 to ' + D.LOT_MAX_PANELS];
-        if (!v.project_id) return ['project_id', 'Pick a project'];
-        if (!v.buildup_id) return ['buildup_id', 'Pick a build-up'];
         return null;
       },
       save: function (v) {
-        return store.addLots({ numbers: D.parseLotNumbers(v.numbers).numbers, fields: { project_id: v.project_id, part_number_id: v.part_number_id,
-          buildup_id: v.buildup_id, panel_count: v.panel_count, note: v.note, extra: lots.extraFrom(v) } });
+        return store.addLots({ numbers: D.parseLotNumbers(v.numbers).numbers, fields: { panel_count: v.panel_count, note: v.note, extra: lots.extraFrom(v) } });
       },
       done: 'Lots added.'
     }).catch(function (e) { if (!K().quiet(e)) ui.toastError(e.message, e); });

@@ -636,16 +636,16 @@ window.MRT.app = (function () {
       (data.request_events || []).forEach(function (e) { if (e.kind === 'comment') said[e.request_id] = (said[e.request_id] || '') + ' ' + e.text; });
       store.visibleRequests(function (r) { return r.status !== 'draft'; }).forEach(function (r) {
         var t = store.byId('tools', r.tool_id), lot = store.byId('lots', r.lot_id);
-        if (has(r.request_no + ' ' + (r.purpose || '') + ' ' + (said[r.id] || ''))) {
+        var pnR = r.part_number_id ? store.byId('part_numbers', r.part_number_id) : null;
+        if (has(r.request_no + ' ' + (r.purpose || '') + ' ' + (pnR ? pnR.code : '') + ' ' + (said[r.id] || ''))) {
           out.push({ kind: 'Request', glyph: t ? t.glyph : null, icon: 'requests', label: r.request_no,
                      sub: [D.REQUEST_STATUS_LABEL[r.status], lot ? 'lot ' + lot.lot_number : null].filter(Boolean).join(' · '), href: '#/request/' + r.id });
         }
       });
       (data.lots || []).forEach(function (l) {
-        var prj = store.byId('projects', l.project_id), pn = l.part_number_id ? store.byId('part_numbers', l.part_number_id) : null;
-        if (has(l.lot_number + ' ' + (pn ? pn.code : ''))) {
+        if (has(l.lot_number + ' ' + (l.note || ''))) {
           out.push({ kind: 'Lot', icon: 'lots', label: l.lot_number,
-                     sub: [(prj || {}).code, pn ? pn.code : null, l.panel_count + ' panels'].filter(Boolean).join(' · '), href: '#/lots/' + l.id });
+                     sub: [window.MRT.views.lots.lotProjects(l) || null, l.panel_count ? l.panel_count + ' panels' : null].filter(Boolean).join(' · ') || 'lot', href: '#/lots/' + l.id });
         }
       });
       store.list('users').forEach(function (u) {

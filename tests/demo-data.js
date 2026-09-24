@@ -163,13 +163,12 @@ window.MRT.demoData = (function () {
     var lots = [], hirata = 3100;
     function addLot(num, daysAgo, panels, parent) {
       var projCode = parent ? null : pick(['C4F', 'C4F', 'SHIFT', 'HORUS']);
-      var proj = parent ? parent.project_id : P[projCode].id;
-      var pns = d.part_numbers.filter(function (x) { return x.project_ids.indexOf(proj) !== -1; });
+      var proj = parent ? parent.proj : P[projCode].id;
       var owner = U[pick(ENGINEERS)];
-      var lot = { id: id('lot'), lot_number: num, project_id: proj, part_number_id: parent ? parent.part_number_id : (pns.length && !chance(0.1) ? pick(pns).id : null),
-        buildup_id: parent ? parent.buildup_id : pick(d.buildups).id, panel_count: panels, owner_id: parent ? parent.owner_id : owner.id,
+      var lot = { id: id('lot'), lot_number: num, panel_count: panels, owner_id: parent ? parent.owner_id : owner.id,
         note: chance(0.2) ? pick(['Panels 3-4 have a known scratch', 'Handle with gloves - thin core', 'Split for the DOE', 'Customer lot - priority']) : '',
         extra: {}, scrapped: [], created_ts: iso(labTs(daysAgo)), version: 1 };
+      lot.proj = proj;                                     // the project its requests are usually for (F-6: the request says it), dropped before saving
       lot.ids = [];                                        // the panels' Hirata IDs (F-1), dropped before the lot is saved
       for (var h = 0; h < panels; h++) lot.ids.push(String(hirata + h));
       hirata += panels + between(5, 40);
@@ -260,11 +259,13 @@ window.MRT.demoData = (function () {
       var counted = chance(0.2);                            // 1 in 5 only says how many (F-1)
       var ends = ['closed', 'cancelled', 'cancelled_lab', 'completed', 'draft'].indexOf(plan.fate) !== -1;
       var place = chance(0.65) ? slotsFor(ends ? magOld : magOpen, k, !ends) : null;
-      var bu = d.buildups.filter(function (b) { return b.id === lot.buildup_id; })[0];
+      var bu = chance(0.75) ? pick(d.buildups) : null;       // the build-up is optional; one lot runs through all of them (F-6)
+      var pnsP = d.part_numbers.filter(function (x) { return x.project_ids.indexOf(lot.proj) !== -1; });
       var lys = D.layersFor(bu);
-      var layers = chance(0.5) ? [pick(lys)].concat(chance(0.4) ? [pick(lys)] : []).filter(function (x, i4, a) { return a.indexOf(x) === i4; })
+      var layers = bu && chance(0.6) ? [pick(lys)].concat(chance(0.4) ? [pick(lys)] : []).filter(function (x, i4, a) { return a.indexOf(x) === i4; })
         .sort(function (a, b) { return lys.indexOf(a) - lys.indexOf(b); }) : [];
       var r = { id: id('req'), request_no: null, status: 'draft', tool_id: tool.id, type_id: type.id, lot_id: lot.id, panels: counted ? [] : panels, panel_count: k,
+        project_id: lot.proj, part_number_id: pnsP.length && chance(0.8) ? pick(pnsP).id : null, buildup_id: bu ? bu.id : null,
         priority_id: p.id, priority_reason: p.needs_reason ? pick(['Line 2 stopped - voids suspected', 'Customer audit on Friday', 'Yield drop on the last lots', 'Qualification deadline']) : '',
         needed_by: plan.late ? ymdOf(now - between(2, 8) * DAY) : chance(0.7) ? ymdOf(created + between(3, 15) * DAY) : null,
         bkm_id: !noBkm && bkms.length ? pick(bkms).id : null, bkm_path: noBkm && chance(0.5) ? '\\\\labserver\\users\\' + U[who].windows_id + '\\BKM_' + tool.code + '.pptx' : '',
@@ -399,7 +400,7 @@ window.MRT.demoData = (function () {
       if (r) made.push(r);
     });
 
-    lots.forEach(function (x) { delete x.ids; });
+    lots.forEach(function (x) { delete x.ids; delete x.proj; });
     d.requests = requests;
     d.request_events = events.sort(function (a, b) { return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0; });
     d.audit_log = audit.concat(d.users.filter(function (u) { return u.self_added; }).map(function (u) {

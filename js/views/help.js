@@ -69,20 +69,19 @@ window.MRT.views.help = (function () {
       steps: [
         'Lots > Register lot. Lot number: digits, e.g. 18178; a split lot adds .01, .02 (18178.01).',
         'Panels in the lot: optional. Requests name their panels by Hirata ID.',
-        'Pick the project: its part numbers appear. With only one it is picked for you; with several, choose. Then pick the build-up.',
         'A note is optional, e.g. "panels 3-4 have a known scratch". Below it come the lot fields the admin set up (e.g. Purpose of the lot, Started on, Lot status).',
         'Click a lot number to see all its details.',
         'You (the owner) or an admin can change the lot later, or delete it while no request uses it.'
       ],
-      tips: ['Filter by lot, project, part number, build-up or owner; "Only my lots" shows yours. The search box at the top finds lots too.',
-             'A project or build-up that lots use cannot be deleted in Settings - hide it instead.'],
+      tips: ['A lot is just its number (plus panels, note and lot fields): project, part number and build-up are given on each request, because one lot runs through every build-up. The list shows the projects of its requests.',
+             'Filter by lot, project (of its requests), owner or note; "Only my lots" shows yours. The search box at the top finds lots too.'],
       link: ['Open Lots', '#/lots'] },
 
     { id: 'new-request', title: 'New request', icon: 'request_new',
       intro: 'One request = one tool. Several tools on a lot = several requests. The form goes step by step: tool first, and each finished step folds into one line.',
       steps: [
         '1 Tool: click its drawing, then the measurement type and the BKM from the library - or paste the path of your own BKM PowerPoint. Without a BKM, say what to measure in the purpose (step 5).',
-        '2 Lot and panels: Project · Lot · Build-up on one line. Type the lot number or pick it from the list; a lot that is not registered yet shows "New lot" and is registered when you submit. Then the panels: their Hirata IDs ("3252, 3253" or "3252-3255"), or just how many (usually 2). Tick the layers if it matters: 1FCO / 1BCO is the core, BU-01 adds 2F / 2B, up to BU-04 = 5F / 5B.',
+        '2 Lot and panels: Project · Lot · Build-up on one line - three separate choices. Pick the project (its part numbers appear below, optional). Type the lot number or pick it from the list; a lot that is not registered yet shows "New lot" and is registered when you submit. The build-up is optional: pick it and the layers follow it. Then the panels: their Hirata IDs ("3252, 3253" or "3252-3255"), or just how many (usually 2). Tick the layers if it matters: 1FCO / 1BCO is the core, BU-01 adds 2F / 2B, up to BU-04 = 5F / 5B; without a build-up all up to 5F / 5B.',
         '3 Where the panels are: pick the magazine and click the slots they sit in (or press and drag over several), or write a note ("in MES", "with Anna"). Slots other open requests hold are greyed out. Then where the panels go afterwards; FIB destroys panels: tick that they may be scrapped.',
         '4 Priority and date: Line stop and Hot need a reason. The needed-by date is optional.',
         '5 Purpose and tool fields: why the measurement, and whatever the tool asks in addition.',
@@ -239,7 +238,7 @@ window.MRT.views.help = (function () {
         'Settings > Lists: projects and build-ups (codes in capitals; a build-up can set its number of layers - empty means the number in the code, BU-04 = up to 5F / 5B) and priorities (Line stop, Hot, Normal, Low - renamable, one default, some need a reason).',
         'Part numbers (Settings > Lists): each one is stored once and linked to one or more projects - tick them. A project with part numbers cannot be deleted; hide it instead.',
         'Process steps (Settings > Lists): the steps of the line in order, e.g. After desmear. A request says which step its panels are at; engineers can still type another one.',
-        'Settings > Lots: the same list as the Lots page. "Add several lots" registers a batch (e.g. 18178-18180) with the same project, part number, build-up and panels; the person button gives a lot to another owner; any unused lot can be deleted with a reason.',
+        'Settings > Lots: the same list as the Lots page. "Add several lots" registers a batch (e.g. 18178-18180) with the same panel count, note and lot fields; the person button gives a lot to another owner; any unused lot can be deleted with a reason.',
         'Lot fields (Settings > Lists): what every lot holds beyond the core fields - add, rename, hide, make required. Same 8 kinds as a tool\'s extra fields. The first seven are samples to shape with the team.',
         'Settings > Lab calendar: lab days and hours (Europe/Vienna). Turnaround and lateness count only these hours.',
         'Public holidays: the Austrian ones are filled in by rule; the button adds the next year. Add company closing days yourself.'

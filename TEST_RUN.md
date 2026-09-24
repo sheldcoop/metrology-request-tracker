@@ -18,9 +18,12 @@ A screenshot helps. Everything else is welcome too: missing fields, confusing wo
 
 ## 1. Engineer
 - [ ] Opens on **My requests**.
-- [ ] Lots > Register lot: lot number, project -> part numbers appear, build-up, panels (optional), lot fields.
+- [ ] Lots > Register lot: lot number, panels (optional), lot fields - no project or build-up any more.
+- [ ] Your own data folder: Settings > Lists > Magazines shows M70345-M70364 after the upgrade (or use
+      Settings > Data > "Add the sample magazines"); the form's step 3 then offers them.
 - [ ] New request (guided): tool drawing, type, BKM (or own path) -> Next. Project · Lot · Build-up on one
-      line: type a registered lot (it fills in), then a new number ("New lot"). Hirata IDs ("3252-3255")
+      line, three separate choices: pick the project (part numbers appear), type a registered lot
+      (nothing fills in), then a new number ("New lot"). Build-up optional: pick one, the layers change. Hirata IDs ("3252-3255")
       or "Just how many". Tick a layer. Is it easy to follow? Do the folded lines say the right thing?
 - [ ] Step 3: pick a magazine, press and drag over slots (real mouse); the IDs show in the slots in order.
       Slots of another open request are grey. Or write a note instead.

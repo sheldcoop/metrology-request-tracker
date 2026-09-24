@@ -22,7 +22,7 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 9;
+  var SCHEMA_VERSION = 10;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
@@ -345,6 +345,23 @@ window.MRT.store = (function () {
         delete l.magazine_ids; delete l.load;
       });
       (d.magazines || []).forEach(function (m) { delete m.rack; });
+    },
+    // 9 -> 10 (F-6): project, part number and build-up belong to the request, not the lot - one lot
+    // runs through every build-up. Requests take them over from their lot; lots drop them.
+    9: function (d) {
+      var lots = {};
+      (d.lots || []).forEach(function (l) { lots[l.id] = l; });
+      (d.requests || []).forEach(function (r) {
+        var lot = lots[r.lot_id] || {};
+        var nl = r.new_lot || {};
+        r.project_id = r.project_id || lot.project_id || nl.project_id || null;
+        r.part_number_id = r.part_number_id || lot.part_number_id || nl.part_number_id || null;
+        r.buildup_id = r.buildup_id || lot.buildup_id || nl.buildup_id || null;
+        r.new_lot = r.new_lot ? { lot_number: r.new_lot.lot_number } : null;
+      });
+      (d.lots || []).forEach(function (l) { delete l.project_id; delete l.part_number_id; delete l.buildup_id; });
+      // a file whose magazine list stayed empty (made before magazines, or never filled) gets the sample ones
+      if (!Array.isArray(d.magazines) || !d.magazines.length) d.magazines = magazinesFromSeed(window.MRT.seed);
     }
   };
 
@@ -934,9 +951,9 @@ window.MRT.store = (function () {
   var USES = {
     tools: [['measurement_types', 'tool_id', 'measurement type'], ['tool_fields', 'tool_id', 'field'], ['bkms', 'tool_id', 'BKM'], ['requests', 'tool_id', 'request']],
     measurement_types: [['bkms', 'type_id', 'BKM'], ['tool_fields', 'type_ids', 'field'], ['requests', 'type_id', 'request']],
-    projects: [['part_numbers', 'project_ids', 'part number'], ['lots', 'project_id', 'lot']],
-    part_numbers: [['lots', 'part_number_id', 'lot']],
-    buildups: [['lots', 'buildup_id', 'lot']],
+    projects: [['part_numbers', 'project_ids', 'part number'], ['requests', 'project_id', 'request']],
+    part_numbers: [['requests', 'part_number_id', 'request']],
+    buildups: [['requests', 'buildup_id', 'request']],
     lot_fields: [['lots', 'extra', 'lot']],
     tool_fields: [['requests', 'extra', 'request']],
     bkms: [['requests', 'bkm_id', 'request']],
@@ -989,7 +1006,8 @@ window.MRT.store = (function () {
 
   var REQUEST_FIELDS = ['tool_id', 'type_id', 'lot_id', 'panels', 'priority_id', 'priority_reason', 'needed_by',
     'bkm_id', 'bkm_path', 'purpose', 'process_step_id', 'process_step_other', 'panel_location',
-    'destructive_ok', 'after', 'after_other', 'extra', 'duplicated_from', 'magazine_id', 'slots', 'layers', 'panel_count', 'new_lot'];
+    'destructive_ok', 'after', 'after_other', 'extra', 'duplicated_from', 'magazine_id', 'slots', 'layers', 'panel_count', 'new_lot',
+    'project_id', 'part_number_id', 'buildup_id'];
 
   function tidyRequest(f) {
     var o = clone(f || {});
@@ -997,12 +1015,11 @@ window.MRT.store = (function () {
     ['priority_reason', 'bkm_path', 'purpose', 'process_step_other', 'panel_location', 'after_other'].forEach(function (k) {
       if (typeof o[k] === 'string') o[k] = o[k].trim();
     });
-    ['type_id', 'lot_id', 'priority_id', 'needed_by', 'bkm_id', 'process_step_id', 'after', 'magazine_id', 'panel_count'].forEach(function (k) { if (o[k] === '') o[k] = null; });
+    ['type_id', 'lot_id', 'priority_id', 'needed_by', 'bkm_id', 'process_step_id', 'after', 'magazine_id', 'panel_count', 'project_id', 'part_number_id', 'buildup_id'].forEach(function (k) { if (o[k] === '') o[k] = null; });
     if (Array.isArray(o.slots)) o.slots = o.slots.map(Number).filter(function (x, i, a) { return a.indexOf(x) === i; }).sort(function (a, b) { return a - b; });
     if (Array.isArray(o.layers)) o.layers = o.layers.map(function (x) { return String(x).trim().toUpperCase(); }).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
     if (o.panel_count !== null && o.panel_count !== undefined) o.panel_count = Number(o.panel_count);
-    if (o.new_lot) o.new_lot = { lot_number: String(o.new_lot.lot_number || '').trim(), project_id: o.new_lot.project_id || null,
-                                 buildup_id: o.new_lot.buildup_id || null, part_number_id: o.new_lot.part_number_id || null };
+    if (o.new_lot) o.new_lot = { lot_number: String(o.new_lot.lot_number || '').trim() };
     if ('new_lot' in o && o.new_lot && o.lot_id) o.new_lot = null;
     if (Array.isArray(o.panels)) {
       o.panels = o.panels.map(function (x) { return String(x).trim(); }).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
@@ -1030,7 +1047,7 @@ window.MRT.store = (function () {
     assert(D.canRequest(me), 'Only engineers can request measurements', 'not_allowed');
     var blank = { id: newId('req'), request_no: null, status: 'draft', tool_id: null, type_id: null, lot_id: null, panels: [],
       priority_id: null, priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '', purpose: '', process_step_id: null,
-      process_step_other: '', layers: [], panel_count: null, new_lot: null, panel_location: '', magazine_id: null, slots: [], destructive_ok: false, after: null, after_other: '', extra: {},
+      process_step_other: '', layers: [], panel_count: null, new_lot: null, project_id: null, part_number_id: null, buildup_id: null, panel_location: '', magazine_id: null, slots: [], destructive_ok: false, after: null, after_other: '', extra: {},
       duplicated_from: null, requester_id: me.id, created_ts: nowIso(), updated_ts: null, submitted_ts: null, version: 0 };
     return { existing: null, next: Object.assign(blank, f) };
   }
@@ -1078,13 +1095,12 @@ window.MRT.store = (function () {
    * Warnings (Q44) are for the screen to show before; they never block.
    * @param {Object} o {id?, version?, fields}
    */
-  /** A lot typed in the form is registered when the request is sent, with its project and build-up (F-5). */
+  /** A lot typed in the form is registered when the request is sent (F-5). */
   function registerNewLot(r, me) {
     var nl = r.new_lot;
     if (!nl) return;
     assert(D.canRegisterLot(me), 'Only engineers can register lots', 'not_allowed');
-    var lot = { id: newId('lot'), lot_number: nl.lot_number, project_id: nl.project_id, part_number_id: nl.part_number_id || null, buildup_id: nl.buildup_id,
-                panel_count: null, note: '', extra: {}, scrapped: [], owner_id: me.id, created_ts: nowIso(), version: 1 };
+    var lot = { id: newId('lot'), lot_number: nl.lot_number, panel_count: null, note: '', extra: {}, scrapped: [], owner_id: me.id, created_ts: nowIso(), version: 1 };
     var lp = D.validateEntry('lots', lot, state.data);
     assert(!lp.length, lp.join('. '), 'invalid', lp);
     state.data.lots.push(lot);
@@ -1282,7 +1298,8 @@ window.MRT.store = (function () {
       if (k === 'panels' || k === 'layers') return v.join(', ');
       if (k === 'slots') return D.formatPanels(v);
       if (k === 'magazine_id') { var mg = byId('magazines', v); return mg ? mg.code : '?'; }
-      var coll = { type_id: 'measurement_types', lot_id: 'lots', priority_id: 'priorities', bkm_id: 'bkms', process_step_id: 'process_steps' }[k];
+      var coll = { type_id: 'measurement_types', lot_id: 'lots', priority_id: 'priorities', bkm_id: 'bkms', process_step_id: 'process_steps',
+                   project_id: 'projects', part_number_id: 'part_numbers', buildup_id: 'buildups' }[k];
       if (coll) { var row = byId(coll, v); return row ? (row.lot_number || row.name || row.code) : '?'; }
       if (k === 'after') return D.AFTER_LABEL[v] || v;
       if (k === 'destructive_ok') return v ? 'yes' : 'no';
@@ -1291,7 +1308,8 @@ window.MRT.store = (function () {
     }
     var names = { type_id: 'type', lot_id: 'lot', priority_id: 'priority', priority_reason: 'priority reason', needed_by: 'needed by',
       bkm_id: 'BKM', bkm_path: 'BKM path', process_step_id: 'process step', process_step_other: 'process step', panel_location: 'panels are now',
-      destructive_ok: 'destructive OK', after_other: 'afterwards (other)', extra: 'tool fields', magazine_id: 'magazine', panel_count: 'how many panels' };
+      destructive_ok: 'destructive OK', after_other: 'afterwards (other)', extra: 'tool fields', magazine_id: 'magazine', panel_count: 'how many panels',
+      project_id: 'project', part_number_id: 'part number', buildup_id: 'build-up' };
     return (names[k] || k) + ' ' + show(a) + ' -> ' + show(b);
   }
 
@@ -1344,7 +1362,7 @@ window.MRT.store = (function () {
    * or an admin changes or deletes it (delete only while no request uses it).
    * ------------------------------------------------------------------ */
 
-  var LOT_FIELDS = ['lot_number', 'project_id', 'part_number_id', 'buildup_id', 'panel_count', 'note', 'extra'];
+  var LOT_FIELDS = ['lot_number', 'panel_count', 'note', 'extra'];     // project, part number, build-up: on the request (F-6)
 
   /** Tidy the answers to lot fields: text trimmed, empty answers dropped. */
   function tidyExtra(ex) {
@@ -1359,7 +1377,7 @@ window.MRT.store = (function () {
 
   /**
    * Register or change a lot.
-   * @param {Object} o {id?, version?, fields: {lot_number, project_id, part_number_id, buildup_id, panel_count, note}, reason?}
+   * @param {Object} o {id?, version?, fields: {lot_number, panel_count, note, extra}, reason?}
    * @returns Promise<lot>
    */
   function saveLot(o) {
@@ -1369,7 +1387,6 @@ window.MRT.store = (function () {
       Object.keys(f).forEach(function (k) { assert(LOT_FIELDS.indexOf(k) !== -1, 'Unknown field: ' + k); });
       if (typeof f.lot_number === 'string') f.lot_number = f.lot_number.trim();
       if (typeof f.note === 'string') f.note = f.note.trim();
-      if (f.part_number_id === '') f.part_number_id = null;
       if ('extra' in f) f.extra = tidyExtra(f.extra);
       if (f.panel_count === '' || f.panel_count === undefined && 'panel_count' in f) f.panel_count = null;
       var existing = o.id ? need('lots', o.id, 'Lot') : null;
@@ -1380,7 +1397,7 @@ window.MRT.store = (function () {
         next = Object.assign(clone(existing), f);
       } else {
         assert(D.canRegisterLot(me), 'Only engineers can register lots', 'not_allowed');
-        next = Object.assign({ id: newId('lot'), part_number_id: null, panel_count: null, note: '', extra: {}, scrapped: [], owner_id: me.id, created_ts: nowIso() }, f);
+        next = Object.assign({ id: newId('lot'), panel_count: null, note: '', extra: {}, scrapped: [], owner_id: me.id, created_ts: nowIso() }, f);
       }
       var problems = D.validateEntry('lots', next, state.data);
       assert(!problems.length, problems.join('. '), 'invalid', problems);
@@ -1407,16 +1424,11 @@ window.MRT.store = (function () {
   function addSampleLots() {
     return guard(function () {
       var me = requireAdmin();
-      var prj = list('projects'), bus = list('buildups');
-      assert(prj.length && bus.length, 'Add a project and a build-up first (Settings > Lists)', 'invalid');
-      function pnOf(p) { return list('part_numbers').filter(function (x) { return (x.project_ids || []).indexOf(p.id) !== -1; })[0] || null; }
       var plan = [['99901', 0, 12, 'Sample lot - delete when done'], ['99902', 1, 24, 'Sample lot'], ['99902.01', 1, 6, 'Sample split lot of 99902']];
       var added = 0;
-      plan.forEach(function (x, i) {
+      plan.forEach(function (x) {
         if (state.data.lots.some(function (l) { return l.lot_number === x[0]; })) return;
-        var p = prj[x[1] % prj.length], pn = pnOf(p);
-        var lot = { id: newId('lot'), lot_number: x[0], project_id: p.id, part_number_id: pn ? pn.id : null, buildup_id: bus[i % bus.length].id,
-                    panel_count: x[2], note: x[3], extra: {}, owner_id: me.id, created_ts: nowIso(), sample: true, version: 1 };
+        var lot = { id: newId('lot'), lot_number: x[0], panel_count: x[2], note: x[3], extra: {}, scrapped: [], owner_id: me.id, created_ts: nowIso(), sample: true, version: 1 };
         var problems = D.validateEntry('lots', lot, state.data);
         assert(!problems.length, problems.join('. '), 'invalid', problems);
         state.data.lots.push(lot);
@@ -1429,10 +1441,26 @@ window.MRT.store = (function () {
   }
 
   /**
-   * Admin: register several lots at once that share project, part number,
-   * build-up and panel count (Settings > Lots). All or nothing - a number
+   * Admin: the 20 sample magazines of seed.js (M70345 ...), for a data file that has none -
+   * e.g. one made before magazines existed, whose list stayed empty. Codes already there are skipped.
+   */
+  function addSampleMagazines() {
+    return guard(function () {
+      requireAdmin();
+      var have = {};
+      state.data.magazines.forEach(function (m) { have[m.code] = true; });
+      var rows = magazinesFromSeed(window.MRT.seed).filter(function (m) { return !have[m.code]; });
+      assert(rows.length, 'The sample magazines are there already', 'no_change');
+      rows.forEach(function (m) { state.data.magazines.push(m); audit('magazine', m.id, 'create', null, null, m.code, 'Sample magazine'); });
+      return commit().then(function () { return rows.length; });
+    });
+  }
+
+  /**
+   * Admin: register several lots at once that share panel count, note and
+   * lot fields (Settings > Lots). All or nothing - a number
    * already registered stops the whole batch and is named.
-   * @param {Object} o {numbers: ['18178', ...], fields: {project_id, part_number_id, buildup_id, panel_count, note, extra}}
+   * @param {Object} o {numbers: ['18178', ...], fields: {panel_count, note, extra}}
    * @returns Promise<lots>
    */
   function addLots(o) {
@@ -1445,12 +1473,11 @@ window.MRT.store = (function () {
       assert(!taken.length, 'Already registered: ' + taken.join(', '), 'invalid');
       var f = clone(o.fields || {});
       Object.keys(f).forEach(function (k) { assert(LOT_FIELDS.indexOf(k) !== -1 && k !== 'lot_number', 'Unknown field: ' + k); });
-      if (f.part_number_id === '') f.part_number_id = null;
       if (typeof f.note === 'string') f.note = f.note.trim();
       f.extra = tidyExtra(f.extra);
       var rows = [], wouldBe = Object.assign({}, state.data, { lots: state.data.lots.slice() });
       nums.forEach(function (n) {
-        var lot = Object.assign({ id: newId('lot'), part_number_id: null, note: '', extra: {}, owner_id: me.id, created_ts: nowIso(), version: 1 },
+        var lot = Object.assign({ id: newId('lot'), panel_count: null, note: '', extra: {}, scrapped: [], owner_id: me.id, created_ts: nowIso(), version: 1 },
                                 clone(f), { lot_number: n });
         var problems = D.validateEntry('lots', lot, wouldBe);
         assert(!problems.length, 'Lot ' + n + ': ' + problems.join('. '), 'invalid', problems);
@@ -1733,6 +1760,7 @@ window.MRT.store = (function () {
     visibleRequests: visibleRequests,
     requestEvents: requestEvents,
     addSampleLots: addSampleLots,
+    addSampleMagazines: addSampleMagazines,
     addLots: addLots,
     setLotOwner: setLotOwner,
     deleteLot: deleteLot,
