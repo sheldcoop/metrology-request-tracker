@@ -191,6 +191,40 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   are designed later (OPEN_QUESTIONS #14); giving Operators rights then is a change in canMeasure
   and its tests, not a data change.
 
+- **M1-13** (2026-09-24) Part numbers: each project has its own list of part numbers (code,
+  optional description, active) in Settings > Lists. From M2 a lot picks the project, then one of
+  its part numbers; requests take it from the lot. Details still being asked (one project per
+  part number? required on a lot? format?).
+
+## Design polish plan (2026-09-24) - PLANNED, NOT BUILT: plan each, ask Prince before building
+"Engineered" animations: each one shows something real, like ABF's hourglass. Rules as in ABF:
+transform/opacity only (SVG fill/stroke where needed), everything off with Reduce motion (final
+frame shown), paused off-screen (`ui.watchOffscreen`), every animation shown in ui-kit.html, and
+never the only signal - the text/label says the same thing.
+- **P1 Working tool glyphs** (Lab status, "In progress" requests): FIB beam sweeps and cuts a
+  cross-section line by line; QVM crosshair locks onto an edge and a measuring line snaps between
+  two points; PRF stylus glides over a wavy surface and draws the profile behind it; HRM probe taps
+  while a roughness trace scrolls; AOI scan frame sweeps the panel with small defect boxes blinking
+  up. Down: glyph greyed, a small warning lamp blinks. (Today: the beam pulses / dashes / is off.)
+- **P2 Needed-by gauge** on the traveller card: a needle/scale from green to amber to red as the
+  deadline nears; late: past the red mark and pulsing; on hold: needle frozen with a pause symbol.
+- **P3 Traveller card**: a rubber stamp ("ACCEPTED", "COMPLETED") slams on at each status change
+  with a small bounce; the status rail fills step by step.
+- **P4 Panel map**: picked panels light up one by one as ranges are typed ("1-5, 12"); measured
+  panels get a check; scrapped (FIB) panels cross out; received panels slide into a "lab" tray.
+- **P5 Lab board (Kanban)**: cards slide between lanes; a new request drops into its lane; a Line
+  stop card has a pulsing red edge (ABF's critical glow); lanes a card may go to light up while
+  dragging, lanes it may not go to stay dim (the transition rules, visible).
+- **P6 Small touches**: completing a request - a folder icon closes with a click and the results
+  path is copied with a small check; the bell swings once on something new; tool lamps on Lab
+  status glow like equipment status lights.
+- **P7 Added by Claude**: the working-time clock visibly pauses outside lab hours and on holidays
+  (a small pause mark on countdowns), so "why did it stop?" answers itself; Settings > Health
+  lines tick off with a check when their fix is saved; an Away person's plate shows a small
+  swap arrow primary -> backup; Undo "rewinds" the changed row briefly; the save lamp gives one
+  short pulse on each save. Performance budget: at most a handful of looping animations on screen,
+  the 1 s tick stays text-only.
+
 ## Future-proofing (2026-09-24, not built now)
 - **F1** Server later (Docker/Kubernetes, Node + SQLite + API): saving only in `store.js`, rules in
   `domain.js`, ID-based versioned collections, everything configurable (`js/config.js` + Settings).
