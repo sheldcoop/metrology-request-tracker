@@ -314,6 +314,8 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
   expected done, countdown; filters status / tool / lot; Results OK / Reopen / Answered right there.
 - **M3-12** **Start page by role** (Q16): quality engineer -> My queue, engineer -> My requests,
   others -> Lab status; a start page picked in the user menu wins.
+- **M3 built** (2026-09-24): workflow + edit + assignment, My queue, My requests, board - each
+  merged into main. Next per the rollout plan: R1 test run, then M4.
 - **M3 build order**: 1 `m3-workflow` (actions, hold reasons, request page buttons, edit with
   reason, assignment) - 2 `my-queue` - 3 `my-requests` - 4 `board`. Each merged into main.
 

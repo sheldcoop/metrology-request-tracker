@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -87,9 +87,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // --- the side menu (M1-6)
   const items = doc.getElementById('navItems').children;
   check('nine menu entries', items.length === 9, items.length);
-  check('seven live: Lab status, My queue, My requests, New request, Lots, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,requests,new,lots,settings,help');
-  check('two greyed with their milestone', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M3,M5');
-  check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 2);
+  check('eight live: Lab status, My queue, My requests, New request, Lots, Board, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,requests,new,lots,board,settings,help');
+  check('one greyed with its milestone (Analytics, M5)', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M5');
+  check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 1);
 
   // --- Lab status
   check('start page is Lab status', win.location.hash === '#/lab', win.location.hash);
@@ -99,8 +99,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('sample entries are flagged', $$('.tool-plate-sample').length === 5);
 
   // --- a page still to come
-  win.setHash('#/board'); await settle();
-  check('#/board says it comes in M3', /Board comes in M3/.test(text('main')), text('main').slice(0, 80));
+  win.setHash('#/analytics'); await settle();
+  check('#/analytics says it comes in M5', /Analytics comes in M5/.test(text('main')), text('main').slice(0, 80));
   win.setHash('#/settings'); await settle();
   check('Settings opens (placeholder until step 4)', /Settings/.test(text('main')));
 
@@ -142,15 +142,15 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
   doc.getElementById('keysBtn').click(); await settle();
   const keys = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
-  check('the shortcut list opens and lists only live pages', !!keys && /Lab status/.test(keys.textContent) && !/Board/.test(keys.textContent));
+  check('the shortcut list opens and lists only live pages', !!keys && /Lab status/.test(keys.textContent) && !/Analytics/.test(keys.textContent));
   if (keys) { buttonByText(keys, 'Close').click(); await settle(); }
   doc.dispatch('keydown', { key: '[', target: doc.body });
   check('[ collapses the side menu', doc.documentElement.getAttribute('data-nav') === 'collapsed');
   doc.dispatch('keydown', { key: '[', target: doc.body });
   doc.dispatch('keydown', { key: 'g', target: doc.body }); doc.dispatch('keydown', { key: 'h', target: doc.body }); await settle();
   check('g h goes to Help', win.location.hash === '#/help');
-  doc.dispatch('keydown', { key: 'g', target: doc.body }); doc.dispatch('keydown', { key: 'b', target: doc.body }); await settle();
-  check('g b does nothing yet (the board comes later in M3)', win.location.hash === '#/help');
+  doc.dispatch('keydown', { key: 'g', target: doc.body }); doc.dispatch('keydown', { key: 'a', target: doc.body }); await settle();
+  check('g a does nothing yet (Analytics is M5)', win.location.hash === '#/help');
   win.setHash('#/lab'); await settle();
 
   // --- change user; an unknown Windows ID signs up
@@ -480,6 +480,28 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('..."All": cancelled and closed ones too, the closed one stamped Closed', $$('#main .q-row').length === 4 && /Closed/.test(mainText()) && /Cancelled/.test(mainText()));
   setVal(fieldIn(doc.getElementById('main'), 'Lot or request number'), req2.request_no); await settle();
   check('...find by request number', $$('#main .q-row').length === 1);
+
+  // --- the board (M3 step 4)
+  MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
+  check('Board: a lane per tool, five columns, the two accepted FIB cards', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 5 &&
+        $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 2);
+  const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
+  check('...the Line stop card pulses and Olga may drag it', lsCard.classList.contains('is-urgent') && lsCard.getAttribute('draggable') === 'true');
+  lsCard.dispatch('dragstart');
+  const lit = $$('#main .board-cell.is-target').map(c => c.dataset.col).sort().join();
+  check('...dragging lights In progress and Waiting in its lane, dims the rest (Q39)', lit === 'in_progress,waiting' && $$('#main .board-cell.is-dim').length === 23);
+  lsCard.dispatch('dragend');
+  MRT.views.board.drop(qL.id, 'in_progress'); await settle();
+  check('...a drop on In progress runs Start (asks "Panels received?")', !!openDialog() && !!tickIn(openDialog(), 'Panels received'));
+  buttonByText(openDialog(), 'Save').click(); await settle();
+  check('...and the card moves', MRT.store.byId('requests', qL.id).status === 'in_progress' &&
+        $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
+  MRT.views.board.drop(qN.id, 'submitted');
+  const refusedToast = text('toasts'); await settle();
+  check('...a drop where it may not go says so and changes nothing', MRT.store.byId('requests', qN.id).status === 'accepted' && /cannot go there/.test(refusedToast));
+  MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
+  check('an engineer reads the board, drags nothing', $$('#main .bcard').length >= 2 && !$$('#main .bcard').some(c => c.getAttribute('draggable') === 'true'));
+  MRT.store.setCurrentUser(meP);
 
   win.setHash('#/lots'); await settle();
   check('...shown on Lots with the Sample tag', /99902.01/.test(mainText()) && $$('#main .sample-tag').length === 3);
