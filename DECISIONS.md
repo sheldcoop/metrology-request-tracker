@@ -230,6 +230,7 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   measure (Q45).
 - **M2-14** No "contact if I'm away" field for now - backups cover it. Look again after the test
   run (R1).
+- **M2-15** No picture / drawing attachment for now - the BKM covers it.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
