@@ -14,7 +14,8 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
 - **No browser runs by Claude** (Prince tests in the browser; it saves tokens). Claude runs only
   code-level checks: `node -e "new Function(require('fs').readFileSync(f,'utf8'))"` syntax checks,
   `node tests/css-check.js`, `node tests/contrast.js`, `node tests/ui-smoke.js`,
-  `node tests/run-tests.js` (the same tests as `tests/test.html`), and writes tests into
+  `node tests/run-tests.js` (the same tests as `tests/test.html`), `node tests/app-smoke.js` (the
+  real app in a fake browser on an in-memory folder: flows, not looks), and writes tests into
   `tests/tests.js` for Prince to open in `tests/test.html`. Headless Chromium or screenshots only when Prince asks.
 
 ## Git rules

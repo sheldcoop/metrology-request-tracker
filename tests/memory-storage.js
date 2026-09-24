@@ -24,6 +24,7 @@ window.MRT.adapters.storageMemory = function (initial) {
     hasSaved: function () { return Promise.resolve(true); },
     connect: function () { return Promise.resolve(); },
     reconnect: function () { return Promise.resolve(true); },
+    savedLabel: function () { return Promise.resolve('memory'); },
     label: function () { return 'memory'; },
     read: function (path) {
       return Promise.resolve(Object.prototype.hasOwnProperty.call(files, path) ? files[path] : null);

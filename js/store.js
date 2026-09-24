@@ -226,11 +226,18 @@ window.MRT.store = (function () {
     return adapter().connect().then(load);
   }
 
-  /** Later visits: reuse the remembered folder. Resolves null when it must be picked again. */
-  function reconnect() {
+  /**
+   * Later visits: reuse the remembered folder. Resolves null when it must be
+   * picked or allowed again. {silent: true} never shows a browser prompt
+   * (a prompt needs a click, so the app tries silently first).
+   */
+  function reconnect(o) {
     assert(isSupported(), unsupportedMessage(), 'unsupported_browser');
-    return adapter().reconnect().then(function (ok) { return ok ? load() : null; });
+    return adapter().reconnect(o).then(function (ok) { return ok ? load() : null; });
   }
+
+  /** Name of the remembered data folder (for a "Reconnect <name>" button), or null. */
+  function savedConnectionLabel() { return adapter().savedLabel(); }
 
   function parseFile(text, label) {
     try { return JSON.parse(text); }
@@ -462,6 +469,9 @@ window.MRT.store = (function () {
   }
 
   function currentUser() { return findUser(state.currentUserId); }
+
+  /** "Change user": nobody is signed in until the next setCurrentUser / sign-up. */
+  function signOut() { state.currentUserId = null; }
 
   function requireUser() {
     assert(state.currentUserId && findUser(state.currentUserId), 'Nobody is signed in', 'no_user');
@@ -1012,6 +1022,7 @@ window.MRT.store = (function () {
     isSupported: isSupported,
     unsupportedMessage: unsupportedMessage,
     hasSavedConnection: hasSavedConnection,
+    savedConnectionLabel: savedConnectionLabel,
     connect: connect,
     reconnect: reconnect,
     load: load,
@@ -1026,6 +1037,7 @@ window.MRT.store = (function () {
     nameMatches: nameMatches,
     setCurrentUser: setCurrentUser,
     currentUser: currentUser,
+    signOut: signOut,
     createFirstAdmin: createFirstAdmin,
     selfRegister: selfRegister,
     linkIdentity: linkIdentity,

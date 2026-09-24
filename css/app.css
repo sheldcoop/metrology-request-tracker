@@ -1150,4 +1150,67 @@ kbd {
 /* ================================================================== *
  * 5. Screens (added per milestone step)
  * ================================================================== */
+/* --- Side menu: the item list, pages still to come (M1-6) ------------- */
+.nav-items { display: flex; flex-direction: column; gap: 2px; }
+.nav-item.is-soon { color: var(--fg-faint); cursor: default; }
+.nav-item.is-soon:hover { background: transparent; color: var(--fg-faint); }
+.nav-soon {
+  margin-left: auto; padding: 0 6px; border: 1px dashed var(--line-strong); border-radius: 4px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600; line-height: 16px; color: var(--fg-muted);
+}
+[data-nav="collapsed"] .nav-soon { display: none; }
+@media (max-width: 1024px) { .nav-soon { display: none; } }
+
+/* --- Gate forms: first run, who are you, is this you ------------------ */
+.gate-form { display: grid; gap: 2px; }
+.gate-form .ifield { margin-bottom: 10px; }
+.gate-error {
+  display: flex; align-items: flex-start; gap: 8px; margin: 0 0 12px; padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent); border-radius: var(--radius);
+  background: var(--danger-bg); color: var(--danger-fg); font-size: 13px;
+}
+.gate-error svg { flex: none; margin-top: 1px; }
+.user-pick:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+.gate-brand .tool-glyph { color: var(--accent); }
+
+/* --- Dialog rows that are not a single field --------------------------- */
+.dlg-row { display: grid; gap: 6px; margin-bottom: 14px; }
+
+/* --- Lab status: tool nameplates --------------------------------------- */
+.lab-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)); gap: 16px; margin-bottom: 20px; }
+.lab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.tool-plate {
+  position: relative; display: grid; gap: 12px; padding: 16px 18px 16px 22px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-panel);
+  box-shadow: var(--shadow); scroll-margin: 24px;
+  transition: border-color var(--t) ease, box-shadow var(--t) ease;
+}
+.tool-plate::before {           /* the status edge, like a coloured tag on the tool */
+  content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px;
+  border-radius: 0 3px 3px 0; background: var(--ok);
+}
+.tool-plate.is-maintenance::before { background: var(--warning); }
+.tool-plate.is-down::before { background: var(--expired); }
+.tool-plate.is-down { border-color: color-mix(in srgb, var(--expired) 45%, transparent); }
+.tool-plate.is-selected { border-color: var(--line-hi); box-shadow: var(--shadow), var(--accent-glow); }
+.tool-plate-head { display: flex; align-items: center; gap: 14px; }
+.tool-plate-head .chip { margin-left: auto; align-self: flex-start; }
+.tool-plate-head .tool-glyph {
+  padding: 6px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--inset); box-sizing: content-box;
+}
+.tool-code { font-size: 22px; font-weight: 700; letter-spacing: .04em; line-height: 1.1; }
+.tool-name { color: var(--fg-muted); font-size: 13px; }
+.tool-plate-note { margin: 0; font-size: 13px; color: var(--fg-muted); }
+.tool-plate-note b { color: var(--fg); }
+.tool-plate-facts {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 0; padding-top: 10px;
+  border-top: 1px solid var(--line); font-size: 13px;
+}
+.tool-plate-facts dt { color: var(--fg-muted); }
+.tool-plate-facts dd { margin: 0; text-align: right; }
+.tool-plate-facts dd.is-missing { color: var(--fg-faint); font-style: italic; }
+.tool-plate-sample { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warning-fg); }
+.tool-plate-actions { display: flex; gap: 8px; justify-content: flex-end; }
+@media (max-width: 760px) { .lab-kpis { grid-template-columns: 1fr; } }
 
