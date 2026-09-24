@@ -102,8 +102,21 @@ window.MRT.views.help = (function () {
         'Timeline: every status change and comment. Write @Name (or @windowsid) to point someone at a comment - they are notified from M4.',
         'Cancel request (requester, the tool\'s quality engineers, admins): give a reason. A cancelled request stays visible, never deleted.'
       ],
-      tips: ['Accept, Start, Hold and Complete come with the queue in M3.'],
+      tips: ['Edit request (requester): change anything but the tool, with a reason - the timeline shows each change.'],
       link: ['New request', '#/new'] },
+
+    { id: 'working', title: 'Quality engineers: working a request', icon: 'activity',
+      intro: 'The buttons under the traveller card show what you may do now. Only the tool\'s primary and backup quality engineers (and admins) see them.',
+      steps: [
+        'Accept - optionally with an "expected done" date; the engineer sees it.',
+        'Panels received - who, when and where they are kept in the lab. Start asks for it once if you have not clicked it yet.',
+        'Start - the request is In progress; the tool drawing on the card comes alive.',
+        'Hold - pick why (Settings > Lists > On-hold reasons) and add a note; the clock pauses. Resume brings it back to where it was.',
+        'Needs clarification - say what is missing; it goes back to the engineer. When they click Answered it returns to where it was.',
+        'Complete - the results folder is proposed from the tool\'s results root (change it if needed); say what happened to the panels (FIB: scrapped).',
+        'Take it - the backup takes over a request assigned to the primary. New requests go to the backup when the primary is away.'
+      ],
+      tips: ['The engineer then clicks Results OK or Reopen (with a reason). A completed request closes by itself after 7 days.'] },
 
     { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
       intro: 'Tell the lab when you are not there, so people know who covers your tools.',

@@ -1356,6 +1356,8 @@ table.grid tbody tr { scroll-margin: 80px; }
 .tr-clock.is-ok { color: var(--ok-fg); }
 .tr-clock.is-soon { color: var(--warning-fg); }
 .tr-clock.is-late { color: var(--critical-fg); font-weight: 700; }
+.req-actbar { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 16px; }
+.tr-clock.is-paused { color: var(--warning-fg); }
 /* status rail: Submitted - Accepted - In progress - Completed, who and when */
 .status-rail { display: flex; flex-wrap: wrap; gap: 0; list-style: none; margin: 0 0 16px; padding: 0; }
 .rail-step { position: relative; flex: 1 1 150px; display: grid; gap: 2px; padding: 18px 12px 0 0; font-size: 13px; }

@@ -7,9 +7,9 @@
  * outside lab hours) and the panel map with the requested panels - then the
  * status rail (each step, who and when), the details with BKM and results
  * paths (Copy, Q30), and the timeline: status changes and comments with
- * @mentions (Q11). The requester, the tool's quality engineers and admins
- * can cancel with a reason (Q35). Accept / Start / Complete come with the
- * queue in M3 (Q43).
+ * @mentions (Q11). Under the card the workflow buttons (Accept, Start,
+ * Hold, Complete ... - js/views/request-actions.js, M3-9); the requester
+ * edits an open request with a reason (Q14) or cancels it (Q35).
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -48,6 +48,7 @@ window.MRT.views.request = (function () {
     var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id);
 
     var actions = [
+      D.canEditSubmitted(me, r) ? ui.button('Edit request', { icon: 'edit', onClick: function () { location.hash = '#/new/' + r.id; } }) : null,
       ui.button('Copy this request', { icon: 'copy', onClick: function () { location.hash = '#/new?from=' + r.id; } }),
       lot && D.canRequest(me) ? ui.button('New request on this lot', { icon: 'plus', onClick: function () { location.hash = '#/new?lot=' + r.lot_id; } }) : null,
       D.canCancel(me, r, tool) ? ui.button('Cancel request', { kind: 'danger', icon: 'close', onClick: function () { cancel(r); } }) : null
@@ -55,6 +56,8 @@ window.MRT.views.request = (function () {
     main.appendChild(ui.pageHead(r.request_no, (tool ? tool.name : '') + ' - requested by ' + userName(r.requester_id), actions));
 
     main.appendChild(traveller(r, tool, lot));
+    var acts = window.MRT.requestActions.buttons(r);
+    if (acts.length) main.appendChild(ui.el('div', { class: 'req-actbar', role: 'group', 'aria-label': 'What you can do now' }, acts));
     main.appendChild(rail(r));
     main.appendChild(ui.el('div', { class: 'req-layout' }, [
       ui.el('div', { class: 'req-form' }, [timeline(r, me)]),
@@ -78,7 +81,8 @@ window.MRT.views.request = (function () {
           ui.el('h2', { class: 'mono', text: r.request_no }),
           ui.el('div', { class: 'muted', text: (tool ? tool.code : '?') + '  ·  ' + (type ? type.name : 'no measurement type') })
         ]),
-        ui.el('span', { class: 'tr-stamp is-' + (STAMP[r.status] || 'neutral'), text: D.REQUEST_STATUS_LABEL[r.status] })
+        D.isClosed(r, Date.now()) ? ui.el('span', { class: 'tr-stamp is-neutral', text: 'Closed' })
+          : ui.el('span', { class: 'tr-stamp is-' + (STAMP[r.status] || 'neutral'), text: D.REQUEST_STATUS_LABEL[r.status] })
       ]),
       ui.el('div', { class: 'tr-grid' }, [
         cell('Lot', lot ? [ui.el('b', { class: 'mono', text: lot.lot_number }), ui.el('span', { class: 'muted', text: '  ' +
@@ -88,7 +92,12 @@ window.MRT.views.request = (function () {
              r.priority_reason ? r.priority_reason : null),
         cell('Needed by', r.needed_by ? ui.el('b', { class: 'num', text: ui.formatDate(r.needed_by + 'T12:00:00Z') }) : muted('no date'), null, clock),
         cell('Panels', ui.el('b', { class: 'mono', text: (D.formatPanels(r.panels) || '-') + '  (' + (r.panels || []).length + ')' })),
-        cell('Submitted', ui.el('span', { class: 'num', text: ui.formatTs(r.submitted_ts) }))
+        cell('Submitted', ui.el('span', { class: 'num', text: ui.formatTs(r.submitted_ts) })),
+        r.expected_done ? cell('Expected done', ui.el('b', { class: 'num', text: ui.formatDate(r.expected_done + 'T12:00:00Z') }),
+          r.needed_by && r.expected_done > r.needed_by ? 'later than needed' : null) : null,
+        cell('Assigned to', r.assigned_to ? userName(r.assigned_to) : muted('nobody yet')),
+        r.received_ts ? cell('Panels received', userName(r.received_by) + ', ' + ui.formatTs(r.received_ts), r.received_where || null) : null,
+        r.status === 'on_hold' ? cell('On hold', ((byId('hold_reasons', r.hold_reason_id) || {}).name || '?'), r.hold_note || null) : null
       ]),
       lot ? ui.panelMap({ count: lot.panel_count, selected: r.panels, readOnly: true, label: 'Panels of lot ' + lot.lot_number }).node : null
     ]);
@@ -105,6 +114,7 @@ window.MRT.views.request = (function () {
     if (!r || !node) return;
     if (!r.needed_by) { node.textContent = 'The priority says how urgent it is.'; node.className = 'tr-clock'; return; }
     if (!D.isOpen(r)) { node.textContent = ''; node.className = 'tr-clock'; return; }
+    if (r.status === 'on_hold') { node.textContent = 'On hold - the clock is paused'; node.className = 'tr-clock is-paused'; return; }
     var hs = D.holidaySet(store.data().holidays);
     var c = D.countdown(Date.now(), r.needed_by, store.calendar(), hs);
     var h = ui.formatDurationH(c.lab_ms / 3600000);
@@ -143,16 +153,16 @@ window.MRT.views.request = (function () {
     var bkm = byId('bkms', r.bkm_id);
     var bkmPath = bkm ? bkm.path : r.bkm_path;
     var year = (r.submitted_ts || '').slice(0, 4);
-    var results = tool && tool.results_root ? tool.results_root.replace(/\\+$/, '') + '\\' + year + '\\' + r.request_no + '\\' : null;
+    var results = r.results_path || (tool && tool.results_root ? tool.results_root.replace(/\\+$/, '') + '\\' + year + '\\' + r.request_no + '\\' : null);
     return ui.panel({ title: 'BKM and results', icon: 'folder', body: [
       ui.el('div', { class: 'ifield-label', text: 'BKM' }),
       bkmPath ? ui.el('div', {}, [bkm ? ui.el('div', { text: bkm.name + (bkm.doc_version ? ' (' + bkm.doc_version + ')' : '') }) : null,
         ui.el('span', { class: 'cell-path' }, [ui.el('span', { class: 'mono', text: bkmPath, title: bkmPath }), copyBtn(bkmPath, 'BKM path')])])
         : ui.el('span', { class: 'chip warning', text: 'No BKM - see the purpose' }),
-      ui.el('div', { class: 'ifield-label', text: 'Results folder (proposed, Q30)' }),
+      ui.el('div', { class: 'ifield-label', text: r.results_path ? 'Results folder' : 'Results folder (proposed, Q30)' }),
       results ? ui.el('span', { class: 'cell-path' }, [ui.el('span', { class: 'mono', text: results, title: results }), copyBtn(results, 'Results path')])
               : muted('The tool has no results root yet (Settings > Tools).'),
-      ui.el('p', { class: 'muted', text: 'The quality engineer confirms or changes it when completing (M3).' })
+      r.results_path ? null : ui.el('p', { class: 'muted', text: 'The quality engineer confirms or changes it when completing.' })
     ] }).node;
   }
 
@@ -192,8 +202,13 @@ window.MRT.views.request = (function () {
     if (e.kind === 'created') return e.text ? 'Created the request - ' + e.text : 'Created the request';
     if (e.kind === 'status') {
       var t = e.from === 'draft' ? 'Submitted' : D.REQUEST_STATUS_LABEL[e.from] + ' → ' + D.REQUEST_STATUS_LABEL[e.to];
+      if (e.expected_done) t += ' - expected done ' + e.expected_done;
       return e.text ? t + ': ' + e.text : t;
     }
+    if (e.kind === 'assign') return e.text || ('Assigned to ' + userName(e.to) + (e.from ? ' (took it over from ' + userName(e.from) + ')' : ''));
+    if (e.kind === 'panels') return 'Panels received' + (e.text ? ' - ' + e.text : '');
+    if (e.kind === 'edit') return 'Edited: ' + (e.text || '');
+    if (e.kind === 'results_ok') return 'Results OK - closed';
     return e.text || '';
   }
 
@@ -212,7 +227,8 @@ window.MRT.views.request = (function () {
   function timeline(r, me) {
     var events = store.requestEvents(r.id);
     var list = ui.el('ol', { class: 'timeline' }, events.map(function (e) {
-      var icon = e.kind === 'comment' ? 'edit' : e.kind === 'created' ? 'plus' : e.to === 'cancelled' ? 'close' : 'check';
+      var icon = { comment: 'edit', created: 'plus', assign: 'user', panels: 'inbox', edit: 'edit' }[e.kind] ||
+        (e.to === 'cancelled' ? 'close' : e.to === 'on_hold' ? 'clock' : e.to === 'clarification' ? 'help' : 'check');
       return ui.el('li', { class: 'tl-item is-' + e.kind + (e.to ? ' to-' + e.to : '') }, [
         ui.el('span', { class: 'tl-icon', 'aria-hidden': 'true' }, ui.icon(icon, 14)),
         ui.el('div', {}, [

@@ -22,11 +22,11 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 6;
+  var SCHEMA_VERSION = 7;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
-    'projects', 'part_numbers', 'buildups', 'process_steps', 'priorities', 'holidays', 'lot_fields', 'lots', 'requests', 'request_events', 'audit_log'
+    'projects', 'part_numbers', 'buildups', 'process_steps', 'hold_reasons', 'priorities', 'holidays', 'lot_fields', 'lots', 'requests', 'request_events', 'audit_log'
   ];
 
   /** In-memory state. `data` is the loaded file; never mutate it from a screen. */
@@ -167,6 +167,7 @@ window.MRT.store = (function () {
                           project_ids: (x.projects || []).map(function (c) { return prjIds[c]; }), active: true, version: 1 }, x);
     });
     data.lot_fields = lotFieldsFromSeed(S);
+    data.hold_reasons = holdReasonsFromSeed(S);
     data.process_steps = (S.process_steps || []).map(function (n, i) {
       return { id: newId('pstep'), name: n, active: true, sort: i + 1, version: 1 };
     });
@@ -298,8 +299,22 @@ window.MRT.store = (function () {
     5: function (d) {
       if (!Array.isArray(d.requests)) d.requests = [];
       if (!Array.isArray(d.request_events)) d.request_events = [];
+    },
+    // 6 -> 7: on-hold reasons (M3-4) from seed.js; requests get "assigned to" (M3-7).
+    6: function (d) {
+      if (!Array.isArray(d.hold_reasons)) d.hold_reasons = holdReasonsFromSeed(window.MRT.seed);
+      (d.requests || []).forEach(function (r) {
+        if (r.assigned_to === undefined) {
+          var t = (d.tools || []).filter(function (x) { return x.id === r.tool_id; })[0];
+          r.assigned_to = r.status === 'draft' || !t ? null : (t.primary_operator_id || t.backup_operator_id || null);
+        }
+      });
     }
   };
+
+  function holdReasonsFromSeed(S) {
+    return ((S && S.hold_reasons) || []).map(function (n, i) { return { id: newId('hold'), name: n, active: true, sort: i + 1, version: 1 }; });
+  }
 
   function migrate(data) {
     assert(data.schema_version <= SCHEMA_VERSION,
@@ -728,6 +743,7 @@ window.MRT.store = (function () {
     part_numbers:      { prefix: 'pn',    label: 'part number',      fields: ['code', 'description', 'project_ids', 'active'] },
     buildups:          { prefix: 'bld',   label: 'build-up',         fields: ['code', 'name', 'active'] },
     process_steps:     { prefix: 'pstep', label: 'process step',     fields: ['name', 'active', 'sort'] },
+    hold_reasons:      { prefix: 'hold',  label: 'on-hold reason',   fields: ['name', 'active', 'sort'] },
     priorities:        { prefix: 'prio',  label: 'priority',         fields: ['code', 'name', 'level', 'needs_reason', 'is_default', 'active'] },
     holidays:          { prefix: 'hol',   label: 'holiday',          fields: ['date', 'name', 'kind'] }
   };
@@ -745,6 +761,7 @@ window.MRT.store = (function () {
     part_numbers: { description: '', project_ids: [], active: true },
     buildups: { name: '', active: true },
     process_steps: { active: true },
+    hold_reasons: { active: true },
     priorities: { needs_reason: false, is_default: false, active: true },
     holidays: { kind: 'closing', source: 'manual' }
   };
@@ -793,7 +810,7 @@ window.MRT.store = (function () {
       var existing = o.id ? need(collection, o.id, spec.label) : null;
       if (existing) checkVersion(existing, o.version, spec.label);
       var next = existing ? clone(existing) : Object.assign({ id: newId(spec.prefix) }, clone(NEW_DEFAULTS[collection]));
-      if (!existing && (collection === 'measurement_types' || collection === 'tool_fields' || collection === 'tools' || collection === 'process_steps' || collection === 'lot_fields') && !('sort' in fields)) {
+      if (!existing && (collection === 'measurement_types' || collection === 'tool_fields' || collection === 'tools' || collection === 'process_steps' || collection === 'hold_reasons' || collection === 'lot_fields') && !('sort' in fields)) {
         next.sort = state.data[collection].filter(function (r) { return !fields.tool_id || r.tool_id === fields.tool_id; }).length + 1;
       }
       if (existing && 'tool_id' in fields) {
@@ -878,6 +895,7 @@ window.MRT.store = (function () {
     tool_fields: [['requests', 'extra', 'request']],
     bkms: [['requests', 'bkm_id', 'request']],
     process_steps: [['requests', 'process_step_id', 'request']],
+    hold_reasons: [['requests', 'hold_reason_id', 'request']],
     priorities: [['requests', 'priority_id', 'request']],
     holidays: []
   };
@@ -1018,6 +1036,9 @@ window.MRT.store = (function () {
       r.status = 'submitted';
       r.submitted_ts = nowIso();
       event(r.id, 'status', 'draft', 'submitted', null);
+      var who = D.assignOnSubmit(tool, state.data.users, D.viennaYmd(Date.now()));
+      r.assigned_to = who.id;
+      if (who.note) event(r.id, 'assign', null, who.id, who.note);
       audit('request', r.id, 'submit', 'status', 'draft', 'submitted', r.request_no);
       return commit().then(function () { return r; });
     });
@@ -1069,6 +1090,138 @@ window.MRT.store = (function () {
       r.version += 1;
       event(r.id, 'status', from, 'cancelled', reason.trim());
       audit('request', r.id, 'status', 'status', from, 'cancelled', reason.trim());
+      return commit().then(function () { return r; });
+    });
+  }
+
+  /**
+   * A workflow action (DECISIONS M3-9, domain.TRANSITIONS): accept, start,
+   * hold, resume, clarify, answer, complete, reopen, results_ok.
+   * @param {string} requestId
+   * @param {string} action
+   * @param {Object} x  what the action needs: {expected_done} accept, {received_where, received} start,
+   *                    {hold_reason_id, note} hold, {text} clarify/answer/reopen,
+   *                    {results_path, panels_outcome, note} complete
+   */
+  function requestAction(requestId, action, x) {
+    return guard(function () {
+      var me = requireUser();
+      var r = need('requests', requestId, 'Request');
+      var tool = byId('tools', r.tool_id);
+      var t = D.TRANSITIONS[action];
+      assert(t, 'Unknown action: ' + action);
+      assert(D.canAct(me, action, r, tool, Date.now()), t.from.indexOf(r.status) === -1
+        ? t.label + ' is not possible while the request is ' + D.REQUEST_STATUS_LABEL[r.status]
+        : 'Only ' + (t.who === 'measurer' ? 'the tool\'s quality engineers or an admin' : 'the requester or an admin') + ' can do this', 'not_allowed');
+      x = x || {};
+      var problems = D.actionProblems(action, x, state.data);
+      assert(!problems.length, problems.join('. '), 'invalid', problems);
+      var from = r.status;
+      var to = t.back ? (r.return_to || 'submitted') : t.to;
+      var text = x.text ? String(x.text).trim() : null;
+      var now = nowIso();
+
+      if (action === 'accept') { r.expected_done = x.expected_done || null; r.accepted_ts = now; if (!r.assigned_to) r.assigned_to = me.id; }
+      if (action === 'start') {
+        r.started_ts = now;
+        if (x.received && !r.received_ts) { r.received_ts = now; r.received_by = me.id; r.received_where = String(x.received_where || '').trim(); }
+      }
+      if (action === 'hold') {
+        r.return_to = from; r.hold_reason_id = x.hold_reason_id; r.hold_note = String(x.note || '').trim();
+        var hr = byId('hold_reasons', x.hold_reason_id);
+        text = hr.name + (r.hold_note ? ': ' + r.hold_note : '');
+      }
+      if (action === 'clarify') r.return_to = from;
+      if (action === 'resume' || action === 'answer') { r.return_to = null; if (action === 'resume') { r.hold_reason_id = null; r.hold_note = ''; } }
+      if (action === 'complete') {
+        r.completed_ts = now; r.completed_by = me.id; r.results_path = String(x.results_path).trim();
+        r.panels_outcome = x.panels_outcome; r.panels_outcome_note = String(x.note || '').trim();
+        text = D.PANEL_OUTCOME_LABEL[x.panels_outcome] + (r.panels_outcome_note ? ': ' + r.panels_outcome_note : '') + ' - results in ' + r.results_path;
+      }
+      if (action === 'reopen') { r.reopened = (r.reopened || 0) + 1; r.completed_ts = null; r.results_ok_ts = null; }
+      if (action === 'results_ok') r.results_ok_ts = now;
+
+      r.status = to;
+      r.version += 1;
+      event(r.id, action === 'results_ok' ? 'results_ok' : 'status', from, to, text);
+      if (action === 'accept' && r.expected_done) state.data.request_events[state.data.request_events.length - 1].expected_done = r.expected_done;
+      audit('request', r.id, action, 'status', from, to, text);
+      return commit().then(function () { return r; });
+    });
+  }
+
+  /** Panels received (Q25): who, when, kept where. */
+  function receivePanels(requestId, where) {
+    return guard(function () {
+      var me = requireUser();
+      var r = need('requests', requestId, 'Request');
+      assert(D.canReceive(me, r, byId('tools', r.tool_id)), r.received_ts ? 'The panels are marked received already' : 'Only the tool\'s quality engineers or an admin', 'not_allowed');
+      r.received_ts = nowIso(); r.received_by = me.id; r.received_where = String(where || '').trim();
+      r.version += 1;
+      event(r.id, 'panels', null, null, r.received_where ? 'Kept at ' + r.received_where : null);
+      audit('request', r.id, 'panels_received', 'received_where', null, r.received_where || '-', null);
+      return commit().then(function () { return r; });
+    });
+  }
+
+  /** "Take it" (M3-7): the tool's other quality engineer takes the request over. */
+  function takeRequest(requestId) {
+    return guard(function () {
+      var me = requireUser();
+      var r = need('requests', requestId, 'Request');
+      assert(D.canTake(me, r, byId('tools', r.tool_id)), 'Only the tool\'s quality engineers can take an open request', 'not_allowed');
+      var from = r.assigned_to;
+      r.assigned_to = me.id;
+      r.version += 1;
+      event(r.id, 'assign', from, me.id, null);
+      audit('request', r.id, 'assign', 'assigned_to', from, me.id, null);
+      return commit().then(function () { return r; });
+    });
+  }
+
+  /** "panels 1-4 -> 1-6" style lines for the timeline. */
+  function describeChange(k, a, b) {
+    function show(v) {
+      if (v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length)) return '-';
+      if (k === 'panels') return D.formatPanels(v);
+      var coll = { type_id: 'measurement_types', lot_id: 'lots', priority_id: 'priorities', bkm_id: 'bkms', process_step_id: 'process_steps' }[k];
+      if (coll) { var row = byId(coll, v); return row ? (row.lot_number || row.name || row.code) : '?'; }
+      if (k === 'after') return D.AFTER_LABEL[v] || v;
+      if (k === 'destructive_ok') return v ? 'yes' : 'no';
+      if (k === 'extra') return 'changed';
+      return String(v);
+    }
+    var names = { type_id: 'type', lot_id: 'lot', priority_id: 'priority', priority_reason: 'priority reason', needed_by: 'needed by',
+      bkm_id: 'BKM', bkm_path: 'BKM path', process_step_id: 'process step', process_step_other: 'process step', panel_location: 'panels are now',
+      destructive_ok: 'destructive OK', after_other: 'afterwards (other)', extra: 'tool fields' };
+    return (names[k] || k) + ' ' + show(a) + ' -> ' + show(b);
+  }
+
+  /**
+   * Edit a submitted request (Q14, M3-5): everything but the tool, with a
+   * reason; each change shows in the timeline.
+   * @param {Object} o {id, version?, fields, reason}
+   */
+  function editRequest(o) {
+    return guard(function () {
+      var me = requireUser();
+      var r = need('requests', o.id, 'Request');
+      assert(D.canEditSubmitted(me, r), 'Only the requester or an admin can change an open request', 'not_allowed');
+      checkVersion(r, o.version, 'This request');
+      assert(isStr(o.reason), 'Say why you change it', 'invalid');
+      var f = tidyRequest(o.fields);
+      assert(!('tool_id' in f) || f.tool_id === r.tool_id, 'The tool cannot change - cancel and copy the request instead', 'invalid');
+      delete f.tool_id; delete f.duplicated_from;
+      var next = Object.assign(clone(r), f);
+      var problems = D.requestProblems(next, state.data, { submit: true });
+      assert(!problems.length, problems.join('. '), 'invalid', problems);
+      var changed = REQUEST_FIELDS.filter(function (k) { return k !== 'tool_id' && k !== 'duplicated_from' && JSON.stringify(r[k]) !== JSON.stringify(next[k]); });
+      assert(changed.length, 'Nothing was changed', 'no_change');
+      var lines = changed.map(function (k) { return describeChange(k, r[k], next[k]); });
+      changed.forEach(function (k) { audit('request', r.id, 'update', k, r[k], next[k], o.reason.trim()); r[k] = next[k]; });
+      r.updated_ts = nowIso();
+      r.version += 1;
+      event(r.id, 'edit', null, null, lines.join('; ') + '. Reason: ' + o.reason.trim());
       return commit().then(function () { return r; });
     });
   }
@@ -1471,6 +1624,10 @@ window.MRT.store = (function () {
     deleteDraft: deleteDraft,
     addComment: addComment,
     cancelRequest: cancelRequest,
+    requestAction: requestAction,
+    receivePanels: receivePanels,
+    takeRequest: takeRequest,
+    editRequest: editRequest,
     visibleRequests: visibleRequests,
     requestEvents: requestEvents,
     addSampleLots: addSampleLots,

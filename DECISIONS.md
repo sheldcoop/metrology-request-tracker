@@ -296,7 +296,7 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   engineers and admins drag; allowed columns light up while dragging, the others dim.
 
 Prince, 2026-09-24: "for all further questions follow your best and implement it - we change it
-after testing". So M3-9 onwards are Claude's recommendations, to be revisited after the R1 test run.
+after testing". So M3-9 onwards are the planning recommendations, to be revisited after the R1 test run.
 - **M3-9** **Workflow** (who may do what; the one table is `domain.TRANSITIONS`):
   Accept (Submitted -> Accepted, optional expected-done date) - Start (Submitted/Accepted -> In
   progress, asks "Panels received?" M3-3) - Hold (Submitted/Accepted/In progress -> On hold, reason
@@ -348,7 +348,7 @@ never the only signal - the text/label says the same thing.
 - **P6 Small touches**: completing a request - a folder icon closes with a click and the results
   path is copied with a small check; the bell swings once on something new; tool lamps on Lab
   status glow like equipment status lights.
-- **P7 Added by Claude**: the working-time clock visibly pauses outside lab hours and on holidays
+- **P7 Extra ideas**: the working-time clock visibly pauses outside lab hours and on holidays
   (a small pause mark on countdowns), so "why did it stop?" answers itself; Settings > Health
   lines tick off with a check when their fix is saved; an Away person's plate shows a small
   swap arrow primary -> backup; Undo "rewinds" the changed row briefly; the save lamp gives one

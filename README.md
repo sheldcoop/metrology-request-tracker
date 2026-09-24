@@ -34,6 +34,11 @@ stamp, panel map, needed-by countdown in lab time), status rail, BKM and
 results paths with Copy, details, and the timeline with comments and
 @mentions. Requester, the tool's quality engineers and admins can cancel
 (with a reason). The search finds requests by (part of) their ID.
+Quality engineers work it from there: Accept (optional expected-done date),
+Panels received, Start, Hold (reason from a list) / Resume, Needs
+clarification (the engineer answers), Complete (results folder + what
+happened to the panels), Take it. The engineer edits an open request with a
+reason, and confirms Results OK or Reopens.
 
 **Away** - your name (top right) > "I'm away...": first and last day and an
 optional note, never a reason. Shown on Lab status, People and Health.

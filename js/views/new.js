@@ -12,6 +12,7 @@
  *
  *   #/new               a new request (?lot=<lot id> picks the lot, ?tool=<tool id> the tool)
  *   #/new/<draft id>    carry on with a draft
+ *   #/new/<request id>  edit a submitted, open request - not its tool - with a reason (Q14, M3-5)
  *   #/new?from=<id>     copy a request (Q28)
  *   (the ?key= values arrive as ctx.params; after Submit the request page #/request/<id> opens)
  *
@@ -55,7 +56,8 @@ window.MRT.views['new'] = (function () {
     if (q.done) { location.hash = '#/request/' + q.done; return; }     // older links: the request page
 
     var draft = ctx.subpath ? byId('requests', ctx.subpath) : null;
-    if (ctx.subpath && !D.canEditDraft(me, draft)) {
+    var editing = !!draft && draft.status !== 'draft' && D.canEditSubmitted(me, draft);
+    if (ctx.subpath && !D.canEditDraft(me, draft) && !editing) {
       main.appendChild(ui.pageHead('New request'));
       main.appendChild(ui.emptyState({ icon: 'lock', title: draft ? 'This is not your draft, or it is submitted already' : 'Draft not found',
         text: 'Start a new request instead.', actionLabel: 'New request', onAction: function () { location.hash = '#/new'; } }));
@@ -70,8 +72,9 @@ window.MRT.views['new'] = (function () {
     if (!src && q.lot && byId('lots', q.lot)) st.lot_id = q.lot;
     if (!src && q.tool && byId('tools', q.tool)) st.tool_id = q.tool;
 
-    var title = draft ? 'Draft' : from ? 'Copy of ' + (from.request_no || 'a draft') : 'New request';
-    main.appendChild(ui.pageHead(title, 'One request = one tool. Save a draft any time; Submit sends it to the tool\'s quality engineers.'));
+    var title = editing ? 'Edit ' + draft.request_no : draft ? 'Draft' : from ? 'Copy of ' + (from.request_no || 'a draft') : 'New request';
+    main.appendChild(ui.pageHead(title, editing ? 'Change what is needed and save with a reason; the quality engineer sees each change in the timeline. The tool stays.'
+      : 'One request = one tool. Save a draft any time; Submit sends it to the tool\'s quality engineers.'));
 
     var errorBox = ui.el('div', { class: 'req-errors', role: 'alert', hidden: true });
     var formCol = ui.el('div', { class: 'req-form' });
@@ -94,8 +97,9 @@ window.MRT.views['new'] = (function () {
           ui.el('b', { class: 'mono', text: t.code }),
           t.status !== 'up' ? ui.el('span', { class: 'chip ' + (t.status === 'down' ? 'expired' : 'warning'), text: D.TOOL_STATUS_LABEL[t.status] }) : null
         ]);
+        if (editing && !on) b.disabled = true;
         b.addEventListener('click', function () {
-          if (st.tool_id === t.id) return;
+          if (st.tool_id === t.id || editing) return;
           collect();
           st.tool_id = t.id; st.type_id = null; st.bkm_id = null; st.extra = {}; st.destructive_ok = false;
           st.after = t.destructive ? 'scrap' : (st.after === 'scrap' ? 'back_to_me' : st.after);
@@ -311,6 +315,26 @@ window.MRT.views['new'] = (function () {
       }).catch(function (e) { ui.toastError('Could not submit: ' + e.message, e); });
     }
 
+    function saveChanges() {
+      var f = fields();
+      var problems = D.requestProblems(Object.assign({}, draft, f), store.data(), { submit: true });
+      showProblems(problems);
+      if (problems.length) return;
+      ui.promptReason({ title: 'Save changes to ' + draft.request_no, confirmLabel: 'Save changes',
+        message: 'Each change shows in the timeline with your reason. Why the change?' })
+        .then(function (reason) {
+          if (!reason) return;
+          delete f.tool_id; delete f.duplicated_from;
+          return store.editRequest({ id: draft.id, version: draft.version, fields: f, reason: reason }).then(function (r) {
+            ui.toast({ kind: 'success', message: r.request_no + ' changed.' });
+            location.hash = '#/request/' + r.id;
+          });
+        }).catch(function (e) {
+          if (e && e.code === 'no_change') return ui.toast({ message: 'Nothing was changed.', timeout_ms: 2000 });
+          ui.toastError('Could not save: ' + e.message, e);
+        });
+    }
+
     function deleteDraft() {
       ui.confirm({ title: 'Delete this draft?', message: 'The draft is removed for good. Nobody else has seen it.', confirmLabel: 'Delete', danger: true })
         .then(function (ok) {
@@ -335,7 +359,11 @@ window.MRT.views['new'] = (function () {
       section('4', 'The panels', part('panels'), 'grid'),
       section('5', 'Priority and date', part('urgency'), 'alert'),
       section('6', 'Tool fields', part('extra'), 'sliders'),
-      ui.el('div', { class: 'req-actions' }, [
+      editing ? ui.el('div', { class: 'req-actions' }, [
+        ui.button('Back to the request', { kind: 'ghost', icon: 'chevron_left', onClick: function () { location.hash = '#/request/' + draft.id; } }),
+        ui.el('span', { class: 'spacer' }),
+        ui.button('Save changes', { kind: 'primary', icon: 'save', onClick: saveChanges })
+      ]) : ui.el('div', { class: 'req-actions' }, [
         draft ? ui.button('Delete draft', { kind: 'ghost', icon: 'trash', onClick: deleteDraft }) : null,
         ui.el('span', { class: 'spacer' }),
         ui.button('Save draft', { icon: 'save', onClick: saveDraft }),

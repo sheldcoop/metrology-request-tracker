@@ -211,6 +211,25 @@
     eq('cancel (Q35): the requester, the tool\'s QE, an admin - only while open', [D.canCancel({ id: 'e1', roles: ['engineer'] }, { status: 'accepted', requester_id: 'e1' }, toolQ),
        D.canCancel(qeU, { status: 'submitted', requester_id: 'x' }, toolQ), D.canCancel({ id: 'e2', roles: ['engineer'] }, { status: 'submitted', requester_id: 'x' }, toolQ),
        D.canCancel({ id: 'e1', roles: ['engineer'] }, { status: 'completed', requester_id: 'e1' }, toolQ)], [true, true, false, false]);
+    var toolW = { primary_operator_id: 'q1', backup_operator_id: 'q2' };
+    var qe1 = { id: 'q1', roles: ['quality'], active: true }, qe2 = { id: 'q2', roles: ['quality'], active: true }, eng1 = { id: 'e1', roles: ['engineer'], active: true };
+    eq('workflow: a quality engineer on Submitted - Accept, Start, Hold, Clarify (M3-9)', D.actionsFor(qe1, { status: 'submitted', requester_id: 'e1' }, toolW, 0), ['accept', 'start', 'hold', 'clarify']);
+    eq('...In progress - Hold, Clarify, Complete', D.actionsFor(qe2, { status: 'in_progress', requester_id: 'e1' }, toolW, 0), ['hold', 'clarify', 'complete']);
+    eq('...the requester has nothing to do while it runs', D.actionsFor(eng1, { status: 'in_progress', requester_id: 'e1' }, toolW, 0), []);
+    eq('...but answers a clarification, and checks completed results', [D.actionsFor(eng1, { status: 'clarification', requester_id: 'e1' }, toolW, 0),
+       D.actionsFor(eng1, { status: 'completed', requester_id: 'e1', completed_ts: '2026-09-24T10:00:00Z' }, toolW, Date.parse('2026-09-25T10:00:00Z'))], [['answer'], ['reopen', 'results_ok']]);
+    ok('...a quality engineer of another tool can do nothing', !D.actionsFor({ id: 'q9', roles: ['quality'], active: true }, { status: 'submitted' }, toolW, 0).length);
+    ok('closed: Results OK, or 7 days after completion (Q34)', D.isClosed({ status: 'completed', results_ok_ts: 'x' }, 0) &&
+       D.isClosed({ status: 'completed', completed_ts: '2026-09-01T10:00:00Z' }, Date.parse('2026-09-08T10:00:00Z')) && !D.isClosed({ status: 'completed', completed_ts: '2026-09-01T10:00:00Z' }, Date.parse('2026-09-07T10:00:00Z')));
+    ok('...then no Reopen any more', !D.canAct(eng1, 'reopen', { status: 'completed', requester_id: 'e1', results_ok_ts: 'x' }, toolW, 0));
+    var peopleA = [{ id: 'q1', name: 'Olga', away_from: '2026-09-20', away_until: '2026-09-30' }, { id: 'q2', name: 'Otto' }];
+    eq('assigned at submit: the primary, or the backup when the primary is away (M3-7)', [D.assignOnSubmit(toolW, peopleA, '2026-10-01').id, D.assignOnSubmit(toolW, peopleA, '2026-09-24').id], ['q1', 'q2']);
+    ok('...with a note for the timeline', /Olga is away/.test(D.assignOnSubmit(toolW, peopleA, '2026-09-24').note));
+    peopleA[1].away_from = '2026-09-01';
+    eq('...both away: stays with the primary', D.assignOnSubmit(toolW, peopleA, '2026-09-24').id, 'q1');
+    ok('action data: Complete needs a share path and what happened to the panels', D.actionProblems('complete', { results_path: 'res', panels_outcome: 'x' }, {}).length === 2 &&
+       !D.actionProblems('complete', { results_path: 'Z:\\res', panels_outcome: 'scrapped' }, {}).length);
+    ok('...Hold needs a listed reason, Clarify a comment', D.actionProblems('hold', { hold_reason_id: 'h9' }, { hold_reasons: [{ id: 'h1' }] }).length === 1 && D.actionProblems('clarify', {}, {}).length === 1);
     eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
        D.nextRequestNo('QVM', '2026-09-24', ['FIB-260924-01']), D.nextRequestNo('FIB', '2026-09-25', ['FIB-260924-09']), D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-09'])],
        ['FIB-260924-03', 'QVM-260924-01', 'FIB-260925-01', 'FIB-260924-10']);
@@ -286,7 +305,8 @@
     /* =============== store: first run and seed =============== */
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 6, revision 0', [seed.schema_version, seed.revision], [6, 0]);
+    eq('schema 7, revision 0', [seed.schema_version, seed.revision], [7, 0]);
+    eq('on-hold reasons (M3-4)', seed.hold_reasons.map(function (h) { return h.name; }), ['Waiting for panels', 'Tool down', 'Waiting for engineer info', 'Higher priority first', 'Other']);
     eq('no requests in a new file', [seed.requests, seed.request_events], [[], []]);
     eq('seven sample lot fields (first ideas)', seed.lot_fields.map(function (f) { return f.label + (f.sample ? '*' : ''); }),
        ['Purpose of the lot*', 'Started on*', 'Started by*', 'DOE / experiment ID*', 'Customer*', 'Expected finish*', 'Lot status*']);
@@ -626,6 +646,67 @@
        ['cancelled', 'cancelled', 'wrong lot', true]);
     await refused('...only once', ST.cancelRequest(s1.id, 'again'), 'not_allowed');
     await ST.deleteDraft(d3.id);
+
+    group('Store: the workflow (M3 step 1)');
+    await ST.saveEntry('tools', { id: qvm.id, fields: { primary_operator_id: qeL.id } });
+    var w = await ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [4], priority_id: normal.id,
+      panel_location: 'Rack B2', after: 'back_to_me', purpose: 'pads' } });
+    eq('assigned to the primary at submit', w.assigned_to, qeL.id);
+    ST.setCurrentUser(tomL.id);
+    await refused('an engineer cannot accept', ST.requestAction(w.id, 'accept', {}), 'not_allowed');
+    ST.setCurrentUser(qeL.id);
+    await refused('...nor can anyone complete before Start', ST.requestAction(w.id, 'complete', { results_path: 'Z:\\r', panels_outcome: 'returned' }), 'not_allowed');
+    w = await ST.requestAction(w.id, 'accept', { expected_done: '2026-10-09' });
+    eq('Accept with an expected done date (M3-1)', [w.status, w.expected_done], ['accepted', '2026-10-09']);
+    await ST.receivePanels(w.id, 'QVM shelf 1');
+    eq('Panels received: who, when, where (Q25)', [ST.byId('requests', w.id).received_by, ST.byId('requests', w.id).received_where], [qeL.id, 'QVM shelf 1']);
+    await refused('...only once', ST.receivePanels(w.id, 'x'), 'not_allowed');
+    var holdR = ST.list('hold_reasons')[1];
+    await refused('Hold needs a reason from the list', ST.requestAction(w.id, 'hold', {}), 'invalid');
+    w = await ST.requestAction(w.id, 'hold', { hold_reason_id: holdR.id, note: 'stage error' });
+    eq('On hold: reason, note, remembers where it was', [w.status, w.hold_reason_id, w.return_to], ['on_hold', holdR.id, 'accepted']);
+    w = await ST.requestAction(w.id, 'resume', {});
+    eq('Resume goes back to Accepted', [w.status, w.hold_reason_id], ['accepted', null]);
+    w = await ST.requestAction(w.id, 'clarify', { text: 'Which pads?' });
+    ST.setCurrentUser(adminL);
+    w = await ST.requestAction(w.id, 'answer', { text: 'Corner pads' });
+    eq('Needs clarification -> Answered goes back to where it was (M3-2)', w.status, 'accepted');
+    ST.setCurrentUser(qeL.id);
+    w = await ST.requestAction(w.id, 'start', {});
+    await refused('Complete needs a results share path', ST.requestAction(w.id, 'complete', { results_path: 'results', panels_outcome: 'returned' }), 'invalid');
+    w = await ST.requestAction(w.id, 'complete', { results_path: 'Z:\\lab\\QVM\\x', panels_outcome: 'returned' });
+    eq('Complete: results path, panels returned (M3-6)', [w.status, w.results_path, w.panels_outcome, w.completed_by], ['completed', 'Z:\\lab\\QVM\\x', 'returned', qeL.id]);
+    ST.setCurrentUser(adminL);
+    await refused('Reopen needs a reason', ST.requestAction(w.id, 'reopen', {}), 'invalid');
+    w = await ST.requestAction(w.id, 'reopen', { text: 'values look off' });
+    eq('Reopen -> Accepted, counted (Q34)', [w.status, w.reopened, w.completed_ts], ['accepted', 1, null]);
+    ST.setCurrentUser(qeL.id);
+    await ST.requestAction(w.id, 'start', {});
+    await ST.requestAction(w.id, 'complete', { results_path: 'Z:\\lab\\QVM\\x', panels_outcome: 'returned' });
+    ST.setCurrentUser(adminL);
+    w = await ST.requestAction(w.id, 'results_ok', {});
+    ok('Results OK closes it', !!w.results_ok_ts && D.isClosed(w, Date.now()));
+    eq('...the timeline tells the whole story', ST.requestEvents(w.id).map(function (e) { return e.kind === 'status' ? e.to : e.kind; }),
+       ['created', 'submitted', 'accepted', 'panels', 'on_hold', 'accepted', 'clarification', 'accepted', 'in_progress', 'completed', 'accepted', 'in_progress', 'completed', 'results_ok']);
+
+    group('Store: edit a submitted request, take it (M3-5, M3-7)');
+    var e1 = await ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [1, 2, 3, 4], priority_id: normal.id,
+      panel_location: 'Rack B2', after: 'back_to_me', purpose: 'pads' } });
+    await refused('an edit needs a reason', ST.editRequest({ id: e1.id, fields: { panels: [1, 2, 3, 4, 5, 6] } }), 'invalid');
+    await refused('...the tool cannot change', ST.editRequest({ id: e1.id, fields: { tool_id: tool('FIB').id }, reason: 'x' }), 'invalid');
+    e1 = await ST.editRequest({ id: e1.id, fields: { panels: [1, 2, 3, 4, 5, 6], panel_location: 'Rack C1' }, reason: 'two more panels' });
+    eq('an edit: saved, and the timeline says what changed and why', [e1.panels.length, ST.requestEvents(e1.id).slice(-1)[0].text],
+       [6, 'panels 1-4 -> 1-6; panels are now Rack B2 -> Rack C1. Reason: two more panels']);
+    ST.setCurrentUser(tomL.id);
+    await refused('someone else cannot edit it', ST.editRequest({ id: e1.id, fields: { layer: 'L2' }, reason: 'x' }), 'not_allowed');
+    ST.setCurrentUser(adminL);
+    await ST.saveEntry('users', { id: tomL.id, fields: { roles: ['engineer', 'quality'] } });
+    await ST.saveEntry('tools', { id: qvm.id, fields: { backup_operator_id: tomL.id } });
+    ST.setCurrentUser(tomL.id);
+    var tk = await ST.takeRequest(e1.id);
+    eq('the backup takes it over ("Take it")', [tk.assigned_to, ST.requestEvents(e1.id).slice(-1)[0].kind], [tomL.id, 'assign']);
+    await refused('...not twice', ST.takeRequest(e1.id), 'not_allowed');
+    ST.setCurrentUser(adminL);
     var fibT = await ST.saveEntry('tools', { id: tool('FIB').id, fields: { destructive: false } });
     eq('"destructive" can be switched per tool', fibT.destructive, false);
     eq('an unused part number can be deleted', ST.byId('part_numbers', pn.id), null);
@@ -810,12 +891,13 @@
 
     // Schema 1 -> 2 adds part numbers (M1-13); 2 -> 3 process steps and "destructive" (M2-7, M2-11).
     var v1 = ST._pure.seedData(); v1.schema_version = 1; delete v1.part_numbers; delete v1.process_steps; delete v1.lots; delete v1.lot_fields;
-    delete v1.requests; delete v1.request_events;
+    delete v1.requests; delete v1.request_events; delete v1.hold_reasons;
     v1.tools.forEach(function (t) { delete t.destructive; });
     P.migrate(v1);
     eq('schema 1 -> 3: part numbers and process steps start empty', [v1.part_numbers, v1.process_steps], [[], []]);
     eq('...FIB becomes destructive, the others not', v1.tools.map(function (t) { return t.code + ':' + t.destructive; }), ['HRM:false', 'AOI:false', 'PRF:false', 'QVM:false', 'FIB:true']);
-    eq('...and the file says schema 6, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [6, [], [], []]);
+    eq('...and the file says schema 7, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [7, [], [], []]);
+    eq('...schema 6 -> 7 brings the on-hold reasons', v1.hold_reasons.length, 5);
     eq('...schema 4 -> 5 brings the sample lot fields', v1.lot_fields.map(function (f) { return f.label; }).length, 7);
 
     // An extra upgrade step, for this test only: schema 0 -> 1 (then 1 -> 2).
@@ -826,10 +908,10 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v6_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v7_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [6, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [7, true]);
     eq('...and the status says so until the next save', ST.status().upgradedFrom, 0);
   }
 
