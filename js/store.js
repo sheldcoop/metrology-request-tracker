@@ -22,11 +22,11 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 4;
+  var SCHEMA_VERSION = 5;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
-    'projects', 'part_numbers', 'buildups', 'process_steps', 'priorities', 'holidays', 'lots', 'audit_log'
+    'projects', 'part_numbers', 'buildups', 'process_steps', 'priorities', 'holidays', 'lot_fields', 'lots', 'audit_log'
   ];
 
   /** In-memory state. `data` is the loaded file; never mutate it from a screen. */
@@ -98,6 +98,18 @@ window.MRT.store = (function () {
     last_backup_date: null
   };
 
+  /** Lot fields as records, from seed.js (shape as tool fields, no tool). */
+  function lotFieldsFromSeed(S) {
+    return ((S && S.lot_fields) || []).map(function (x, j) {
+      var row = { id: newId('lfld'), label: x.label, type: x.type, required: !!x.required, help: x.help || '', unit: x.unit || '',
+        min: x.min === undefined ? null : x.min, max: x.max === undefined ? null : x.max,
+        choices: (x.choices || []).map(function (c) { return { id: newId('ch'), label: c, active: true }; }),
+        active: true, sort: j + 1, version: 1 };
+      if (x.sample) row.sample = true;
+      return row;
+    });
+  }
+
   /** A brand-new data file from js/seed.js. No people: the first person becomes Admin (M1-5). */
   function seedData(now_ts, seed) {
     var S = seed || window.MRT.seed;
@@ -154,6 +166,7 @@ window.MRT.store = (function () {
       return sampleFlag({ id: newId('pn'), code: x.code, description: x.description || '',
                           project_ids: (x.projects || []).map(function (c) { return prjIds[c]; }), active: true, version: 1 }, x);
     });
+    data.lot_fields = lotFieldsFromSeed(S);
     data.process_steps = (S.process_steps || []).map(function (n, i) {
       return { id: newId('pstep'), name: n, active: true, sort: i + 1, version: 1 };
     });
@@ -278,7 +291,9 @@ window.MRT.store = (function () {
       (d.tools || []).forEach(function (t) { if (typeof t.destructive !== 'boolean') t.destructive = t.code === 'FIB'; });
     },
     // 3 -> 4: lots (M2-1). Old files have none.
-    3: function (d) { if (!Array.isArray(d.lots)) d.lots = []; }
+    3: function (d) { if (!Array.isArray(d.lots)) d.lots = []; },
+    // 4 -> 5: lot fields (admin-defined, like tool extra fields); the starting ones from seed.js, marked sample.
+    4: function (d) { if (!Array.isArray(d.lot_fields)) d.lot_fields = lotFieldsFromSeed(window.MRT.seed); }
   };
 
   function migrate(data) {
@@ -701,6 +716,7 @@ window.MRT.store = (function () {
     users:             { prefix: 'usr',   label: 'user',             fields: ['name', 'windows_id', 'domain', 'email', 'roles', 'active'] },
     tools:             { prefix: 'tool',  label: 'tool',             fields: ['code', 'name', 'glyph', 'destructive', 'status', 'status_until', 'status_note', 'primary_operator_id', 'backup_operator_id', 'results_root', 'active', 'sort'] },
     measurement_types: { prefix: 'mtype', label: 'measurement type', fields: ['tool_id', 'name', 'active', 'sort'] },
+    lot_fields:        { prefix: 'lfld',  label: 'lot field',        fields: ['label', 'type', 'required', 'help', 'unit', 'min', 'max', 'choices', 'active', 'sort'] },
     tool_fields:       { prefix: 'fld',   label: 'field',            fields: ['tool_id', 'label', 'type', 'required', 'help', 'unit', 'min', 'max', 'choices', 'type_ids', 'active', 'sort'] },
     bkms:              { prefix: 'bkm',   label: 'BKM',              fields: ['tool_id', 'type_id', 'name', 'path', 'doc_version', 'active'] },
     projects:          { prefix: 'prj',   label: 'project',          fields: ['code', 'name', 'active'] },
@@ -718,6 +734,7 @@ window.MRT.store = (function () {
              backup_operator_id: null, results_root: '', active: true },
     measurement_types: { active: true },
     tool_fields: { required: false, help: '', unit: '', min: null, max: null, choices: [], type_ids: [], active: true },
+    lot_fields: { required: false, help: '', unit: '', min: null, max: null, choices: [], active: true },
     bkms: { type_id: null, doc_version: '', active: true },
     projects: { name: '', active: true },
     part_numbers: { description: '', project_ids: [], active: true },
@@ -771,7 +788,7 @@ window.MRT.store = (function () {
       var existing = o.id ? need(collection, o.id, spec.label) : null;
       if (existing) checkVersion(existing, o.version, spec.label);
       var next = existing ? clone(existing) : Object.assign({ id: newId(spec.prefix) }, clone(NEW_DEFAULTS[collection]));
-      if (!existing && (collection === 'measurement_types' || collection === 'tool_fields' || collection === 'tools' || collection === 'process_steps') && !('sort' in fields)) {
+      if (!existing && (collection === 'measurement_types' || collection === 'tool_fields' || collection === 'tools' || collection === 'process_steps' || collection === 'lot_fields') && !('sort' in fields)) {
         next.sort = state.data[collection].filter(function (r) { return !fields.tool_id || r.tool_id === fields.tool_id; }).length + 1;
       }
       if (existing && 'tool_id' in fields) {
@@ -851,6 +868,7 @@ window.MRT.store = (function () {
     projects: [['part_numbers', 'project_ids', 'part number'], ['lots', 'project_id', 'lot']],
     part_numbers: [['lots', 'part_number_id', 'lot']],
     buildups: [['lots', 'buildup_id', 'lot']],
+    lot_fields: [['lots', 'extra', 'lot']],
     tool_fields: [], bkms: [], process_steps: [], priorities: [], holidays: []
   };
 
@@ -860,6 +878,7 @@ window.MRT.store = (function () {
     var count = 0, parts = [];
     USES[collection].forEach(function (u) {
       var n = (state.data[u[0]] || []).filter(function (r) {
+        if (u[1] === 'extra') return !!r.extra && !D.isEmptyAnswer(r.extra[id]);   // an answer to that field
         return Array.isArray(r[u[1]]) ? r[u[1]].indexOf(id) !== -1 : r[u[1]] === id;
       }).length;
       if (n) { count += n; parts.push(n + ' ' + u[2] + (n === 1 ? '' : 's')); }
@@ -893,7 +912,18 @@ window.MRT.store = (function () {
    * or an admin changes or deletes it (delete only while no request uses it).
    * ------------------------------------------------------------------ */
 
-  var LOT_FIELDS = ['lot_number', 'project_id', 'part_number_id', 'buildup_id', 'panel_count', 'note'];
+  var LOT_FIELDS = ['lot_number', 'project_id', 'part_number_id', 'buildup_id', 'panel_count', 'note', 'extra'];
+
+  /** Tidy the answers to lot fields: text trimmed, empty answers dropped. */
+  function tidyExtra(ex) {
+    var out = {};
+    Object.keys(ex || {}).forEach(function (k) {
+      var v = ex[k];
+      if (typeof v === 'string') v = v.trim();
+      if (!D.isEmptyAnswer(v)) out[k] = v;
+    });
+    return out;
+  }
 
   /**
    * Register or change a lot.
@@ -908,6 +938,7 @@ window.MRT.store = (function () {
       if (typeof f.lot_number === 'string') f.lot_number = f.lot_number.trim();
       if (typeof f.note === 'string') f.note = f.note.trim();
       if (f.part_number_id === '') f.part_number_id = null;
+      if ('extra' in f) f.extra = tidyExtra(f.extra);
       var existing = o.id ? need('lots', o.id, 'Lot') : null;
       var next;
       if (existing) {
@@ -916,7 +947,7 @@ window.MRT.store = (function () {
         next = Object.assign(clone(existing), f);
       } else {
         assert(D.canRegisterLot(me), 'Only engineers can register lots', 'not_allowed');
-        next = Object.assign({ id: newId('lot'), part_number_id: null, note: '', owner_id: me.id, created_ts: nowIso() }, f);
+        next = Object.assign({ id: newId('lot'), part_number_id: null, note: '', extra: {}, owner_id: me.id, created_ts: nowIso() }, f);
       }
       var problems = D.validateEntry('lots', next, state.data);
       assert(!problems.length, problems.join('. '), 'invalid', problems);
@@ -932,6 +963,35 @@ window.MRT.store = (function () {
       state.data.lots.push(next);
       audit('lot', next.id, 'create', null, null, next.lot_number, reason);
       return commit().then(function () { return next; });
+    });
+  }
+
+  /**
+   * Three made-up lots to try the app with a real data file (admin). Marked
+   * sample (a Sample tag, listed in Health), owned by the admin, deletable.
+   * Numbers 99901, 99902, 99902.01 - any already taken are skipped.
+   */
+  function addSampleLots() {
+    return guard(function () {
+      var me = requireAdmin();
+      var prj = list('projects'), bus = list('buildups');
+      assert(prj.length && bus.length, 'Add a project and a build-up first (Settings > Lists)', 'invalid');
+      function pnOf(p) { return list('part_numbers').filter(function (x) { return (x.project_ids || []).indexOf(p.id) !== -1; })[0] || null; }
+      var plan = [['99901', 0, 12, 'Sample lot - delete when done'], ['99902', 1, 24, 'Sample lot'], ['99902.01', 1, 6, 'Sample split lot of 99902']];
+      var added = 0;
+      plan.forEach(function (x, i) {
+        if (state.data.lots.some(function (l) { return l.lot_number === x[0]; })) return;
+        var p = prj[x[1] % prj.length], pn = pnOf(p);
+        var lot = { id: newId('lot'), lot_number: x[0], project_id: p.id, part_number_id: pn ? pn.id : null, buildup_id: bus[i % bus.length].id,
+                    panel_count: x[2], note: x[3], extra: {}, owner_id: me.id, created_ts: nowIso(), sample: true, version: 1 };
+        var problems = D.validateEntry('lots', lot, state.data);
+        assert(!problems.length, problems.join('. '), 'invalid', problems);
+        state.data.lots.push(lot);
+        audit('lot', lot.id, 'create', null, null, lot.lot_number, 'Sample lot');
+        added++;
+      });
+      assert(added, 'The sample lots are there already', 'no_change');
+      return commit().then(function () { return added; });
     });
   }
 
@@ -1178,6 +1238,7 @@ window.MRT.store = (function () {
     markUserReviewed: markUserReviewed,
     setAway: setAway,
     saveLot: saveLot,
+    addSampleLots: addSampleLots,
     deleteLot: deleteLot,
     lotUsage: lotUsage,
     hasPin: hasPin,

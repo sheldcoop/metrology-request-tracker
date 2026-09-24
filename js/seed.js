@@ -25,6 +25,7 @@
  *             fields[]: { label, type (text | longtext | number | choice | multichoice |
  *                         yesno | date | path), required, help, unit, min, max,
  *                         choices: ['A', 'B'], only_for: [type names] }
+ *   lot_fields[]: extra fields on every lot, same shape as a tool's fields[] (no only_for)
  *   part_numbers[]: { code (capitals, digits, - . _ /), description, projects: [project codes] }
  *             (DECISIONS M1-13: one part number may belong to several projects)
  *   closing_days[]: { date: 'YYYY-MM-DD', name }  - company closing days (not public holidays)
@@ -56,6 +57,19 @@ window.MRT.seed = {
   // Part numbers per project (DECISIONS M1-13). None known yet - admins add them in
   // Settings > Lists; real ones go here too so a new data file starts with them.
   part_numbers: [],
+
+  // Extra fields on every lot - admins change them in Settings > Lists > Lot fields.
+  // SAMPLE: first ideas (2026-09-24), to be shaped with the team.
+  lot_fields: [
+    { label: 'Purpose of the lot', type: 'choice', sample: true,
+      choices: ['Development', 'DOE', 'Qualification', 'Customer sample', 'Production support', 'Failure analysis'] },
+    { label: 'Started on', type: 'date', help: 'When the lot started in the line', sample: true },
+    { label: 'Started by', type: 'text', help: 'If not the engineer who registers the lot', sample: true },
+    { label: 'DOE / experiment ID', type: 'text', sample: true },
+    { label: 'Customer', type: 'text', help: 'For customer samples', sample: true },
+    { label: 'Expected finish', type: 'date', sample: true },
+    { label: 'Lot status', type: 'choice', choices: ['Running', 'On hold', 'Finished', 'Scrapped'], sample: true }
+  ],
 
   // Process steps ("the panels are after ..."), in line order (DECISIONS M2-7). None known yet -
   // e.g. ['After desmear', 'After Cu plating'] once Prince gives the real list.

@@ -1,7 +1,8 @@
 /**
  * Metrology Request Tracker - views/settings-lists.js
  *
- * Settings > Lists: projects and build-ups (the lot pickers, Q7/Q8), part
+ * Settings > Lists: lot fields (extra fields on every lot, like a tool's
+ * extra fields), projects and build-ups (the lot pickers, Q7/Q8), part
  * numbers linked to one or more projects (M1-13), process steps ("the
  * panels are after ...", M2-7) and priorities (Q26: Line stop / Hot / Normal / Low - renamable, one is the
  * default, some need a reason). Lists are referenced by ID, so a rename
@@ -19,10 +20,14 @@
   function activeChip(r) { return K().chip(r.active === false ? 'Hidden' : 'Active', r.active === false ? 'neutral' : 'ok'); }
 
   function render(body, ctx) {
+    body.appendChild(ui.el('p', { class: 'muted' }, [ui.el('span', {}, [
+      'Lots themselves are registered on the ', ui.el('a', { href: '#/lots', text: 'Lots page' }),
+      ' (Register lot) - by engineers and admins. What a lot holds beyond the core fields is set here under Lot fields.'])]));
     body.appendChild(ui.el('div', { class: 'settings-cols' }, [
       codeList('projects', 'Projects', 'project', 'e.g. C4F', 'lots'),
       codeList('buildups', 'Build-ups', 'build-up', 'e.g. BU-06', 'grid')
     ]));
+    body.appendChild(lotFieldsPanel());
     body.appendChild(partNumbersPanel());
     body.appendChild(processStepsPanel());
     body.appendChild(prioritiesPanel());
@@ -56,6 +61,26 @@
       save: function (v) { return store.saveEntry(collection, { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },
       done: edit ? 'Saved.' : 'Added.'
     }).catch(oops);
+  }
+
+  function lotFieldsPanel() {
+    var k = K();
+    var rows = store.list('lot_fields', { all: true });
+    return k.panel('Lot fields', 'sliders', [ui.button('Add field', { size: 'sm', icon: 'plus', onClick: function () { lotFieldDialog(null); } })], [
+      ui.el('p', { class: 'muted', text: 'Asked on every lot, after lot number, project, part number, build-up and panels. ' +
+        'Add, rename or hide them any time - lots keep their answers. Same kinds as a tool\'s extra fields.' }),
+      k.table(['Label', 'Type', 'Required', 'Status', { label: '', cls: 'actions' }], rows.map(function (f) {
+        return { id: 'row-' + f.id, cls: f.active === false ? 'is-off' : null, cells: [
+          ui.el('span', { class: 'cell-main' }, [ui.el('span', { text: f.label }), f.sample ? k.sampleTag() : null]),
+          k.fieldKind(f), f.required ? 'Yes' : k.muted('No'), activeChip(f),
+          ui.el('span', { class: 'row-actions' }, [k.editButton(f.label, function () { lotFieldDialog(f); }), k.deleteButton('lot_fields', f, f.label)])
+        ] };
+      }), 'No lot fields. Lots then hold only the core fields.')
+    ]);
+  }
+
+  function lotFieldDialog(f) {
+    return K().fieldDialog({ collection: 'lot_fields', f: f, titleNew: 'Add a lot field' }).catch(oops);
   }
 
   function projectCodes(ids) {

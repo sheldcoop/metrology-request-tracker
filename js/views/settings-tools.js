@@ -150,11 +150,9 @@
     return k.panel('Extra fields - ' + tool.code, 'sliders', [ui.button('Add field', { size: 'sm', icon: 'plus', onClick: function () { fieldDialog(tool, null); } })], [
       ui.el('p', { class: 'muted', text: 'Asked on every ' + tool.code + ' request, next to the core fields (Q5). Old requests keep their answers when a field changes.' }),
       k.table(['Label', 'Type', 'Required', 'Only for', 'Status', { label: '', cls: 'actions' }], fields.map(function (f) {
-        var extra = f.type === 'number' && f.unit ? ' (' + f.unit + ')' : (f.type === 'choice' || f.type === 'multichoice')
-          ? ': ' + (f.choices || []).filter(function (c) { return c.active !== false; }).map(function (c) { return c.label; }).join(' / ') : '';
         return { id: 'row-' + f.id, cls: f.active === false ? 'is-off' : null, cells: [
           ui.el('span', { class: 'cell-main' }, [ui.el('span', { text: f.label }), f.sample ? k.sampleTag() : null]),
-          D.FIELD_TYPE_LABEL[f.type] + extra,
+          k.fieldKind(f),
           f.required ? 'Yes' : k.muted('No'),
           f.type_ids && f.type_ids.length ? typeNames(f.type_ids) : k.muted('all types'),
           activeChip(f),
@@ -165,51 +163,9 @@
   }
 
   function fieldDialog(tool, f) {
-    var edit = !!f;
     var types = ofTool('measurement_types', tool.id).filter(function (m) { return m.active !== false || (f && (f.type_ids || []).indexOf(m.id) !== -1); });
-    var isChoice = function (v) { return v.type === 'choice' || v.type === 'multichoice'; };
-    return K().editDialog({
-      title: edit ? 'Edit field ' + f.label : 'Add a field to ' + tool.code, icon: 'sliders', wide: true,
-      values: edit ? { label: f.label, type: f.type, required: !!f.required, help: f.help || '', unit: f.unit || '',
-                       min: f.min, max: f.max, choices: (f.choices || []).filter(function (c) { return c.active !== false; }).map(function (c) { return c.label; }).join('\n'),
-                       type_ids: f.type_ids || [], active: f.active !== false }
-                   : { type: 'text', active: true, type_ids: [] },
-      fields: [
-        { key: 'label', label: 'Label', kind: 'text', placeholder: 'e.g. Cut depth' },
-        { key: 'type', label: 'Type', kind: 'select', cls: 'half', options: D.FIELD_TYPES.map(function (t) { return { value: t, label: D.FIELD_TYPE_LABEL[t] }; }) },
-        { key: 'required', label: 'Required', kind: 'check', cls: 'half' },
-        { key: 'unit', label: 'Unit', kind: 'text', cls: 'half', placeholder: 'e.g. µm', showIf: function (v) { return v.type === 'number'; } },
-        { key: 'min', label: 'Min (optional)', kind: 'number', cls: 'half', showIf: function (v) { return v.type === 'number'; } },
-        { key: 'max', label: 'Max (optional)', kind: 'number', cls: 'half', showIf: function (v) { return v.type === 'number'; } },
-        { key: 'choices', label: 'Choices, one per line', kind: 'longtext', showIf: isChoice,
-          hint: 'Renaming keeps old answers. A removed choice is hidden, not deleted.' },
-        { key: 'help', label: 'Help text (optional)', kind: 'text', placeholder: 'Shown under the field on the request form' },
-        { key: 'type_ids', label: 'Only for these measurement types (none ticked = all)', kind: 'checks',
-          options: types.map(function (m) { return { value: m.id, label: m.name }; }) },
-        { key: 'active', label: 'Active (untick to hide)', kind: 'check' }
-      ],
-      check: function (v) {
-        if (!v.label) return ['label', 'Enter a label'];
-        if (v.type === 'number' && (isNaN(v.min) || isNaN(v.max))) return [isNaN(v.min) ? 'min' : 'max', 'Enter a number or leave it empty'];
-        if (isChoice(v) && v.choices.split('\n').filter(function (x) { return x.trim(); }).length < 2) return ['choices', 'Enter at least two choices, one per line'];
-        return null;
-      },
-      save: function (v) {
-        var fields = { label: v.label, type: v.type, required: v.required, help: v.help, active: v.active, type_ids: v.type_ids };
-        if (v.type === 'number') { fields.unit = v.unit; fields.min = v.min; fields.max = v.max; }
-        if (isChoice(v)) {
-          // match lines to existing choices by name, so their IDs (and old answers) stay
-          var old = (edit && f.choices) || [];
-          fields.choices = v.choices.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).map(function (label) {
-            var same = old.filter(function (c) { return D.normalizeName(c.label) === D.normalizeName(label); })[0];
-            return { id: same ? same.id : undefined, label: label, active: true };
-          });
-        }
-        return store.saveEntry('tool_fields', { id: edit ? f.id : undefined, version: edit ? f.version : undefined,
-          fields: edit ? fields : Object.assign({ tool_id: tool.id }, fields), reason: 'Settings' });
-      },
-      done: edit ? 'Saved.' : 'Field added.'
-    }).catch(oops);
+    return K().fieldDialog({ collection: 'tool_fields', f: f, titleNew: 'Add a field to ' + tool.code, base: { tool_id: tool.id },
+      typeOptions: types.map(function (m) { return { value: m.id, label: m.name }; }) }).catch(oops);
   }
 
   /* --- BKMs ------------------------------------------------------------ */

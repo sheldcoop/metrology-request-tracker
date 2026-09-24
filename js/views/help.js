@@ -69,7 +69,8 @@ window.MRT.views.help = (function () {
         'Lots > Register lot. Lot number: digits, e.g. 18178; a split lot adds .01, .02 (18178.01).',
         'Panels: how many panels the lot has - this draws the panel map on the request.',
         'Pick the project: its part numbers appear. With only one it is picked for you; with several, choose. Then pick the build-up.',
-        'A note is optional, e.g. "panels 3-4 have a known scratch".',
+        'A note is optional, e.g. "panels 3-4 have a known scratch". Below it come the lot fields the admin set up (e.g. Purpose of the lot, Started on, Lot status).',
+        'Click a lot number to see all its details.',
         'You (the owner) or an admin can change the lot later, or delete it while no request uses it.'
       ],
       tips: ['Filter by lot, project, part number, build-up or owner; "Only my lots" shows yours. The search box at the top finds lots too.',
@@ -140,6 +141,7 @@ window.MRT.views.help = (function () {
         'Settings > Lists: projects and build-ups (codes in capitals) and priorities (Line stop, Hot, Normal, Low - renamable, one default, some need a reason).',
         'Part numbers (Settings > Lists): each one is stored once and linked to one or more projects - tick them. A project with part numbers cannot be deleted; hide it instead.',
         'Process steps (Settings > Lists): the steps of the line in order, e.g. After desmear. A request says which step its panels are at; engineers can still type another one.',
+        'Lot fields (Settings > Lists): what every lot holds beyond the core fields - add, rename, hide, make required. Same 8 kinds as a tool\'s extra fields. The first seven are samples to shape with the team.',
         'Settings > Lab calendar: lab days and hours (Europe/Vienna). Turnaround and lateness count only these hours.',
         'Public holidays: the Austrian ones are filled in by rule; the button adds the next year. Add company closing days yourself.'
       ],
@@ -147,6 +149,7 @@ window.MRT.views.help = (function () {
 
     { id: 'admin-data', title: 'Admin: backups, restore, audit log, PIN', icon: 'archive', admin: true,
       steps: [
+        'Settings > Data & PIN > Try it out: "Add 3 sample lots" adds made-up lots (tagged Sample) to try the app. Delete them on the Lots page before real use.',
         'Settings > Data & PIN shows the data file, lets you download a copy now, and lists the daily backups.',
         'Restore puts everything back to that day for everyone. The current file is kept as a safety copy first, and the audit log keeps every entry. A reason is required.',
         'Settings > Audit log: every change - who, when, what, old and new value, reason. Type in Filter to search.',

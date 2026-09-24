@@ -49,6 +49,11 @@ lists it until it is edited or deleted.
 - [ ] **Extra fields per tool**: none yet (OPEN_QUESTIONS #5).
 - [ ] **Part numbers**: none yet. Add them in Settings > Lists and tick their
       project(s) (DECISIONS M1-13); real ones also go into `js/seed.js`.
+- [ ] **Lot fields**: 7 sample ones (Purpose of the lot, Started on, Started by,
+      DOE / experiment ID, Customer, Expected finish, Lot status) - DECISIONS M2-18.
+      Shape them with the team in Settings > Lists; real ones also into `js/seed.js`.
+- [ ] **Sample lots**: if "Add 3 sample lots" was used, delete 99901, 99902,
+      99902.01 on the Lots page before real use (Health lists them).
 - [ ] **Process steps**: none yet (DECISIONS M2-7). The steps of the line in order,
       e.g. After desmear, After Cu plating - Settings > Lists and `js/seed.js`.
 - [ ] **People and roles**: only the first admin exists. Colleagues add

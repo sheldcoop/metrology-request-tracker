@@ -325,10 +325,76 @@ window.MRT.domain = (function () {
     return others(rows, id).some(function (r) { return r[key] !== undefined && r[key] !== null && n(r[key]) === n(value); });
   }
 
+  /** The shape of an admin-defined field (tool extra field or lot field, Q5). */
+  function fieldDefProblems(r, p) {
+    if (FIELD_TYPES.indexOf(r.type) === -1) p.push('Pick a field type');
+    if (r.type === 'choice' || r.type === 'multichoice') {
+      var live = (r.choices || []).filter(function (c) { return c.active !== false; });
+      if (live.length < 2) p.push('A choice field needs at least two choices');
+      if ((r.choices || []).some(function (c) { return !isStr(c.label); })) p.push('Every choice needs a label');
+      var seen = {};
+      (r.choices || []).forEach(function (c) {
+        var k = normalizeName(c.label);
+        if (k && seen[k]) p.push('Choice "' + c.label + '" is listed twice');
+        seen[k] = true;
+      });
+    }
+    if (r.type === 'number') {
+      if (r.min !== null && r.min !== undefined && !isNum(r.min)) p.push('Min must be a number');
+      if (r.max !== null && r.max !== undefined && !isNum(r.max)) p.push('Max must be a number');
+      if (isNum(r.min) && isNum(r.max) && r.min > r.max) p.push('Min must not be above max');
+    }
+  }
+
+  /** An empty answer: nothing typed, picked or ticked (a "No" is an answer). */
+  function isEmptyAnswer(v) { return v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length); }
+
+  /**
+   * Check one answer to an admin-defined field (lot fields today, request
+   * extra fields in M2). Choices are stored by choice ID, so a rename keeps
+   * old answers; a hidden choice stays valid (the form offers only live ones).
+   * @returns {string[]} problems
+   */
+  function extraValueProblems(field, v) {
+    var p = [], L = field.label;
+    if (isEmptyAnswer(v)) { if (field.required && field.active !== false) p.push(L + ' is required'); return p; }
+    var ids = (field.choices || []).map(function (c) { return c.id; });
+    switch (field.type) {
+      case 'text': case 'longtext':
+        if (typeof v !== 'string') p.push(L + ': text expected');
+        else if (v.length > (field.type === 'text' ? 200 : 2000)) p.push(L + ': too long');
+        break;
+      case 'number':
+        if (!isNum(v)) p.push(L + ': enter a number');
+        else {
+          if (isNum(field.min) && v < field.min) p.push(L + ': at least ' + field.min);
+          if (isNum(field.max) && v > field.max) p.push(L + ': at most ' + field.max);
+        }
+        break;
+      case 'choice':
+        if (ids.indexOf(v) === -1) p.push(L + ': pick one of the choices');
+        break;
+      case 'multichoice':
+        if (!Array.isArray(v) || v.some(function (x) { return ids.indexOf(x) === -1; })) p.push(L + ': pick from the choices');
+        break;
+      case 'yesno':
+        if (typeof v !== 'boolean') p.push(L + ': yes or no');
+        break;
+      case 'date':
+        if (!isYmd(v)) p.push(L + ': pick a date');
+        break;
+      case 'path':
+        if (!isSharePath(v)) p.push(L + ': a share path like \\\\server\\share\\... or Z:\\...');
+        break;
+    }
+    return p;
+  }
+
   /**
    * Check one list entry as it WOULD be after a save.
    * @param {string} collection  users | tools | measurement_types | tool_fields | bkms |
-   *                             projects | part_numbers | buildups | process_steps | priorities | holidays
+   *                             lot_fields | projects | part_numbers | buildups | process_steps |
+   *                             priorities | holidays
    * @param {Object} row         the entry (with id when it exists already)
    * @param {Object} data        the collections, for uniqueness and references
    * @returns {string[]} problems; empty means valid
@@ -371,27 +437,17 @@ window.MRT.domain = (function () {
         else if (others(d.measurement_types, r.id).some(function (x) { return x.tool_id === r.tool_id && normalizeName(x.name) === normalizeName(r.name); })) p.push('This tool already has a type called ' + r.name);
         break;
 
+      case 'lot_fields':
+        if (!isStr(r.label)) p.push('Enter a label');
+        else if (others(d.lot_fields, r.id).some(function (x) { return normalizeName(x.label) === normalizeName(r.label); })) p.push('There is already a lot field called ' + r.label);
+        fieldDefProblems(r, p);
+        break;
+
       case 'tool_fields':
         if (!exists('tools', r.tool_id)) p.push('Pick a tool');
         if (!isStr(r.label)) p.push('Enter a label');
         else if (others(d.tool_fields, r.id).some(function (x) { return x.tool_id === r.tool_id && normalizeName(x.label) === normalizeName(r.label); })) p.push('This tool already has a field called ' + r.label);
-        if (FIELD_TYPES.indexOf(r.type) === -1) p.push('Pick a field type');
-        if (r.type === 'choice' || r.type === 'multichoice') {
-          var live = (r.choices || []).filter(function (c) { return c.active !== false; });
-          if (live.length < 2) p.push('A choice field needs at least two choices');
-          if ((r.choices || []).some(function (c) { return !isStr(c.label); })) p.push('Every choice needs a label');
-          var seen = {};
-          (r.choices || []).forEach(function (c) {
-            var k = normalizeName(c.label);
-            if (k && seen[k]) p.push('Choice "' + c.label + '" is listed twice');
-            seen[k] = true;
-          });
-        }
-        if (r.type === 'number') {
-          if (r.min !== null && r.min !== undefined && !isNum(r.min)) p.push('Min must be a number');
-          if (r.max !== null && r.max !== undefined && !isNum(r.max)) p.push('Max must be a number');
-          if (isNum(r.min) && isNum(r.max) && r.min > r.max) p.push('Min must not be above max');
-        }
+        fieldDefProblems(r, p);
         (r.type_ids || []).forEach(function (tid) {
           var t = (d.measurement_types || []).filter(function (x) { return x.id === tid; })[0];
           if (!t || t.tool_id !== r.tool_id) p.push('"Only for" lists a type of another tool');
@@ -439,6 +495,12 @@ window.MRT.domain = (function () {
         }
         if (!exists('users', r.owner_id)) p.push('Lot owner not found');
         if (r.note && String(r.note).length > LOT_NOTE_MAX) p.push('Keep the note under ' + LOT_NOTE_MAX + ' characters');
+        var ex = r.extra || {};
+        (d.lot_fields || []).forEach(function (f) {
+          if (f.active === false && isEmptyAnswer(ex[f.id])) return;
+          p.push.apply(p, extraValueProblems(f, ex[f.id]));
+        });
+        Object.keys(ex).forEach(function (k) { if (!(d.lot_fields || []).some(function (f) { return f.id === k; })) p.push('Unknown lot field ' + k); });
         break;
 
       case 'process_steps':
@@ -508,6 +570,10 @@ window.MRT.domain = (function () {
     if (sTypes) add('sample_types', sTypes + ' measurement type' + (sTypes === 1 ? ' is' : 's are') + ' still sample (made up) - check them with the engineers', 'tools');
     if (sBkms) add('sample_bkms', sBkms + ' BKM' + (sBkms === 1 ? ' is' : 's are') + ' still sample, with fake paths - replace them with the real ones', 'tools');
     if (sFields) add('sample_fields', sFields + ' extra field' + (sFields === 1 ? ' is' : 's are') + ' still sample', 'tools');
+    var sLotF = (data.lot_fields || []).filter(function (f) { return f.sample; }).length;
+    if (sLotF) add('sample_lot_fields', sLotF + ' lot field' + (sLotF === 1 ? ' is' : 's are') + ' still sample (first ideas) - check them with the team', 'lists');
+    var sLots = (data.lots || []).filter(function (l) { return l.sample; }).length;
+    if (sLots) add('sample_lots', sLots + ' sample lot' + (sLots === 1 ? ' is' : 's are') + ' still there - delete them on the Lots page before real use', 'lots');
 
     tools.forEach(function (t) {
       if (!t.primary_operator_id) add('no_primary', t.code + ' has no primary quality engineer', 'tools', t.id);
@@ -643,6 +709,8 @@ window.MRT.domain = (function () {
     isPartNumber: isPartNumber,
     isLotNumber: isLotNumber,
     parsePanels: parsePanels,
+    extraValueProblems: extraValueProblems,
+    isEmptyAnswer: isEmptyAnswer,
     formatPanels: formatPanels,
     LOT_MAX_PANELS: LOT_MAX_PANELS,
     canRegisterLot: canRegisterLot,
