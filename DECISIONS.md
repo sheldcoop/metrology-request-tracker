@@ -266,6 +266,57 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   warnings Q44, request ID Q29, duplicate) - 5 `request-page` (traveller card, status rail,
   timeline + comments). Personal templates (Q28) after M2.
 
+## M3 planning (2026-09-24)
+- **M3-1** On **Accept** the quality engineer may give an **expected done** date (optional). The
+  engineer sees it on the traveller card and in My requests; with a needed-by date both show, so a
+  later expected date is visible (Q10 "accepts it or proposes another").
+- **M3-2** **Needs clarification** (quality engineer, with a comment saying what is missing, Q11):
+  the engineer answers in the timeline and clicks **Answered** - the request goes back to the status
+  it had (Submitted or Accepted) and shows in the queue again.
+- **M3-3** **Panels received** (Q25) does not block Start: if the panels are not marked received
+  yet, Start asks once "Panels received? Kept where (optional)?" with the tick already set.
+- **M3-4** **On hold** reason picked from a list in Settings (starting list: Waiting for panels,
+  Tool down, Waiting for engineer info, Higher priority first, Other) plus an optional note, so
+  analytics can count on-hold reasons (Q20). Hold pauses the turnaround clock (Q9).
+- **M3-5** **Editing a submitted request** (Q14): the requester may change everything except the
+  tool (the ID is tied to it - cancel and copy instead), with a reason; each change shows in the
+  timeline ("panels 1-4 -> 1-6. Reason: ..."), the quality engineer is notified from M4. No edits
+  once Completed or Cancelled.
+- **M3-6** **Complete** dialog: results folder (required, pre-filled with the proposal Q30, may be
+  changed), what happened to the panels (pre-set from the request's "afterwards": Returned / Scrapped
+  / Other - FIB always Scrapped, Q25) and an optional note. Then the engineer gets Results OK /
+  Reopen (Q34).
+- **M3-7** **Assigned to** (Q2, Q3): at submit a request is assigned to the tool's primary quality
+  engineer, or to the backup if the primary is away that day (a note on the timeline). My queue shows
+  assigned requests first; either quality engineer can **Take it**. Both away: stays with the primary
+  (Health warns, M1-14).
+- **M3-8** **Board** (Q22, Q39): columns Submitted | Accepted | In progress | Waiting (On hold +
+  Needs clarification) | Completed (last 7 days); rows are tool lanes (glyph + status). Cards are mini
+  travellers (stripe, ID, lot, panels, countdown); an open Line stop pulses. Only the tool's quality
+  engineers and admins drag; allowed columns light up while dragging, the others dim.
+
+Prince, 2026-09-24: "for all further questions follow your best and implement it - we change it
+after testing". So M3-9 onwards are Claude's recommendations, to be revisited after the R1 test run.
+- **M3-9** **Workflow** (who may do what; the one table is `domain.TRANSITIONS`):
+  Accept (Submitted -> Accepted, optional expected-done date) - Start (Submitted/Accepted -> In
+  progress, asks "Panels received?" M3-3) - Hold (Submitted/Accepted/In progress -> On hold, reason
+  from the list + note) and Resume (back to where it was) - Needs clarification (-> Needs
+  clarification, comment required) and Answered by the requester (back to where it was, M3-2) -
+  Complete (In progress -> Completed, M3-6). Actions: the tool's quality engineers (primary or
+  backup, `canMeasure`) and admins; Answered, Results OK, Reopen: the requester (and admins).
+  Reopen (Completed -> Accepted, reason required); Results OK marks it closed; a completed request
+  closes by itself 7 days after completion (Q34, computed, no data change).
+- **M3-10** **My queue** (quality engineers, Q16/Q43): open requests of the tools where they are
+  primary or backup, sorted as M2-5, "assigned to me" first; late ones red; one-click Accept / Start /
+  Hold / Complete / Clarify / Panels received / Copy BKM path per row; tick several -> Accept all /
+  Start all. Filters: tool, status. 100 rows per page.
+- **M3-11** **My requests** (engineers): their requests, open first, with status, needed-by,
+  expected done, countdown; filters status / tool / lot; Results OK / Reopen / Answered right there.
+- **M3-12** **Start page by role** (Q16): quality engineer -> My queue, engineer -> My requests,
+  others -> Lab status; a start page picked in the user menu wins.
+- **M3 build order**: 1 `m3-workflow` (actions, hold reasons, request page buttons, edit with
+  reason, assignment) - 2 `my-queue` - 3 `my-requests` - 4 `board`. Each merged into main.
+
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
   the app for a few days before M4 starts.
