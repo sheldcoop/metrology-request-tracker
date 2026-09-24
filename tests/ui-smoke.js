@@ -22,7 +22,7 @@ if(process.argv[2]==='chart'){win.Chart=function(canvas,cfg){charts++;this.cfg=c
   if(cfg.options.onHover)cfg.options.onHover({},[]);
   const a=cfg.options.animations;if(a){a.y.from({index:1,chart:chartObj,datasetIndex:0});a.x.delay({type:'data',index:2})}
   this.destroy=()=>destroyed++;};}const ctx=vm.createContext(win);
-['core','components','glyphs','heatmap','overlays','charts'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
+['core','components','glyphs','heatmap','overlays','charts','panelmap'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
 let errs=0;
 function check(name,fn){try{fn();flush()}catch(e){errs++;console.log('ERR',name,e.stack.split('\n').slice(0,3).join(' | '))}}
 function expect(name,cond){if(!cond){errs++;console.log('FAIL',name)}}
@@ -52,6 +52,22 @@ check('kpi',()=>{['ok','critical','expired',undefined].forEach(s=>{const k=put(u
 check('table',()=>{root.appendChild(ui.el('table',{class:'grid'},[ui.el('tr',{},[ui.el('th',{text:'h'})])]))});
 check('tabs',()=>{const t=put(ui.tabs([{key:'a',label:'A',icon:'user'},{key:'b',label:'B'}],()=>{}));t.setActive('b');expect('tabs active',t.node.querySelector('.tab-btn.active').textContent==='B')});
 check('empty+skeleton',()=>{put(ui.emptyState({icon:'inbox',title:'None',text:'t',actionLabel:'Add',onAction(){}}));put(ui.skeleton(4))});
+check('panel map',()=>{vm.runInContext(fs.readFileSync(path.join(ROOT,'js/config.js'),'utf8'),ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'js/domain.js'),'utf8'),ctx);
+  const D=win.MRT.domain;let got=null;
+  const pm=put(ui.panelMap({count:12,selected:[2],label:'Panels',parse:D.parsePanels,format:D.formatPanels,onChange:l=>{got=l}}));
+  const cells=pm.node.querySelectorAll('.pm-cell'),box=pm.node.querySelector('input');
+  expect('panel map: 12 panels, 1 picked',cells.length===12&&pm.value().join()==='2'&&/1 of 12/.test(pm.node.textContent)&&box.value==='2');
+  cells[4].click();expect('a click picks a panel and rewrites the text',got.join()==='2,5'&&box.value==='2, 5'&&cells[4].getAttribute('aria-pressed')==='true');
+  cells[8].dispatch('click',{shiftKey:true});expect('shift+click picks the run',pm.value().join()==='2,5,6,7,8,9'&&box.value==='2, 5-9');
+  box.value='1-3, 12';box.dispatch('input');expect('typing lights the map',pm.value().join()==='1,2,3,12'&&cells[11].classList.contains('is-picked'));
+  box.value='1-3, 13';box.dispatch('input');expect('a panel outside the lot is refused, map kept',pm.value().join()==='1,2,3,12'&&pm.node.querySelector('.ifield').classList.contains('is-invalid'));
+  pm.node.querySelectorAll('button').filter(b=>b.textContent==='All')[0].click();expect('All',pm.value().length===12);
+  pm.node.querySelectorAll('button').filter(b=>b.textContent==='None')[0].click();expect('None',pm.value().length===0&&box.value==='');
+  pm.focus();pm.node.querySelector('.panel-map').dispatch('keydown',{key:'ArrowDown'});pm.node.querySelector('.panel-map').dispatch('keydown',{key:'End'});
+  pm.set([3,4]);expect('set()',pm.value().join()==='3,4');pm.setError('Pick panels');pm.setError(null);
+  const big=put(ui.panelMap({count:200,parse:D.parsePanels,format:D.formatPanels}));expect('a big lot: 200 cells, rows of 20',big.node.querySelectorAll('.pm-cell').length===200&&/repeat\(20/.test(big.node.querySelector('.panel-map').style.gridTemplateColumns));
+  const ro=put(ui.panelMap({count:6,readOnly:true,marks:{1:'measured',2:'scrapped',3:'received'}}));
+  expect('read-only: marks, legend, no buttons, no text box',ro.node.querySelectorAll('.pm-cell.is-scrapped').length===1&&!!ro.node.querySelector('.pm-legend')&&!ro.node.querySelector('button')&&!ro.node.querySelector('input'))});
 check('heatmap',()=>{put(ui.heatmap({rows:['Mon','Tue'],cols:['07','08','09'],values:[[0,2,5],[1,0,0]],label:'Load',unit:'Requests',colour:'teal'}));put(ui.heatmap({rows:['a'],cols:['b'],values:[[0]]}))});
 check('glyphs',()=>{expect('six glyphs',ui.GLYPHS.length===6);
   ui.GLYPHS.forEach(g=>['idle','live','maint','off'].forEach(s=>{const n=ui.toolGlyph(g.key,{size:40,state:s,label:g.label});root.appendChild(n);
@@ -98,7 +114,7 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
-  expect('the kit builds every section (18)',secs.length===18);
+  expect('the kit builds every section (19)',secs.length===19);
   expect('the kit shows 6 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===24);
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
   for(const i of doc.getElementById('kitBar').querySelectorAll('input')){i.checked=true;i.dispatch('change');flush()}
