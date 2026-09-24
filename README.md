@@ -58,6 +58,11 @@ one-click actions per row, Accept all / Start all. It is their start page.
 Waiting / Completed (7 days); quality engineers drag cards on (allowed
 columns light up), everyone else reads.
 
+**Notifications** - the bell (top right): what is new on your requests, your
+tools and your @mentions; browser pop-ups if turned on; after key events a
+ready Outlook draft to the other side. The app reloads other people's changes
+by itself when nothing is open.
+
 **Away** - your name (top right) > "I'm away...": first and last day and an
 optional note, never a reason. Shown on Lab status, People and Health.
 

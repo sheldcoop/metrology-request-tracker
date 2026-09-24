@@ -828,6 +828,59 @@ window.MRT.domain = (function () {
     return !isNaN(t) && nowTs - t >= OLD_DRAFT_DAYS * 86400000;
   }
 
+  /**
+   * The bell (Q19, DECISIONS M4-1): what this person should hear about,
+   * newest first - never their own actions.
+   *   requester: status changes, comments, edits, assignment notes on their requests
+   *   the tool's quality engineers: new requests, edits, answers, reopen, cancel,
+   *     comments, requests assigned to them
+   *   anyone @mentioned in a comment
+   *   admins: people who added themselves (M1-5)
+   * @param {Object} user
+   * @param {Object} d      the data
+   * @param {Object} o      {since_ts: only events after this (ms), limit}
+   * @returns {{id, ts, request_id, text, kind, mention}[]}
+   */
+  function notificationsFor(user, d, o) {
+    if (!user) return [];
+    o = o || {};
+    var since = o.since_ts || 0;
+    var reqs = {}, tools = {}, users = {};
+    (d.requests || []).forEach(function (r) { reqs[r.id] = r; });
+    (d.tools || []).forEach(function (t) { tools[t.id] = t; });
+    (d.users || []).forEach(function (u) { users[u.id] = u; });
+    function name(id) { return users[id] ? users[id].name : 'Someone'; }
+    var out = [];
+    (d.request_events || []).forEach(function (e) {
+      if (e.user_id === user.id || Date.parse(e.ts) <= since) return;
+      var r = reqs[e.request_id];
+      if (!r || r.status === 'draft' || !r.request_no) return;
+      var mine = r.requester_id === user.id;
+      var measurer = isToolMeasurer(user, tools[r.tool_id]);
+      var mention = e.kind === 'comment' && (e.mentions || []).indexOf(user.id) !== -1;
+      var text = null;
+      if (e.kind === 'comment' && (mine || measurer || mention)) {
+        text = name(e.user_id) + (mention ? ' mentioned you on ' : ' commented on ') + r.request_no + ': "' + String(e.text).slice(0, 80) + (String(e.text).length > 80 ? '...' : '') + '"';
+      } else if (e.kind === 'status') {
+        if (e.from === 'draft' && measurer) text = 'New request ' + r.request_no + ' from ' + name(e.user_id);
+        else if (e.from !== 'draft' && (mine || measurer)) text = r.request_no + ': ' + REQUEST_STATUS_LABEL[e.to] + ' - ' + name(e.user_id) + (e.text ? ' (' + String(e.text).slice(0, 60) + ')' : '');
+      } else if (e.kind === 'edit' && (mine || measurer)) text = r.request_no + ' was changed by ' + name(e.user_id);
+      else if (e.kind === 'results_ok' && measurer) text = r.request_no + ': results OK - ' + name(e.user_id);
+      else if (e.kind === 'assign' && e.to === user.id) text = r.request_no + ' is assigned to you' + (e.text ? ' - ' + e.text : '');
+      else if (e.kind === 'panels' && mine) text = r.request_no + ': panels received by the lab';
+      if (text) out.push({ id: e.id, ts: e.ts, request_id: r.id, text: text, kind: e.kind, mention: mention });
+    });
+    if (hasRole(user, 'admin')) {
+      (d.users || []).forEach(function (u) {
+        if (u.self_added && u.needs_review && u.created_ts && Date.parse(u.created_ts) > since) {
+          out.push({ id: 'usr:' + u.id, ts: u.created_ts, request_id: null, user_id: u.id, text: u.name + ' added themselves - check their roles', kind: 'user', mention: false });
+        }
+      });
+    }
+    out.sort(function (a, b) { return a.ts < b.ts ? 1 : a.ts > b.ts ? -1 : 0; });
+    return o.limit ? out.slice(0, o.limit) : out;
+  }
+
   /** The start page for a person (Q16, M3-12): quality engineers -> My queue, engineers -> My requests, else Lab status. */
   function homeFor(user) { return canMeasure(user) ? 'queue' : hasRole(user, 'engineer') ? 'requests' : 'lab'; }
 
@@ -1150,6 +1203,7 @@ window.MRT.domain = (function () {
     sortQueue: sortQueue,
     toolQueueStats: toolQueueStats,
     isOldDraft: isOldDraft,
+    notificationsFor: notificationsFor,
     homeFor: homeFor,
     PANEL_OUTCOMES: PANEL_OUTCOMES,
     PANEL_OUTCOME_LABEL: PANEL_OUTCOME_LABEL,

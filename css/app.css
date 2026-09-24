@@ -1465,6 +1465,12 @@ table.grid tbody tr { scroll-margin: 80px; }
 .bcard-line { display: flex; align-items: center; gap: 6px; color: var(--fg-muted); }
 .bcard-who { margin-left: auto; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-3); color: var(--fg); font-size: 10px; font-weight: 700; }
 
+/* The bell (M4) */
+.bell-btn { position: relative; }
+.bell-count { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; box-sizing: border-box;
+  background: var(--danger); color: var(--on-danger); font: 700 10px/16px var(--font-mono); text-align: center; }
+.bell-count[hidden] { display: none; }
+
 /* Panel map (Q6, M2-2): each panel a small board with corner fiducials.
    Picked = lit (accent fill + glow); the light fades in via opacity only. */
 .pm { display: grid; gap: 10px; }

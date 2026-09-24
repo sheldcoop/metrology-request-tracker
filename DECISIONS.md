@@ -319,6 +319,24 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
 - **M3 build order**: 1 `m3-workflow` (actions, hold reasons, request page buttons, edit with
   reason, assignment) - 2 `my-queue` - 3 `my-requests` - 4 `board`. Each merged into main.
 
+## M4 notifications (2026-09-24, built; Prince: "decide what can be built and build it")
+- **M4-1** The bell (Q19) lists the last 30 days: requesters hear every status change, comment,
+  edit and "panels received" on their requests; the tool's quality engineers hear of new requests,
+  edits, answers, reopen, cancel, comments and requests assigned to them; anyone @mentioned hears of
+  that comment; admins hear of people who added themselves. Never your own actions. One rule
+  table: `domain.notificationsFor()`.
+- **M4-2** Read / unread is kept **per PC** (like the theme): opening the bell writes nothing to
+  the shared file. "Mark all as read" clears the count.
+- **M4-3** When someone else saved, the app now **reloads by itself when it is safe** (nothing
+  unsaved, no dialog or menu open, nobody typing); otherwise the M1 banner asks as before. That
+  keeps the bell current.
+- **M4-4** Outlook drafts (`js/adapters/mail.js`, mailto): after Submit (to the tool's quality
+  engineers), Needs clarification and Complete (to the requester), Cancel (to the other side) a
+  toast offers "Email ..." with a ready draft; only people with an email address in Settings >
+  People. Real automatic email later with a server (OPEN_QUESTIONS #2, #10).
+- **M4-5** Browser pop-ups while the app is open, once the person turns them on in the bell;
+  otherwise a toast. Not verified: whether Edge allows pop-ups for a page opened from `file://`.
+
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
   the app for a few days before M4 starts.

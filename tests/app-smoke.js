@@ -13,11 +13,11 @@ const vm = require('vm'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'brandVer', 'saveLed', 'undoBtn', 'searchIcon', 'search',
-  'helpBtn', 'keysBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
+  'bellBtn', 'bellIcon', 'bellCount', 'helpBtn', 'keysBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
   'navItems', 'navFolder', 'navRev', 'navCollapse', 'main', 'toasts', 'dialogHost'];
 const { win, doc, flush, tick, storage, El } = require('./fake-dom')({ ids: IDS, url: 'file:///Z:/Lab/MRT/index.html?who=CORP%5CPKhurana' });
 // the data-action hooks index.html puts on the top bar
-[['saveLed', 'save-state'], ['undoBtn', 'undo'], ['keysBtn', 'show-keys'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
+[['saveLed', 'save-state'], ['undoBtn', 'undo'], ['keysBtn', 'show-keys'], ['bellBtn', 'bell'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
   .forEach(p => { doc.getElementById(p[0]).dataset.action = p[1]; });
 doc.getElementById('undoBtn').hidden = true;
 doc.getElementById('gate').hidden = true;
@@ -38,7 +38,7 @@ const realError = console.error;
 console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
-['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/seed.js', 'js/store.js', 'js/identity.js',
+['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/identity.js',
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
@@ -467,6 +467,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const qN = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [5], priority_id: prioBy('P3') }) });
   const qL = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [6], priority_id: prioBy('P1'), priority_reason: 'line 2 down' }) });
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
+  check('the bell shows Olga what is new: her tool\'s requests (M4)', visible('bellCount') && +text('bellCount') >= 2);
+  doc.getElementById('bellBtn').click(); await settle();
+  const bellMenu = doc.body.querySelector('.menu');
+  check('...opening it lists them, with the new request from Prince', !!bellMenu && bellMenu.textContent.indexOf('New request ' + qL.request_no) !== -1);
+  buttonByText(bellMenu, 'Mark all as read').click(); await settle();
+  check('..."Mark all as read" clears the count', !visible('bellCount'));
   const qRows = $$('#main .q-row');
   check('My queue: Olga\'s FIB requests, the Line stop on top (M2-5)', qRows.length === 2 && qRows[0].textContent.indexOf(qL.request_no) !== -1 && qRows[0].classList.contains('prio-1'));
   check('..."assigned to you" first, one-click Accept / Start on the row', /Assigned to you/.test(mainText()) && !!buttonByText(qRows[0], 'Accept') && !!buttonByText(qRows[0], 'Start'));
@@ -475,6 +481,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...ticking two offers Accept all (2)', !!buttonByText($('#main .queue-bulk'), 'Accept all (2)'));
   buttonByText($('#main .queue-bulk'), 'Accept all (2)').click(); await settle(); await settle();
   check('...Accept all accepts both', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'accepted'));
+  MRT.store.setCurrentUser(meP); await MRT.store.saveEntry('users', { id: meP, fields: { email: 'prince@example.com' } }); MRT.store.setCurrentUser(olga.id);
+  const offer = MRT.requestActions.emailOffer(MRT.store.byId('requests', qN.id), 'clarify');
+  check('Clarify offers a ready Outlook draft to the requester (M4-4)', !!offer && /^Email Prince/.test(offer.label));
+  check('...the draft: to, subject with the ID', /^mailto:prince@example\.com\?subject=%5B/.test(MRT.adapters.mail.mailtoUrl({ to: ['prince@example.com'], subject: '[' + qN.request_no + '] Question about', body: 'x' })));
   await MRT.store.requestAction(qN.id, 'clarify', { text: 'Which side should we cut?' });
   MRT.store.setCurrentUser(meP);
 
@@ -594,9 +604,15 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Retry saves it', JSON.parse(folder.files['mrt_data.json']).tools.filter(t => t.code === 'FIB')[0].status === 'down');
 
   // --- someone else saves: the banner offers Reload
-  const f = JSON.parse(folder.files['mrt_data.json']); f.revision += 3; folder.files['mrt_data.json'] = JSON.stringify(f);
+  let f = JSON.parse(folder.files['mrt_data.json']); f.revision += 3; folder.files['mrt_data.json'] = JSON.stringify(f);
   tick(); await settle();
-  check('a newer file on the share shows the banner', visible('conflictBanner') && /Reload/.test(text('conflictBanner')));
+  check('someone else saved, nothing open here: the app reloads by itself (M4-3)', !visible('conflictBanner') && MRT.store.status().revision === f.revision);
+  doc.getElementById('keysBtn').click(); await settle();
+  f = JSON.parse(folder.files['mrt_data.json']); f.revision += 2; folder.files['mrt_data.json'] = JSON.stringify(f);
+  tick(); await settle();
+  check('...with a dialog open it only shows the banner', visible('conflictBanner') && /Reload/.test(text('conflictBanner')) && MRT.store.status().revision !== f.revision);
+  doc.dispatch('keydown', { key: 'Escape', target: doc.body }); await settle();
+  if (openDialog()) { buttonByText(openDialog(), 'Close').click(); await settle(); }
   buttonByText(doc.getElementById('conflictBanner'), 'Reload').click(); await settle();
   check('Reload takes the new file', !visible('conflictBanner') && MRT.store.status().revision === f.revision);
 

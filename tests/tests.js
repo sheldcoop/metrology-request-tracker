@@ -251,6 +251,21 @@
     eq('old drafts (Q33): a draft untouched for 30+ days', [D.isOldDraft({ status: 'draft', created_ts: '2026-08-01T00:00:00Z' }, Date.parse('2026-09-24T00:00:00Z')),
        D.isOldDraft({ status: 'draft', created_ts: '2026-08-01T00:00:00Z', updated_ts: '2026-09-20T00:00:00Z' }, Date.parse('2026-09-24T00:00:00Z')),
        D.isOldDraft({ status: 'submitted', created_ts: '2026-01-01T00:00:00Z' }, Date.parse('2026-09-24T00:00:00Z'))], [true, false, false]);
+    var ND = { users: [{ id: 'e1', name: 'Erik', roles: ['engineer'], active: true }, { id: 'q1', name: 'Olga', roles: ['quality'], active: true },
+        { id: 'a1', name: 'Ada', roles: ['admin'], active: true }, { id: 'n1', name: 'Nora', roles: ['engineer'], active: true, self_added: true, needs_review: true, created_ts: '2026-09-24T08:00:00Z' }],
+      tools: [{ id: 't1', code: 'FIB', primary_operator_id: 'q1' }],
+      requests: [{ id: 'r1', request_no: 'FIB-260924-01', status: 'accepted', tool_id: 't1', requester_id: 'e1' }, { id: 'r2', request_no: null, status: 'draft', tool_id: 't1', requester_id: 'e1' }],
+      request_events: [
+        { id: 'v1', request_id: 'r1', ts: '2026-09-24T09:00:00Z', user_id: 'e1', kind: 'status', from: 'draft', to: 'submitted' },
+        { id: 'v2', request_id: 'r1', ts: '2026-09-24T10:00:00Z', user_id: 'q1', kind: 'status', from: 'submitted', to: 'accepted' },
+        { id: 'v3', request_id: 'r1', ts: '2026-09-24T11:00:00Z', user_id: 'e1', kind: 'comment', text: 'thanks @Ada', mentions: ['a1'] },
+        { id: 'v4', request_id: 'r2', ts: '2026-09-24T11:30:00Z', user_id: 'e1', kind: 'created', to: 'draft' }] };
+    function nIds(uid, since) { return D.notificationsFor(ND.users.filter(function (u) { return u.id === uid; })[0], ND, { since_ts: since }).map(function (n) { return n.id; }); }
+    eq('the bell (M4-1): the QE hears of the new request and the comment, not their own Accept', nIds('q1'), ['v3', 'v1']);
+    eq('...the requester hears of the Accept, not their own comment or draft', nIds('e1'), ['v2']);
+    eq('...an admin: the @mention and the person who added themselves', nIds('a1'), ['v3', 'usr:n1']);
+    eq('...only what came after "since"', nIds('q1', Date.parse('2026-09-24T10:30:00Z')), ['v3']);
+    ok('...the mention says so', /mentioned you/.test(D.notificationsFor(ND.users[2], ND).filter(function (n) { return n.id === 'v3'; })[0].text));
     eq('start page by role (M3-12): QE -> My queue, engineer -> My requests, else Lab status', [D.homeFor(qe1), D.homeFor(eng1), D.homeFor({ roles: ['manager'], active: true })], ['queue', 'requests', 'lab']);
     eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
        D.nextRequestNo('QVM', '2026-09-24', ['FIB-260924-01']), D.nextRequestNo('FIB', '2026-09-25', ['FIB-260924-09']), D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-09'])],

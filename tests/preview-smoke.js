@@ -18,7 +18,7 @@ const html = fs.readFileSync(path.join(__dirname, 'preview.html'), 'utf8');
 const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]).filter(s => s.indexOf('vendor/') === -1)
   .map(s => path.join(__dirname, s));
 
-const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'brandVer', 'saveLed', 'undoBtn', 'searchIcon', 'search', 'helpBtn', 'keysBtn',
+const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'brandVer', 'saveLed', 'undoBtn', 'searchIcon', 'search', 'bellBtn', 'bellIcon', 'bellCount', 'helpBtn', 'keysBtn',
   'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner', 'navItems', 'navFolder', 'navRev', 'navCollapse',
   'main', 'toasts', 'dialogHost'];
 
