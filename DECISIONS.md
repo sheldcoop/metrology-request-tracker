@@ -209,9 +209,11 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   Linking lots (a split lot to its parent, related lots for analysis) comes later (OPEN_QUESTIONS #20).
 - **M2-2** Panels are picked on the panel map **or** typed as ranges ("1-5, 12"); both stay in sync (Q6).
 - **M2-3** "Needed by" belongs to each **request**, not the lot (Q10): each tool's request has its own date.
-- **M2-4** "Needed by" is **required** on every request.
+- **M2-4** "Needed by" is **optional** (changed 2026-09-24, Prince; first agreed as required). Without
+  a date there is no countdown and the request is never "late"; the priority says how urgent it is.
 - **M2-5** Queue order: **Line stop always on top**, then late requests (most overdue first), then
-  by needed-by (earliest first); on the same date Hot before Normal before Low.
+  by needed-by (earliest first); on the same date Hot before Normal before Low. Requests without a
+  date come after the dated ones, by priority, then the longest waiting first.
 - **M2-6** No date suggested from the priority: the engineer picks the needed-by date themselves.
 - **M2-7** Process step ("panels are after ..."): picked from a **process-step list** in Settings,
   or "Other" to type it. The list starts empty until Prince gives the real steps.
@@ -231,6 +233,7 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 - **M2-14** No "contact if I'm away" field for now - backups cover it. Look again after the test
   run (R1).
 - **M2-15** No picture / drawing attachment for now - the BKM covers it.
+- **M2-16** No warning when priority and date do not match - the date is optional.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
