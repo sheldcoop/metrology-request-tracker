@@ -1292,3 +1292,47 @@ table.grid tbody tr { scroll-margin: 80px; }
 .facts dt { color: var(--fg-muted); }
 .facts dd { margin: 0; }
 
+/* ------------------------------------------------------------------ *
+ * Help (in-app manual)
+ * ------------------------------------------------------------------ */
+.help-search { width: 240px; }
+.help-layout { display: grid; gap: 20px; grid-template-columns: 220px minmax(0, 1fr); align-items: start; }
+.help-toc { position: sticky; top: 0; display: grid; gap: 2px; }
+.help-toc a {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius);
+  color: var(--fg-muted); text-decoration: none; font-size: 13px; font-weight: 600;
+}
+.help-toc a:hover, .help-toc a:focus-visible { background: var(--accent-soft); color: var(--fg); }
+.help-toc a[hidden] { display: none; }
+.help-body { display: grid; gap: 14px; max-width: 860px; }
+.help-guide[hidden] { display: none; }
+.help-guide { scroll-margin-top: 12px; }
+.help-intro { margin: 0 0 10px; color: var(--fg-muted); }
+.help-steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; line-height: 1.5; }
+.help-steps li::marker { color: var(--accent); font-family: var(--font-mono); font-weight: 700; }
+.help-tips { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+.help-tips li { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--fg-muted); }
+.help-tips li svg { flex: none; margin-top: 2px; color: var(--accent); }
+.help-open { margin-top: 12px; display: inline-flex; align-items: center; gap: 4px; }
+.help-roles { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 4px 0 12px; padding: 10px 12px;
+  border-radius: var(--radius); background: var(--inset); border: 1px solid var(--line); font-size: 13px; }
+.help-roles dt { font-weight: 700; }
+.help-roles dd { margin: 0; color: var(--fg-muted); }
+.help-admin { margin-left: auto; }
+.help-guide.is-selected { border-color: var(--line-hi); }
+.help-toc a.is-admin span::after { content: " (admin)"; font-weight: 400; color: var(--fg-faint); }
+.head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 1024px) {
+  .help-layout { grid-template-columns: minmax(0, 1fr); }
+  .help-toc { position: static; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
+/* Print / PDF: only the guides */
+@media print {
+  .topbar, .nav, .alert-banner, .conflict-banner, .help-toc, .head-actions, .help-open, .toasts, .skip-link { display: none !important; }
+  /* paper is white in every theme: dark text, no fills or glows (print is the one place for plain black) */
+  body, .main, .main * { color: #000 !important; background: transparent !important; box-shadow: none !important; }
+  .panel { border-color: #999 !important; }
+  .main { overflow: visible; padding: 0; }
+  .help-layout { display: block; }
+  .help-guide { break-inside: avoid; box-shadow: none; }
+}

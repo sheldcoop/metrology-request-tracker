@@ -15,7 +15,8 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
   code-level checks: `node -e "new Function(require('fs').readFileSync(f,'utf8'))"` syntax checks,
   `node tests/css-check.js`, `node tests/contrast.js`, `node tests/ui-smoke.js`,
   `node tests/run-tests.js` (the same tests as `tests/test.html`), `node tests/app-smoke.js` (the
-  real app in a fake browser on an in-memory folder: flows, not looks), and writes tests into
+  real app in a fake browser on an in-memory folder: flows, not looks), `node tests/preview-smoke.js`,
+  `node tests/make-preview.js` (after index.html changes), and writes tests into
   `tests/tests.js` for Prince to open in `tests/test.html`. Headless Chromium or screenshots only when Prince asks.
 
 ## Git rules

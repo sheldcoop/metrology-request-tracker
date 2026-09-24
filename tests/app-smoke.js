@@ -302,6 +302,20 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.body.querySelector('.menu'), 'Change data folder').click(); await settle();
   check('Change data folder reconnects and signs in again', visible('shell') && MRT.store.currentUser().name === 'Prince Khurana');
 
+  // --- Help (step 5)
+  win.setHash('#/help'); await settle();
+  const guides = $$('.help-guide');
+  check('Help shows every guide, with a table of contents', guides.length === MRT.views.help.GUIDES.length && $('.help-toc').children.length === guides.length);
+  check('...including the admin setup checklist', /Admin: setting up the office/.test(mainText()) && /These are right/.test(mainText()));
+  check('...and the five roles', ['Engineer', 'Quality engineer', 'Operator', 'Manager', 'Admin'].every(r => $('.help-roles').textContent.indexOf(r) !== -1));
+  const hs = $('.help-search'); hs.value = 'restore'; hs.dispatch('input'); await settle();
+  check('Help search narrows the guides', guides.filter(g => !g.hidden).length < guides.length && guides.filter(g => !g.hidden).length > 0);
+  hs.value = 'zzzqqq'; hs.dispatch('input'); await settle();
+  check('...and says when nothing is found', guides.every(g => g.hidden) && /Nothing found/.test(mainText()));
+  win.setHash('#/help/admin-setup'); await settle();
+  check('#/help/admin-setup opens that guide', $$('.help-guide').filter(g => g.classList.contains('is-selected')).map(g => g.id).join() === 'help-admin-setup');
+  check('every guide link goes to a live page', $$('.help-open').every(a => /^#\/(lab|settings|help)/.test(a.getAttribute('href'))));
+
   // --- a failed save: the lamp and a toast with Retry
   folder.failWrites = true;
   await MRT.store.setToolStatus({ tool_id: fib().id, status: 'down' }).catch(() => {});

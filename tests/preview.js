@@ -1,0 +1,161 @@
+/**
+ * tests/preview.js - dev only. Loaded by tests/preview.html (generated from
+ * index.html by tests/make-preview.js - never edit preview.html by hand).
+ *
+ * The real app on demo data, in memory: no folder picker, nothing is
+ * written to disk, changes are lost on reload. For looking at every page in
+ * every theme, screenshots and the accessibility audit. No production code
+ * knows about this file.
+ *
+ *   tests/preview.html                    Lab status as Prince (Admin + Engineer)
+ *   tests/preview.html#/settings/tools    any page; Settings unlock by themselves (demo PIN 1234)
+ *   ?as=quality | engineer | operator     sign in as Olga (Quality engineer), Erik, Mia instead
+ *   ?theme=dark | light | hc              ?motion=reduce       ?empty=1  first run on an empty folder
+ *   ?click=<css>                          click that element after load (open a dialog), URL-encoded
+ *   ?audit=1                              run tests/a11y-audit.js after load (and after the click)
+ *   ?fakechart=1                          a stand-in Chart.js that runs every chart config
+ *   ?perf=1                               time each page render and the 1 s tick; "PERF ..." lines
+ */
+(function () {
+  'use strict';
+
+  var q = location.search;
+  var MRT = window.MRT;
+  var DEMO_PIN = '1234';
+  var DAY = 86400000;
+
+  var PEOPLE = {
+    admin:    { id: 'usr_demo_prince', name: 'Prince Khurana', windows_id: 'pkhurana', roles: ['admin', 'engineer'] },
+    quality:  { id: 'usr_demo_olga', name: 'Olga Berger', windows_id: 'oberger', roles: ['quality'] },
+    quality2: { id: 'usr_demo_otto', name: 'Otto Huber', windows_id: 'ohuber', roles: ['quality', 'engineer'] },
+    engineer: { id: 'usr_demo_erik', name: 'Erik Wagner', windows_id: 'ewagner', roles: ['engineer'] },
+    newbie:   { id: 'usr_demo_nora', name: 'Nora Steiner', windows_id: 'nsteiner', roles: ['engineer'], self_added: true, needs_review: true },
+    operator: { id: 'usr_demo_mia', name: 'Mia Gruber', windows_id: 'mgruber', roles: ['operator'] },
+    manager:  { id: 'usr_demo_max', name: 'Max Leitner', windows_id: 'mleitner', roles: ['manager'], active: false }
+  };
+
+  function sha256(text) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buf) {
+      return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    });
+  }
+
+  /** The demo file: seed.js + people + a few tool states, admin PIN 1234. */
+  function demoFile() {
+    var d = MRT.store._pure.seedData();
+    var now = Date.now();
+    d.users = Object.keys(PEOPLE).map(function (k) {
+      var p = PEOPLE[k];
+      return Object.assign({ domain: 'CORP', email: p.windows_id + '@example.com', active: true, self_added: false,
+                             needs_review: false, created_ts: new Date(now - 30 * DAY).toISOString(), version: 1 }, p);
+    });
+    function tool(code) { return d.tools.filter(function (t) { return t.code === code; })[0]; }
+    Object.assign(tool('FIB'), { status: 'maintenance', status_until: new Date(now + 3 * DAY).toISOString().slice(0, 10),
+      status_note: 'Source change', primary_operator_id: PEOPLE.quality.id, backup_operator_id: PEOPLE.quality2.id, results_root: '\\\\srv\\lab\\FIB' });
+    Object.assign(tool('PRF'), { status: 'down', status_until: null, status_note: 'Stylus broken - waiting for service', primary_operator_id: PEOPLE.quality2.id });
+    Object.assign(tool('QVM'), { primary_operator_id: PEOPLE.quality.id, backup_operator_id: PEOPLE.quality2.id, results_root: '\\\\srv\\lab\\QVM' });
+    d.tool_fields.push({ id: 'fld_demo_side', tool_id: tool('FIB').id, label: 'Cut side', type: 'choice', required: true, help: '',
+      unit: '', min: null, max: null, choices: [{ id: 'ch_f', label: 'Front', active: true }, { id: 'ch_b', label: 'Back', active: true }],
+      type_ids: [], active: true, sort: 1, version: 1 });
+    d.audit_log.push({ id: 'aud_demo', ts: new Date(now - DAY).toISOString(), user_id: PEOPLE.admin.id, entity: 'tool', entity_id: tool('FIB').id,
+      action: 'status', field: 'status', old_value: 'up', new_value: 'maintenance', reason: 'Source change' });
+    d.revision = 12;
+    d.saved_by = PEOPLE.admin.id;
+    return sha256('salt_demo:' + DEMO_PIN).then(function (hash) {
+      d.settings.forEach(function (s) {
+        if (s.key === 'admin_pin_salt') s.value_json = JSON.stringify('salt_demo');
+        if (s.key === 'admin_pin_hash') s.value_json = JSON.stringify(hash);
+      });
+      return d;
+    });
+  }
+
+  // --- the memory folder the app talks to (it waits until the demo file is ready)
+  var files = {};
+  var mem = MRT.adapters.storageMemory(files);
+  var ready = /[?&]empty=1/.test(q) ? Promise.resolve() : demoFile().then(function (d) {
+    files[MRT.config.data_file] = JSON.stringify(d);
+    var today = new Date().toISOString().slice(0, 10);
+    files[MRT.config.backup_dir + '/' + MRT.config.backup_prefix + today + '.json'] = files[MRT.config.data_file];
+  });
+  var read = mem.read;
+  mem.read = function (p) { return ready.then(function () { return read(p); }); };
+  mem.label = function () { return 'preview (memory)'; };
+  MRT.adapters.storageFolder = mem;
+
+  // --- who you are, and your theme
+  var as = (q.match(/[?&]as=(\w+)/) || [])[1] || 'admin';
+  var me = PEOPLE[as] || PEOPLE.admin;
+  var theme = (q.match(/[?&]theme=(\w+)/) || [])[1];
+  try {
+    localStorage.setItem('mrt.identity', JSON.stringify({ windows_id: me.windows_id, domain: 'CORP' }));
+    if (/[?&]empty=1/.test(q)) localStorage.removeItem('mrt.identity');
+    if (theme) localStorage.setItem('mrt.theme.' + me.id, theme);
+    localStorage.setItem('mrt.motion.' + me.id, /[?&]motion=reduce/.test(q) ? 'reduce' : 'full');
+  } catch (e) { /* private mode */ }
+
+  // --- Settings: type the demo PIN by itself, so every tab can be looked at
+  function autoUnlock() {
+    var form = document.querySelector('#main .lock-form');
+    if (!form) return;
+    form.querySelector('input').value = DEMO_PIN;
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+  }
+  window.addEventListener('hashchange', function () { setTimeout(autoUnlock, 50); });
+  window.addEventListener('load', function () { setTimeout(autoUnlock, 300); });
+
+  if (/[?&]fakechart=1/.test(q) && !window.Chart) {
+    window.Chart = function FakeChart(canvas, cfg) {
+      var chart = { chartArea: { left: 0, right: 300, top: 0, bottom: 200 }, canvas: canvas,
+        ctx: { createLinearGradient: function () { return { addColorStop: function () {} }; } },
+        scales: { y: { getPixelForValue: function () { return 100; } } },
+        getDatasetMeta: function () { return { data: [{ getProps: function () { return { y: 50 }; } }] }; } };
+      cfg.data.datasets.forEach(function (d) {
+        ['backgroundColor', 'hoverBackgroundColor', 'borderColor'].forEach(function (k) { if (typeof d[k] === 'function') d[k]({ chart: chart }); });
+        if (!Array.isArray(d.data) || !d.data.length) console.error('FakeChart: empty dataset', d.label);
+      });
+      window.__fakeCharts = (window.__fakeCharts || 0) + 1;
+      this.destroy = function () {};
+    };
+  }
+
+  var clickSel = (q.match(/[?&]click=([^&#]+)/) || [])[1];
+  if (clickSel) {
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        var n = document.querySelector(decodeURIComponent(clickSel));
+        if (n) n.click(); else console.error('preview: nothing matches ' + decodeURIComponent(clickSel));
+      }, 900);
+    });
+  }
+
+  if (/[?&]audit=1/.test(q)) {
+    window.addEventListener('load', function () {
+      setTimeout(function () { var s = document.createElement('script'); s.src = 'a11y-audit.js'; document.body.appendChild(s); }, 1800);
+    });
+  }
+
+  if (/[?&]perf=1/.test(q)) {
+    window.addEventListener('load', function () {
+      // open Settings once and unlock it, so the timings measure the tabs, not the PIN form
+      setTimeout(function () { history.replaceState(null, '', '#/settings'); MRT.app.route(); autoUnlock(); }, 900);
+      setTimeout(function () {
+        var app = MRT.app;
+        function time(label, fn, reps) {
+          reps = reps || 1;
+          var t = performance.now();
+          for (var r = 0; r < reps; r++) fn();
+          console.log('PERF ' + label + ' ' + ((performance.now() - t) / reps).toFixed(1) + ' ms');
+        }
+        ['#/lab', '#/settings/health', '#/settings/users', '#/settings/tools', '#/settings/lists', '#/settings/calendar',
+         '#/settings/audit', '#/settings/data', '#/help'].forEach(function (h) {
+          history.replaceState(null, '', h);
+          time('render ' + h, function () { app.route(); });
+          time('tick   ' + h, function () { if (app.state.currentView && app.state.currentView.tick) app.state.currentView.tick(); }, 20);
+          console.log('PERF nodes ' + h + ' ' + document.getElementsByTagName('*').length);
+        });
+        console.log('PERF DONE');
+      }, 1600);
+    });
+  }
+})();

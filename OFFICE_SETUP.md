@@ -75,7 +75,8 @@ lists it until it is edited or deleted.
 
 - ~~M1 step 4: Settings, Health, audit log, backups screen, "Change data folder".~~ Done:
   Settings > Health now shows this checklist live.
-- M1 step 5: Help page, ui-kit.html, preview, accessibility audit, CONTRIBUTING.md.
+- ~~M1 step 5: Help page, ui-kit.html, preview, accessibility audit, CONTRIBUTING.md.~~ Done:
+  Help > "Admin: setting up the office" holds this checklist too.
 - Later milestones: requests (M2-M3), notifications (M4), analytics and Excel
   export (M5), import of the old request list (M6), QR code on the traveller
   slip (M2), real email and local AI (need a server and IT approval).

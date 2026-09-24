@@ -6,9 +6,8 @@ lab operators run them and hand back a results folder.
 Zero install: static files on the shared drive, opened in Microsoft Edge.
 No server, no build step, no internet.
 
-> Work in progress (milestone M1): Lab status and Settings work; Help
-> follows in the next step. The other menu entries are greyed until their
-> milestone.
+> Milestone M1 (the shell): Lab status, Settings and Help work. The other
+> menu entries are greyed until their milestone (M2: requests).
 
 ## What the pages do (M1)
 
@@ -34,6 +33,9 @@ BKMs. The tool's quality engineers and admins set the status here.
 
 Entries in use are hidden, not deleted. A "Sample" tag marks made-up
 entries; save one (changed or not) to confirm it as real.
+
+**Help** (the ? button) - step-by-step guides for every task, searchable and
+printable, including "Admin: setting up the office".
 
 ---
 
@@ -100,9 +102,14 @@ copied without changing anything.
 
   ```
   node tests/run-tests.js      domain + store tests (same as test.html)
-  node tests/app-smoke.js      the real app in a fake browser: first run, sign-up, menu, status, save errors
-  node tests/ui-smoke.js       every UI component in every state
+  node tests/app-smoke.js      the real app in a fake browser: first run, sign-up, Settings, Help, save errors
+  node tests/preview-smoke.js  the dev preview boots on demo data
+  node tests/ui-smoke.js       every UI component and the UI kit
   node tests/css-check.js      CSS braces balance, component rules present
   node tests/contrast.js       WCAG AA contrast of every text colour, 3 themes
   ```
+- **`ui-kit.html`** - every component in every state; "All three" shows the themes side by side.
+- **`tests/preview.html`** - the real app on demo data in memory (nothing is
+  saved); `?audit=1` runs the accessibility audit, `?perf=1` times the pages.
+  Details and the rules for changing code: `CONTRIBUTING.md`.
 
