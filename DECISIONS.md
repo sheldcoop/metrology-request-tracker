@@ -130,3 +130,7 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 - **M1-1** Version control: local git only (branch `main`), one commit per step. No push; GitHub later.
 - **M1-2** The alert strip under the top bar stays in the shell as a stub. Later it shows queue
   counts (Line stop, late, on hold), like ABF's status strip.
+- **M1-3** Launcher opens **Edge** with `index.html?who=%USERNAME%`. No hard-coded path: the `.cmd`
+  sits next to `index.html` and builds the `file:///` address from its own folder (`%~dp0`), so it
+  works from a mapped drive (`Z:\...`) and a UNC path (`\\server\share\...`), and the folder can be
+  moved or copied. The app remembers the user per PC and strips `?who=` from the address bar.
