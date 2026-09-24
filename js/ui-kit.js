@@ -275,6 +275,22 @@
     ]);
   }
 
+  function panelMapDemo() {
+    var D = window.MRT.domain;
+    var out = el('div', { class: 'kit-note', style: { margin: 0 } });
+    var pick = ui.panelMap({ count: 12, selected: [1, 2, 3, 4, 5, 12], label: 'Pick panels (12-panel lot)', parse: D.parsePanels, format: D.formatPanels,
+      onChange: function (l) { out.textContent = 'onChange: [' + l.join(', ') + ']'; } });
+    var bad = ui.panelMap({ count: 8, label: 'Error state', parse: D.parsePanels, format: D.formatPanels });
+    bad.setError('Pick at least one panel');
+    return el('div', { class: 'kit-grid' }, [
+      labelled('Pick: click, Shift+click a run, arrows + Space, or type "1-5, 12"', el('div', {}, [pick.node, out])),
+      labelled('Nothing picked, with an error', bad.node),
+      labelled('A 48-panel lot', ui.panelMap({ count: 48, selected: [1, 2, 3, 13, 14, 15, 25, 26, 27], label: 'Panels', parse: D.parsePanels, format: D.formatPanels }).node),
+      labelled('Read-only with marks (request page)', ui.panelMap({ count: 12, readOnly: true, label: 'Panels of FIB-260924-03',
+        marks: { 1: 'measured', 2: 'measured', 3: 'scrapped', 4: 'received', 5: 'received' } }).node)
+    ]);
+  }
+
   function heatDemo() {
     var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], hours = [];
     for (var h = 6; h < 20; h++) hours.push((h < 10 ? '0' : '') + h);
@@ -384,6 +400,7 @@
       section('KPI tiles', kpis()),
       section('Tool glyphs', glyphs(), 'One drawing per tool: probe (HRM), camera (AOI), stylus (PRF), optics (QVM), ion column (FIB), reticle (any other).'),
       section('Charts (Chart.js, shared theme)', charts(), 'One theme config in js/ui/charts.js: token colours, gradients, draw-in, panel-style tooltip, full screen.'),
+      section('Panel map', panelMapDemo(), 'Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
       section('Heatmap', heatDemo(), 'Strength is the opacity of a colour layer; hover or focus a cell for the card.'),
       section('Data table', table(), 'Sticky header, hover row, selected row, a hidden (off) row, row actions.'),
       section('Tabs', tabsDemo()),

@@ -183,6 +183,14 @@
     ok('process steps are listed once (case and spaces ignored)', probs('process_steps', { name: 'after  DESMEAR' }).length === 1);
     ok('...need a name and a whole position', probs('process_steps', { name: '', sort: 1.5 }).length === 2);
     ok('"destructive" is yes or no', probs('tools', Object.assign({}, goodTool, { destructive: 'yes' })).length === 1 && !probs('tools', Object.assign({}, goodTool, { destructive: true })).length);
+    eq('panels typed as ranges (Q6)', D.parsePanels('1-5, 12', 12), { panels: [1, 2, 3, 4, 5, 12], errors: [] });
+    eq('...spaces, semicolons, doubles and backwards ranges', D.parsePanels(' 3;1  5-4 3 ', 12).panels, [1, 3, 4, 5]);
+    eq('..."all" is every panel', D.parsePanels('all', 4).panels, [1, 2, 3, 4]);
+    eq('...empty is none, no error', D.parsePanels('  ', 4), { panels: [], errors: [] });
+    eq('...outside the lot is an error', D.parsePanels('0, 13', 12).errors.length, 2);
+    eq('...so is text', D.parsePanels('1-5, panel 7', 12).errors.length, 1);
+    eq('panels back to text: runs of 3+ become a range', [D.formatPanels([12, 1, 2, 3, 4, 5]), D.formatPanels([1, 2, 4, 5, 6]), D.formatPanels([])], ['1-5, 12', '1, 2, 4-6', '']);
+    ok('...and parse(format(x)) gives x back', (function () { var x = [1, 3, 4, 5, 9, 10, 20]; return D.parsePanels(D.formatPanels(x), 20).panels.join() === x.join(); })());
     ok('lot numbers: 5 digits, a split lot adds .01 (M2-1)', D.isLotNumber('18178') && D.isLotNumber('18178.01') && D.isLotNumber('18178.2'));
     ok('...not letters, dashes or a trailing dot', !D.isLotNumber('L18178') && !D.isLotNumber('18178-01') && !D.isLotNumber('18178.') && !D.isLotNumber('18178.001'));
     var lotB = Object.assign({}, base, { users: base.users, buildups: [{ id: 'b1', code: 'BU-01' }],

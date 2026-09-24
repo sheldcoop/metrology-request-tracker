@@ -1289,6 +1289,47 @@ table.grid tbody tr { scroll-margin: 80px; }
 .lots-tools { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin: 8px 0 4px; }
 .lots-tools .ifield { flex: 0 1 420px; }
 .cell-note { display: inline-block; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+
+/* Panel map (Q6, M2-2): each panel a small board with corner fiducials.
+   Picked = lit (accent fill + glow); the light fades in via opacity only. */
+.pm { display: grid; gap: 10px; }
+.pm-head { display: flex; align-items: center; gap: 12px; }
+.pm-count { font-size: 12px; color: var(--fg-muted); }
+.panel-map { display: grid; gap: 6px; max-width: 760px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--inset); background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 16px 16px; }
+.pm.is-invalid .panel-map { border-color: var(--danger); }
+.pm-cell { position: relative; aspect-ratio: 1 / 1.08; min-width: 30px; display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-2); color: var(--fg-muted);
+  font: 600 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; cursor: pointer;
+  transition: transform var(--t-fast) var(--ease); }
+/* corner fiducials, like the alignment marks on a real panel */
+.pm-cell::before { content: ""; position: absolute; inset: 3px; pointer-events: none;
+  background: radial-gradient(circle, var(--fg-faint) 1.2px, transparent 1.6px) 0 0 / 7px 7px no-repeat,
+              radial-gradient(circle, var(--fg-faint) 1.2px, transparent 1.6px) 100% 0 / 7px 7px no-repeat,
+              radial-gradient(circle, var(--fg-faint) 1.2px, transparent 1.6px) 0 100% / 7px 7px no-repeat,
+              radial-gradient(circle, var(--fg-faint) 1.2px, transparent 1.6px) 100% 100% / 7px 7px no-repeat; }
+/* the light: an accent layer that fades in (opacity only) */
+.pm-cell::after { content: ""; position: absolute; inset: -1px; border-radius: 3px; pointer-events: none; opacity: 0;
+  background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent), 0 0 var(--glow-blur, 10px) var(--accent-glow);
+  transition: opacity var(--t) var(--ease-out); }
+.pm-num { position: relative; z-index: 1; }
+button.pm-cell:hover { transform: translateY(-1px); color: var(--fg); }
+button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pm-cell.is-picked { color: var(--fg); }
+.pm-cell.is-picked::after { opacity: 1; }
+.panel-map.is-readonly .pm-cell { cursor: default; }
+/* read-only marks: measured (tick), in the lab (tray line), scrapped (crossed out) */
+.pm-cell.is-measured { border-color: var(--ok); color: var(--ok-fg); background: var(--ok-bg); }
+.pm-cell.is-received { border-color: var(--c-blue); border-bottom-width: 3px; }
+.pm-cell.is-scrapped { border-color: var(--critical); color: var(--critical-fg); background: var(--critical-bg);
+  background-image: linear-gradient(to top right, transparent calc(50% - 1px), var(--critical) 50%, transparent calc(50% + 1px)); }
+.pm-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--fg-muted); }
+.pm-key { display: inline-flex; align-items: center; gap: 6px; }
+.pm-key i { width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--line-strong); }
+.pm-key.is-measured i { background: var(--ok-bg); border-color: var(--ok); }
+.pm-key.is-received i { border-color: var(--c-blue); border-bottom-width: 3px; }
+.pm-key.is-scrapped i { background: var(--critical-bg); border-color: var(--critical); }
 .year-pick { margin-bottom: 12px; }
 .audit-filter { max-width: 420px; }
 .audit-values { font-size: 12px; color: var(--fg-muted); }

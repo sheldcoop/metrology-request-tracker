@@ -271,6 +271,42 @@ window.MRT.domain = (function () {
    */
   function isLotNumber(s) { return typeof s === 'string' && /^\d{1,8}(\.\d{1,2})?$/.test(s); }
 
+  /**
+   * Panels typed as ranges (Q6, M2-2): "1-5, 12" -> [1, 2, 3, 4, 5, 12].
+   * Commas, semicolons or spaces separate; "all" means every panel; a range
+   * written backwards (5-1) is read forwards. Each number must be 1..count.
+   * @returns {{panels: number[], errors: string[]}} panels sorted, each once
+   */
+  function parsePanels(text, count) {
+    var out = {}, errors = [];
+    var src = String(text || '').trim();
+    if (!src) return { panels: [], errors: [] };
+    src.split(/[,;\s]+/).filter(Boolean).forEach(function (tok) {
+      if (/^all$/i.test(tok)) { for (var k = 1; k <= count; k++) out[k] = true; return; }
+      var m = tok.match(/^(\d+)(?:-(\d+))?$/);
+      if (!m) { errors.push('"' + tok + '" is not a panel number or range like 1-5'); return; }
+      var a = parseInt(m[1], 10), b = m[2] ? parseInt(m[2], 10) : a;
+      if (a > b) { var t = a; a = b; b = t; }
+      if (a < 1 || b > count) { errors.push(tok + ': the lot has panels 1-' + count); return; }
+      for (var n = a; n <= b; n++) out[n] = true;
+    });
+    return { panels: Object.keys(out).map(Number).sort(function (x, y) { return x - y; }), errors: errors };
+  }
+
+  /** The other way round: [1, 2, 3, 4, 5, 12] -> "1-5, 12" (runs of 3+ become a range). */
+  function formatPanels(panels) {
+    var list = (panels || []).slice().sort(function (x, y) { return x - y; }).filter(function (n, i, a) { return !i || a[i - 1] !== n; });
+    var parts = [], i = 0;
+    while (i < list.length) {
+      var j = i;
+      while (j + 1 < list.length && list[j + 1] === list[j] + 1) j++;
+      if (j - i >= 2) parts.push(list[i] + '-' + list[j]);
+      else for (var k = i; k <= j; k++) parts.push(String(list[k]));
+      i = j + 1;
+    }
+    return parts.join(', ');
+  }
+
   /** Most panels a lot can have (draws the panel map). */
   var LOT_MAX_PANELS = 200;
   var LOT_NOTE_MAX = 500;
@@ -606,6 +642,8 @@ window.MRT.domain = (function () {
     isCode: isCode,
     isPartNumber: isPartNumber,
     isLotNumber: isLotNumber,
+    parsePanels: parsePanels,
+    formatPanels: formatPanels,
     LOT_MAX_PANELS: LOT_MAX_PANELS,
     canRegisterLot: canRegisterLot,
     canEditLot: canEditLot,
