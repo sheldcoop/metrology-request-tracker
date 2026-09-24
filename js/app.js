@@ -628,9 +628,12 @@ window.MRT.app = (function () {
       store.list('bkms').forEach(function (b) {
         if (has(b.name + ' ' + b.path)) out.push({ kind: 'BKM', icon: 'requests', label: b.name, sub: b.path, href: '#/lab/' + b.tool_id });
       });
+      // requests: ID, purpose and the text of their comments (Q41)
+      var said = {};
+      (data.request_events || []).forEach(function (e) { if (e.kind === 'comment') said[e.request_id] = (said[e.request_id] || '') + ' ' + e.text; });
       store.visibleRequests(function (r) { return r.status !== 'draft'; }).forEach(function (r) {
         var t = store.byId('tools', r.tool_id), lot = store.byId('lots', r.lot_id);
-        if (has(r.request_no + ' ' + (r.purpose || ''))) {
+        if (has(r.request_no + ' ' + (r.purpose || '') + ' ' + (said[r.id] || ''))) {
           out.push({ kind: 'Request', glyph: t ? t.glyph : null, icon: 'requests', label: r.request_no,
                      sub: [D.REQUEST_STATUS_LABEL[r.status], lot ? 'lot ' + lot.lot_number : null].filter(Boolean).join(' · '), href: '#/request/' + r.id });
         }
