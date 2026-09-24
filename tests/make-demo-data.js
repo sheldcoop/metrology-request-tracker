@@ -1,7 +1,7 @@
 /**
  * tests/make-demo-data.js - dev only:  node tests/make-demo-data.js [folder]
  *
- * Writes the big made-up demo data file (tests/demo-data.js) to
+ * Writes the big made-up demo data file (js/demo-data.js) to
  * demo-data/mrt_data.json (or the folder given). Open the app, user menu >
  * Change data folder, pick that folder. Admin PIN: 1234. Your real data
  * folder is never touched. demo-data/mrt_data.json IS committed (Prince, 2026-09-24), so a clone has it.
@@ -12,7 +12,7 @@ const win = { console, crypto: globalThis.crypto, TextEncoder, Intl, Date, Math,
               Uint32Array, Uint8Array, Array, Object, String, Number, RegExp, Error };
 win.window = win;
 const ctx = vm.createContext(win);
-['js/config.js', 'js/domain.js', 'js/seed.js', 'js/store.js', 'tests/demo-data.js'].forEach(f =>
+['js/config.js', 'js/domain.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js'].forEach(f =>
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const PIN = '1234', SALT = 'salt_demo';

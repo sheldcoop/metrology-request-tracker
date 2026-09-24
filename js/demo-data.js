@@ -1,5 +1,5 @@
 /**
- * tests/demo-data.js - dev only. THE BIG DEMO DATA FILE (made up, never real).
+ * js/demo-data.js - THE BIG DEMO DATA FILE (made up, never real).
  *
  * Builds a full data file to try every screen and rule: 15 people (admin,
  * 7 engineers, 2 operators who also measure, 3 quality engineers, 2
@@ -13,6 +13,8 @@
  * copied, comments with @mentions, panels received, FIB panels scrapped.
  *
  * Deterministic (fixed random seed), dated relative to `now`. Used by
+ *   Settings > Data > "Fill with demo data" -> into the data folder in use (store.replaceData, the admin
+ *                                            keeps their PIN and becomes the demo's Prince)
  *   node tests/make-demo-data.js          -> demo-data/mrt_data.json (a real folder to open)
  *   tests/preview.html?demo=big           -> in memory
  *   tests/tests.js                        -> checks every record against the app's own rules
@@ -409,7 +411,7 @@ window.MRT.demoData = (function () {
     d.revision = 1;
     d.saved_ts = iso(now);
     d.saved_by = U.prince.id;
-    d.demo = { made_ts: iso(now), note: 'Made-up demo data from tests/demo-data.js - never real' };
+    d.demo = { made_ts: iso(now), note: 'Made-up demo data from js/demo-data.js - never real' };
     return d;
   }
 

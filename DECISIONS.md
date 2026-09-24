@@ -362,6 +362,12 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
   the upgrade to schema 10; Settings > Data also has "Add the sample magazines" (skips those there),
   and Health warns when there are none - so a normal data folder can use every function, not only
   the demo file.
+- **F-8** (2026-09-24, Prince: test with the normal folder, later an empty or real database) Settings >
+  Data & PIN > Test data: **"Fill with demo data"** replaces the file with the big demo
+  (`js/demo-data.js`, now part of the app) - the admin becomes its Prince Khurana with their own
+  Windows ID and keeps their PIN, so the launcher still recognises them; **"Start empty"** starts
+  like a first run with only that admin. Both copy the current file to `backups/..._before-demo|empty_<time>.json`
+  first (never pruned, restorable from the Backups list with its own audit log).
 
 ## M4 notifications (2026-09-24, built; Prince: "decide what can be built and build it")
 - **M4-1** The bell (Q19) lists the last 30 days: requesters hear every status change, comment,

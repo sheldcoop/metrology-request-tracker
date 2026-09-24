@@ -467,6 +467,8 @@ window.MRT.store = (function () {
 
   function backupName(ymd) { return cfg.backup_prefix + ymd + '.json'; }
   function isDailyBackup(name) { return new RegExp('^' + cfg.backup_prefix + '\\d{4}-\\d{2}-\\d{2}\\.json$').test(name); }
+  /** The copy kept before "Fill with demo data" / "Start empty" (replaceData): restorable, never pruned. */
+  function isSwapCopy(name) { return new RegExp('^' + cfg.backup_prefix + 'before-(demo|empty)_\\d{4}-\\d{2}-\\d{2}T[\\d-]+Z\\.json$').test(name); }
 
   function dailyBackup(diskText) {
     var today = D.viennaYmd(Date.now());
@@ -494,10 +496,13 @@ window.MRT.store = (function () {
   /** Daily backups, newest first: [{name, date, size_kb}]. Safety copies are not listed. */
   function listBackups() {
     return adapter().list(cfg.backup_dir).then(function (files) {
-      return files.filter(function (f) { return isDailyBackup(f.name); }).map(function (f) {
-        return { name: f.name, date: f.name.slice(cfg.backup_prefix.length, cfg.backup_prefix.length + 10),
+      return files.filter(function (f) { return isDailyBackup(f.name) || isSwapCopy(f.name); }).map(function (f) {
+        var swap = isSwapCopy(f.name);
+        var rest = f.name.slice(cfg.backup_prefix.length);
+        return { name: f.name, date: swap ? rest.replace(/^before-(demo|empty)_/, '').slice(0, 10) : rest.slice(0, 10),
+                 kind: swap ? (/before-demo/.test(f.name) ? 'before demo data' : 'before starting empty') : 'daily',
                  size_kb: Math.round(f.size / 1024) };
-      }).sort(function (a, b) { return a.name < b.name ? 1 : -1; });
+      }).sort(function (a, b) { return a.date !== b.date ? (a.date < b.date ? 1 : -1) : (a.kind === 'daily' ? 1 : -1); });
     });
   }
 
@@ -511,13 +516,15 @@ window.MRT.store = (function () {
     return guard(function () {
       requireAdmin();
       assert(isStr(reason), 'A reason is required to restore a backup');
-      assert(isDailyBackup(name), 'Not a backup file: ' + name);
+      assert(isDailyBackup(name) || isSwapCopy(name), 'Not a backup file: ' + name);
       return adapter().read(cfg.backup_dir + '/' + name).then(function (text) {
         assert(text !== null, 'Backup not found: ' + name, 'not_found');
         var restored = migrate(validateAndFill(parseFile(text, name)));
         var safety = cfg.backup_prefix + 'before-restore_' + stamp() + '.json';
         return adapter().write(cfg.backup_dir + '/' + safety, JSON.stringify(state.data, null, 2)).then(function () {
-          restored.audit_log = state.data.audit_log;
+          // a daily backup keeps today's audit log; the copy kept before a demo / empty swap keeps its own
+          // (the demo's made-up history must not stay in a real file)
+          if (!isSwapCopy(name)) restored.audit_log = state.data.audit_log;
           restored.revision = state.data.revision;
           restored.saved_ts = state.data.saved_ts;
           restored.saved_by = state.data.saved_by;
@@ -526,6 +533,58 @@ window.MRT.store = (function () {
           return commit({ undo: false });
         }).then(function () { return { restored: name, safety_copy: cfg.backup_dir + '/' + safety }; });
       });
+    });
+  }
+
+  /**
+   * Replace the whole data file, for testing (admin, audited): 'demo' puts the big made-up demo
+   * (js/demo-data.js) in, 'empty' starts again like a first run (the lists from seed.js, no lots,
+   * requests or other people). Either way the admin keeps their PIN and stays the signed-in admin:
+   * in the demo they become its Prince Khurana (admin + engineer) with their own Windows ID, so the
+   * launcher recognises them. The current file is copied to backups/..._before-<kind>_<time>.json
+   * first (never pruned); the revision continues so other PCs see the change.
+   * @param {'demo'|'empty'} kind
+   * @param {string} reason
+   */
+  function replaceData(kind, reason) {
+    return guard(function () {
+      var me = requireAdmin();
+      assert(kind === 'demo' || kind === 'empty', 'Unknown kind: ' + kind);
+      assert(isStr(reason), 'A reason is required');
+      assert(kind === 'empty' || typeof window.MRT.demoData === 'function', 'The demo data (js/demo-data.js) is not loaded', 'not_found');
+      var next = kind === 'demo' ? migrate(validateAndFill(clone(window.MRT.demoData({ now_ts: Date.now() })))) : seedData();
+      var keep = ['admin_pin_salt', 'admin_pin_hash'];
+      (next.settings || []).forEach(function (st) {
+        if (keep.indexOf(st.key) === -1) return;
+        var mine = (state.data.settings || []).filter(function (x) { return x.key === st.key; })[0];
+        if (mine) st.value_json = mine.value_json;
+      });
+      var meNow;
+      if (kind === 'demo') {
+        meNow = next.users.filter(function (u) { return u.id === 'usr_demo_prince'; })[0];
+        assert(meNow, 'The demo has no admin');
+        if (me.windows_id) {
+          next.users.forEach(function (u) { if (u !== meNow && u.windows_id === me.windows_id) u.windows_id = null; });
+          meNow.windows_id = me.windows_id; meNow.domain = me.domain || null;
+        }
+        if (me.email) meNow.email = me.email;
+        if ((meNow.roles || []).indexOf('admin') === -1) meNow.roles = (meNow.roles || []).concat(['admin']);
+      } else {
+        meNow = clone(me);
+        delete meNow.away_from; delete meNow.away_until; delete meNow.away_note;
+        next.users = [meNow];
+      }
+      var safety = cfg.backup_prefix + 'before-' + kind + '_' + stamp() + '.json';
+      return adapter().write(cfg.backup_dir + '/' + safety, JSON.stringify(state.data, null, 2)).then(function () {
+        next.revision = state.data.revision;
+        next.saved_ts = state.data.saved_ts;
+        next.saved_by = state.data.saved_by;
+        state.data = next;
+        state.currentUserId = meNow.id;
+        resetUndo();                                   // nothing before the swap can be taken back
+        audit('file', cfg.data_file, 'replace', 'data', safety, kind === 'demo' ? 'demo data' : 'empty', reason.trim());
+        return commit({ undo: false });
+      }).then(function () { return { kind: kind, safety_copy: cfg.backup_dir + '/' + safety, user: meNow }; });
     });
   }
 
@@ -1761,6 +1820,7 @@ window.MRT.store = (function () {
     requestEvents: requestEvents,
     addSampleLots: addSampleLots,
     addSampleMagazines: addSampleMagazines,
+    replaceData: replaceData,
     addLots: addLots,
     setLotOwner: setLotOwner,
     deleteLot: deleteLot,

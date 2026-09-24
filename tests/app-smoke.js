@@ -38,7 +38,7 @@ const realError = console.error;
 console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
-['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/identity.js',
+['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js',
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
@@ -703,6 +703,22 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   if (openDialog()) { buttonByText(openDialog(), 'Close').click(); await settle(); }
   buttonByText(doc.getElementById('conflictBanner'), 'Reload').click(); await settle();
   check('Reload takes the new file', !visible('conflictBanner') && MRT.store.status().revision === f.revision);
+
+  // --- Settings > Data: fill this folder with the demo data, then start empty (testing)
+  await tab('data');
+  buttonByText(M(), 'Fill with demo data').click(); await settle();
+  let rdlg2 = openDialog(); setVal(rdlg2.querySelector('textarea'), 'try everything'); buttonByText(rdlg2, 'Fill with demo data').click(); await settle();
+  check('Data: "Fill with demo data" - the big demo is in this folder, I am its Prince (admin) with my Windows ID',
+        MRT.store.data().requests.length > 200 && MRT.store.currentUser().id === 'usr_demo_prince' && MRT.store.currentUser().windows_id === 'pkhurana' &&
+        JSON.parse(folder.files['mrt_data.json']).requests.length > 200 && /Prince Khurana/.test(text('userName')));
+  win.setHash('#/new'); await settle();
+  check('...the form works on it: the demo magazines are offered', fieldIn(M(), 'Magazine').querySelectorAll('option').length === 21);
+  await tab('data');
+  check('...the Backups list offers the copy made before', /before demo data/.test(mainText()));
+  buttonByText(M(), 'Start empty').click(); await settle();
+  rdlg2 = openDialog(); setVal(rdlg2.querySelector('textarea'), 'clean start'); buttonByText(rdlg2, 'Start empty').click(); await settle();
+  check('..."Start empty": no lots or requests, only me as admin, the settings still open', MRT.store.data().requests.length === 0 && MRT.store.data().lots.length === 0 &&
+        MRT.store.data().users.length === 1 && /Data file/.test(mainText()));
 
   // --- nothing unexpected went wrong
   const unexpected = errors.filter(e => !/save failed|read-only/.test(e));

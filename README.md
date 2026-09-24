@@ -116,6 +116,9 @@ reopened, cancelled, drafts, @mentions, away routing, scrapped FIB panels).
 
 - **Quick look, nothing saved:** open `tests/preview.html?demo=big` (add
   `&as=mia`, `&as=olga`, `&as=erik`, `&as=max` ... to be someone else).
+- **In your own data folder:** Settings > Data & PIN > "Fill with demo data" puts it in (you
+  stay the admin with your Windows ID and PIN); "Start empty" starts again with only you. The file
+  before is kept in backups/ and can be restored from the Backups list.
 - **A real folder to click through:** `node tests/make-demo-data.js` writes
   `demo-data/mrt_data.json`; in the app: user menu > Change data folder >
   `demo-data`. Admin PIN **1234**. No Node? The preview's "Download the demo

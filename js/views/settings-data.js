@@ -3,7 +3,9 @@
  *
  * Settings > Data & PIN: where the data file is and its state, the daily
  * backups (restore one: the current file is kept as a safety copy first),
- * a copy to download now, and changing the admin PIN.
+ * a copy to download now, and changing the admin PIN. For testing: fill
+ * this folder with the big demo data, or start empty (both keep a copy of
+ * the current file first).
  */
 (function () {
   'use strict';
@@ -18,6 +20,43 @@
     body.appendChild(ui.el('div', { class: 'settings-cols' }, [filePanel(), pinPanel()]));
     body.appendChild(backupsPanel());
     body.appendChild(samplePanel());
+    body.appendChild(testDataPanel());
+  }
+
+  /**
+   * Swap the whole data file for testing (store.replaceData): the big demo, or empty like a first
+   * run. You keep your PIN and stay the signed-in admin; the current file is copied to backups first.
+   */
+  function testDataPanel() {
+    var k = K();
+    var d = store.data();
+    var isDemo = !!d.demo;
+    function go(kind) {
+      var demo = kind === 'demo';
+      ui.promptReason({ title: demo ? 'Fill this folder with the demo data?' : 'Start empty?', confirmLabel: demo ? 'Fill with demo data' : 'Start empty', danger: true,
+        message: (demo ? 'Everything in this data file is replaced by the made-up demo: 17 people, 45 lots, ~260 requests in every state. ' +
+                         'You become its Prince Khurana (admin + engineer) with your Windows ID and keep your PIN. '
+                       : 'Everything in this data file is replaced by a fresh start: the lists from the first run (tools, types, magazines ...), ' +
+                         'no lots, no requests, and only you as the admin - with your PIN. ') +
+          'The current file is kept in ' + cfg.backup_dir + '/ first, so it can be restored. Other PCs using this folder see the change. Why?' })
+        .then(function (reason) {
+          if (!reason) return;
+          var before = store.currentUser().id;
+          return store.replaceData(kind, reason).then(function (r) {
+            window.MRT.views.settings.keepUnlocked(before, r.user.id);
+            ui.toast({ kind: 'success', timeout_ms: 9000, message: (demo ? 'Demo data is in. ' : 'Started empty. ') + 'The previous file is kept in ' + r.safety_copy + '.' });
+            if (window.MRT.app.recheckUser()) window.MRT.app.route();
+          });
+        }).catch(function (e) { ui.toastError('Could not replace the data: ' + e.message, e); });
+    }
+    return k.panel('Test data', 'alert', [], [
+      ui.el('p', { class: 'muted', text: 'For testing with this data folder. ' + (isDemo ? 'This file holds the made-up DEMO data now. ' : '') +
+        'Both replace the whole file; the current one is kept in the backups first (restore it under Backups).' }),
+      ui.el('div', { class: 'form-actions' }, [
+        ui.button('Fill with demo data', { kind: 'danger', icon: 'restore', onClick: function () { go('demo'); } }),
+        ui.button('Start empty', { kind: 'danger', icon: 'trash', onClick: function () { go('empty'); } })
+      ])
+    ]);
   }
 
   /** Three made-up lots to try the app with (tagged Sample, deletable on the Lots page). */
@@ -98,7 +137,7 @@
     store.listBackups().then(function (rows) {
       ui.mount(host, k.table(['Day', 'Size', { label: '', cls: 'actions' }], rows.map(function (b, i) {
         return [
-          ui.el('span', { class: 'mono', text: ui.formatDate(b.date + 'T12:00:00Z') + (i === 0 ? '  (latest)' : '') }),
+          ui.el('span', { class: 'mono', text: ui.formatDate(b.date + 'T12:00:00Z') + (b.kind !== 'daily' ? '  - ' + b.kind : i === 0 ? '  (latest)' : '') }),
           ui.el('span', { class: 'num muted', text: b.size_kb + ' KB' }),
           ui.button('Restore', { size: 'sm', kind: 'danger', icon: 'restore', onClick: function () { restore(b); } })
         ];
@@ -108,7 +147,7 @@
     });
     return k.panel('Daily backups', 'archive', [], [
       ui.el('p', { class: 'muted', text: 'The first change of each day copies the data file into ' + cfg.backup_dir + '\\ first. ' +
-        'The last ' + cfg.backup_keep + ' days are kept.' }),
+        'The last ' + cfg.backup_keep + ' days are kept, and every copy made before "Fill with demo data" or "Start empty".' }),
       host
     ]);
   }
