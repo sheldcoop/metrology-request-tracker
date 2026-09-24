@@ -209,6 +209,10 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   Linking lots (a split lot to its parent, related lots for analysis) comes later (OPEN_QUESTIONS #20).
 - **M2-2** Panels are picked on the panel map **or** typed as ranges ("1-5, 12"); both stay in sync (Q6).
 - **M2-3** "Needed by" belongs to each **request**, not the lot (Q10): each tool's request has its own date.
+- **M2-4** "Needed by" is **required** on every request.
+- **M2-5** Queue order: **Line stop always on top**, then late requests (most overdue first), then
+  by needed-by (earliest first); on the same date Hot before Normal before Low.
+- **M2-6** No date suggested from the priority: the engineer picks the needed-by date themselves.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
