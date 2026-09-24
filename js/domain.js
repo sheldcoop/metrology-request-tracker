@@ -773,6 +773,39 @@ window.MRT.domain = (function () {
   }
 
   /**
+   * Late: open, with a needed-by date whose lab day has ended (Q10, Q36).
+   * On hold is never late - its clock is paused.
+   */
+  function isLate(r, nowTs, cal) {
+    return isOpen(r) && r.status !== 'on_hold' && !!r.needed_by && isYmd(r.needed_by) && nowTs > viennaTs(r.needed_by, cal.end);
+  }
+
+  /**
+   * The queue order (DECISIONS M2-5): Line stop (level 1) always on top, then
+   * late requests (most overdue first), then by needed-by (earliest first; on
+   * the same date the more urgent priority first), then requests without a
+   * date by priority, the longest waiting first.
+   * @param {Object[]} list   requests
+   * @param {Object} o        {now_ts, cal, levelOf(r) -> priority level (1 = most urgent)}
+   * @returns {Object[]}      a sorted copy
+   */
+  function sortQueue(list, o) {
+    function key(r) {
+      var lvl = o.levelOf(r) || 99;
+      var late = isLate(r, o.now_ts, o.cal);
+      var due = r.needed_by && isYmd(r.needed_by) ? viennaTs(r.needed_by, o.cal.end) : null;
+      return [lvl === 1 ? 0 : 1, late ? 0 : 1, late ? due : 0, due === null ? 1 : 0, due === null ? 0 : due, lvl, r.submitted_ts || r.created_ts || ''];
+    }
+    return (list || []).map(function (r) { return { r: r, k: key(r) }; }).sort(function (a, b) {
+      for (var i = 0; i < a.k.length; i++) { if (a.k[i] !== b.k[i]) return a.k[i] < b.k[i] ? -1 : 1; }
+      return 0;
+    }).map(function (x) { return x.r; });
+  }
+
+  /** The start page for a person (Q16, M3-12): quality engineers -> My queue, engineers -> My requests, else Lab status. */
+  function homeFor(user) { return canMeasure(user) ? 'queue' : hasRole(user, 'engineer') ? 'requests' : 'lab'; }
+
+  /**
    * @mentions in a comment (Q11): "@Anna Berger" (full name) or "@aberger"
    * (Windows ID), case ignored. Returns the user IDs, each once.
    */
@@ -1087,6 +1120,9 @@ window.MRT.domain = (function () {
     isToolMeasurer: isToolMeasurer,
     findMentions: findMentions,
     TRANSITIONS: TRANSITIONS,
+    isLate: isLate,
+    sortQueue: sortQueue,
+    homeFor: homeFor,
     PANEL_OUTCOMES: PANEL_OUTCOMES,
     PANEL_OUTCOME_LABEL: PANEL_OUTCOME_LABEL,
     isClosed: isClosed,

@@ -68,7 +68,13 @@ window.MRT.app = (function () {
     try { localStorage.setItem(prefKey(name, store.status().currentUserId), value); } catch (e) { /* private mode */ }
   }
 
-  function readHome(userId) { var v = readPref('home', userId); return isLive(v) && v !== 'settings' && v !== 'help' ? v : 'lab'; }
+  /** The start page: the one picked in the user menu, else by role (Q16, M3-12). */
+  function readHome(userId) {
+    var v = readPref('home', userId);
+    if (isLive(v) && v !== 'settings' && v !== 'help') return v;
+    var byRole = D.homeFor(store.byId('users', userId));
+    return isLive(byRole) ? byRole : 'lab';
+  }
   function readTheme(userId) { var v = readPref('theme', userId); return THEMES.indexOf(v) !== -1 ? v : 'dark'; }
 
   function applyTheme(theme) {

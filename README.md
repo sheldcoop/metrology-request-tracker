@@ -40,6 +40,10 @@ clarification (the engineer answers), Complete (results folder + what
 happened to the panels), Take it. The engineer edits an open request with a
 reason, and confirms Results OK or Reopens.
 
+**My queue** - quality engineers: the open requests of their tools, Line
+stop on top, then late, then by needed-by date; assigned-to-me first;
+one-click actions per row, Accept all / Start all. It is their start page.
+
 **Away** - your name (top right) > "I'm away...": first and last day and an
 optional note, never a reason. Shown on Lab status, People and Health.
 
