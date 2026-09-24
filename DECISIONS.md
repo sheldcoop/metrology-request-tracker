@@ -151,3 +151,8 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   Order: Lab status (live in M1: tools, glyphs, Up/Down/Maintenance, operators) · My queue (M3) ·
   My requests (M3) · New request (M2) · Lots (M2) · Board (M3) · Analytics (M5) · Settings (M1) ·
   Help (M1). Bell in the top bar from M4. Start page in M1: Lab status; role-based from M3 (Q16).
+- **M1-7** Extra field types per tool: short text, long text, number (unit, optional min/max),
+  one choice, several choices, yes/no, date, shared-drive path (Copy button). Each field: label,
+  type, required, optional help text, optional "only for these measurement types". Fields and
+  choices are referenced by ID (rename-safe); removed choices are hidden, not deleted (Q47).
+  No seed fields until Prince gives real ones (OPEN_QUESTIONS #5).
