@@ -286,6 +286,10 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   changed), what happened to the panels (pre-set from the request's "afterwards": Returned / Scrapped
   / Other - FIB always Scrapped, Q25) and an optional note. Then the engineer gets Results OK /
   Reopen (Q34).
+- **M3-7** **Assigned to** (Q2, Q3): at submit a request is assigned to the tool's primary quality
+  engineer, or to the backup if the primary is away that day (a note on the timeline). My queue shows
+  assigned requests first; either quality engineer can **Take it**. Both away: stays with the primary
+  (Health warns, M1-14).
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
