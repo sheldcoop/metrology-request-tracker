@@ -22,11 +22,11 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 3;
+  var SCHEMA_VERSION = 4;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
-    'projects', 'part_numbers', 'buildups', 'process_steps', 'priorities', 'holidays', 'audit_log'
+    'projects', 'part_numbers', 'buildups', 'process_steps', 'priorities', 'holidays', 'lots', 'audit_log'
   ];
 
   /** In-memory state. `data` is the loaded file; never mutate it from a screen. */
@@ -276,7 +276,9 @@ window.MRT.store = (function () {
     2: function (d) {
       if (!Array.isArray(d.process_steps)) d.process_steps = [];
       (d.tools || []).forEach(function (t) { if (typeof t.destructive !== 'boolean') t.destructive = t.code === 'FIB'; });
-    }
+    },
+    // 3 -> 4: lots (M2-1). Old files have none.
+    3: function (d) { if (!Array.isArray(d.lots)) d.lots = []; }
   };
 
   function migrate(data) {
@@ -846,8 +848,10 @@ window.MRT.store = (function () {
   var USES = {
     tools: [['measurement_types', 'tool_id', 'measurement type'], ['tool_fields', 'tool_id', 'field'], ['bkms', 'tool_id', 'BKM']],
     measurement_types: [['bkms', 'type_id', 'BKM'], ['tool_fields', 'type_ids', 'field']],
-    projects: [['part_numbers', 'project_ids', 'part number']],
-    tool_fields: [], bkms: [], part_numbers: [], buildups: [], process_steps: [], priorities: [], holidays: []
+    projects: [['part_numbers', 'project_ids', 'part number'], ['lots', 'project_id', 'lot']],
+    part_numbers: [['lots', 'part_number_id', 'lot']],
+    buildups: [['lots', 'buildup_id', 'lot']],
+    tool_fields: [], bkms: [], process_steps: [], priorities: [], holidays: []
   };
 
   /** {count, text} - text like "5 measurement types, 1 BKM". */
@@ -880,6 +884,73 @@ window.MRT.store = (function () {
       }
       state.data[collection] = state.data[collection].filter(function (r) { return r.id !== id; });
       audit(spec.label.replace(/ /g, '_'), id, 'delete', null, row.code || row.name || row.label || row.date || id, null, reason.trim());
+      return commit();
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Lots (Q7/Q8, DECISIONS M2-1): any engineer registers one; its owner
+   * or an admin changes or deletes it (delete only while no request uses it).
+   * ------------------------------------------------------------------ */
+
+  var LOT_FIELDS = ['lot_number', 'project_id', 'part_number_id', 'buildup_id', 'panel_count', 'note'];
+
+  /**
+   * Register or change a lot.
+   * @param {Object} o {id?, version?, fields: {lot_number, project_id, part_number_id, buildup_id, panel_count, note}, reason?}
+   * @returns Promise<lot>
+   */
+  function saveLot(o) {
+    return guard(function () {
+      var me = requireUser();
+      var f = clone(o.fields || {});
+      Object.keys(f).forEach(function (k) { assert(LOT_FIELDS.indexOf(k) !== -1, 'Unknown field: ' + k); });
+      if (typeof f.lot_number === 'string') f.lot_number = f.lot_number.trim();
+      if (typeof f.note === 'string') f.note = f.note.trim();
+      if (f.part_number_id === '') f.part_number_id = null;
+      var existing = o.id ? need('lots', o.id, 'Lot') : null;
+      var next;
+      if (existing) {
+        assert(D.canEditLot(me, existing), 'Only the lot owner or an admin can change this lot', 'not_allowed');
+        checkVersion(existing, o.version, 'This lot');
+        next = Object.assign(clone(existing), f);
+      } else {
+        assert(D.canRegisterLot(me), 'Only engineers can register lots', 'not_allowed');
+        next = Object.assign({ id: newId('lot'), part_number_id: null, note: '', owner_id: me.id, created_ts: nowIso() }, f);
+      }
+      var problems = D.validateEntry('lots', next, state.data);
+      assert(!problems.length, problems.join('. '), 'invalid', problems);
+      var reason = o.reason ? String(o.reason).trim() : null;
+      if (existing) {
+        var changes = LOT_FIELDS.filter(function (k) { return JSON.stringify(existing[k]) !== JSON.stringify(next[k]); });
+        assert(changes.length, 'Nothing was changed', 'no_change');
+        changes.forEach(function (k) { audit('lot', existing.id, 'update', k, existing[k], next[k], reason); existing[k] = next[k]; });
+        existing.version += 1;
+        return commit().then(function () { return existing; });
+      }
+      next.version = 1;
+      state.data.lots.push(next);
+      audit('lot', next.id, 'create', null, null, next.lot_number, reason);
+      return commit().then(function () { return next; });
+    });
+  }
+
+  /** What uses a lot (requests from M2 step 4). */
+  function lotUsage(id) {
+    var n = (state.data.requests || []).filter(function (r) { return r.lot_id === id; }).length;
+    return { count: n, text: n ? n + ' request' + (n === 1 ? '' : 's') : '' };
+  }
+
+  function deleteLot(id, reason) {
+    return guard(function () {
+      var me = requireUser();
+      var lot = need('lots', id, 'Lot');
+      assert(D.canEditLot(me, lot), 'Only the lot owner or an admin can delete this lot', 'not_allowed');
+      assert(isStr(reason), 'A reason is required');
+      var usage = lotUsage(id);
+      assert(!usage.count, 'Lot ' + lot.lot_number + ' is used by ' + usage.text + ' and cannot be deleted.', 'in_use');
+      state.data.lots = state.data.lots.filter(function (r) { return r.id !== id; });
+      audit('lot', id, 'delete', null, lot.lot_number, null, reason.trim());
       return commit();
     });
   }
@@ -1106,6 +1177,9 @@ window.MRT.store = (function () {
     linkIdentity: linkIdentity,
     markUserReviewed: markUserReviewed,
     setAway: setAway,
+    saveLot: saveLot,
+    deleteLot: deleteLot,
+    lotUsage: lotUsage,
     hasPin: hasPin,
     verifyPin: verifyPin,
     setAdminPin: setAdminPin,

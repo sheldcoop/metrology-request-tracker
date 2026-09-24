@@ -107,6 +107,15 @@ window.MRT.domain = (function () {
    * backup_operator_id - the field names stay, the people are measurers)
    * and admins set its status (Q27).
    */
+  /** Any engineer registers a lot (Q7); admins too. */
+  function canRegisterLot(user) { return hasRole(user, 'engineer') || hasRole(user, 'admin'); }
+
+  /** The lot's owner or an admin changes or deletes it. */
+  function canEditLot(user, lot) {
+    if (!user || !lot) return false;
+    return hasRole(user, 'admin') || (lot.owner_id === user.id && user.active !== false);
+  }
+
   function canSetToolStatus(user, tool) {
     if (!user || !tool) return false;
     if (hasRole(user, 'admin')) return true;
@@ -256,6 +265,16 @@ window.MRT.domain = (function () {
    * A part number: capitals, digits and - . _ / , up to 30 characters.
    * Provisional - the real format rule is still open (OPEN_QUESTIONS #17).
    */
+  /**
+   * A lot number: digits, optionally a split suffix - 18178, 18178.01 (M2-1).
+   * Provisional until the rule is confirmed (OPEN_QUESTIONS #21).
+   */
+  function isLotNumber(s) { return typeof s === 'string' && /^\d{1,8}(\.\d{1,2})?$/.test(s); }
+
+  /** Most panels a lot can have (draws the panel map). */
+  var LOT_MAX_PANELS = 200;
+  var LOT_NOTE_MAX = 500;
+
   function isPartNumber(s) { return typeof s === 'string' && /^[A-Z0-9][A-Z0-9._\/-]{0,29}$/.test(s); }
 
   /** A Windows share or drive path: \\server\share\... or X:\... (M1-3, Q13, Q30). */
@@ -367,6 +386,23 @@ window.MRT.domain = (function () {
           if (r.project_ids.some(function (id) { return !exists('projects', id); })) p.push('A ticked project no longer exists');
           if (r.project_ids.some(function (id, i) { return r.project_ids.indexOf(id) !== i; })) p.push('A project is ticked twice');
         }
+        break;
+
+      case 'lots':
+        if (!isLotNumber(r.lot_number)) p.push('Lot number: digits, a split lot adds .01 - e.g. 18178 or 18178.01');
+        else if (dupBy(d.lots, r.id, 'lot_number', r.lot_number)) p.push('Lot ' + r.lot_number + ' is already registered');
+        if (!exists('projects', r.project_id)) p.push('Pick a project');
+        if (!exists('buildups', r.buildup_id)) p.push('Pick a build-up');
+        if (r.part_number_id) {
+          var pnr = (d.part_numbers || []).filter(function (x) { return x.id === r.part_number_id; })[0];
+          if (!pnr) p.push('Part number not found');
+          else if ((pnr.project_ids || []).indexOf(r.project_id) === -1) p.push('Part number ' + pnr.code + ' does not belong to this project');
+        }
+        if (!isNum(r.panel_count) || r.panel_count < 1 || r.panel_count > LOT_MAX_PANELS || Math.floor(r.panel_count) !== r.panel_count) {
+          p.push('Panels: a whole number from 1 to ' + LOT_MAX_PANELS);
+        }
+        if (!exists('users', r.owner_id)) p.push('Lot owner not found');
+        if (r.note && String(r.note).length > LOT_NOTE_MAX) p.push('Keep the note under ' + LOT_NOTE_MAX + ' characters');
         break;
 
       case 'process_steps':
@@ -508,6 +544,15 @@ window.MRT.domain = (function () {
       }
     });
     var projects = byIdMap(data.projects);
+    var pns = byIdMap(data.part_numbers), bus = byIdMap(data.buildups);
+    (data.lots || []).forEach(function (l) {
+      if (!projects[l.project_id]) add('problem', 'lot_bad_project', 'Lot ' + l.lot_number + ': its project no longer exists', 'lots', l.id);
+      if (!bus[l.buildup_id]) add('problem', 'lot_bad_buildup', 'Lot ' + l.lot_number + ': its build-up no longer exists', 'lots', l.id);
+      if (l.part_number_id && !pns[l.part_number_id]) add('problem', 'lot_bad_pn', 'Lot ' + l.lot_number + ': its part number no longer exists', 'lots', l.id);
+      else if (l.part_number_id && (pns[l.part_number_id].project_ids || []).indexOf(l.project_id) === -1) {
+        add('warning', 'lot_pn_project', 'Lot ' + l.lot_number + ': part number ' + pns[l.part_number_id].code + ' is no longer linked to its project', 'lots', l.id);
+      }
+    });
     (data.part_numbers || []).forEach(function (pn) {
       if ((pn.project_ids || []).some(function (id) { return !projects[id]; })) {
         add('problem', 'pn_bad_project', 'Part number ' + pn.code + ' is linked to a project that no longer exists', 'lists', pn.id);
@@ -560,6 +605,10 @@ window.MRT.domain = (function () {
 
     isCode: isCode,
     isPartNumber: isPartNumber,
+    isLotNumber: isLotNumber,
+    LOT_MAX_PANELS: LOT_MAX_PANELS,
+    canRegisterLot: canRegisterLot,
+    canEditLot: canEditLot,
     isSharePath: isSharePath,
     validateEntry: validateEntry,
     validatePriorities: validatePriorities,

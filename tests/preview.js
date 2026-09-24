@@ -59,6 +59,26 @@
       type_ids: [], active: true, sort: 1, version: 1 });
     d.audit_log.push({ id: 'aud_demo', ts: new Date(now - DAY).toISOString(), user_id: PEOPLE.admin.id, entity: 'tool', entity_id: tool('FIB').id,
       action: 'status', field: 'status', old_value: 'up', new_value: 'maintenance', reason: 'Source change' });
+    // demo part numbers, process steps and lots (made up, preview only)
+    function prj(code) { return d.projects.filter(function (p) { return p.code === code; })[0].id; }
+    function bu(code) { return d.buildups.filter(function (b) { return b.code === code; })[0].id; }
+    d.part_numbers = [
+      { id: 'pn_demo_1', code: 'PN-DEMO-100', description: 'Demo board', project_ids: [prj('C4F')], active: true, version: 1 },
+      { id: 'pn_demo_2', code: 'PN-DEMO-200', description: '', project_ids: [prj('SHIFT'), prj('HORUS')], active: true, version: 1 },
+      { id: 'pn_demo_3', code: 'PN-DEMO-201', description: '', project_ids: [prj('SHIFT')], active: true, version: 1 }
+    ];
+    d.process_steps = ['After desmear', 'After Cu plating', 'After solder resist'].map(function (n, i) {
+      return { id: 'pstep_demo_' + i, name: n, active: true, sort: i + 1, version: 1 };
+    });
+    d.lots = [
+      ['10001', 'C4F', 'pn_demo_1', 'BU-01', 12, PEOPLE.engineer.id, 9, 'Panels 3-4 have a known scratch'],
+      ['10001.01', 'C4F', 'pn_demo_1', 'BU-01', 4, PEOPLE.engineer.id, 5, ''],
+      ['10002', 'SHIFT', 'pn_demo_2', 'BU-03', 24, PEOPLE.admin.id, 2, ''],
+      ['10003', 'HORUS', null, 'DOE', 8, PEOPLE.quality2.id, 1, '']
+    ].map(function (x, i) {
+      return { id: 'lot_demo_' + i, lot_number: x[0], project_id: prj(x[1]), part_number_id: x[2], buildup_id: bu(x[3]), panel_count: x[4],
+               owner_id: x[5], note: x[7], created_ts: new Date(now - x[6] * DAY).toISOString(), version: 1 };
+    });
     d.revision = 12;
     d.saved_by = PEOPLE.admin.id;
     return sha256('salt_demo:' + DEMO_PIN).then(function (hash) {

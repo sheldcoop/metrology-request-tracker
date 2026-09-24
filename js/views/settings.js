@@ -142,10 +142,11 @@ window.MRT.views.settings = (function () {
      * Add / edit dialog around ui.form. save(values) returns the store's
      * Promise; on an error the dialog stays open and shows it.
      * o: {title, icon, intro, wide, values, fields, check(v) -> [key, msg] | null,
-     *     save(v) -> Promise, after(saved row), done: toast text}
+     *     save(v) -> Promise, after(saved row), done: toast text, onForm(form)}
      */
     editDialog: function (o) {
       var f = ui.form(o.fields, o.values || {});
+      if (o.onForm) o.onForm(f);     // e.g. a select that fills another one
       return ui.dialog({
         title: o.title, icon: o.icon || 'edit', wide: !!o.wide,
         body: [o.intro ? ui.el('p', { text: o.intro }) : null, f.node, o.extra || null],

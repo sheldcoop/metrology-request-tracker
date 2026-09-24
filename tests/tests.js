@@ -183,6 +183,23 @@
     ok('process steps are listed once (case and spaces ignored)', probs('process_steps', { name: 'after  DESMEAR' }).length === 1);
     ok('...need a name and a whole position', probs('process_steps', { name: '', sort: 1.5 }).length === 2);
     ok('"destructive" is yes or no', probs('tools', Object.assign({}, goodTool, { destructive: 'yes' })).length === 1 && !probs('tools', Object.assign({}, goodTool, { destructive: true })).length);
+    ok('lot numbers: 5 digits, a split lot adds .01 (M2-1)', D.isLotNumber('18178') && D.isLotNumber('18178.01') && D.isLotNumber('18178.2'));
+    ok('...not letters, dashes or a trailing dot', !D.isLotNumber('L18178') && !D.isLotNumber('18178-01') && !D.isLotNumber('18178.') && !D.isLotNumber('18178.001'));
+    var lotB = Object.assign({}, base, { users: base.users, buildups: [{ id: 'b1', code: 'BU-01' }],
+      part_numbers: [{ id: 'pn1', code: 'PN-100', project_ids: ['p1'] }], lots: [{ id: 'l1', lot_number: '18178' }] });
+    var goodLot = { lot_number: '18179', project_id: 'p1', part_number_id: 'pn1', buildup_id: 'b1', panel_count: 12, owner_id: 'u1' };
+    eq('a good lot', D.validateEntry('lots', goodLot, lotB), []);
+    ok('a lot number is registered once', D.validateEntry('lots', Object.assign({}, goodLot, { lot_number: '18178' }), lotB).length === 1);
+    ok('...editing it keeps its number', !D.validateEntry('lots', Object.assign({}, goodLot, { id: 'l1', lot_number: '18178' }), lotB).length);
+    ok('a lot\'s part number must be of its project', D.validateEntry('lots', Object.assign({}, goodLot, { project_id: 'p2' }), lotB).length === 1);
+    ok('...a part number is optional', !D.validateEntry('lots', Object.assign({}, goodLot, { part_number_id: null }), lotB).length);
+    ok('a lot needs a project and a build-up', D.validateEntry('lots', Object.assign({}, goodLot, { project_id: null, part_number_id: null, buildup_id: 'x' }), lotB).length === 2);
+    ok('panels: a whole number 1-' + D.LOT_MAX_PANELS, [0, 1.5, D.LOT_MAX_PANELS + 1].every(function (n) {
+      return D.validateEntry('lots', Object.assign({}, goodLot, { panel_count: n }), lotB).length === 1; }) &&
+      !D.validateEntry('lots', Object.assign({}, goodLot, { panel_count: D.LOT_MAX_PANELS }), lotB).length);
+    var eng = { id: 'e1', roles: ['engineer'], active: true }, qe = { id: 'q1', roles: ['quality'], active: true }, adm = { id: 'a1', roles: ['admin'], active: true };
+    eq('engineers and admins register lots, a quality engineer alone does not', [D.canRegisterLot(eng), D.canRegisterLot(adm), D.canRegisterLot(qe)], [true, true, false]);
+    eq('the owner and admins change a lot, others not', [D.canEditLot(eng, { owner_id: 'e1' }), D.canEditLot(adm, { owner_id: 'e1' }), D.canEditLot(qe, { owner_id: 'e1' })], [true, true, false]);
     ok('...up to 30 characters', D.isPartNumber(new Array(31).join('A')) && !D.isPartNumber(new Array(32).join('A')));
     ok('a holiday date is listed once', probs('holidays', { date: '2026-12-25', name: 'x', kind: 'closing' }).length === 1);
     ok('a Windows ID belongs to one person', probs('users', { name: 'B', roles: ['engineer'], windows_id: 'aa' }).length === 1);
@@ -206,7 +223,8 @@
     /* =============== store: first run and seed =============== */
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 3, revision 0', [seed.schema_version, seed.revision], [3, 0]);
+    eq('schema 4, revision 0', [seed.schema_version, seed.revision], [4, 0]);
+    eq('no lots in a new file', seed.lots, []);
     ok('every collection is present', ST.COLLECTIONS.every(function (c) { return Array.isArray(seed[c]); }));
     eq('no people in a new file', seed.users.length, 0);
     eq('five tools, all Up', seed.tools.map(function (t) { return t.code + ':' + t.status; }), ['HRM:up', 'AOI:up', 'PRF:up', 'QVM:up', 'FIB:up']);
@@ -421,6 +439,31 @@
     await ST.saveEntry('process_steps', { id: ps2.id, fields: { sort: 0.5 + 0.5 } });
     eq('...a new position puts it first', ST.list('process_steps').map(function (x) { return x.name; }), ['After Cu plating', 'After desmear']);
     await refused('...the same step twice is refused', ST.saveEntry('process_steps', { fields: { name: 'after desmear' } }), 'invalid');
+    group('Store: lots (M2-1)');
+    var prjL = ST.list('projects')[0], buL = ST.list('buildups')[0];
+    var pnL = await ST.saveEntry('part_numbers', { fields: { code: 'PN-L1', project_ids: [prjL.id] } });
+    var lot = await ST.saveLot({ fields: { lot_number: ' 18178 ', project_id: prjL.id, part_number_id: pnL.id, buildup_id: buL.id, panel_count: 12, note: ' scratch on 3 ' } });
+    eq('a lot: trimmed, owned by who registers it, version 1', [lot.lot_number, lot.note, lot.owner_id, lot.version, /^lot_/.test(lot.id)], ['18178', 'scratch on 3', ST.currentUser().id, 1, true]);
+    ok('...audited', ST.data().audit_log.slice(-1)[0].entity === 'lot' && ST.data().audit_log.slice(-1)[0].new_value === '18178');
+    await refused('the same lot number twice is refused', ST.saveLot({ fields: { lot_number: '18178', project_id: prjL.id, buildup_id: buL.id, panel_count: 2 } }), 'invalid');
+    var lot2 = await ST.saveLot({ id: lot.id, version: 1, fields: { panel_count: 16, part_number_id: '' } });
+    eq('an edit: new count, part number cleared, version 2', [lot2.panel_count, lot2.part_number_id, lot2.version], [16, null, 2]);
+    await refused('...an old version is refused', ST.saveLot({ id: lot.id, version: 1, fields: { panel_count: 20 } }), 'stale_version');
+    await refused('...no change is "nothing changed"', ST.saveLot({ id: lot.id, fields: { panel_count: 16 } }), 'no_change');
+    eq('a build-up with lots counts as used', ST.entryUsage('buildups', buL.id).text, '1 lot');
+    var tomL = await ST.saveEntry('users', { fields: { name: 'Tom Lot', roles: ['engineer'] } });
+    var qeL = await ST.saveEntry('users', { fields: { name: 'Quinn QE', roles: ['quality'] } });
+    var adminL = ST.currentUser().id;
+    ST.setCurrentUser(qeL.id);
+    await refused('a quality engineer alone cannot register a lot', ST.saveLot({ fields: { lot_number: '18180', project_id: prjL.id, buildup_id: buL.id, panel_count: 2 } }), 'not_allowed');
+    ST.setCurrentUser(tomL.id);
+    var tomLot = await ST.saveLot({ fields: { lot_number: '18178.01', project_id: prjL.id, buildup_id: buL.id, panel_count: 4 } });
+    eq('an engineer registers a split lot and owns it', [tomLot.lot_number, tomLot.owner_id], ['18178.01', tomL.id]);
+    await refused('...but cannot change someone else\'s lot', ST.saveLot({ id: lot.id, fields: { panel_count: 3 } }), 'not_allowed');
+    await refused('...a delete needs a reason', ST.deleteLot(tomLot.id, ''));
+    await ST.deleteLot(tomLot.id, 'typo');
+    eq('...and deletes their own unused lot', ST.byId('lots', tomLot.id), null);
+    ST.setCurrentUser(adminL);
     var fibT = await ST.saveEntry('tools', { id: tool('FIB').id, fields: { destructive: false } });
     eq('"destructive" can be switched per tool', fibT.destructive, false);
     eq('an unused part number can be deleted', ST.byId('part_numbers', pn.id), null);
@@ -494,6 +537,10 @@
     hi = D.healthIssues(hb, { today_ymd: '2026-09-24' });
     ok('a part number linked to a missing project is a problem', countOf(hi, 'pn_bad_project') === 1);
     ok('an active part number whose projects are all hidden is a warning', countOf(hi, 'pn_hidden_projects') === 1);
+    hb.lots = [{ id: 'lx', lot_number: '1', project_id: 'gone', buildup_id: 'gone', part_number_id: 'gone', panel_count: 1 }];
+    hi = D.healthIssues(hb, { today_ymd: '2026-09-24' });
+    eq('a lot pointing at a missing project, build-up, part number: three problems', [countOf(hi, 'lot_bad_project'), countOf(hi, 'lot_bad_buildup'), countOf(hi, 'lot_bad_pn')], [1, 1, 1]);
+    ok('...linking to the Lots page', hi.filter(function (x) { return x.code === 'lot_bad_project'; })[0].tab === 'lots');
     var ha = JSON.parse(JSON.stringify(hs2));
     ha.users[1].away_from = '2026-09-20';
     eq('only the primary away: no warning', countOf(D.healthIssues(ha, { today_ymd: '2026-09-24' }), 'both_away'), 0);
@@ -598,12 +645,12 @@
     eq('...and left as it was', a.files[cfg.data_file], '{ not json');
 
     // Schema 1 -> 2 adds part numbers (M1-13); 2 -> 3 process steps and "destructive" (M2-7, M2-11).
-    var v1 = ST._pure.seedData(); v1.schema_version = 1; delete v1.part_numbers; delete v1.process_steps;
+    var v1 = ST._pure.seedData(); v1.schema_version = 1; delete v1.part_numbers; delete v1.process_steps; delete v1.lots;
     v1.tools.forEach(function (t) { delete t.destructive; });
     P.migrate(v1);
     eq('schema 1 -> 3: part numbers and process steps start empty', [v1.part_numbers, v1.process_steps], [[], []]);
     eq('...FIB becomes destructive, the others not', v1.tools.map(function (t) { return t.code + ':' + t.destructive; }), ['HRM:false', 'AOI:false', 'PRF:false', 'QVM:false', 'FIB:true']);
-    eq('...and the file says schema 3', v1.schema_version, 3);
+    eq('...and the file says schema 4, with no lots', [v1.schema_version, v1.lots], [4, []]);
 
     // An extra upgrade step, for this test only: schema 0 -> 1 (then 1 -> 2).
     P.MIGRATIONS[0] = function (d) { d.upgraded = true; };
@@ -613,10 +660,10 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v3_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v4_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [3, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [4, true]);
     eq('...and the status says so until the next save', ST.status().upgradedFrom, 0);
   }
 
