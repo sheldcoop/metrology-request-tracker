@@ -273,6 +273,8 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 - **M3-2** **Needs clarification** (quality engineer, with a comment saying what is missing, Q11):
   the engineer answers in the timeline and clicks **Answered** - the request goes back to the status
   it had (Submitted or Accepted) and shows in the queue again.
+- **M3-3** **Panels received** (Q25) does not block Start: if the panels are not marked received
+  yet, Start asks once "Panels received? Kept where (optional)?" with the tick already set.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
