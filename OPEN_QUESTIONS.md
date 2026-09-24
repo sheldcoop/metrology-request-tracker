@@ -9,3 +9,5 @@ Parked decisions. Add the date and who raised it; move to DECISIONS.md once answ
 | 3 | 2026-09-24 | Daily capacity per tool | Only tool Up/Down/Maintenance for now; capacity numbers if wanted later. |
 | 4 | 2026-09-24 | Result values / verdict per panel | Only a results folder path for now; capturing key values would allow cross-lot charts later. |
 | 5 | 2026-09-24 | Real extra fields per tool (HRM, AOI, PRF, QVM, FIB) | Tools start with none; real fields become seed data and test cases. |
+| 6 | 2026-09-24, Prince | Real measurement types per tool | Sample types seeded (DECISIONS M1-8); Prince checks with engineers. Talk about it at the end of M1. |
+| 7 | 2026-09-24, Prince | Real BKM library (names, paths, versions) | Sample BKMs with fake `\\SAMPLE-SHARE` paths seeded. Talk about it at the end of M1. |

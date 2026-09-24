@@ -156,3 +156,17 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   type, required, optional help text, optional "only for these measurement types". Fields and
   choices are referenced by ID (rename-safe); removed choices are hidden, not deleted (Q47).
   No seed fields until Prince gives real ones (OPEN_QUESTIONS #5).
+- **M1-8** First-run lists: tools HRM, AOI, PRF, QVM, FIB (all Up, no operators); priorities
+  Line stop P1 / Hot P2 / Normal P3 (default) / Low P4; projects C4F (Chiplet4Future), SHIFT, HORUS
+  and build-ups BU-01..BU-05, TEST, DOE, OPT (same as ABF); results roots empty.
+  **Sample data, allowed by Prince until engineers confirm:** 5 measurement types per tool and one
+  BKM per type with fake paths (`\\SAMPLE-SHARE\BKM\<tool>\...`, version `v0 (sample)`).
+  Every sample entry carries `sample: true`, shows a "Sample" tag in Settings and is listed by
+  Health until edited or replaced (OPEN_QUESTIONS #6, #7).
+  - HRM: Cu roughness after treatment, Dielectric roughness after desmear, Solder resist
+    roughness, Line roughness Ra/Rz, Areal roughness Sa/Sz
+  - AOI: Full panel inspection, Defect review, Line/space check, Via inspection, Registration check
+  - PRF: 2D profile, 3D scan, Step height, Bow / warpage, Plating thickness profile
+  - QVM: Via diameter, Line width / space, Pad size, Position / registration, Solder mask opening
+  - FIB: Via cross-section, Line cross-section, Interface / void check, Layer thickness,
+    TEM lamella prep
