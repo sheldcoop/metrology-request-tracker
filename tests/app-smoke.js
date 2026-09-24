@@ -41,7 +41,7 @@ const ctx = vm.createContext(win);
 ['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/seed.js', 'js/store.js', 'js/identity.js',
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
- 'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
+ 'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
  'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
@@ -416,6 +416,16 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   win.setHash('#/lots'); await settle();
   check('...shown on Lots with the Sample tag', /99902.01/.test(mainText()) && $$('#main .sample-tag').length === 3);
+  await tab('lots');
+  check('Settings > Lots: the same list as the Lots page', /18178.01/.test(mainText()) && /99902.01/.test(mainText()) && /same list as the/.test(mainText()));
+  buttonByText(doc.getElementById('main'), 'Add several lots').click(); await settle();
+  dlg2 = openDialog();
+  setVal(fieldIn(dlg2, 'Lot numbers'), '30001-30003'); setVal(fieldIn(dlg2, 'Panels (each lot)'), '6');
+  setVal(fieldIn(dlg2, 'Project'), c4f.id); await settle(); setVal(fieldIn(dlg2, 'Build-up'), bu1.id);
+  buttonByText(dlg2, 'Add lots').click(); await settle();
+  check('..."Add several lots" adds 30001-30003 with 6 panels each', ['30001', '30002', '30003'].every(n => MRT.store.data().lots.some(l => l.lot_number === n && l.panel_count === 6)) && !openDialog());
+  win.setHash('#/lots'); await settle();
+  check('...and they show on the Lots page too', /30002/.test(mainText()));
 
   // a non-admin is kept out
   const saved = MRT.store.currentUser().id;

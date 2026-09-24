@@ -1173,6 +1173,56 @@ window.MRT.store = (function () {
     });
   }
 
+  /**
+   * Admin: register several lots at once that share project, part number,
+   * build-up and panel count (Settings > Lots). All or nothing - a number
+   * already registered stops the whole batch and is named.
+   * @param {Object} o {numbers: ['18178', ...], fields: {project_id, part_number_id, buildup_id, panel_count, note, extra}}
+   * @returns Promise<lots>
+   */
+  function addLots(o) {
+    return guard(function () {
+      var me = requireAdmin();
+      var nums = (o.numbers || []).map(function (n) { return String(n).trim(); }).filter(Boolean);
+      assert(nums.length, 'Enter at least one lot number', 'invalid');
+      assert(nums.length <= 200, 'At most 200 lots at once', 'invalid');
+      var taken = nums.filter(function (n) { return state.data.lots.some(function (l) { return l.lot_number === n; }); });
+      assert(!taken.length, 'Already registered: ' + taken.join(', '), 'invalid');
+      var f = clone(o.fields || {});
+      Object.keys(f).forEach(function (k) { assert(LOT_FIELDS.indexOf(k) !== -1 && k !== 'lot_number', 'Unknown field: ' + k); });
+      if (f.part_number_id === '') f.part_number_id = null;
+      if (typeof f.note === 'string') f.note = f.note.trim();
+      f.extra = tidyExtra(f.extra);
+      var rows = [], wouldBe = Object.assign({}, state.data, { lots: state.data.lots.slice() });
+      nums.forEach(function (n) {
+        var lot = Object.assign({ id: newId('lot'), part_number_id: null, note: '', extra: {}, owner_id: me.id, created_ts: nowIso(), version: 1 },
+                                clone(f), { lot_number: n });
+        var problems = D.validateEntry('lots', lot, wouldBe);
+        assert(!problems.length, 'Lot ' + n + ': ' + problems.join('. '), 'invalid', problems);
+        wouldBe.lots.push(lot);
+        rows.push(lot);
+      });
+      rows.forEach(function (lot) { state.data.lots.push(lot); audit('lot', lot.id, 'create', null, null, lot.lot_number, 'Added in Settings (' + rows.length + ' at once)'); });
+      return commit().then(function () { return rows; });
+    });
+  }
+
+  /** Admin: give a lot to another person (e.g. its owner left). */
+  function setLotOwner(lotId, userId, reason) {
+    return guard(function () {
+      requireAdmin();
+      var lot = need('lots', lotId, 'Lot');
+      var u = need('users', userId, 'Person');
+      assert(u.active !== false, u.name + ' is switched off', 'invalid');
+      assert(lot.owner_id !== u.id, 'Nothing was changed', 'no_change');
+      assert(isStr(reason), 'A reason is required', 'invalid');
+      audit('lot', lot.id, 'update', 'owner_id', lot.owner_id, u.id, reason.trim());
+      lot.owner_id = u.id;
+      lot.version += 1;
+      return commit().then(function () { return lot; });
+    });
+  }
+
   /** What uses a lot (requests from M2 step 4). */
   function lotUsage(id) {
     var n = (state.data.requests || []).filter(function (r) { return r.lot_id === id; }).length;
@@ -1424,6 +1474,8 @@ window.MRT.store = (function () {
     visibleRequests: visibleRequests,
     requestEvents: requestEvents,
     addSampleLots: addSampleLots,
+    addLots: addLots,
+    setLotOwner: setLotOwner,
     deleteLot: deleteLot,
     lotUsage: lotUsage,
     hasPin: hasPin,

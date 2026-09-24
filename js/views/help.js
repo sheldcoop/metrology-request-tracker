@@ -169,6 +169,7 @@ window.MRT.views.help = (function () {
         'Settings > Lists: projects and build-ups (codes in capitals) and priorities (Line stop, Hot, Normal, Low - renamable, one default, some need a reason).',
         'Part numbers (Settings > Lists): each one is stored once and linked to one or more projects - tick them. A project with part numbers cannot be deleted; hide it instead.',
         'Process steps (Settings > Lists): the steps of the line in order, e.g. After desmear. A request says which step its panels are at; engineers can still type another one.',
+        'Settings > Lots: the same list as the Lots page. "Add several lots" registers a batch (e.g. 18178-18180) with the same project, part number, build-up and panels; the person button gives a lot to another owner; any unused lot can be deleted with a reason.',
         'Lot fields (Settings > Lists): what every lot holds beyond the core fields - add, rename, hide, make required. Same 8 kinds as a tool\'s extra fields. The first seven are samples to shape with the team.',
         'Settings > Lab calendar: lab days and hours (Europe/Vienna). Turnaround and lateness count only these hours.',
         'Public holidays: the Austrian ones are filled in by rule; the button adds the next year. Add company closing days yourself.'

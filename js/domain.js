@@ -307,6 +307,28 @@ window.MRT.domain = (function () {
     return parts.join(', ');
   }
 
+  /**
+   * Several lot numbers pasted at once (admin, Settings > Lots): separated by
+   * commas, spaces or new lines; "18178-18180" is a run of whole numbers
+   * (at most 100). Each number once, in the order given.
+   * @returns {{numbers: string[], errors: string[]}}
+   */
+  function parseLotNumbers(text) {
+    var out = [], errors = [];
+    String(text || '').split(/[,;\s]+/).filter(Boolean).forEach(function (tok) {
+      var m = tok.match(/^(\d{1,8})-(\d{1,8})$/);
+      if (m) {
+        var a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+        if (b < a || b - a >= 100) { errors.push(tok + ': a run goes up, at most 100 lots'); return; }
+        for (var n = a; n <= b; n++) { var s = String(n); while (s.length < m[1].length) s = '0' + s; if (out.indexOf(s) === -1) out.push(s); }
+        return;
+      }
+      if (!isLotNumber(tok)) { errors.push('"' + tok + '" is not a lot number (e.g. 18178 or 18178.01)'); return; }
+      if (out.indexOf(tok) === -1) out.push(tok);
+    });
+    return { numbers: out, errors: errors };
+  }
+
   /** Most panels a lot can have (draws the panel map). */
   var LOT_MAX_PANELS = 200;
   var LOT_NOTE_MAX = 500;
@@ -948,6 +970,7 @@ window.MRT.domain = (function () {
     isCode: isCode,
     isPartNumber: isPartNumber,
     isLotNumber: isLotNumber,
+    parseLotNumbers: parseLotNumbers,
     viennaTs: viennaTs,
     isoWeekday: isoWeekday,
     holidaySet: holidaySet,

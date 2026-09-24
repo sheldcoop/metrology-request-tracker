@@ -48,6 +48,8 @@ optional note, never a reason. Shown on Lab status, People and Health.
   (measures), Operator (no rights yet), Manager, Admin.
 - *Tools* - code, glyph, primary and backup quality engineer, results root; per tool its measurement
   types, extra fields (8 kinds) and BKM library (Copy path).
+- *Lots* - the same list as the Lots page, plus: add several lots at once,
+  change a lot's owner, delete any unused lot.
 - *Lists* - projects, part numbers (each linked to one or more projects),
   build-ups, process steps, priorities.
 - *Lab calendar* - lab days and hours, public holidays and closing days.

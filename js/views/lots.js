@@ -225,5 +225,7 @@ window.MRT.views.lots = (function () {
       } });
   }
 
-  return { render: render };
+  // Settings > Lots (admins) reuses these, so both doors open the same list
+  return { render: render, lotDialog: lotDialog, deleteButton: deleteButton, detailsDialog: detailsDialog,
+           projectOptions: options, pnOptions: pnOptions, extraSpecs: extraSpecs, extraFrom: extraFrom };
 })();
