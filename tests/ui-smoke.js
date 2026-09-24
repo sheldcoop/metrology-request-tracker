@@ -96,7 +96,13 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 
 // the kit, once it exists (step 5)
 const kit=path.join(ROOT,'js/ui-kit.js');
-if(fs.existsSync(kit)){check('ui-kit',()=>{vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick()})}
+if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
+  const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
+  expect('the kit builds every section (18)',secs.length===18);
+  expect('the kit shows 6 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===24);
+  for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
+  for(const i of doc.getElementById('kitBar').querySelectorAll('input')){i.checked=true;i.dispatch('change');flush()}
+  expect('the kit renders all three themes side by side',root.querySelectorAll('.theme-scope').length===3)})}
 
 (async()=>{await dialogSubmitChecks().catch(e=>{errs++;console.log('ERR dialog submit',e.stack)});
 console.log('charts built',charts,'destroyed',destroyed);

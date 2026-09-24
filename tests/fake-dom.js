@@ -117,6 +117,7 @@ module.exports = function createDom(o) {
     showModal() { this.open = true; this.attrs.open = ''; }
     close() { this.open = false; delete this.attrs.open; }
     click() { if (!this.disabled) this.dispatch('click'); }
+    dispatchEvent(ev) { this.dispatch(ev.type, {}); return true; }
     get hidden() { return 'hidden' in this.attrs; }
     set hidden(v) { if (v) this.attrs.hidden = ''; else delete this.attrs.hidden; }
     get disabledAttr() { return this.disabled; }
@@ -160,6 +161,8 @@ module.exports = function createDom(o) {
     getComputedStyle: () => ({ color: 'rgb(10, 20, 30)', getPropertyValue: () => ' x ' }),
     localStorage: { getItem: k => (k in storage ? storage[k] : null), setItem: (k, v) => { storage[k] = String(v); }, removeItem: k => { delete storage[k]; } },
     CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init && init.detail; } },
+    Event: class { constructor(type) { this.type = type; } },
+    performance: { now: () => Date.now() },
     innerWidth: 1920, innerHeight: 1080,
     listeners: {},
     addEventListener(t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); },
