@@ -195,7 +195,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('a wrong PIN is refused', /Wrong PIN/.test(mainText()));
   pinBox.value = '2468'; doc.getElementById('main').querySelector('form').dispatch('submit'); await settle();
   check('the right PIN opens Health first', /Still to do before real use/.test(mainText()) && /Data health/.test(mainText()));
-  check('...listing sample entries, missing operators, the calendar', /still sample/.test(mainText()) && /FIB has no primary operator/.test(mainText()) && /not confirmed/.test(mainText()));
+  check('...listing sample entries, missing quality engineers, the calendar', /still sample/.test(mainText()) && /FIB has no primary quality engineer/.test(mainText()) && /not confirmed/.test(mainText()));
   check('...with links to fix each', $$('#main a').filter(a => /^#\/settings\/tools/.test(a.getAttribute('href') || '')).length > 5);
   const todoBefore = MRT.store.health().todo.length;
 
@@ -203,11 +203,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('People lists Prince and Tom (New)', /Prince Khurana/.test(mainText()) && /Tom Huber/.test(mainText()) && /New/.test(mainText()));
   buttonByText(doc.getElementById('main'), 'Add person').click(); await settle();
   let dlg2 = openDialog();
-  setVal(fieldIn(dlg2, 'Name'), 'Olga Operator'); setVal(fieldIn(dlg2, 'Windows user name'), 'olga');
-  tickIn(dlg2, 'Engineer').checked = false; tickIn(dlg2, 'Operator').checked = true;
+  check('five roles to tick, Quality engineer among them', ['Engineer', 'Quality engineer', 'Operator', 'Manager', 'Admin'].every(r => !!tickIn(dlg2, r)));
+  setVal(fieldIn(dlg2, 'Name'), 'Olga Quality'); setVal(fieldIn(dlg2, 'Windows user name'), 'olga');
+  tickIn(dlg2, 'Engineer').checked = false; tickIn(dlg2, 'Quality engineer').checked = true;
   buttonByText(dlg2, 'Save').click(); await settle();
-  const olga = MRT.store.data().users.filter(u => u.name === 'Olga Operator')[0];
-  check('an admin adds Olga as Operator', !!olga && olga.roles.join() === 'operator' && olga.windows_id === 'olga');
+  const olga = MRT.store.data().users.filter(u => u.name === 'Olga Quality')[0];
+  check('an admin adds Olga as Quality engineer', !!olga && olga.roles.join() === 'quality' && olga.windows_id === 'olga');
   buttonByText(doc.getElementById('main'), 'Reviewed').click(); await settle();
   check('Reviewed clears Tom\'s New mark', MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].needs_review === false);
 
@@ -216,7 +217,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const fibRow = doc.getElementById('main').querySelectorAll('tr').filter(r => /FIB/.test(r.textContent) && r.querySelector('button'))[0];
   fibRow.querySelectorAll('button').filter(b => /Edit FIB/.test(b.getAttribute('aria-label') || ''))[0].click(); await settle();
   dlg2 = openDialog();
-  setVal(fieldIn(dlg2, 'Primary operator'), olga.id);
+  check('only quality engineers are offered as primary', fieldIn(dlg2, 'Primary quality engineer').querySelectorAll('option').map(o => o.textContent).join() === '- none -,Olga Quality');
+  setVal(fieldIn(dlg2, 'Primary quality engineer'), olga.id);
   setVal(fieldIn(dlg2, 'Results root folder'), 'results');
   buttonByText(dlg2, 'Save').click(); await settle();
   check('a bad results root keeps the dialog open with the reason', openDialog() === dlg2 && /share path/.test(dlg2.textContent));
@@ -279,7 +281,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('the to-do list got shorter', MRT.store.health().todo.length < todoBefore, todoBefore + ' -> ' + MRT.store.health().todo.length);
 
   await tab('audit');
-  check('the audit log shows the changes', /Christmas Eve/.test(mainText()) && /Olga Operator/.test(mainText()));
+  check('the audit log shows the changes', /Christmas Eve/.test(mainText()) && /Olga Quality/.test(mainText()));
   const af = fieldIn(doc.getElementById('main'), 'Filter'); setVal(af, 'nova'); await settle();
   check('...and filters', /1 match/.test(mainText()));
 

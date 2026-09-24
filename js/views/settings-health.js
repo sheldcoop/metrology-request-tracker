@@ -4,7 +4,7 @@
  * Settings > Health, the first tab:
  *   1. "Still to do before real use" - the office checklist, live
  *      (DECISIONS M1-11, OFFICE_SETUP.md): sample entries, tools without
- *      operators or results root, calendar not confirmed, no closing days,
+ *      quality engineers or results root, calendar not confirmed, no closing days,
  *      people waiting for review ...
  *   2. "Data health" - broken links and odd states in the file.
  * The rules are in domain.js (setupTodo, healthIssues); this only shows

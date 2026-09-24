@@ -51,18 +51,37 @@ window.MRT.domain = (function () {
    * Roles (ticks, several per person) - Q17/Q52
    * ------------------------------------------------------------------ */
 
-  var ROLES = ['engineer', 'operator', 'manager', 'admin'];
-  var ROLE_LABEL = { engineer: 'Engineer', operator: 'Operator', manager: 'Manager', admin: 'Admin' };
+  /*
+   * engineer  requests measurements
+   * quality   Quality engineer: runs the measurements today (M1-12)
+   * operator  kept for later - no rights of its own until the rights per
+   *           role are designed (OPEN_QUESTIONS #14)
+   * manager   manager analytics (Q52)
+   * admin     Settings (+ PIN)
+   */
+  var ROLES = ['engineer', 'quality', 'operator', 'manager', 'admin'];
+  var ROLE_LABEL = { engineer: 'Engineer', quality: 'Quality engineer', operator: 'Operator', manager: 'Manager', admin: 'Admin' };
 
   function hasRole(user, role) {
     return !!(user && user.active !== false && Array.isArray(user.roles) && user.roles.indexOf(role) !== -1);
   }
 
-  /** Tool status may be set by that tool's operators and by admins (Q27). */
+  /**
+   * Who runs measurements - the ONE place that decides it (M1-12). Today
+   * only Quality engineers; Operators get rights once they are designed
+   * (OPEN_QUESTIONS #14). Every "measurer" right asks this.
+   */
+  function canMeasure(user) { return hasRole(user, 'quality'); }
+
+  /**
+   * A tool's primary and backup (stored as primary_operator_id /
+   * backup_operator_id - the field names stay, the people are measurers)
+   * and admins set its status (Q27).
+   */
   function canSetToolStatus(user, tool) {
     if (!user || !tool) return false;
     if (hasRole(user, 'admin')) return true;
-    return hasRole(user, 'operator') &&
+    return canMeasure(user) &&
            (tool.primary_operator_id === user.id || tool.backup_operator_id === user.id);
   }
 
@@ -248,9 +267,9 @@ window.MRT.domain = (function () {
         if (TOOL_STATUSES.indexOf(r.status) === -1) p.push('Status must be Up, Down or Maintenance');
         if (r.status_until && !isYmd(r.status_until)) p.push('"Until" must be a date');
         if (r.status === 'up' && r.status_until) p.push('An Up tool has no "until" date');
-        if (r.primary_operator_id && !exists('users', r.primary_operator_id)) p.push('Primary operator not found');
-        if (r.backup_operator_id && !exists('users', r.backup_operator_id)) p.push('Backup operator not found');
-        if (r.primary_operator_id && r.primary_operator_id === r.backup_operator_id) p.push('Primary and backup operator must be different people');
+        if (r.primary_operator_id && !exists('users', r.primary_operator_id)) p.push('Primary quality engineer not found');
+        if (r.backup_operator_id && !exists('users', r.backup_operator_id)) p.push('Backup quality engineer not found');
+        if (r.primary_operator_id && r.primary_operator_id === r.backup_operator_id) p.push('Primary and backup must be different people');
         if (r.results_root && !isSharePath(r.results_root)) p.push('Results root must be a share path like \\\\server\\share\\... or Z:\\...');
         break;
 
@@ -365,8 +384,8 @@ window.MRT.domain = (function () {
     if (sFields) add('sample_fields', sFields + ' extra field' + (sFields === 1 ? ' is' : 's are') + ' still sample', 'tools');
 
     tools.forEach(function (t) {
-      if (!t.primary_operator_id) add('no_primary', t.code + ' has no primary operator', 'tools', t.id);
-      if (!t.backup_operator_id) add('no_backup', t.code + ' has no backup operator', 'tools', t.id);
+      if (!t.primary_operator_id) add('no_primary', t.code + ' has no primary quality engineer', 'tools', t.id);
+      if (!t.backup_operator_id) add('no_backup', t.code + ' has no backup quality engineer', 'tools', t.id);
       if (!t.results_root) add('no_results_root', t.code + ' has no results root folder', 'tools', t.id);
       if (!(data.measurement_types || []).some(function (m) { return m.tool_id === t.id && m.active !== false; })) {
         add('no_types', t.code + ' has no measurement types', 'tools', t.id);
@@ -415,9 +434,9 @@ window.MRT.domain = (function () {
         var id = t[k[0]];
         if (!id) return;
         var u = users[id];
-        if (!u) add('problem', 'operator_missing', t.code + ': ' + k[1].toLowerCase() + ' operator no longer exists', 'tools', t.id);
-        else if (!u.active) add('warning', 'operator_inactive', t.code + ': ' + k[1].toLowerCase() + ' operator ' + u.name + ' is deactivated', 'tools', t.id);
-        else if (!hasRole(u, 'operator')) add('warning', 'operator_no_role', t.code + ': ' + u.name + ' is ' + k[1].toLowerCase() + ' operator but has no Operator role', 'users', u.id);
+        if (!u) add('problem', 'operator_missing', t.code + ': the ' + k[1].toLowerCase() + ' quality engineer no longer exists', 'tools', t.id);
+        else if (!u.active) add('warning', 'operator_inactive', t.code + ': the ' + k[1].toLowerCase() + ' quality engineer ' + u.name + ' is switched off', 'tools', t.id);
+        else if (!canMeasure(u)) add('warning', 'operator_no_role', t.code + ': ' + u.name + ' is ' + k[1].toLowerCase() + ' but has no Quality engineer role', 'users', u.id);
       });
       if (t.status !== 'up' && t.status_until && t.status_until < today) {
         add('warning', 'status_overdue', t.code + ' is still ' + TOOL_STATUS_LABEL[t.status] + ', but its "until" date ' + t.status_until + ' has passed', 'tools', t.id);
@@ -447,6 +466,7 @@ window.MRT.domain = (function () {
     viennaYmd: viennaYmd,
 
     hasRole: hasRole,
+    canMeasure: canMeasure,
     canSetToolStatus: canSetToolStatus,
 
     parseWindowsLogin: parseWindowsLogin,

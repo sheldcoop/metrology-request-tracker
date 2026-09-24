@@ -13,8 +13,8 @@ No server, no build step, no internet.
 ## What the pages do (M1)
 
 **Lab status** - every tool as a nameplate: its glyph, Up / Maintenance /
-Down with an "until" date, operators, measurement types and BKMs. The tool's
-operators and admins set the status here.
+Down with an "until" date, its quality engineers, measurement types and
+BKMs. The tool's quality engineers and admins set the status here.
 
 **Settings** (admins, PIN once per visit):
 - *Health* - "still to do before real use" (the office checklist, live:
@@ -22,8 +22,9 @@ operators and admins set the status here.
   days, people to review) and "data health" (broken links, odd states).
   Every line links to where it is fixed.
 - *People* - name, Windows ID, email, roles (ticks), active; review people
-  who added themselves.
-- *Tools* - code, glyph, operators, results root; per tool its measurement
+  who added themselves. Roles: Engineer (requests), Quality engineer
+  (measures), Operator (no rights yet), Manager, Admin.
+- *Tools* - code, glyph, primary and backup quality engineer, results root; per tool its measurement
   types, extra fields (8 kinds) and BKM library (Copy path).
 - *Lists* - projects, build-ups, priorities.
 - *Lab calendar* - lab days and hours, public holidays and closing days.

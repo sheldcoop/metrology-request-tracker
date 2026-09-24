@@ -125,13 +125,16 @@
     eq('findNameMatches', D.findNameMatches([{ id: 'a', name: 'Anna Berger' }, { id: 'b', name: 'Tom Berger' }], 'anna  berger').map(function (u) { return u.id; }), ['a']);
 
     var eng = { id: 'u1', roles: ['engineer'], active: true };
+    var qe = { id: 'u2', roles: ['quality'], active: true };
     var op = { id: 'u2', roles: ['operator'], active: true };
     var adm = { id: 'u3', roles: ['admin'], active: true };
     var fib = { primary_operator_id: 'u2', backup_operator_id: null };
     ok('roles are ticks', D.hasRole({ roles: ['engineer', 'operator'] }, 'operator'));
     ok('a deactivated user has no roles', !D.hasRole({ roles: ['admin'], active: false }, 'admin'));
-    ok('the tool\'s operator may set its status', D.canSetToolStatus(op, fib));
-    ok('another operator may not', !D.canSetToolStatus({ id: 'u9', roles: ['operator'] }, fib));
+    ok('only quality engineers measure (M1-12)', D.canMeasure(qe) && !D.canMeasure(op) && !D.canMeasure(eng) && !D.canMeasure(adm));
+    ok('the tool\'s quality engineer may set its status', D.canSetToolStatus(qe, fib));
+    ok('an Operator has no rights yet, even on "their" tool', !D.canSetToolStatus(op, fib));
+    ok('another quality engineer may not', !D.canSetToolStatus({ id: 'u9', roles: ['quality'] }, fib));
     ok('an engineer may not', !D.canSetToolStatus(eng, fib));
     ok('an admin may', D.canSetToolStatus(adm, fib));
 
@@ -348,14 +351,19 @@
     /* =============== store: tool status =============== */
     group('Store: tool status (Q27)');
     a = await adminStore();
-    var op1 = await ST.saveEntry('users', { fields: { name: 'Olga Operator', windows_id: 'olga', roles: ['operator'] } });
+    var op1 = await ST.saveEntry('users', { fields: { name: 'Olga Quality', windows_id: 'olga', roles: ['quality'] } });
+    var opx = await ST.saveEntry('users', { fields: { name: 'Otto Operator', windows_id: 'otto', roles: ['operator'] } });
+    await ST.saveEntry('tools', { id: tool('QVM').id, fields: { primary_operator_id: opx.id } });
+    ST.setCurrentUser(opx.id);
+    await refused('an Operator set on a tool still cannot set its status (no rights yet)', ST.setToolStatus({ tool_id: tool('QVM').id, status: 'down' }), 'not_allowed');
+    ST.setCurrentUser(ST.data().users[0].id);
     var eng1 = await ST.saveEntry('users', { fields: { name: 'Erik Engineer', windows_id: 'erik', roles: ['engineer'] } });
     await ST.saveEntry('tools', { id: tool('FIB').id, fields: { primary_operator_id: op1.id } });
     ST.setCurrentUser(eng1.id);
     await refused('an engineer cannot set tool status', ST.setToolStatus({ tool_id: tool('FIB').id, status: 'down' }), 'not_allowed');
     ST.setCurrentUser(op1.id);
     await ST.setToolStatus({ tool_id: tool('FIB').id, status: 'maintenance', until: '2026-10-02', note: 'Source change' });
-    eq('the tool\'s operator sets Maintenance until a date', [tool('FIB').status, tool('FIB').status_until], ['maintenance', '2026-10-02']);
+    eq('the tool\'s quality engineer sets Maintenance until a date', [tool('FIB').status, tool('FIB').status_until], ['maintenance', '2026-10-02']);
     await refused('a bad date is refused', ST.setToolStatus({ tool_id: tool('FIB').id, status: 'down', until: '2026-13-01' }), 'invalid');
     await ST.setToolStatus({ tool_id: tool('FIB').id, status: 'up' });
     eq('back Up clears the until date', [tool('FIB').status, tool('FIB').status_until], ['up', null]);
@@ -377,7 +385,7 @@
     var hs2 = JSON.parse(JSON.stringify(hs));
     hs2.measurement_types.forEach(function (m) { delete m.sample; });
     hs2.bkms.forEach(function (b) { delete b.sample; });
-    hs2.users.push({ id: 'u2', name: 'Olga', roles: ['operator'], active: true }, { id: 'u3', name: 'Otto', roles: ['operator', 'admin'], active: true });
+    hs2.users.push({ id: 'u2', name: 'Olga', roles: ['quality'], active: true }, { id: 'u3', name: 'Otto', roles: ['quality', 'admin'], active: true });
     hs2.tools.forEach(function (t) { t.primary_operator_id = 'u2'; t.backup_operator_id = 'u3'; t.results_root = '\\\\srv\\lab\\' + t.code; });
     hs2.holidays.push({ id: 'hx', date: '2026-12-24', name: 'Christmas Eve', kind: 'closing' });
     eq('all set up: the list is empty', D.setupTodo(hs2, { today_ymd: '2026-09-24', calendar_confirmed: true }), []);
@@ -397,7 +405,7 @@
     ok('a BKM pointing at a missing type is a problem', countOf(hi, 'bkm_bad_type') === 1);
     ok('a field of a missing tool is a problem', countOf(hi, 'orphan_field') === 1);
     eq('a deactivated operator is a warning, per tool', countOf(hi, 'operator_inactive'), 5);
-    eq('an operator without the Operator role is a warning', countOf(hi, 'operator_no_role'), 5);
+    eq('a primary/backup without the Quality engineer role is a warning', countOf(hi, 'operator_no_role'), 5);
     ok('Down past its until date is a warning', countOf(hi, 'status_overdue') === 1 && /FIB/.test(hi.filter(function (x) { return x.code === 'status_overdue'; })[0].text));
     ok('a user without roles is a warning', countOf(hi, 'user_no_role') === 1);
     ok('problems, warnings, notes only', hi.every(function (x) { return ['problem', 'warning', 'note'].indexOf(x.severity) !== -1; }));

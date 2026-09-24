@@ -1,10 +1,12 @@
 /**
  * Metrology Request Tracker - views/settings-tools.js
  *
- * Settings > Tools: the tools (code, name, glyph, operators, results root),
+ * Settings > Tools: the tools (code, name, glyph, primary and backup quality
+ * engineer, results root),
  * and per tool its measurement types (Q51), extra fields (Q5, M1-7) and BKM
  * library (Q13). A new tool or field needs no code change. The status
- * (Up / Down / Maintenance) is set on Lab status, by operators too.
+ * (Up / Down / Maintenance) is set on Lab status, by the tool's quality
+ * engineers too. (Stored as primary_operator_id / backup_operator_id.)
  */
 (function () {
   'use strict';
@@ -34,7 +36,7 @@
 
     body.appendChild(k.panel('Tools', 'wrench', [ui.button('Add tool', { kind: 'primary', icon: 'plus', size: 'sm', onClick: function () { toolDialog(null); } })], [
       ui.el('p', { class: 'muted', text: 'The code starts every request ID (FIB-260924-03). Status is set on Lab status.' }),
-      k.table([{ label: 'Tool' }, 'Name', 'Primary operator', 'Backup operator', 'Results root', 'Setup', 'Status', { label: '', cls: 'actions' }], tools.map(function (t) {
+      k.table([{ label: 'Tool' }, 'Name', 'Primary QE', 'Backup QE', 'Results root', 'Setup', 'Status', { label: '', cls: 'actions' }], tools.map(function (t) {
         var types = ofTool('measurement_types', t.id).length, fields = ofTool('tool_fields', t.id).length, bkms = ofTool('bkms', t.id).length;
         return { id: 'row-' + t.id, cls: t.active === false ? 'is-off' : null, cells: [
           ui.el('span', { class: 'cell-tool' }, [ui.toolGlyph(t.glyph, { size: 28 }), ui.el('b', { class: 'mono', text: t.code })]),
@@ -66,7 +68,8 @@
 
   function toolDialog(t) {
     var k = K(), edit = !!t;
-    var operators = function (u) { return u.active; };
+    // quality engineers, plus whoever is set now (so an old choice still shows)
+    var measurers = function (u) { return u.active && (D.canMeasure(u) || (edit && (u.id === t.primary_operator_id || u.id === t.backup_operator_id))); };
     return k.editDialog({
       title: edit ? 'Edit ' + t.code : 'Add a tool', icon: 'wrench',
       values: edit ? { code: t.code, name: t.name, glyph: t.glyph, primary_operator_id: t.primary_operator_id || '', backup_operator_id: t.backup_operator_id || '',
@@ -76,8 +79,9 @@
         { key: 'code', label: 'Code', kind: 'text', mono: true, cls: 'half', hint: '1-6 capitals, e.g. FIB. Starts every request ID.' },
         { key: 'glyph', label: 'Glyph', kind: 'select', cls: 'half', options: ui.GLYPHS.map(function (g) { return { value: g.key, label: g.label }; }) },
         { key: 'name', label: 'Name', kind: 'text', placeholder: 'e.g. FIB (focused ion beam)' },
-        { key: 'primary_operator_id', label: 'Primary operator', kind: 'select', cls: 'half', options: k.userOptions(operators) },
-        { key: 'backup_operator_id', label: 'Backup operator', kind: 'select', cls: 'half', options: k.userOptions(operators) },
+        { key: 'primary_operator_id', label: 'Primary quality engineer', kind: 'select', cls: 'half', options: k.userOptions(measurers),
+          hint: 'People with the Quality engineer role (People tab).' },
+        { key: 'backup_operator_id', label: 'Backup quality engineer', kind: 'select', cls: 'half', options: k.userOptions(measurers) },
         { key: 'results_root', label: 'Results root folder', kind: 'path', placeholder: '\\\\server\\share\\Lab\\FIB',
           hint: 'The app proposes <root>\\YYYY\\<request ID>\\ for results (Q30).' },
         { key: 'active', label: 'Active (untick to hide the tool - it stays in the history)', kind: 'check' }

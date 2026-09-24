@@ -41,7 +41,10 @@ lists it until it is edited or deleted.
 
 ## 3. Empty - needs real data
 
-- [ ] **Operators**: primary and backup operator per tool.
+- [ ] **Quality engineers**: tick the role in Settings > People, then set the
+      primary and backup quality engineer per tool (Settings > Tools).
+- [ ] **Rights per role**: decide what Operators may do (today: nothing yet) -
+      OPEN_QUESTIONS #14.
 - [ ] **Results roots**: the real share folder per tool (e.g. `\\server\lab\FIB`).
 - [ ] **Extra fields per tool**: none yet (OPEN_QUESTIONS #5).
 - [ ] **People and roles**: only the first admin exists. Colleagues add

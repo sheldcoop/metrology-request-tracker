@@ -56,7 +56,7 @@
     var edit = !!u;
     return K.editDialog({
       title: edit ? 'Edit ' + u.name : 'Add a person', icon: 'user',
-      intro: edit ? null : 'Add someone before they first open the app, e.g. to make them operator of a tool. ' +
+      intro: edit ? null : 'Add someone before they first open the app, e.g. to make them quality engineer of a tool. ' +
         'If you leave the Windows ID empty, they link it themselves ("Is this you?").',
       values: edit ? { name: u.name, windows_id: u.windows_id || '', domain: u.domain || '', email: u.email || '', roles: u.roles || [], active: u.active }
                    : { roles: ['engineer'], active: true },
@@ -65,7 +65,8 @@
         { key: 'windows_id', label: 'Windows user name', kind: 'text', mono: true, cls: 'half', hint: 'Lowercase, no domain, e.g. pkhurana' },
         { key: 'domain', label: 'Domain (optional)', kind: 'text', mono: true, cls: 'half', hint: 'e.g. CORP' },
         { key: 'email', label: 'Company email (optional)', kind: 'email', hint: 'For email and single sign-on later.' },
-        { key: 'roles', label: 'Roles', kind: 'checks', options: roleOptions(), hint: 'Several allowed. Admins also need the PIN.' },
+        { key: 'roles', label: 'Roles', kind: 'checks', options: roleOptions(),
+          hint: 'Several allowed. Engineers request; quality engineers measure. Operator has no rights yet. Admins also need the PIN.' },
         { key: 'active', label: 'Active (untick to switch this person off - they are never deleted)', kind: 'check' }
       ],
       check: function (v) {
