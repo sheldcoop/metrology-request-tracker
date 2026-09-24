@@ -191,10 +191,23 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   are designed later (OPEN_QUESTIONS #14); giving Operators rights then is a change in canMeasure
   and its tests, not a data change.
 
-- **M1-13** (2026-09-24) Part numbers: each project has its own list of part numbers (code,
-  optional description, active) in Settings > Lists. From M2 a lot picks the project, then one of
-  its part numbers; requests take it from the lot. Details still being asked (one project per
-  part number? required on a lot? format?).
+- **M1-13** (2026-09-24) Part numbers: stored once in Settings > Lists (code, optional
+  description, active) and **linked to one or more projects** - a part number can belong to several
+  projects. From M2 a lot picks one project and one part number (of that project); requests take it
+  from the lot. Still open: required on a lot? format rule? (OPEN_QUESTIONS #17)
+- **M1-14** (2026-09-24) Away (vacation, sick leave): record it now - dates and an optional note,
+  **no reason stored** (sick leave is personal data). Set by the person (user menu "I'm away") or by
+  an admin (Settings > People). Shown on Lab status, People and Health (warning when a tool's primary
+  and backup are both away). Routing new requests to the backup comes in M3 (Q3).
+
+## Rollout plan (2026-09-24, Prince)
+- **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
+  the app for a few days before M4 starts.
+- **R2** Before go-live Prince names a colleague as **second admin**; handover covers the PIN,
+  backups and restore (Help > "Admin: backups, restore, audit log, PIN").
+- **R3** The old request list for the M6 import: Prince gives an anonymised sample right before M6.
+- **R4** Prince asks IT now for a small server / Kubernetes slot (F1). Meanwhile the shared-file
+  version is built on, unchanged - the store/adapter split keeps the move cheap.
 
 ## Design polish plan (2026-09-24) - PLANNED, NOT BUILT: plan each, ask Prince before building
 "Engineered" animations: each one shows something real, like ABF's hourglass. Rules as in ABF:
