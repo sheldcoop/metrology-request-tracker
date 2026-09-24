@@ -173,3 +173,12 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 - **M1-9** Lab calendar (one for the whole lab, Europe/Vienna): Mon-Fri 07:00-18:00. Holidays:
   Austrian public holidays 2026 and 2027 filled in by rule (Easter-based ones computed, tested);
   admin adds company closing days and later years in Settings. Clock maths comes in M2/M3.
+
+## Future-proofing (2026-09-24, not built now)
+- **F1** Server later (Docker/Kubernetes, Node + SQLite + API): saving only in `store.js`, rules in
+  `domain.js`, ID-based versioned collections, everything configurable (`js/config.js` + Settings).
+- **F2** Login later via company SSO: identity from one function (`MRT.identity.detect()`); users
+  store `windows_id` (lowercase, no domain), optional `domain` and `email`; roles stay in the app.
+- **F3** Email and local AI each behind one adapter module (today: Outlook draft / AI off). No keys
+  or passwords in the shared folder. CORS, data rules and IT approval checked before either goes live.
+  Details: CLAUDE.md "Architecture" and "Identity"; open points OPEN_QUESTIONS #8-#12.

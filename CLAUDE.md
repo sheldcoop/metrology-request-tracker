@@ -58,6 +58,28 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
 | Screens | `js/views/*.js`, `js/app.js` | compose components, call store writes | re-implement rules |
 `store.js` must stay swappable for a server + SQLite later without touching screens.
 
+## Architecture - ready for a server later (not built now)
+Future target: Node + SQLite + a small API, in Docker on the company server / Kubernetes. Rules
+so that the move needs **no screen changes**:
+- **All saving in `store.js`**, all rules in `domain.js`, screens never touch data. Screens call
+  store functions that return Promises for every write (a server call is async too); reads come from
+  the in-memory copy the store loaded. Today the store talks to a folder; later it talks to the API.
+- **Data = clean, ID-based collections** (`users`, `tools`, ...). Every record has a stable `id`
+  (prefix + random, e.g. `tool_k3f9...`) and a row `version`; references are by ID, never by name.
+  The file carries `schema_version` + `revision`; every schema change is a numbered migration step.
+  One collection maps to one SQLite table later. Timestamps ISO UTC, shown in Europe/Vienna.
+- **Nothing hard-coded:** file names, folders, backup count, undo time, time zone, adapter choice
+  live in `js/config.js` (program settings, no secrets); everything a person edits lives in Settings.
+  No server names, share paths or URLs in code.
+- **Adapters:** anything that talks to the outside sits behind one small module with one interface:
+  `js/adapters/storage-folder.js` (today; later `storage-api.js`), `js/adapters/mail.js` (today:
+  Outlook draft via `mailto:`; later: server SMTP), `js/adapters/ai.js` (today: off; later: our local
+  LLM on ProKube). `config.js` picks the adapter. Screens call the adapter, never `fetch` directly.
+- **Never** put API keys, passwords or tokens in the shared folder, in `config.js` or in the data
+  file. Secrets exist only on the server later.
+- Before any adapter talks to a server: check CORS from `file://`, which data may be sent, and IT
+  approval (OPEN_QUESTIONS).
+
 ## Reuse from `../abf-tracker` (copy once, then this repo evolves on its own)
 - `css/app.css` sections 1-4 (tokens for 3 themes, base, components, shell) and the motion rules.
 - `js/ui/core.js, components.js, overlays.js, charts.js, heatmap.js` (panel, field, segmented, toggle,
@@ -78,6 +100,15 @@ keyboard shortcuts · collapsible menu · full-screen charts · exports · 3 the
 Launcher `Metrology Tool.cmd` on the share opens the app and passes `%USERNAME%`; admin maps Windows
 IDs to users (roles: Engineer, Operator, Manager, Admin - several allowed). Unknown ID → "Who are you?"
 once. Admin actions need the PIN.
+- **Identity comes from ONE function**, `MRT.identity.detect()` in `js/identity.js`. Today it reads
+  the launcher's `?who=`; later it reads the company SSO (Windows / Entra ID). Nothing else in the
+  app reads `?who=`, `%USERNAME%` or a login token.
+- Each user stores `windows_id` (lowercase, no domain, e.g. `pkhurana`), `domain` (optional, e.g.
+  `CORP`) and `email` (optional, company address), all editable in Settings > Users. `detect()`
+  returns `{windows_id, domain, email, source}`; the store matches by `windows_id` (+ domain when
+  both are known) today, and by email or `DOMAIN\user` under SSO. `domain.js` normalises IDs
+  (`CORP\PKhurana` -> `pkhurana` + `CORP`).
+- **Roles stay in our app** (Engineer, Operator, Manager, Admin), never taken from SSO groups.
 
 ## Quality targets (Prince verifies in the browser)
 `tests/test.html` all green · a11y audit 0 findings in 3 themes · page render < 150 ms ·
