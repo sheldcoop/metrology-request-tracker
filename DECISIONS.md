@@ -226,6 +226,8 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   Requests on such a tool need a **required tick** "Panels may be destroyed / scrapped".
 - **M2-12** After measuring, the panels go: **Back to me** (default) / **Back to the line** /
   **Lab may scrap them** / **Other** (type it). Destructive tools (FIB) are set to scrap.
+- **M2-13** Purpose is **optional** - except when no BKM is given: then it must say what to
+  measure (Q45).
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
