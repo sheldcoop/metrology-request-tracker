@@ -243,6 +243,9 @@
     eq('...not once it is completed', D.submitWarnings(full, rq), []);
     var engU = { id: 'e1', roles: ['engineer'], active: true };
     eq('drafts are private (Q33)', [D.canSeeRequest(engU, { status: 'draft', requester_id: 'e1' }), D.canSeeRequest(engU, { status: 'draft', requester_id: 'x' }), D.canSeeRequest(engU, { status: 'submitted', requester_id: 'x' })], [true, false, true]);
+    eq('several lot numbers: commas, spaces, lines, runs, each once', D.parseLotNumbers('18178, 18179\n18181-18183 18178 18178.01'),
+       { numbers: ['18178', '18179', '18181', '18182', '18183', '18178.01'], errors: [] });
+    eq('...bad ones are named; a run goes up, at most 100', D.parseLotNumbers('L1, 18180-18170, 1-200').errors.length, 3);
     ok('lot numbers: 5 digits, a split lot adds .01 (M2-1)', D.isLotNumber('18178') && D.isLotNumber('18178.01') && D.isLotNumber('18178.2'));
     ok('...not letters, dashes or a trailing dot', !D.isLotNumber('L18178') && !D.isLotNumber('18178-01') && !D.isLotNumber('18178.') && !D.isLotNumber('18178.001'));
     var lotB = Object.assign({}, base, { users: base.users, buildups: [{ id: 'b1', code: 'BU-01' }],
@@ -555,6 +558,21 @@
     await refused('...not twice', ST.addSampleLots(), 'no_change');
     ST.setCurrentUser(tomL.id);
     await refused('...only admins add them', ST.addSampleLots(), 'not_admin');
+    ST.setCurrentUser(adminL);
+
+    group('Store: Settings > Lots - several at once, owner');
+    var many = await ST.addLots({ numbers: ['20001', '20002', '20003'], fields: { project_id: prjL.id, buildup_id: buL.id, panel_count: 8, note: ' batch ' } });
+    eq('an admin adds three lots at once, same set-up, owned by the admin', many.map(function (l) { return l.lot_number + ':' + l.panel_count + ':' + l.note + ':' + (l.owner_id === adminL); }),
+       ['20001:8:batch:true', '20002:8:batch:true', '20003:8:batch:true']);
+    var before3 = ST.data().lots.length;
+    await refused('one number already registered stops the whole batch', ST.addLots({ numbers: ['20004', '20002'], fields: { project_id: prjL.id, buildup_id: buL.id, panel_count: 8 } }), 'invalid');
+    eq('...nothing added', ST.data().lots.length, before3);
+    await refused('...and a bad panel count too', ST.addLots({ numbers: ['20005'], fields: { project_id: prjL.id, buildup_id: buL.id, panel_count: 0 } }), 'invalid');
+    var own = await ST.setLotOwner(many[0].id, tomL.id, 'Tom runs this DOE');
+    eq('an admin gives a lot to someone else, with a reason', [own.owner_id, ST.data().audit_log.slice(-1)[0].field], [tomL.id, 'owner_id']);
+    await refused('...a reason is required', ST.setLotOwner(many[0].id, adminL, ''), 'invalid');
+    ST.setCurrentUser(tomL.id);
+    await refused('an engineer cannot add lots in bulk', ST.addLots({ numbers: ['20009'], fields: { project_id: prjL.id, buildup_id: buL.id, panel_count: 2 } }), 'not_admin');
     ST.setCurrentUser(adminL);
 
     group('Store: requests - drafts and submit (M2 step 4)');

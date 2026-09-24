@@ -256,6 +256,9 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   are M4). Cancel: requester, the tool's quality engineers or an admin, with a reason (Q35). Still to
   come: quality-engineer actions (M3, Q43) and editing a submitted request with a reason (Q14) - planned
   with M3.
+- **M2-22** (2026-09-24, Prince) Settings > Lots for admins: the same list as the Lots page (one
+  list, two doors - never a copy); extras: add several lots at once ("18178-18180", same set-up,
+  all or nothing), change a lot's owner (with a reason), delete any unused lot.
 - **Future (not scheduled): Hirata code** - integrate Prince's Hirata coder/decoder HTML app and let
   users attach decoded panel numbers to a lot (OPEN_QUESTIONS #22). Planned when the app is shared.
 - **M2 build order** (one branch per step, Prince reviews each): 1 `m2-settings` (process-step
