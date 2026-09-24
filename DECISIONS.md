@@ -332,6 +332,26 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
   slots or the first free ones; the lot's map follows. Scrapped panels (FIB) leave the magazine and
   are marked scrapped on the lot.
 
+## Request form v2 (2026-09-25, Prince) - replaces parts of M2-1, M2-2, M2-9, M2-23, M2-24
+- **F-1** A panel is identified by its **Hirata ID** (1-8 digits, e.g. 23 or 3252), typed by the
+  engineer; the same ID can exist in different lots. If they do not know or care, they give only
+  **how many panels** (usually 2). A lot has **no fixed panel count** (optional now) and no "panels 1..N".
+- **F-2** **Layers** come from the build-up and several can be picked: core **1FCO / 1BCO**, then
+  BU-01 adds 2F / 2B ... BU-04 up to 5F / 5B. Build-ups without a number (TEST, DOE, OPT) offer up to
+  5F / 5B; an admin can set the number of build-up layers per build-up in Settings > Lists.
+- **F-3** **Where the panels are**: a magazine (PCB magazine, 24 slots stacked, one panel per slot,
+  like the ones feeding a Hirata loader) and the **slots** they sit in, picked on a front-view drawing
+  of the magazine (click or drag; a picked slot shows the panel's Hirata ID; slots of other open
+  requests are shown taken) - or a typed note. The magazine itself has no place of its own; the lot no
+  longer stores magazines or a loading map. Complete says which magazine and slots they go back to.
+- **F-4** The form is **guided, full screen, tool first**, in five categories: 1 Tool & method -
+  2 Sample (one line Project · Lot · Build-up; panels; layers; process step) - 3 Where it is (magazine
+  slots or a note; afterwards) - 4 Urgency - 5 Notes & extras; then Review. Each category opens when
+  the one before is done and folds into a one-line summary; the traveller card builds up live.
+- **F-5** The **lot is typed or picked right in the form**: existing lots of the project are offered
+  as you type (build-up and part number fill in); a new number is registered automatically on Submit
+  with that project and build-up. Part number: optional, under that line.
+
 ## M4 notifications (2026-09-24, built; Prince: "decide what can be built and build it")
 - **M4-1** The bell (Q19) lists the last 30 days: requesters hear every status change, comment,
   edit and "panels received" on their requests; the tool's quality engineers hear of new requests,

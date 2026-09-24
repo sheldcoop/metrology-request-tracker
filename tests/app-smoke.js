@@ -351,34 +351,61 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Data: "Add 3 sample lots" adds 99901, 99902, 99902.01 tagged Sample', ['99901', '99902', '99902.01'].every(n => MRT.store.data().lots.some(l => l.lot_number === n && l.sample)));
   // --- New request (M2 step 4)
   win.setHash('#/new'); await settle();
+  const M = () => doc.getElementById('main');
   const toolOpt = code => $$('#main .tool-pick-opt').filter(b => b.textContent.indexOf(code) === 0)[0];
-  check('New request shows the five tools as glyph buttons', $$('#main .tool-pick-opt').length === 5 && /Pick the tool first/.test(mainText()));
-  buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
+  const stepOf = k => $$('#main .wz-step').filter(x => x.dataset.step === k)[0];
+  const isOpenStep = k => !stepOf(k).querySelector('.wz-body').hidden;
+  const segPick = (label, v) => { const i = M().querySelectorAll('.seg').filter(x => x.getAttribute('aria-label') === label)[0].querySelectorAll('input').filter(x => x.value === v)[0]; i.checked = true; i.dispatch('change'); };
+  const mag1 = MRT.store.list('magazines')[0];
+  check('New request, tool first: five tool drawings, five steps + Review, only the tool step open', $$('#main .tool-pick-opt').length === 5 && $$('#main .wz-step').length === 6 &&
+        isOpenStep('tool') && !isOpenStep('lot') && /Pick the tool first/.test(mainText()));
+  buttonByText(M(), 'Submit').click(); await settle();
   check('Submit with nothing picked lists what is missing', !$('#main .req-errors').hidden && /Pick a tool/.test($('#main .req-errors').textContent));
   toolOpt('FIB').click(); await settle();
-  check('picking FIB: its types, the destructive tick, afterwards fixed to scrap', !!fieldIn(doc.getElementById('main'), 'Measurement type') &&
-        /destroys these panels/.test(mainText()) && fieldIn(doc.getElementById('main'), 'After measuring').value === 'scrap');
-  check('...and its extra field (Cut side)', !!fieldIn(doc.getElementById('main'), 'Cut side'));
-  setVal(fieldIn(doc.getElementById('main'), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id); await settle();
-  setVal(fieldIn(doc.getElementById('main'), 'Lot'), lot1.id); await settle();
-  check('picking the lot draws its panel map (12 panels)', $$('#main .pm-cell').length === 12 && /Project/.test($('#main .lot-info').textContent));
-  $$('#main .pm-cell')[0].click(); $$('#main .pm-cell')[3].dispatch('click', { shiftKey: true }); await settle();
-  check('...panels 1-4 picked, shown on the traveller preview', /1-4/.test($('#main .traveller-mini').textContent) && /FIB-YYMMDD-NN/.test($('#main .traveller-mini').textContent));
-  buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
+  check('picking FIB: its types, the destructive tick, afterwards fixed to scrap', !!fieldIn(M(), 'Measurement type') &&
+        /destroys these panels/.test(mainText()) && fieldIn(M(), 'After measuring').value === 'scrap');
+  check('...and its extra field (Cut side)', !!fieldIn(M(), 'Cut side'));
+  setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id); await settle();
+  buttonByText(M(), 'Next: Lot and panels').click(); await settle();
+  check('Next opens step 2; step 1 folds into one line with the tool and type, ticked', isOpenStep('lot') && !isOpenStep('tool') &&
+        /^FIB/.test(stepOf('tool').querySelector('.wz-sum').textContent) && stepOf('tool').classList.contains('is-done'));
+  setVal(fieldIn(M(), 'Lot'), '18178'); await settle();
+  check('typing a registered lot finds it: its project and build-up fill in and are locked', /Lot found/.test(mainText()) &&
+        fieldIn(M(), 'Project').value === c4f.id && fieldIn(M(), 'Project').disabled && fieldIn(M(), 'Build-up').value === bu1.id);
+  setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
+  check('Hirata IDs: "3252-3255" becomes four chips, and the traveller card shows them', $$('#main .panel-chip').length === 4 &&
+        /3252, 3253, 3254, 3255/.test($('#main .traveller-mini').textContent) && /FIB-YYMMDD-NN/.test($('#main .traveller-mini').textContent));
+  setVal(fieldIn(M(), 'Hirata IDs'), '3252, abc'); await settle();
+  check('...a typo is named at the field', /"abc" is not a Hirata ID/.test(mainText()));
+  setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
+  const lyNames = $$('#main .layer-chip').map(b => b.textContent);
+  check('layers come from the build-up: 1FCO / 1BCO core, then F and B per layer', lyNames[0] === '1FCO' && lyNames[1] === '1BCO' && lyNames.indexOf('2F') !== -1);
+  $$('#main .layer-chip').filter(b => b.textContent === '2F')[0].click(); await settle();
+  check('...a click ticks one; the card shows it', $$('#main .layer-chip.is-on').length === 1 && /2F/.test($('#main .traveller-mini').textContent));
+  buttonByText(M(), 'Submit').click(); await settle();
   const errs = $('#main .req-errors').textContent;
-  check('...still missing: where the panels are, the destructive tick', /where the panels are now/.test(errs) && /tick that they may be scrapped/.test(errs) && !/Pick a tool/.test(errs));
-  setVal(fieldIn(doc.getElementById('main'), 'Where are the panels now'), 'Magazine 14, rack B2');
-  const dTick = tickIn(doc.getElementById('main'), 'I know FIB'); dTick.checked = true; dTick.dispatch('change');
-  setVal(fieldIn(doc.getElementById('main'), 'Purpose'), 'Check voids after the new plating recipe');
-  buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
+  check('Submit: still missing where the panels are and the destructive tick - and step 3 opens', /where the panels are now/.test(errs) && /tick that they may be scrapped/.test(errs) &&
+        !/Pick a tool/.test(errs) && isOpenStep('where') && stepOf('where').classList.contains('is-missing'));
+  setVal(fieldIn(M(), 'Magazine'), mag1.id); await settle();
+  const mzs = () => $('#main .wz-mag').querySelectorAll('.mz-slot');
+  check('picking the magazine draws it from the front: 24 slots', mzs().length === 24);
+  mzs()[2].dispatch('mousedown'); mzs()[3].dispatch('mouseover'); mzs()[4].dispatch('mouseover'); mzs()[5].dispatch('mouseover'); doc.dispatch('mouseup'); await settle();
+  check('...press and drag picks slots 3-6; each shows its panel\'s Hirata ID in order', mzs().filter(x => x.classList.contains('is-picked')).length === 4 &&
+        /3252/.test(mzs()[2].textContent) && /3255/.test(mzs()[5].textContent) && /M70345 · slots 3-6/.test($('#main .traveller-mini').textContent));
+  const dTick = tickIn(M(), 'I know FIB'); dTick.checked = true; dTick.dispatch('change');
+  setVal(fieldIn(M(), 'Purpose'), 'Check voids after the new plating recipe');
+  stepOf('review').querySelector('.wz-head').click(); await settle();
+  check('Review: every step ticked, "Ready to submit"', /All there/.test(stepOf('review').textContent) && $$('#main .wz-rev.is-missing').length === 0);
+  buttonByText(M(), 'Submit').click(); await settle();
   check('complete, but no BKM: a warning asks first (Q44)', !!openDialog() && /Submit anyway/.test(openDialog().textContent) && /No BKM/.test(openDialog().textContent));
   buttonByText(openDialog(), 'Submit anyway').click(); await settle();
   const req1 = MRT.store.data().requests.filter(r => r.status === 'submitted')[0];
-  check('submitted: ID FIB-YYMMDD-01, panels, scrap, destructive ok', !!req1 && /^FIB-\d{6}-01$/.test(req1.request_no) && req1.panels.join() === '1,2,3,4' &&
-        req1.after === 'scrap' && req1.destructive_ok === true && req1.panel_location === 'Magazine 14, rack B2');
-  check('...its request page opens (M2 step 5)', win.location.hash === '#/request/' + req1.id && mainText().indexOf(req1.request_no) !== -1 && /Magazine 14/.test(mainText()));
-  check('the traveller card: ID, stamp "Submitted", priority stripe, panel map with panels 1-4', !!$('#main .traveller.prio-3') &&
-        $('#main .tr-stamp').textContent === 'Submitted' && $$('#main .traveller .pm-cell').length === 12 && $$('#main .traveller .pm-cell.is-picked').length === 4);
+  check('submitted: ID FIB-YYMMDD-01, Hirata IDs, layer, magazine slots, scrap, destructive ok', !!req1 && /^FIB-\d{6}-01$/.test(req1.request_no) &&
+        req1.panels.join() === '3252,3253,3254,3255' && req1.panel_count === 4 && req1.layers.join() === '2F' && req1.lot_id === lot1.id &&
+        req1.magazine_id === mag1.id && req1.slots.join() === '3,4,5,6' && req1.after === 'scrap' && req1.destructive_ok === true);
+  check('...its request page opens (M2 step 5)', win.location.hash === '#/request/' + req1.id && mainText().indexOf(req1.request_no) !== -1 && /M70345 · slots 3-6/.test(mainText()));
+  check('the traveller card: ID, stamp "Submitted", priority stripe, the magazine with 4 slots', !!$('#main .traveller.prio-3') &&
+        $('#main .tr-stamp').textContent === 'Submitted' && $$('#main .traveller .mz-slot.is-picked').length === 4 && /3252, 3253/.test($('#main .traveller').textContent));
   check('...no date: "the priority says how urgent it is"', /priority says how urgent/.test($('#main .tr-clock').textContent));
   check('the status rail: Submitted now, by whom and when', $$('#main .rail-step').length === 4 && $('#main .rail-step.is-now').textContent.indexOf('Submitted') === 0 && /Prince Khurana/.test($('#main .rail-step.is-now').textContent));
   check('the results folder is proposed from the tool root (Q30)', mainText().indexOf('\\\\srv\\lab\\FIB\\') !== -1 && mainText().indexOf(req1.request_no + '\\') !== -1);
@@ -394,8 +421,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   sbox2.value = ''; sbox2.dispatch('input');
   check('...and its timeline has "created", "submitted", then the comment', MRT.store.requestEvents(req1.id).map(e => e.kind + ':' + (e.to || '')).join() === 'created:draft,status:submitted,comment:');
   buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
-  check('"Copy this request" prefills tool, lot and panels, not where the panels are', $$('#main .tool-pick-opt.is-on').length === 1 &&
-        fieldIn(doc.getElementById('main'), 'Lot').value === lot1.id && $$('#main .pm-cell.is-picked').length === 4 && fieldIn(doc.getElementById('main'), 'Where are the panels now').value === '');
+  check('"Copy this request" prefills tool, lot, panels and layers - not where the panels are', $$('#main .tool-pick-opt.is-on').length === 1 &&
+        fieldIn(M(), 'Lot').value === '18178' && fieldIn(M(), 'Hirata IDs').value === '3252, 3253, 3254, 3255' && $$('#main .layer-chip.is-on').length === 1 &&
+        fieldIn(M(), 'Magazine').value === '' && fieldIn(M(), 'Or a note').value === '');
+  check('...and opens at the first step that needs something: where the panels are', isOpenStep('where'));
   win.setHash('#/new'); await settle();
   toolOpt('QVM').click(); await settle();
   buttonByText(doc.getElementById('main'), 'Save draft').click(); await settle();
@@ -410,6 +439,26 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.getElementById('main'), 'Delete draft').click(); await settle();
   buttonByText(openDialog(), 'Delete').click(); await settle();
   check('the author deletes the draft', !MRT.store.data().requests.some(r => r.id === draft1.id));
+  // a lot that is not registered yet, typed in the form (F-5); just how many panels (F-1); a note instead of a magazine
+  win.setHash('#/new?tool=' + MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id); await settle();
+  check('?tool= picks the tool and opens step 2', $$('#main .tool-pick-opt.is-on').length === 1 && isOpenStep('lot'));
+  setVal(fieldIn(M(), 'Lot'), '1917x'); await settle();
+  check('a lot number that is not one is named at the field', /Lot numbers are digits/.test(mainText()));
+  setVal(fieldIn(M(), 'Lot'), '19170'); await settle();
+  check('...a new one says "New lot", the project and build-up stay open to pick', /New lot/.test(mainText()) && !fieldIn(M(), 'Project').disabled);
+  setVal(fieldIn(M(), 'Project'), c4f.id); await settle(); setVal(fieldIn(M(), 'Build-up'), bu1.id); await settle();
+  segPick('Panels', 'count'); await settle();
+  check('..."Just how many" asks a number, 2 by default', fieldIn(M(), 'How many panels').value === '2');
+  setVal(fieldIn(M(), 'How many panels'), '3'); await settle();
+  setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id)[0].id); await settle();
+  setVal(fieldIn(M(), 'Or a note'), 'with Anna'); setVal(fieldIn(M(), 'Purpose'), 'Pad size');
+  buttonByText(M(), 'Submit').click(); await settle();
+  if (openDialog()) { buttonByText(openDialog(), 'Submit anyway').click(); await settle(); }
+  const lotNew = MRT.store.data().lots.filter(l => l.lot_number === '19170')[0];
+  const reqNew = MRT.store.data().requests.filter(r => r.status === 'submitted').slice(-1)[0];
+  check('...Submit registers lot 19170 (C4F, the build-up) and the request uses it: 3 panels, no IDs, the note', !!lotNew && lotNew.project_id === c4f.id && lotNew.buildup_id === bu1.id &&
+        reqNew.lot_id === lotNew.id && reqNew.panel_count === 3 && reqNew.panels.length === 0 && reqNew.panel_location === 'with Anna');
+  await MRT.store.cancelRequest(reqNew.id, 'test only');
   win.setHash('#/request/' + req1.id); await settle();
   buttonByText(doc.getElementById('main'), 'Cancel request').click(); await settle();
   const rdlg = openDialog(); setVal(rdlg.querySelector('textarea') || rdlg.querySelector('input'), 'Wrong lot');
@@ -419,7 +468,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   // --- the workflow on the request page (M3 step 1)
   buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
-  setVal(fieldIn(doc.getElementById('main'), 'Where are the panels now'), 'Magazine 15');
+  setVal(fieldIn(M(), 'Or a note'), 'Magazine 15, top shelf');
   const dT2 = tickIn(doc.getElementById('main'), 'I know FIB'); dT2.checked = true; dT2.dispatch('change');
   buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
   if (openDialog()) { buttonByText(openDialog(), 'Submit anyway').click(); await settle(); }
@@ -428,11 +477,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...the requester sees Edit request', !!buttonByText(doc.getElementById('main'), 'Edit request'));
   buttonByText(doc.getElementById('main'), 'Edit request').click(); await settle();
   check('Edit request opens the form, tool locked', mainText().indexOf('Edit ' + req2.request_no) !== -1 && $$('#main .tool-pick-opt').filter(b => b.disabled).length === 4);
-  setVal(fieldIn(doc.getElementById('main'), 'Layer'), 'L2');
+  $$('#main .layer-chip').filter(b => b.textContent === '1FCO')[0].click(); await settle();
   buttonByText(doc.getElementById('main'), 'Save changes').click(); await settle();
-  const edlg = openDialog(); setVal(edlg.querySelector('textarea') || edlg.querySelector('input'), 'Layer was missing');
+  const edlg = openDialog(); setVal(edlg.querySelector('textarea') || edlg.querySelector('input'), 'Core too');
   buttonByText(edlg, 'Save changes').click(); await settle();
-  check('...saved with a reason, the timeline says what changed', MRT.store.byId('requests', req2.id).layer === 'L2' && /layer - -> L2\. Reason: Layer was missing/.test(mainText()));
+  check('...saved with a reason, the timeline says what changed', MRT.store.byId('requests', req2.id).layers.join() === '1FCO,2F' && /layers 2F -> 1FCO, 2F\. Reason: Core too/.test(mainText()));
   const meP = MRT.store.currentUser().id;
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
   check('Olga sees Accept, Start, Hold, Needs clarification, Panels received', ['Accept', 'Start', 'Hold', 'Needs clarification', 'Panels received'].every(t => !!buttonByText($('#main .req-actbar'), t)));
@@ -496,7 +545,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   setVal(fieldIn(openDialog(), 'Your answer'), 'Front side, via row 3'); buttonByText(openDialog(), 'Save').click(); await settle();
   check('...Answered right there: back to Accepted (M3-2)', MRT.store.byId('requests', qN.id).status === 'accepted' && !/waiting on you/.test(mainText()));
   setVal(fieldIn(doc.getElementById('main'), 'Show'), 'all'); await settle();
-  check('..."All": cancelled and closed ones too, the closed one stamped Closed', $$('#main .q-row').length === 4 && /Closed/.test(mainText()) && /Cancelled/.test(mainText()));
+  check('..."All": cancelled and closed ones too, the closed one stamped Closed', $$('#main .q-row').length === 5 && /Closed/.test(mainText()) && /Cancelled/.test(mainText()));
   setVal(fieldIn(doc.getElementById('main'), 'Lot or request number'), req2.request_no); await settle();
   check('...find by request number', $$('#main .q-row').length === 1);
 
@@ -532,35 +581,47 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Settings > Lots: the same list as the Lots page', /18178.01/.test(mainText()) && /99902.01/.test(mainText()) && /same list as the/.test(mainText()));
   buttonByText(doc.getElementById('main'), 'Add several lots').click(); await settle();
   dlg2 = openDialog();
-  setVal(fieldIn(dlg2, 'Lot numbers'), '30001-30003'); setVal(fieldIn(dlg2, 'Panels (each lot)'), '6');
+  setVal(fieldIn(dlg2, 'Lot numbers'), '30001-30003'); setVal(fieldIn(dlg2, 'Panels per lot'), '6');
   setVal(fieldIn(dlg2, 'Project'), c4f.id); await settle(); setVal(fieldIn(dlg2, 'Build-up'), bu1.id);
   buttonByText(dlg2, 'Add lots').click(); await settle();
   check('..."Add several lots" adds 30001-30003 with 6 panels each', ['30001', '30002', '30003'].every(n => MRT.store.data().lots.some(l => l.lot_number === n && l.panel_count === 6)) && !openDialog());
   win.setHash('#/lots'); await settle();
   check('...and they show on the Lots page too', /30002/.test(mainText()));
 
-  // --- magazines (M2-23)
+  // --- magazines and build-up layers (M2-23, F-2, F-3)
   await tab('lists');
-  const magPanel = doc.getElementById('main').querySelectorAll('section').filter(x => /Magazines/.test(x.textContent))[0];
-  check('Settings > Lists > Magazines: M70345-M70364, 24 slots, racks setting', !!magPanel && /M70345/.test(magPanel.textContent) && /M70364/.test(magPanel.textContent) && !!fieldIn(magPanel, 'Racks'));
-  const mag1 = MRT.store.list('magazines')[0];
-  await MRT.store.saveLot({ id: lot1.id, fields: { magazine_ids: [mag1.id] } });
-  await MRT.store.saveEntry('magazines', { id: mag1.id, fields: { rack: 7 } });
-  win.setHash('#/lots'); await settle();
-  $$('#main a.lot-link').filter(a => a.textContent === '18178')[0].click(); await settle();
-  check('lot details draw its magazine as a cassette: panels 5-12 in slots 1-8, 1-4 scrapped by the FIB request', !!openDialog() && openDialog().querySelectorAll('.mag-slot.is-full').length === 8 &&
-        /M70345/.test(openDialog().textContent) && /Scrapped: panels 1, 2, 3, 4/.test(openDialog().textContent));
-  buttonByText(openDialog(), 'Move panels').click(); await settle();
-  const mv = openDialog(); const ms = mv.querySelectorAll('button.mag-slot');
-  ms[0].click(); ms[23].click(); buttonByText(mv, 'Save').click(); await settle();
-  check('Move panels: panel 5 to slot 24, saved', MRT.store.byId('lots', lot1.id).load.filter(x => x.panel === 5)[0].slot === 24);
+  const magPanel = M().querySelectorAll('section').filter(x => /Magazines/.test(x.textContent))[0];
+  check('Settings > Lists > Magazines: M70345-M70364, 24 slots, no racks any more', !!magPanel && /M70345/.test(magPanel.textContent) && /M70364/.test(magPanel.textContent) && !fieldIn(magPanel, 'Racks'));
+  const buPanel = M().querySelectorAll('section').filter(x => /Build-ups/.test(x.querySelector('.panel-title') ? x.querySelector('.panel-title').textContent : ''))[0];
+  check('...Build-ups show their layers: BU-01 up to 2F / 2B, TEST up to 5F / 5B', /up to 2F \/ 2B/.test(buPanel.textContent) && /up to 5F \/ 5B/.test(buPanel.textContent));
+  buPanel.querySelectorAll('button').filter(x => x.getAttribute('aria-label') === 'Edit TEST')[0].click(); await settle();
+  setVal(fieldIn(openDialog(), 'Build-up layers'), '2'); buttonByText(openDialog(), 'Save').click(); await settle();
+  check('...an admin sets TEST to 2 layers: up to 3F / 3B', MRT.store.list('buildups').filter(x => x.code === 'TEST')[0].layers === 2 && MRT.domain.layersFor(MRT.store.list('buildups').filter(x => x.code === 'TEST')[0]).slice(-1)[0] === '3B');
+  const fibT = MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id;
+  const inMag = await MRT.store.submitRequest({ fields: { tool_id: fib().id, type_id: fibT, lot_id: lot1.id, panels: ['3260', '3261'], priority_id: MRT.store.list('priorities')[2].id,
+    magazine_id: mag1.id, slots: [1, 2], destructive_ok: true, after: 'scrap', purpose: 'x' } });
   win.setHash('#/new?lot=' + lot1.id); await settle();
-  $$('#main .tool-pick-opt').filter(b => b.textContent.indexOf('QVM') === 0)[0].click(); await settle();
-  $$('#main .pm-cell')[0].click(); await settle();
-  check('...a scrapped panel is crossed out and cannot be picked', $$('#main .pm-cell')[0].classList.contains('is-scrapped') && !$$('#main .pm-cell')[0].classList.contains('is-picked'));
-  $$('#main .pm-cell')[5].click(); $$('#main .pm-cell')[6].click(); await settle();
-  check('the form fills in the magazine and its rack from the lot: "M70345 · Rack 7 · slots 2, 3"', fieldIn(doc.getElementById('main'), 'Magazine').value === mag1.id &&
-        fieldIn(doc.getElementById('main'), 'Rack').value === '7' && /M70345 · Rack 7 · slots 2, 3/.test(mainText()));
+  toolOpt('QVM').click(); await settle();
+  setVal(fieldIn(M(), 'Magazine'), mag1.id); await settle();
+  check('the form greys out slots another open request holds, with its ID', mzs()[0].classList.contains('is-taken') && mzs()[0].tagName === 'DIV' && mzs()[0].textContent.indexOf(inMag.request_no) !== -1);
+  const qvmReq = await MRT.store.submitRequest({ fields: { tool_id: MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id,
+    type_id: MRT.store.list('measurement_types').filter(m => m.tool_id === MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id)[0].id, lot_id: lot1.id,
+    panels: ['3270'], priority_id: MRT.store.list('priorities')[2].id, magazine_id: mag1.id, slots: [7], after: 'back_to_me', purpose: 'x' } });
+  const qvmT = MRT.store.list('tools').filter(t => t.code === 'QVM')[0];
+  await MRT.store.saveEntry('tools', { id: qvmT.id, fields: { primary_operator_id: olga.id } });
+  MRT.store.setCurrentUser(olga.id);
+  await MRT.store.requestAction(qvmReq.id, 'start', {});
+  win.setHash('#/lab'); await settle(); win.setHash('#/request/' + qvmReq.id); await settle();
+  buttonByText($('#main .req-actbar'), 'Complete').click(); await settle();
+  const cdlg = openDialog();
+  check('Complete offers the same magazine, its slot picked, the other request\'s slots taken', fieldIn(cdlg, 'Put them back').value === mag1.id &&
+        cdlg.querySelectorAll('.mz-slot.is-picked').length === 1 && cdlg.querySelectorAll('.mz-slot')[6].classList.contains('is-picked') && cdlg.querySelectorAll('.mz-slot.is-taken').length === 2);
+  cdlg.querySelectorAll('.mz-slot')[6].click(); cdlg.querySelectorAll('.mz-slot')[9].click();
+  setVal(fieldIn(cdlg, 'Results folder'), 'Z:\\results\\QVM');
+  buttonByText(cdlg, 'Save').click(); await settle();
+  check('...put back into slot 10 instead; the page says where', JSON.stringify(MRT.store.byId('requests', qvmReq.id).put_back) === JSON.stringify({ magazine_id: mag1.id, slots: [10] }) &&
+        /back in M70345 · slot 10/.test(mainText()));
+  MRT.store.setCurrentUser(meP);
 
   // a non-admin is kept out
   const saved = MRT.store.currentUser().id;

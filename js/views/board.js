@@ -97,7 +97,7 @@ window.MRT.views.board = (function () {
       href: '#/request/' + r.id, draggable: movable ? 'true' : null, dataset: { id: r.id },
       'aria-label': r.request_no + ', ' + D.REQUEST_STATUS_LABEL[r.status] + (prio ? ', ' + prio.name : '') }, [
       ui.el('div', { class: 'bcard-top' }, [ui.el('b', { class: 'mono', text: r.request_no }), prio ? ui.el('span', { class: 'bcard-prio', text: prio.name }) : null]),
-      ui.el('div', { class: 'bcard-line mono', text: (lot ? lot.lot_number : '?') + '  ·  ' + (D.formatPanels(r.panels) || '-') }),
+      ui.el('div', { class: 'bcard-line mono', text: (lot ? lot.lot_number : '?') + '  ·  ' + D.panelsText(r) }),
       ui.el('div', { class: 'bcard-line' }, [r.status === 'on_hold' ? ui.el('span', { class: 'chip warning', text: 'On hold' }) : r.status === 'clarification' ? ui.el('span', { class: 'chip warning', text: 'Question' }) : null,
         clock, qe ? ui.el('span', { class: 'bcard-who', title: qe.name, text: ui.initials(qe.name) }) : null])
     ]);

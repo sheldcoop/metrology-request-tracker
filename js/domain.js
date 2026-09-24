@@ -330,77 +330,82 @@ window.MRT.domain = (function () {
   }
 
   /* ------------------------------------------------------------------ *
-   * Magazines (DECISIONS M2-23): a cassette with numbered slots (24 by
-   * default) standing in a rack (1..24). A lot has one or more magazines and
-   * a loading map - which panel sits in which slot - that people can edit.
+   * Magazines (DECISIONS M2-23, F-3): a PCB magazine with numbered slots
+   * (24 by default), one panel per slot. A request says which slots hold
+   * its panels; slots of open requests are taken.
    * ------------------------------------------------------------------ */
 
   /** M70345 - M and digits (provisional, like the real ones). */
   function isMagazineCode(s) { return typeof s === 'string' && /^M\d{3,8}$/.test(s); }
 
+  /* ------------------------------------------------------------------ *
+   * Request form v2 (DECISIONS F-1..F-5): panels by Hirata ID, layers from
+   * the build-up, magazine slots.
+   * ------------------------------------------------------------------ */
+
+  /** A panel's Hirata ID: digits, 1-8 (e.g. 23, 3252). */
+  function isPanelId(s) { return typeof s === 'string' && /^\d{1,8}$/.test(s); }
+
   /**
-   * The default loading: panel 1 in slot 1 of the first magazine and on,
-   * then the next magazine. Panels that do not fit stay unplaced.
-   * @param {number} panelCount
-   * @param {Object[]} mags  [{id, slots}] in the lot's order
-   * @param {number[]} skip  panels not to place (scrapped)
-   * @returns {{panel, magazine_id, slot}[]}
+   * Panel IDs typed or pasted: commas, spaces or new lines; "3252-3255" is a
+   * run of consecutive IDs (at most 50). Each ID once, in the order given.
+   * @returns {{ids: string[], errors: string[]}}
    */
-  function defaultLoad(panelCount, mags, skip) {
-    var out = [], m = 0, slot = 1;
-    for (var p = 1; p <= panelCount; p++) {
-      if ((skip || []).indexOf(p) !== -1) continue;
-      while (mags[m] && slot > (mags[m].slots || 24)) { m++; slot = 1; }
-      if (!mags[m]) break;
-      out.push({ panel: p, magazine_id: mags[m].id, slot: slot++ });
-    }
+  function parsePanelIds(text) {
+    var ids = [], errors = [];
+    String(text || '').split(/[,;\s]+/).filter(Boolean).forEach(function (tok) {
+      var m = tok.match(/^(\d{1,8})-(\d{1,8})$/);
+      if (m) {
+        var a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+        if (b < a || b - a >= 50) { errors.push(tok + ': a run goes up, at most 50 panels'); return; }
+        for (var n = a; n <= b; n++) { var s = String(n); while (s.length < m[1].length) s = '0' + s; if (ids.indexOf(s) === -1) ids.push(s); }
+        return;
+      }
+      if (!isPanelId(tok)) { errors.push('"' + tok + '" is not a Hirata ID (digits, e.g. 3252)'); return; }
+      if (ids.indexOf(tok) === -1) ids.push(tok);
+    });
+    return { ids: ids, errors: errors };
+  }
+
+  /** Panels as people say them: "3252, 3253" (or "2 panels" when only counted). */
+  function panelsText(r) {
+    var ids = r.panels || [];
+    if (ids.length) return ids.join(', ');
+    return r.panel_count ? r.panel_count + ' panel' + (r.panel_count === 1 ? '' : 's') : '-';
+  }
+  function panelCountOf(r) { return (r.panels || []).length || r.panel_count || 0; }
+
+  /** How many build-up layers a build-up has: its setting, else the number in BU-04 (4), else 4 (up to 5F/5B). */
+  function buildupLayers(bu) {
+    if (!bu) return 4;
+    if (isNum(bu.layers) && bu.layers >= 0) return bu.layers;
+    var m = /(\d+)\s*$/.exec(bu.code || '');
+    return m ? parseInt(m[1], 10) : 4;
+  }
+
+  /** The layers of a build-up (F-2): 1FCO, 1BCO (the core), then 2F, 2B ... (n+1)F, (n+1)B. */
+  function layersFor(bu) {
+    var out = ['1FCO', '1BCO'], n = buildupLayers(bu);
+    for (var k = 2; k <= n + 1; k++) { out.push(k + 'F'); out.push(k + 'B'); }
     return out;
   }
 
-  /** Problems of a loading map for a lot. */
-  function loadProblems(load, lot, magsById) {
-    var p = [], seenPanel = {}, seenSlot = {};
-    (load || []).forEach(function (x) {
-      var m = magsById[x.magazine_id];
-      if (!m) { p.push('Panel ' + x.panel + ': magazine not found'); return; }
-      if ((lot.magazine_ids || []).indexOf(x.magazine_id) === -1) p.push('Panel ' + x.panel + ': ' + m.code + ' is not one of the lot\'s magazines');
-      if (!isNum(x.panel) || x.panel < 1 || x.panel > lot.panel_count) p.push('Panel ' + x.panel + ' is not a panel of the lot');
-      if (!isNum(x.slot) || x.slot < 1 || x.slot > (m.slots || 24) || Math.floor(x.slot) !== x.slot) p.push('Panel ' + x.panel + ': ' + m.code + ' has slots 1-' + (m.slots || 24));
-      if (seenPanel[x.panel]) p.push('Panel ' + x.panel + ' is in two slots');
-      var k = x.magazine_id + ':' + x.slot;
-      if (seenSlot[k]) p.push(m.code + ' slot ' + x.slot + ' holds two panels');
-      seenPanel[x.panel] = true; seenSlot[k] = true;
-      if ((lot.scrapped || []).indexOf(x.panel) !== -1) p.push('Panel ' + x.panel + ' is scrapped');
-    });
-    return p;
+  /** Where the panels are (F-3): "M70345 · slots 3, 4", and/or the note. */
+  function placeText(r, magsById) {
+    var m = r.magazine_id ? magsById[r.magazine_id] : null;
+    var slots = (r.slots || []).slice().sort(function (a, b) { return a - b; });
+    var t = m ? m.code + (slots.length ? ' · slot' + (slots.length > 1 ? 's ' : ' ') + formatPanels(slots) : '') : '';
+    return [t, r.panel_location].filter(Boolean).join(' - ');
   }
 
-  /**
-   * Where panels are, as people say it: "M70345 · Rack 7 · slots 1-4"
-   * (one part per magazine), plus "panel 9 not in a magazine" / "scrapped".
-   * @param {Object} lot
-   * @param {number[]} panels
-   * @param {Object} magsById
-   * @param {number|null} rack   the request's rack, else each magazine's own
-   */
-  function whereText(lot, panels, magsById, rack) {
-    if (!lot) return '';
-    var by = {}, order = [], loose = [], gone = [];
-    (panels || []).forEach(function (n) {
-      if ((lot.scrapped || []).indexOf(n) !== -1) { gone.push(n); return; }
-      var x = (lot.load || []).filter(function (l) { return l.panel === n; })[0];
-      if (!x) { loose.push(n); return; }
-      if (!by[x.magazine_id]) { by[x.magazine_id] = []; order.push(x.magazine_id); }
-      by[x.magazine_id].push(x.slot);
+  /** The slots of a magazine taken by other open requests: {slot: request_no}. */
+  function takenSlots(requests, magazineId, exceptId) {
+    var out = {};
+    (requests || []).forEach(function (x) {
+      if (x.id === exceptId || x.magazine_id !== magazineId || !isOpen(x)) return;
+      (x.slots || []).forEach(function (s) { out[s] = x.request_no || 'a draft'; });
     });
-    var parts = order.map(function (id) {
-      var m = magsById[id] || {};
-      var r = rack || m.rack;
-      return (m.code || '?') + (r ? ' · Rack ' + r : '') + ' · slot' + (by[id].length > 1 ? 's ' : ' ') + formatPanels(by[id]);
-    });
-    if (loose.length) parts.push('panel' + (loose.length > 1 ? 's ' : ' ') + formatPanels(loose) + ' not in a magazine');
-    if (gone.length) parts.push('panel' + (gone.length > 1 ? 's ' : ' ') + formatPanels(gone) + ' scrapped');
-    return parts.join('; ');
+    return out;
   }
 
   /** Most panels a lot can have (draws the panel map). */
@@ -564,6 +569,9 @@ window.MRT.domain = (function () {
       case 'buildups':
         if (!isCode(r.code, 12)) p.push('Code: capital letters, digits and dashes, e.g. BU-01');
         else if (dupBy(d[collection], r.id, 'code', r.code)) p.push(r.code + ' already exists');
+        if (collection === 'buildups' && r.layers !== null && r.layers !== undefined && (!isNum(r.layers) || r.layers < 0 || r.layers > 20 || Math.floor(r.layers) !== r.layers)) {
+          p.push('Build-up layers: empty, or a whole number 0-20');
+        }
         break;
 
       case 'part_numbers':
@@ -586,17 +594,11 @@ window.MRT.domain = (function () {
           if (!pnr) p.push('Part number not found');
           else if ((pnr.project_ids || []).indexOf(r.project_id) === -1) p.push('Part number ' + pnr.code + ' does not belong to this project');
         }
-        if (!isNum(r.panel_count) || r.panel_count < 1 || r.panel_count > LOT_MAX_PANELS || Math.floor(r.panel_count) !== r.panel_count) {
-          p.push('Panels: a whole number from 1 to ' + LOT_MAX_PANELS);
+        if (r.panel_count !== null && r.panel_count !== undefined &&
+            (!isNum(r.panel_count) || r.panel_count < 1 || r.panel_count > LOT_MAX_PANELS || Math.floor(r.panel_count) !== r.panel_count)) {
+          p.push('Panels: empty, or a whole number from 1 to ' + LOT_MAX_PANELS);
         }
         if (!exists('users', r.owner_id)) p.push('Lot owner not found');
-        if (r.magazine_ids && !Array.isArray(r.magazine_ids)) p.push('Magazines must be a list');
-        (r.magazine_ids || []).forEach(function (id) { if (!exists('magazines', id)) p.push('A magazine of the lot no longer exists'); });
-        if (r.load && r.load.length) {
-          var magsById = {};
-          (d.magazines || []).forEach(function (m) { magsById[m.id] = m; });
-          p.push.apply(p, loadProblems(r.load, r, magsById));
-        }
         if (r.note && String(r.note).length > LOT_NOTE_MAX) p.push('Keep the note under ' + LOT_NOTE_MAX + ' characters');
         var ex = r.extra || {};
         (d.lot_fields || []).forEach(function (f) {
@@ -610,7 +612,6 @@ window.MRT.domain = (function () {
         if (!isMagazineCode(r.code)) p.push('Magazine: M and digits, e.g. M70345');
         else if (dupBy(d.magazines, r.id, 'code', r.code)) p.push(r.code + ' already exists');
         if (!isNum(r.slots) || r.slots < 1 || r.slots > 99 || Math.floor(r.slots) !== r.slots) p.push('Slots: a whole number, 1-99');
-        if (r.rack !== null && r.rack !== undefined && (!isNum(r.rack) || r.rack < 1 || r.rack > 999 || Math.floor(r.rack) !== r.rack)) p.push('Rack: a whole number');
         break;
 
       case 'process_steps':
@@ -1037,10 +1038,23 @@ window.MRT.domain = (function () {
     if (r.type_id && (!type || type.tool_id !== tool.id)) p.push('The measurement type belongs to another tool');
     var lot = byId('lots', r.lot_id);
     if (r.lot_id && !lot) p.push('Lot not found');
-    if (r.panels && !Array.isArray(r.panels)) p.push('Panels must be a list');
-    if (lot && (r.panels || []).some(function (n) { return !isNum(n) || n < 1 || n > lot.panel_count || Math.floor(n) !== n; })) {
-      p.push('Panels: lot ' + lot.lot_number + ' has panels 1-' + lot.panel_count);
+    var nl = r.new_lot;
+    if (nl) {
+      if (!isLotNumber(nl.lot_number)) p.push('Lot number: digits, a split lot adds .01 - e.g. 18178 or 18178.01');
+      else if ((d.lots || []).some(function (x) { return x.lot_number === nl.lot_number; })) p.push('Lot ' + nl.lot_number + ' exists already - pick it');
+      if (nl.project_id && !byId('projects', nl.project_id)) p.push('Project not found');
+      if (nl.buildup_id && !byId('buildups', nl.buildup_id)) p.push('Build-up not found');
     }
+    if (r.panels && !Array.isArray(r.panels)) p.push('Panels must be a list');
+    if ((r.panels || []).some(function (x) { return !isPanelId(x); })) p.push('Panels: Hirata IDs are digits, e.g. 3252');
+    if ((r.panels || []).some(function (x, i, a) { return a.indexOf(x) !== i; })) p.push('A panel is listed twice');
+    if (r.panel_count !== null && r.panel_count !== undefined && (!isNum(r.panel_count) || r.panel_count < 1 || r.panel_count > 99 || Math.floor(r.panel_count) !== r.panel_count)) p.push('How many panels: 1-99');
+    var buLayers = layersFor(byId('buildups', lot ? lot.buildup_id : nl && nl.buildup_id));
+    if ((r.layers || []).some(function (x) { return buLayers.indexOf(x) === -1; })) p.push('A layer does not belong to this build-up');
+    var magR = byId('magazines', r.magazine_id);
+    if (r.magazine_id && !magR) p.push('Magazine not found');
+    if ((r.slots || []).some(function (x) { return !isNum(x) || x < 1 || x > (magR ? magR.slots : 24) || Math.floor(x) !== x; })) p.push('Slots: 1-' + (magR ? magR.slots : 24));
+    if ((r.slots || []).length && !r.magazine_id) p.push('Pick the magazine of the slots');
     var prio = byId('priorities', r.priority_id);
     if (r.priority_id && !prio) p.push('Priority not found');
     if (r.needed_by && !isYmd(r.needed_by)) p.push('"Needed by" must be a date');
@@ -1048,10 +1062,8 @@ window.MRT.domain = (function () {
     if (r.bkm_id && (!bkm || bkm.tool_id !== tool.id)) p.push('The BKM belongs to another tool');
     if (r.bkm_path && !isSharePath(r.bkm_path)) p.push('BKM path: a share path like \\\\server\\share\\... or Z:\\...');
     if (r.process_step_id && !byId('process_steps', r.process_step_id)) p.push('Process step not found');
-    if (r.magazine_id && !byId('magazines', r.magazine_id)) p.push('Magazine not found');
-    if (r.rack !== null && r.rack !== undefined && r.rack !== '' && (!isNum(r.rack) || r.rack < 1 || Math.floor(r.rack) !== r.rack)) p.push('Rack: a whole number');
     if (r.after && AFTER_OPTIONS.indexOf(r.after) === -1) p.push('Pick where the panels go afterwards');
-    ['purpose', 'panel_location', 'layer', 'priority_reason', 'after_other', 'process_step_other'].forEach(function (k) {
+    ['purpose', 'panel_location', 'priority_reason', 'after_other', 'process_step_other'].forEach(function (k) {
       if (r[k] && String(r[k]).length > REQUEST_TEXT_MAX) p.push('Text too long: ' + k);
     });
     var ex = r.extra || {};
@@ -1060,14 +1072,18 @@ window.MRT.domain = (function () {
 
     if (tool.active === false) p.push(tool.code + ' is no longer offered');
     if (!type) p.push('Pick the measurement type');
-    if (!lot) p.push('Pick the lot');
-    if (!(r.panels || []).length) p.push('Pick at least one panel');
+    if (!lot && !nl) p.push('Pick or type the lot');
+    if (nl && (!nl.project_id || !nl.buildup_id)) p.push('A new lot needs its project and build-up');
+    if (!panelCountOf(r)) p.push('Give the panels: their Hirata IDs, or how many');
+    var taken = r.magazine_id ? takenSlots(d.requests, r.magazine_id, r.id) : {};
+    var clash = (r.slots || []).filter(function (x) { return taken[x]; });
+    if (clash.length) p.push('Slot ' + clash.join(', ') + ' of this magazine ' + (clash.length > 1 ? 'are' : 'is') + ' taken by ' + taken[clash[0]]);
     var gone = lot ? (r.panels || []).filter(function (n) { return (lot.scrapped || []).indexOf(n) !== -1; }) : [];
     if (gone.length && !(o && o.allowScrapped)) p.push('Panel ' + gone.join(', ') + (gone.length > 1 ? ' are' : ' is') + ' scrapped');
     if (!prio) p.push('Pick a priority');
     else if (prio.needs_reason && !isStr(r.priority_reason)) p.push(prio.name + ' needs a reason');
     if (!bkm && !r.bkm_path && !isStr(r.purpose)) p.push('Without a BKM, the purpose must say what to measure');
-    if (!(r.magazine_id && r.rack) && !isStr(r.panel_location)) p.push('Say where the panels are now: magazine and rack, or a note');
+    if (!(r.magazine_id && (r.slots || []).length) && !isStr(r.panel_location)) p.push('Say where the panels are now: the magazine slots, or a note');
     if (tool.destructive && r.destructive_ok !== true) p.push(tool.code + ' destroys the panels - tick that they may be scrapped');
     if (!r.after) p.push('Say where the panels go afterwards');
     else if (r.after === 'other' && !isStr(r.after_other)) p.push('Say where the panels go afterwards (Other)');
@@ -1270,10 +1286,15 @@ window.MRT.domain = (function () {
     isCode: isCode,
     isPartNumber: isPartNumber,
     isLotNumber: isLotNumber,
+    isPanelId: isPanelId,
+    parsePanelIds: parsePanelIds,
+    panelsText: panelsText,
+    panelCountOf: panelCountOf,
+    buildupLayers: buildupLayers,
+    layersFor: layersFor,
+    placeText: placeText,
+    takenSlots: takenSlots,
     isMagazineCode: isMagazineCode,
-    defaultLoad: defaultLoad,
-    loadProblems: loadProblems,
-    whereText: whereText,
     parseLotNumbers: parseLotNumbers,
     viennaTs: viennaTs,
     isoWeekday: isoWeekday,

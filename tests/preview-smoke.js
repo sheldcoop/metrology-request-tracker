@@ -69,8 +69,9 @@ async function boot(query, hash) {
   const origErr = d.win.console.error;
   d.win.console.error = (...a) => { errs.push(a.map(String).join(' ')); };
   const someReq = d.win.MRT.store.data().requests.filter(r => r.status === 'in_progress')[0];
-  const someLot = d.win.MRT.store.data().lots.filter(l => l.load.length)[0];
-  const routes = ['#/lab', '#/queue', '#/requests', '#/new', '#/lots', '#/lots/' + someLot.id, '#/board', '#/request/' + someReq.id, '#/slip/' + someReq.id,
+  const someLot = d.win.MRT.store.data().lots.filter(l => l.scrapped.length)[0];
+  const myDraft = d.win.MRT.store.data().requests.filter(r => r.status === 'draft' && r.requester_id === d.win.MRT.store.currentUser().id)[0];
+  const routes = ['#/lab', '#/queue', '#/requests', '#/new', '#/new/' + myDraft.id, '#/new?from=' + someReq.id, '#/lots', '#/lots/' + someLot.id, '#/board', '#/request/' + someReq.id, '#/slip/' + someReq.id,
     '#/settings/health', '#/settings/users', '#/settings/tools', '#/settings/lists', '#/settings/lots', '#/settings/calendar', '#/settings/audit', '#/settings/data', '#/help'];
   let slowest = ['', 0];
   for (const h of routes) {

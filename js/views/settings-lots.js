@@ -38,7 +38,7 @@
           code('projects', l.project_id) || k.muted('?'),
           l.part_number_id ? ui.el('span', { class: 'mono', text: code('part_numbers', l.part_number_id) || '?' }) : k.muted('-'),
           code('buildups', l.buildup_id) || k.muted('?'),
-          ui.el('span', { class: 'num', text: String(l.panel_count) }),
+          ui.el('span', { class: 'num', text: l.panel_count ? String(l.panel_count) : '-' }),
           owner ? owner.name + (owner.active === false ? ' (switched off)' : '') : k.muted('?'),
           ui.el('span', { class: 'num', text: String(store.lotUsage(l.id).count) }),
           ui.el('span', { class: 'row-actions' }, [
@@ -65,7 +65,7 @@
       fields: [
         { key: 'numbers', label: 'Lot numbers', kind: 'longtext', placeholder: 'e.g. 18178, 18179, 18180  or  18178-18180  or one per line',
           hint: 'Commas, spaces or new lines. A run like 18178-18180 adds every number in it.' },
-        { key: 'panel_count', label: 'Panels (each lot)', kind: 'number', cls: 'half' },
+        { key: 'panel_count', label: 'Panels per lot (optional)', kind: 'number', cls: 'half' },
         { key: 'project_id', label: 'Project', kind: 'select', cls: 'half', options: lots.projectOptions('projects', null, '- pick a project -') },
         { key: 'part_number_id', label: 'Part number', kind: 'select', cls: 'half', options: start.options },
         { key: 'buildup_id', label: 'Build-up', kind: 'select', cls: 'half', options: lots.projectOptions('buildups', null, '- pick a build-up -') },
@@ -79,7 +79,7 @@
         var p = D.parseLotNumbers(v.numbers);
         if (p.errors.length) return ['numbers', p.errors[0]];
         if (!p.numbers.length) return ['numbers', 'Enter at least one lot number'];
-        if (!(v.panel_count >= 1 && v.panel_count <= D.LOT_MAX_PANELS) || Math.floor(v.panel_count) !== v.panel_count) return ['panel_count', 'A whole number from 1 to ' + D.LOT_MAX_PANELS];
+        if (v.panel_count !== null && (!(v.panel_count >= 1 && v.panel_count <= D.LOT_MAX_PANELS) || Math.floor(v.panel_count) !== v.panel_count)) return ['panel_count', 'Empty, or a whole number from 1 to ' + D.LOT_MAX_PANELS];
         if (!v.project_id) return ['project_id', 'Pick a project'];
         if (!v.buildup_id) return ['buildup_id', 'Pick a build-up'];
         return null;

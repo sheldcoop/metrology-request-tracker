@@ -112,7 +112,7 @@ window.MRT.views.requests = (function () {
         ui.el('td', {}, ui.el('span', { class: 'cell-tool' }, [tool ? ui.toolGlyph(tool.glyph, { size: 24 }) : null,
           ui.el('a', { class: 'mono', href: link, text: r.request_no || ((tool ? tool.code : '?') + ' draft') }),
           D.isOldDraft(r, now) ? ui.el('span', { class: 'chip warning', title: 'Untouched for 30 days or more - submit or delete it (Q33)', text: '30+ days' }) : null])),
-        ui.el('td', {}, [ui.el('span', { class: 'mono', text: lot ? lot.lot_number : '-' }), ui.el('span', { class: 'muted', text: '  ' + (D.formatPanels(r.panels) || '') })]),
+        ui.el('td', {}, [ui.el('span', { class: 'mono', text: lot ? lot.lot_number : '-' }), ui.el('span', { class: 'muted', text: '  ' + D.panelsText(r) })]),
         ui.el('td', {}, ui.el('span', { class: 'chip ' + chip(r, closed), text: closed ? 'Closed' : D.REQUEST_STATUS_LABEL[r.status] })),
         ui.el('td', { text: prio ? prio.name : '-' }),
         ui.el('td', {}, [ui.el('span', { class: 'num', text: r.needed_by || '-' }), ui.el('br'), clock]),

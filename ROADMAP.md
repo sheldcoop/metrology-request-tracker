@@ -15,6 +15,10 @@ Updated 2026-09-24. Decisions: `DECISIONS.md`; parked questions: `OPEN_QUESTIONS
   tried with a real scanner or printer.
 - **M4** notifications: bell, pop-ups, Outlook drafts, quiet reload (M4-1..M4-5). Not yet tried:
   pop-ups from `file://` in Edge, mailto with the office Outlook.
+- **Request form v2** (F-1..F-5): guided steps, tool first; Project · Lot · Build-up on one line
+  (a new lot is registered on Submit); panels by Hirata ID or a count; layers from the build-up;
+  magazine slots picked on a front view (drag). The old lot loading map and racks are gone. The
+  panel map component stays in the UI kit, unused for now.
 
 ## Being built now (no outside input needed)
 Nothing - everything that needs no outside input is built. Next: the R1 test run.

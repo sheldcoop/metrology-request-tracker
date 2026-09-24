@@ -19,24 +19,31 @@ BKMs and its queue (open, late, oldest, typical wait). The tool's quality
 engineers and admins set the status here.
 
 **Lots** - register a lot: lot number (18178, split lot 18178.01), project,
-part number (of that project), build-up, panel count, note. Any engineer
+part number (of that project), build-up, panel count (optional), note.
+An engineer can also just type a new lot number in the request form; it is
+registered when the request is sent. Any engineer
 registers one; the owner or an admin changes it. Admins add further lot
 fields (purpose, started on, status ...) in Settings > Lists > Lot fields.
 To try it: Settings > Data & PIN > "Add 3 sample lots".
 
-**Magazines** - cassettes of 24 slots (M70345 ...) in racks 1-24. A lot has
-its magazines and a loading map (panel -> slot) that can be edited; requests
-show "M70345 · Rack 7 · slots 1-4"; Complete says where the panels go back.
+**Magazines** - PCB magazines of 24 slots (M70345 ...), one panel per slot.
+A request picks the slots its panels sit in, on a drawing of the magazine
+from the front ("M70345 · slots 3-6"); slots of other open requests are
+taken. Complete says where the panels go back (same slots or others).
 
-**New request** - one tool per request: tool, measurement type, BKM (or
-your own BKM path), lot and panels on the panel map, where the panels are,
-process step, layer, afterwards, priority (+ reason), needed-by (optional),
-purpose and the tool's extra fields. Save a private draft or submit; submit
-warns first (tool down, same panels already open, no BKM) and gives the ID
-(FIB-260924-03).
+**New request** - a guided form, one tool per request, step by step:
+1 tool, measurement type, BKM (or your own BKM path); 2 Project · Lot ·
+Build-up on one line (pick a lot or type a new one), the panels by Hirata ID
+("3252-3255") or just how many, the layers of the build-up (1FCO / 1BCO
+core, then 2F / 2B ...), process step; 3 the magazine slots or a note, and
+afterwards; 4 priority (+ reason) and needed-by (optional); 5 purpose and
+the tool's extra fields; then Review. Each finished step folds into one
+line; the traveller card builds up on the right. Save a private draft or
+submit; submit warns first (tool down, same panels already open, no BKM)
+and gives the ID (FIB-260924-03).
 
 **Request page** - the request as a traveller card (priority stripe, status
-stamp, panel map, needed-by countdown in lab time), status rail, BKM and
+stamp, panels, layers, the magazine slots, needed-by countdown in lab time), status rail, BKM and
 results paths with Copy, details, and the timeline with comments and
 @mentions. Requester, the tool's quality engineers and admins can cancel
 (with a reason). The search finds requests by (part of) their ID.
@@ -101,7 +108,7 @@ printable, including "Admin: setting up the office".
 
 Made-up data for every screen and rule: 17 people (you as admin, 7
 engineers, 2 operators who also measure, 3 quality engineers, 2 managers, a
-new and a switched-off one), 45 lots in magazines, ~260 requests over six
+new and a switched-off one), 45 lots, ~260 requests (Hirata IDs or counts, layers, magazine slots) over six
 months in every state on every tool (late, Line stop, on hold, questions,
 reopened, cancelled, drafts, @mentions, away routing, scrapped FIB panels).
 

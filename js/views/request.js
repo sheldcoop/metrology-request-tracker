@@ -92,7 +92,8 @@ window.MRT.views.request = (function () {
         cell('Priority', prio ? ui.el('span', { class: 'tr-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono muted', text: prio.code })]) : muted('-'),
              r.priority_reason ? r.priority_reason : null),
         cell('Needed by', r.needed_by ? ui.el('b', { class: 'num', text: ui.formatDate(r.needed_by + 'T12:00:00Z') }) : muted('no date'), null, clock),
-        cell('Panels', ui.el('b', { class: 'mono', text: (D.formatPanels(r.panels) || '-') + '  (' + (r.panels || []).length + ')' }), window.MRT.requestActions.whereOf(r) || null),
+        cell('Panels', ui.el('b', { class: 'mono', text: D.panelsText(r) + ((r.panels || []).length ? '  (' + r.panels.length + ')' : '') }),
+          [(r.layers || []).length ? 'layer ' + r.layers.join(', ') : null, window.MRT.requestActions.whereOf(r) || null].filter(Boolean).join(' · ') || null),
         cell('Submitted', ui.el('span', { class: 'num', text: ui.formatTs(r.submitted_ts) })),
         r.expected_done ? cell('Expected done', ui.el('b', { class: 'num', text: ui.formatDate(r.expected_done + 'T12:00:00Z') }),
           r.needed_by && r.expected_done > r.needed_by ? 'later than needed' : null) : null,
@@ -100,8 +101,18 @@ window.MRT.views.request = (function () {
         r.received_ts ? cell('Panels received', userName(r.received_by) + ', ' + ui.formatTs(r.received_ts), r.received_where || null) : null,
         r.status === 'on_hold' ? cell('On hold', ((byId('hold_reasons', r.hold_reason_id) || {}).name || '?'), r.hold_note || null) : null
       ]),
-      lot ? ui.panelMap({ count: lot.panel_count, selected: r.panels, readOnly: true, label: 'Panels of lot ' + lot.lot_number }).node : null
+      magazineView(r)
     ]);
+  }
+
+  /** The magazine with this request's panels in their slots (F-3), when it has one. */
+  function magazineView(r) {
+    var m = r.magazine_id ? byId('magazines', r.magazine_id) : null;
+    if (!m || !(r.slots || []).length) return null;
+    var slotsNow = r.put_back && r.status === 'completed' ? r.put_back.slots : r.slots;
+    var magNow = r.put_back && r.status === 'completed' ? byId('magazines', r.put_back.magazine_id) || m : m;
+    return ui.el('div', { class: 'tr-mag' }, ui.magazineSlots({ magazine: magNow, picked: slotsNow, readOnly: true,
+      labels: window.MRT.requestActions.slotLabels(r.panels, slotsNow) }).node);
   }
 
   function cell(label, value, sub, extra) {
@@ -176,7 +187,7 @@ window.MRT.views.request = (function () {
     });
     return ui.panel({ title: 'Details', icon: 'requests', body: ui.el('dl', { class: 'facts' }, [].concat.apply([], [
       row('Panels are now', window.MRT.requestActions.whereOf(r) || null), row('Panels are after', step ? step.name : r.process_step_other || null),
-      row('Layer', r.layer || null), row('Afterwards', D.AFTER_LABEL[r.after] + (r.after_other ? ': ' + r.after_other : '')),
+      row('Layers', (r.layers || []).join(', ') || null), row('Afterwards', D.AFTER_LABEL[r.after] + (r.after_other ? ': ' + r.after_other : '')),
       tool && tool.destructive ? row('Destructive', r.destructive_ok ? 'Confirmed by the requester' : 'NOT confirmed') : [],
       row('Purpose', r.purpose || null)
     ].concat(extra))) }).node;

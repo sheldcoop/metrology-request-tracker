@@ -5,7 +5,7 @@
  * 7 engineers, 2 operators who also measure, 3 quality engineers, 2
  * managers - plus one who added themselves and one switched off), all five
  * tools with extra fields, part numbers, process steps, lots and split lots
- * in magazines, and ~260 requests over the last six months in EVERY state
+ * in magazine slots, and ~260 requests over the last six months in EVERY state
  * on EVERY tool: drafts (one 30+ days old), submitted, accepted (expected
  * done, some later than needed), in progress, on hold (each reason), needs
  * clarification, completed, closed, reopened, cancelled (by the engineer and
@@ -158,9 +158,10 @@ window.MRT.demoData = (function () {
     var lotFields = {};
     d.lot_fields.forEach(function (f) { lotFields[f.label] = f; });
     function choiceId(f, label) { return (f.choices.filter(function (c) { return c.label === label; })[0] || {}).id; }
-    var magFree = d.magazines.slice();
-    var lots = [];
-    function addLot(num, daysAgo, panels, parent, withMags) {
+    // magazines: the first 8 held panels of finished requests, the other 12 hold the open ones (no slot twice)
+    var magOld = d.magazines.slice(0, 8), magOpen = d.magazines.slice(8), occ = {};
+    var lots = [], hirata = 3100;
+    function addLot(num, daysAgo, panels, parent) {
       var projCode = parent ? null : pick(['C4F', 'C4F', 'SHIFT', 'HORUS']);
       var proj = parent ? parent.project_id : P[projCode].id;
       var pns = d.part_numbers.filter(function (x) { return x.project_ids.indexOf(proj) !== -1; });
@@ -168,7 +169,10 @@ window.MRT.demoData = (function () {
       var lot = { id: id('lot'), lot_number: num, project_id: proj, part_number_id: parent ? parent.part_number_id : (pns.length && !chance(0.1) ? pick(pns).id : null),
         buildup_id: parent ? parent.buildup_id : pick(d.buildups).id, panel_count: panels, owner_id: parent ? parent.owner_id : owner.id,
         note: chance(0.2) ? pick(['Panels 3-4 have a known scratch', 'Handle with gloves - thin core', 'Split for the DOE', 'Customer lot - priority']) : '',
-        extra: {}, magazine_ids: [], load: [], scrapped: [], created_ts: iso(labTs(daysAgo)), version: 1 };
+        extra: {}, scrapped: [], created_ts: iso(labTs(daysAgo)), version: 1 };
+      lot.ids = [];                                        // the panels' Hirata IDs (F-1), dropped before the lot is saved
+      for (var h = 0; h < panels; h++) lot.ids.push(String(hirata + h));
+      hirata += panels + between(5, 40);
       var ex = lot.extra;
       ex[lotFields['Purpose of the lot'].id] = choiceId(lotFields['Purpose of the lot'], pick(['Development', 'DOE', 'Qualification', 'Customer sample', 'Production support', 'Failure analysis']));
       ex[lotFields['Started on'].id] = ymdOf(now - (daysAgo + between(1, 10)) * DAY);
@@ -177,20 +181,16 @@ window.MRT.demoData = (function () {
       if (chance(0.2)) ex[lotFields['Customer'].id] = pick(['Customer A', 'Customer B']);
       if (chance(0.5)) ex[lotFields['Expected finish'].id] = ymdOf(now + between(-30, 60) * DAY);
       ex[lotFields['Lot status'].id] = choiceId(lotFields['Lot status'], daysAgo > 90 ? 'Finished' : pick(['Running', 'Running', 'Running', 'On hold']));
-      if (withMags && magFree.length) {
-        var need = Math.ceil(panels / 24);
-        lot.magazine_ids = magFree.splice(0, Math.min(need, magFree.length)).map(function (m) { m.rack = between(1, 24); return m.id; });
-        lot.load = D.defaultLoad(panels, lot.magazine_ids.map(function (mid) { return d.magazines.filter(function (m) { return m.id === mid; })[0]; }), []);
-      }
       lots.push(lot);
       return lot;
     }
-    // 36 lots over six months; the newest 16 sit in magazines; some split lots (18xxx.01/.02)
+    // 36 lots over six months; some split lots (18xxx.01/.02); a few without a panel count (it is optional)
     for (var i = 0; i < 36; i++) {
       var ago = Math.round(180 - i * 5 + R() * 3);
-      var l = addLot(String(18100 + i * 7), Math.max(ago, 1), pick([6, 8, 12, 12, 16, 24, 30, 36, 48]), null, i >= 20);
-      if (i % 6 === 2) addLot(l.lot_number + '.01', Math.max(ago - 2, 1), Math.min(l.panel_count, 8), l, i >= 20);
-      if (i % 12 === 2) addLot(l.lot_number + '.02', Math.max(ago - 3, 1), 4, l, i >= 20);
+      var l = addLot(String(18100 + i * 7), Math.max(ago, 1), pick([6, 8, 12, 12, 16, 24, 30, 36, 48]), null);
+      if (i % 6 === 2) addLot(l.lot_number + '.01', Math.max(ago - 2, 1), Math.min(l.panel_count, 8), l);
+      if (i % 12 === 2) addLot(l.lot_number + '.02', Math.max(ago - 3, 1), 4, l);
+      if (i % 9 === 4) l.panel_count = null;
     }
     d.lots = lots;
     lots.sort(function (a, b) { return a.created_ts < b.created_ts ? -1 : 1; });
@@ -224,6 +224,18 @@ window.MRT.demoData = (function () {
     var COMMENTS = ['Please measure near the fiducials.', 'Panels are in the cleanroom cabinet.', 'Can you also check the corner coupon?', 'Results look fine, thanks!',
                     'Which via row do you mean?', 'Row 3, the dense area.', 'Starting tomorrow morning.', 'Needed for the Friday review.'];
 
+    /** k slots next to each other in one of these magazines; kept = stays open, so nobody else gets them. */
+    function slotsFor(mags, k, kept) {
+      for (var tries = 0; tries < 12; tries++) {
+        var m = pick(mags), start = between(1, m.slots - k + 1), ok = true, sl = [];
+        for (var x = start; x < start + k; x++) { if (kept && occ[m.id + ':' + x]) ok = false; sl.push(x); }
+        if (!ok) continue;
+        if (kept) sl.forEach(function (y) { occ[m.id + ':' + y] = true; });
+        return { magazine_id: m.id, slots: sl };
+      }
+      return null;
+    }
+
     /**
      * One request and its whole history.
      * plan: {tool, daysAgo, fate: draft|submitted|accepted|in_progress|on_hold|clarification|completed|closed|reopened|cancelled|cancelled_lab,
@@ -234,8 +246,7 @@ window.MRT.demoData = (function () {
       var lotPool = lots.filter(function (x) { return Date.parse(x.created_ts) < now - plan.daysAgo * DAY; });
       if (!lotPool.length) lotPool = lots.slice(0, 3);
       var lot = plan.copyOf ? lots.filter(function (x) { return x.id === plan.copyOf.lot_id; })[0] : pick(lotPool.slice(-12));
-      var free = [];
-      for (var n = 1; n <= lot.panel_count; n++) if ((lot.scrapped || []).indexOf(n) === -1) free.push(n);
+      var free = lot.ids.filter(function (x) { return (lot.scrapped || []).indexOf(x) === -1; });
       if (!free.length) return null;
       var k = Math.min(free.length, between(1, 4));
       var start = between(0, free.length - k);
@@ -246,16 +257,21 @@ window.MRT.demoData = (function () {
       var p = prio[plan.prio || (chance(0.05) ? 'P1' : chance(0.2) ? 'P2' : chance(0.8) ? 'P3' : 'P4')];
       var created = labTs(plan.daysAgo);
       var noBkm = chance(0.12);
-      var inMag = (lot.load || []).filter(function (x) { return panels.indexOf(x.panel) !== -1; })[0];
-      var mag = inMag ? d.magazines.filter(function (m) { return m.id === inMag.magazine_id; })[0] : null;
-      var r = { id: id('req'), request_no: null, status: 'draft', tool_id: tool.id, type_id: type.id, lot_id: lot.id, panels: panels,
+      var counted = chance(0.2);                            // 1 in 5 only says how many (F-1)
+      var ends = ['closed', 'cancelled', 'cancelled_lab', 'completed', 'draft'].indexOf(plan.fate) !== -1;
+      var place = chance(0.65) ? slotsFor(ends ? magOld : magOpen, k, !ends) : null;
+      var bu = d.buildups.filter(function (b) { return b.id === lot.buildup_id; })[0];
+      var lys = D.layersFor(bu);
+      var layers = chance(0.5) ? [pick(lys)].concat(chance(0.4) ? [pick(lys)] : []).filter(function (x, i4, a) { return a.indexOf(x) === i4; })
+        .sort(function (a, b) { return lys.indexOf(a) - lys.indexOf(b); }) : [];
+      var r = { id: id('req'), request_no: null, status: 'draft', tool_id: tool.id, type_id: type.id, lot_id: lot.id, panels: counted ? [] : panels, panel_count: k,
         priority_id: p.id, priority_reason: p.needs_reason ? pick(['Line 2 stopped - voids suspected', 'Customer audit on Friday', 'Yield drop on the last lots', 'Qualification deadline']) : '',
         needed_by: plan.late ? ymdOf(now - between(2, 8) * DAY) : chance(0.7) ? ymdOf(created + between(3, 15) * DAY) : null,
         bkm_id: !noBkm && bkms.length ? pick(bkms).id : null, bkm_path: noBkm && chance(0.5) ? '\\\\labserver\\users\\' + U[who].windows_id + '\\BKM_' + tool.code + '.pptx' : '',
         purpose: chance(0.7) || noBkm ? pick(['Check voids after the new plating recipe', 'Roughness before and after desmear', 'Pad size on the corner coupons', 'Step height of the SR opening', 'Defect review after AOI alarm', 'Cross-section of the stacked vias']) : '',
-        process_step_id: chance(0.8) ? pick(d.process_steps).id : null, process_step_other: '', layer: chance(0.5) ? pick(['L1', 'L3', 'L5', 'top SR', 'bottom SR']) : '',
-        panel_location: mag ? '' : pick(['in MES', 'with ' + U[who].name.split(' ')[0], 'Cleanroom cabinet 2', 'Metrology inbox shelf']),
-        magazine_id: mag ? mag.id : null, rack: mag ? mag.rack : null,
+        process_step_id: chance(0.8) ? pick(d.process_steps).id : null, process_step_other: '', layers: layers,
+        panel_location: place ? '' : pick(['in MES', 'with ' + U[who].name.split(' ')[0], 'Cleanroom cabinet 2', 'Metrology inbox shelf']),
+        magazine_id: place ? place.magazine_id : null, slots: place ? place.slots : [], new_lot: null,
         destructive_ok: !!tool.destructive, after: tool.destructive ? 'scrap' : pick(['back_to_me', 'back_to_me', 'back_to_line', 'other']), after_other: '',
         extra: toolFieldsAnswers(tool, type.id), duplicated_from: plan.copyOf ? plan.copyOf.id : null, requester_id: U[who].id, assigned_to: null,
         created_ts: iso(created), updated_ts: iso(created), submitted_ts: null, version: 1 };
@@ -288,9 +304,11 @@ window.MRT.demoData = (function () {
         step(0.5, who, 'comment', null, null, cm, { mentions: mention ? [qe.id] : [] });
       }
       if (plan.edited) {
-        var old = D.formatPanels(r.panels);
-        var more = free.filter(function (x) { return r.panels.indexOf(x) === -1; }).slice(0, 2);
-        if (more.length) { r.panels = r.panels.concat(more).sort(function (a, b) { return a - b; }); step(1, who, 'edit', null, null, 'panels ' + old + ' -> ' + D.formatPanels(r.panels) + '. Reason: two more panels for the statistics'); }
+        var old = D.panelsText(r);
+        if (r.panels.length) {
+          var more = free.filter(function (x) { return r.panels.indexOf(x) === -1; }).slice(0, 2);
+          if (more.length) { r.panels = r.panels.concat(more); r.panel_count = r.panels.length; step(1, who, 'edit', null, null, 'panels ' + old + ' -> ' + D.panelsText(r) + '. Reason: two more panels for the statistics'); }
+        } else { r.panel_count += 2; step(1, who, 'edit', null, null, 'how many panels ' + old + ' -> ' + D.panelsText(r) + '. Reason: two more panels for the statistics'); }
       }
       if (plan.fate === 'submitted') return r;
       if (plan.fate === 'cancelled') { r.status = 'cancelled'; r.cancelled_ts = iso(later(t, 2)); step(2, who, 'status', 'submitted', 'cancelled', 'Lot was scrapped in production'); return r; }
@@ -331,15 +349,14 @@ window.MRT.demoData = (function () {
         r.panels_outcome = tool.destructive ? 'scrapped' : r.after === 'other' ? 'other' : 'returned';
         r.panels_outcome_note = r.panels_outcome === 'other' ? r.after_other : '';
         if (tool.destructive) {
-          lot.scrapped = (lot.scrapped || []).concat(r.panels).filter(function (x, i2, a) { return a.indexOf(x) === i2; }).sort(function (a, b) { return a - b; });
-          lot.load = (lot.load || []).filter(function (x) { return r.panels.indexOf(x.panel) === -1; });
-        } else if (r.magazine_id) r.put_back = { magazine_id: r.magazine_id, rack: r.rack };
+          lot.scrapped = (lot.scrapped || []).concat(r.panels).filter(function (x, i2, a) { return a.indexOf(x) === i2; });
+        } else if (r.magazine_id) r.put_back = { magazine_id: r.magazine_id, slots: r.slots.slice() };
         step(hours, qeKey, 'status', 'in_progress', 'completed', D.PANEL_OUTCOME_LABEL[r.panels_outcome] + ' - results in ' + r.results_path);
       }
       complete(between(3, 30));
       if (plan.fate === 'reopened') {
         r.status = 'accepted'; r.reopened = 1; r.completed_ts = null;
-        step(4, who, 'status', 'completed', 'accepted', 'Values look off - please remeasure panel ' + r.panels[0]);
+        step(4, who, 'status', 'completed', 'accepted', 'Values look off - please remeasure ' + (r.panels.length ? 'panel ' + r.panels[0] : 'one panel'));
         if (chance(0.5)) { r.status = 'in_progress'; step(3, qeKey, 'status', 'accepted', 'in_progress'); }
         return r;
       }
@@ -382,6 +399,7 @@ window.MRT.demoData = (function () {
       if (r) made.push(r);
     });
 
+    lots.forEach(function (x) { delete x.ids; });
     d.requests = requests;
     d.request_events = events.sort(function (a, b) { return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0; });
     d.audit_log = audit.concat(d.users.filter(function (u) { return u.self_added; }).map(function (u) {
