@@ -266,6 +266,11 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   warnings Q44, request ID Q29, duplicate) - 5 `request-page` (traveller card, status rail,
   timeline + comments). Personal templates (Q28) after M2.
 
+## M3 planning (2026-09-24)
+- **M3-1** On **Accept** the quality engineer may give an **expected done** date (optional). The
+  engineer sees it on the traveller card and in My requests; with a needed-by date both show, so a
+  later expected date is visible (Q10 "accepts it or proposes another").
+
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
   the app for a few days before M4 starts.
