@@ -443,6 +443,7 @@ window.MRT.app = (function () {
     ui.mount(document.getElementById('searchIcon'), ui.icon('search', 16));
     ui.mount(document.getElementById('keysBtn'), ui.icon('keyboard', 18));
     ui.mount(document.getElementById('helpBtn'), ui.icon('help', 18));
+    ui.mount(document.getElementById('bellIcon'), ui.icon('bell', 18));
     ui.mount(document.getElementById('userCaret'), ui.icon('chevron_down', 14));
   }
 
@@ -529,6 +530,7 @@ window.MRT.app = (function () {
         ui.toastError('The ' + entry.label + ' page failed to load.', e);
       }
     }
+    paintBell();
     main.classList.remove('page-enter');
     void main.offsetWidth;            // restart the entrance animation
     main.classList.add('page-enter');
@@ -705,11 +707,19 @@ window.MRT.app = (function () {
     clearInterval(app.revisionTimer);
   }
 
+  /** Safe to reload by itself: nothing unsaved, no dialog or menu open, nobody typing (M4-3). */
+  function quietReloadOk() {
+    var a = document.activeElement, tag = a && a.tagName ? a.tagName.toLowerCase() : '';
+    return !store.status().pendingSave && !document.querySelector('dialog[open]') && !document.querySelector('.menu') &&
+           !(tag === 'input' || tag === 'textarea' || tag === 'select');
+  }
+
   function checkRevision() {
     if (document.hidden) return;
     store.checkForExternalChange().then(function (change) {
       var banner = document.getElementById('conflictBanner');
       if (!change) { banner.hidden = true; return; }
+      if (quietReloadOk()) { doReload(true); return; }
       banner.hidden = false;
       ui.mount(banner, [
         ui.icon('alert', 16),
@@ -733,14 +743,81 @@ window.MRT.app = (function () {
     doReload();
   }
 
-  function doReload() {
+  function doReload(quiet) {
     var uid = store.status().currentUserId;
     store.load().then(function () {
       document.getElementById('conflictBanner').hidden = true;
       if (!recheckUser()) return;
       route();
-      ui.toast({ message: 'Data reloaded.', kind: 'success' });
+      if (!quiet) ui.toast({ message: 'Data reloaded.', kind: 'success' });
+      announceNew();
     }).catch(function (e) { ui.toastError('Could not reload the data file: ' + e.message, e); });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * The bell (Q19, DECISIONS M4-1..M4-5): what happened on my requests
+   * and my tools, @mentions, people to review. Read / unread is kept per
+   * PC (like the theme), so opening the bell writes nothing to the share.
+   * ------------------------------------------------------------------ */
+
+  var BELL_DAYS = 30;
+  var bell = { announced: Date.now() };     // only what arrives after the app opened pops up
+
+  function readTs() { var v = Date.parse(readPref('notif_read', store.status().currentUserId) || ''); return isNaN(v) ? 0 : v; }
+
+  function notifications() {
+    var me = store.currentUser();
+    if (!me || !store.data()) return [];
+    return D.notificationsFor(me, store.data(), { since_ts: Date.now() - BELL_DAYS * 86400000, limit: 40 });
+  }
+
+  function paintBell() {
+    var btn = document.getElementById('bellBtn'), count = document.getElementById('bellCount');
+    if (!btn || !count) return;
+    var since = readTs();
+    var n = notifications().filter(function (x) { return Date.parse(x.ts) > since; }).length;
+    count.hidden = !n;
+    count.textContent = n > 9 ? '9+' : String(n);
+    btn.setAttribute('aria-label', n ? 'Notifications, ' + n + ' new' : 'Notifications');
+    btn.classList.toggle('has-new', !!n);
+  }
+
+  function openBell(anchor) {
+    var list = notifications(), since = readTs();
+    var canPop = 'Notification' in window;
+    var items = list.length ? list.map(function (x) {
+      var unread = Date.parse(x.ts) > since;
+      return { label: (unread ? '● ' : '') + x.text, icon: x.mention ? 'user' : x.kind === 'comment' ? 'edit' : x.kind === 'user' ? 'users' : 'requests',
+               aside: ui.formatTs(x.ts).slice(5, 16),
+               onClick: function () { location.hash = x.request_id ? '#/request/' + x.request_id : '#/settings/users'; } };
+    }) : [{ node: ui.el('span', { class: 'muted', text: 'Nothing new in the last ' + BELL_DAYS + ' days.' }) }];
+    items.push({ sep: true });
+    items.push({ label: 'Mark all as read', icon: 'check', onClick: function () { writePref('notif_read', new Date().toISOString()); paintBell(); } });
+    if (canPop && window.Notification.permission === 'default') {
+      items.push({ label: 'Turn on pop-ups (while the app is open)', icon: 'bell', onClick: function () {
+        window.Notification.requestPermission().then(function (p) { ui.toast({ message: p === 'granted' ? 'Pop-ups are on.' : 'Pop-ups stay off (the browser said no).' }); });
+      } });
+    }
+    ui.menu(anchor, items, [ui.el('b', { text: 'Notifications' }), ui.el('span', { class: 'muted', text: ' - your requests, your tools, @mentions' })]);
+  }
+
+  /** New since the last look: a browser pop-up when allowed, else a toast (Q19). */
+  function announceNew() {
+    paintBell();
+    var fresh = notifications().filter(function (x) { return Date.parse(x.ts) > bell.announced; });
+    bell.announced = Date.now();
+    if (!fresh.length) return;
+    var popups = 'Notification' in window && window.Notification.permission === 'granted';
+    if (popups) {
+      fresh.slice(0, 3).forEach(function (x) {
+        try {
+          var n = new window.Notification('Metrology requests', { body: x.text, tag: x.id });
+          n.onclick = function () { window.focus(); if (x.request_id) location.hash = '#/request/' + x.request_id; };
+        } catch (e) { console.error('MRT: pop-up failed', e); }
+      });
+    } else {
+      ui.toast({ message: fresh.length === 1 ? fresh[0].text : fresh.length + ' new notifications - see the bell.' });
+    }
   }
 
   /** Hand the person a text file (the recovery copy after a failed save). */
@@ -911,6 +988,7 @@ window.MRT.app = (function () {
     'change-user': changeUser,
     'user-menu': openUserMenu,
     'show-keys': showKeys,
+    'bell': function (btn) { openBell(btn); },
     'nav-collapse': toggleNav,
     'undo': undo,
     'reload-data': reloadData,
@@ -954,7 +1032,7 @@ window.MRT.app = (function () {
     });
 
     window.addEventListener('hashchange', route);
-    window.addEventListener('mrt:committed', function () { setTimeout(function () { paintUndo(); paintFooter(); }, 0); });
+    window.addEventListener('mrt:committed', function () { setTimeout(function () { paintUndo(); paintFooter(); paintBell(); }, 0); });
     window.addEventListener('mrt:save-failed', function (ev) { if (ev.detail) reportSaveFailure(ev.detail); });
 
     document.addEventListener('keydown', function (ev) {

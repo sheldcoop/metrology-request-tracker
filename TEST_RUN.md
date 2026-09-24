@@ -34,6 +34,17 @@ A screenshot helps. Everything else is welcome too: missing fields, confusing wo
 - [ ] **Board**: drag a card to the next column (Edge, real mouse); the allowed columns light up.
 - [ ] Set yourself Away (user menu): new requests go to the backup.
 
+## 2b. New since M3 (both)
+- [ ] The **bell**: a red count for new things; click a line opens the request; Mark all as read.
+- [ ] Bell > "Turn on pop-ups": do Windows pop-ups appear while the app is open? (Unknown from `file://`.)
+- [ ] After Submit / a question / Complete / Cancel: "Email ..." on the green message opens a ready
+      Outlook draft (people need an email in Settings > People).
+- [ ] Someone else saves while you only look: your page updates by itself.
+- [ ] Request page > **Print slip**: prints on A6 (or A4); a hand scanner reading the barcode opens
+      the request (click somewhere on the page first, not in a text field).
+- [ ] Lab status: queue numbers per tool; while a request is In progress, the tool drawing moves;
+      a Down tool shows a blinking lamp. With Reduce motion (user menu) everything stands still.
+
 ## 3. Both, all the time
 - [ ] Two people saving at nearly the same time: the "someone else saved" message, nothing lost.
 - [ ] Undo (10 s, Ctrl+Z) after a change.

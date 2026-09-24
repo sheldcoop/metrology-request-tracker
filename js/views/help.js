@@ -152,6 +152,18 @@ window.MRT.views.help = (function () {
       ],
       tips: ['The engineer then clicks Results OK or Reopen (with a reason). A completed request closes by itself after 7 days.'] },
 
+    { id: 'bell', title: 'Notifications (the bell)', icon: 'bell',
+      intro: 'The bell at the top shows what is new for you - a red number counts the unread ones.',
+      steps: [
+        'Engineers hear about their requests: accepted, started, a question, completed, comments, changes.',
+        'Quality engineers hear about their tools: new requests, changes, answers, reopened or cancelled requests, comments, and requests assigned to them.',
+        'Anyone written as @Name in a comment hears about it. Admins hear about people who added themselves.',
+        'Click a line to open the request. "Mark all as read" clears the number (kept on this PC).',
+        '"Turn on pop-ups" shows new things as a Windows pop-up while the app is open.',
+        'After Submit, a question, Complete or Cancel, the green message offers "Email ..." - a ready Outlook draft to the other side. Check it and press Send.'
+      ],
+      tips: ['When someone else saves, the app loads their change by itself - unless you are in the middle of something; then a banner asks.'] },
+
     { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
       intro: 'Tell the lab when you are not there, so people know who covers your tools.',
       steps: [

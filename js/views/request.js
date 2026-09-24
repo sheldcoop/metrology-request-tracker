@@ -254,7 +254,11 @@ window.MRT.views.request = (function () {
       message: 'The request stays visible as Cancelled, never deleted. The quality engineers are told from M4. Why?' })
       .then(function (reason) {
         if (!reason) return;
-        return store.cancelRequest(r.id, reason).then(function () { ui.toast({ kind: 'success', message: r.request_no + ' cancelled.' }); window.MRT.app.route(); });
+        return store.cancelRequest(r.id, reason).then(function (res) {
+          var offer = window.MRT.requestActions.emailOffer(res, 'cancel');
+          ui.toast({ kind: 'success', message: r.request_no + ' cancelled.', actions: offer ? [offer] : null, timeout_ms: offer ? 8000 : undefined });
+          window.MRT.app.route();
+        });
       }).catch(function (e) { ui.toastError('Could not cancel: ' + e.message, e); });
   }
 

@@ -48,8 +48,37 @@ window.MRT.requestActions = (function () {
     });
   }
 
-  function done(r, text) {
-    ui.toast({ kind: 'success', message: r.request_no + ': ' + text });
+  /**
+   * A ready Outlook draft about a request (Q19, M4-4), offered on a toast
+   * after the key events: submit -> the tool's quality engineers; clarify,
+   * complete -> the requester; cancel -> the other side.
+   */
+  function emailOffer(r, event) {
+    var me = store.currentUser(), tool = toolOf(r) || {};
+    var lot = store.byId('lots', r.lot_id), prio = store.byId('priorities', r.priority_id);
+    function person(id) { return id ? store.byId('users', id) : null; }
+    var toQE = [person(tool.primary_operator_id), person(tool.backup_operator_id)];
+    var to = event === 'submit' ? toQE : event === 'cancel' && r.requester_id === me.id ? toQE : [person(r.requester_id)];
+    to = to.filter(function (u) { return u && u.id !== me.id && u.email; });
+    if (!to.length) return null;
+    var what = { submit: 'New request', clarify: 'Question about', complete: 'Completed', cancel: 'Cancelled' }[event];
+    var last = store.requestEvents(r.id).slice(-1)[0];
+    var body = [
+      what + ': ' + r.request_no + (tool.code ? ' (' + tool.code + ')' : ''),
+      'Lot ' + (lot ? lot.lot_number : '?') + ', panels ' + (D.formatPanels(r.panels) || '-'),
+      'Priority ' + (prio ? prio.name : '-') + (r.needed_by ? ', needed by ' + r.needed_by : ''),
+      event === 'complete' && r.results_path ? 'Results: ' + r.results_path : null,
+      last && last.text && event !== 'submit' ? '\n' + last.text : null,
+      '\nOpen it in the Metrology Request Tracker - search ' + r.request_no + '.'
+    ].filter(Boolean).join('\n');
+    return { label: 'Email ' + to.map(function (u) { return u.name.split(' ')[0]; }).join(' + '), onClick: function () {
+      window.MRT.adapters.mail.draft({ to: to.map(function (u) { return u.email; }), subject: '[' + r.request_no + '] ' + what, body: body });
+    } };
+  }
+
+  function done(r, text, event) {
+    var offer = event ? emailOffer(r, event) : null;
+    ui.toast({ kind: 'success', message: r.request_no + ': ' + text, actions: offer ? [offer] : null, timeout_ms: offer ? 8000 : undefined });
     window.MRT.app.route();
     return r;
   }
@@ -110,7 +139,7 @@ window.MRT.requestActions = (function () {
           { key: 'text', label: 'What is missing or unclear?', kind: 'longtext' }
         ], {}, function (v) { return store.requestAction(r.id, 'clarify', v); }, function (v) { return v.text ? null : ['text', 'Say what is missing']; },
         'It goes back to the engineer; when they answer, it comes back to where it was.')
-          .then(function (res) { return res ? done(res, 'sent back for clarification.') : null; });
+          .then(function (res) { return res ? done(res, 'sent back for clarification.', 'clarify') : null; });
         break;
       case 'answer':
         p = ask('Answer - ' + r.request_no, 'edit', [
@@ -129,7 +158,7 @@ window.MRT.requestActions = (function () {
         ], { results_path: root, panels_outcome: outcome, note: r.after === 'other' ? r.after_other : '' },
         function (v) { return store.requestAction(r.id, 'complete', v); },
         function (v) { return D.isSharePath(v.results_path) ? null : ['results_path', 'A share path like \\\\server\\share\\... or Z:\\...']; })
-          .then(function (res) { return res ? done(res, 'completed.') : null; });
+          .then(function (res) { return res ? done(res, 'completed.', 'complete') : null; });
         break;
       }
       case 'reopen':
@@ -159,5 +188,5 @@ window.MRT.requestActions = (function () {
     return p.catch(fail);
   }
 
-  return { buttons: buttons, run: run, available: available, label: label };
+  return { buttons: buttons, run: run, available: available, label: label, emailOffer: emailOffer };
 })();

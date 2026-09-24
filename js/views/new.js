@@ -309,7 +309,8 @@ window.MRT.views['new'] = (function () {
       ask.then(function (ok) {
         if (!ok) return;
         return store.submitRequest({ id: draft ? draft.id : undefined, version: draft ? draft.version : undefined, fields: f }).then(function (r) {
-          ui.toast({ kind: 'success', message: 'Submitted ' + r.request_no + '.' });
+          var offer = window.MRT.requestActions.emailOffer(r, 'submit');
+          ui.toast({ kind: 'success', message: 'Submitted ' + r.request_no + '.', actions: offer ? [offer] : null, timeout_ms: offer ? 8000 : undefined });
           location.hash = '#/request/' + r.id;
         });
       }).catch(function (e) { ui.toastError('Could not submit: ' + e.message, e); });

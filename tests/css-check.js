@@ -34,6 +34,7 @@ const REQUIRED = {
   queue: ['.q-row.is-late > td', '.queue-bulk', '.q-clock.is-late'],
   board: ['.board-cell.is-target', '.board-cell.is-dim', '.bcard.is-urgent::after', '.bcard::before'],
   slip: ['.slip::before', '.slip-code .barcode', '.slip-warn'],
+  bell: ['.bell-count', '.bell-btn'],
   requestPage: ['.traveller.is-urgent::after', '.tr-stamp', '.status-rail', '.rail-step.is-now .rail-dot', '.timeline', '.mention'],
   panelmap: ['.panel-map', '.pm-cell.is-picked::after', '.pm-cell.is-scrapped', '.pm-cell::before'],
   form: ['.form-grid', '.form-checks', '.modal-error'],

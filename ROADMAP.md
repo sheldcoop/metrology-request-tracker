@@ -13,11 +13,12 @@ Updated 2026-09-24. Decisions: `DECISIONS.md`; parked questions: `OPEN_QUESTIONS
 - Search finds words in comments (Q41); drafts untouched for 30 days are flagged (Q33).
 - Printable A6 traveller slip with a Code 128 barcode (Q38); a scanner opens the request. Not yet
   tried with a real scanner or printer.
+- **M4** notifications: bell, pop-ups, Outlook drafts, quiet reload (M4-1..M4-5). Not yet tried:
+  pop-ups from `file://` in Edge, mailto with the office Outlook.
 
 ## Being built now (no outside input needed)
-| Item | Decision | Note |
-|---|---|---|
-| M4 notifications | Q19 | bell, browser pop-up, Outlook draft (mailto) - all work offline |
+Nothing - everything that needs no outside input is built. Next: the R1 test run.
+
 
 ## Left, and why
 | Item | Decision | Why not now |
