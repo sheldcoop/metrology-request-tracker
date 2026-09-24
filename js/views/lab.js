@@ -26,7 +26,15 @@ window.MRT.views.lab = (function () {
     down:        { chip: 'expired', glyph: 'off',   label: 'Down' }
   };
 
-  function userName(id) { var u = id ? store.byId('users', id) : null; return u ? u.name : null; }
+  /** A quality engineer's name, with "away" when they are (M1-14). */
+  function person(id, today) {
+    var u = id ? store.byId('users', id) : null;
+    if (!u) return null;
+    var a = D.awayState(u, today);
+    if (!a || a.state !== 'now') return u.name;
+    return ui.el('span', { class: 'cell-main' }, [ui.el('span', { text: u.name }),
+      ui.el('span', { class: 'chip warning', text: a.until ? 'Away until ' + a.until : 'Away', title: a.note || null })]);
+  }
 
   function statusChip(status) {
     var s = STATUS[status] || STATUS.up;
@@ -71,9 +79,10 @@ window.MRT.views.lab = (function () {
     var bkms = store.list('bkms').filter(function (b) { return b.tool_id === t.id; });
     var samples = types.filter(function (m) { return m.sample; }).length + bkms.filter(function (b) { return b.sample; }).length;
     var canSet = D.canSetToolStatus(me, t);
+    var today = D.viennaYmd(Date.now());
 
     function row(label, value, cls) {
-      return [ui.el('dt', { text: label }), ui.el('dd', { class: cls || null, text: value })];
+      return [ui.el('dt', { text: label }), typeof value === 'string' ? ui.el('dd', { class: cls || null, text: value }) : ui.el('dd', { class: cls || null }, value)];
     }
 
     return ui.el('article', { class: 'tool-plate is-' + t.status, id: 'tool-' + t.id, 'aria-label': t.code + ', ' + s.label }, [
@@ -91,8 +100,8 @@ window.MRT.views.lab = (function () {
         t.status_note || null
       ]) : null,
       ui.el('dl', { class: 'tool-plate-facts' }, [
-        row('Primary quality engineer', userName(t.primary_operator_id) || 'not set', t.primary_operator_id ? null : 'is-missing'),
-        row('Backup quality engineer', userName(t.backup_operator_id) || 'not set', t.backup_operator_id ? null : 'is-missing'),
+        row('Primary quality engineer', person(t.primary_operator_id, today) || 'not set', t.primary_operator_id ? null : 'is-missing'),
+        row('Backup quality engineer', person(t.backup_operator_id, today) || 'not set', t.backup_operator_id ? null : 'is-missing'),
         row('Measurement types', String(types.length), 'num'),
         row('BKMs', String(bkms.length), 'num'),
         row('Queue', 'from M3', 'is-missing')

@@ -3,7 +3,8 @@
  *
  * Settings > People: name, Windows ID (+ domain), company email, roles
  * (ticks, several allowed - Q17/Q52), active. People who added themselves
- * carry a New mark until an admin reviews them (M1-5). People are never
+ * carry a New mark until an admin reviews them (M1-5). Admins record Away
+ * for anyone (dates + optional note, no reason - M1-14). People are never
  * deleted, only switched off, so the audit log keeps their names.
  */
 (function () {
@@ -22,6 +23,13 @@
       return (b.needs_review ? 1 : 0) - (a.needs_review ? 1 : 0) || (a.active === b.active ? 0 : a.active ? -1 : 1) || (a.name < b.name ? -1 : 1);
     });
     var review = users.filter(function (u) { return u.needs_review && u.active; }).length;
+    var today = D.viennaYmd(Date.now());
+    var app = window.MRT.app;
+    function awayChip(u) {
+      var a = D.awayState(u, today);
+      if (!a || a.state === 'over') return null;
+      return K.chip((a.state === 'now' ? 'Away ' : 'Planned away ') + app.awayText(a), a.state === 'now' ? 'warning' : 'neutral');
+    }
 
     body.appendChild(K.panel('People', 'users', [ui.button('Add person', { kind: 'primary', icon: 'plus', size: 'sm', onClick: function () { userDialog(null); } })], [
       ui.el('p', { class: 'muted', text: users.length + ' people' + (review ? ' - ' + review + ' added themselves and wait for your review.' : '.') +
@@ -36,13 +44,15 @@
           u.windows_id ? ui.el('span', { class: 'mono', text: (u.domain ? u.domain + '\\' : '') + u.windows_id }) : K.muted('not linked yet'),
           u.email || K.muted('-'),
           ui.el('span', { class: 'chip-row' }, (u.roles || []).map(function (r) { return K.chip(D.ROLE_LABEL[r], r === 'admin' ? 'accent-chip' : null); })),
-          K.chip(u.active ? 'Active' : 'Switched off', u.active ? 'ok' : 'neutral'),
+          ui.el('span', { class: 'chip-row' }, [K.chip(u.active ? 'Active' : 'Switched off', u.active ? 'ok' : 'neutral'), awayChip(u)]),
           ui.el('span', { class: 'row-actions' }, [
             u.needs_review ? ui.button('Reviewed', { size: 'sm', icon: 'check', title: 'Roles checked - remove the New mark',
               onClick: function () {
                 store.markUserReviewed(u.id).then(function () { ui.toast({ kind: 'success', message: u.name + ' reviewed.' }); window.MRT.app.route(); })
                   .catch(function (e) { ui.toastError(e.message, e); });
               } }) : null,
+            u.active ? ui.button('', { kind: 'ghost', size: 'sm', icon: 'calendar', ariaLabel: 'Away: ' + u.name, title: 'Away: ' + u.name,
+              onClick: function () { app.awayDialog(u); } }) : null,
             K.editButton(u.name, function () { userDialog(u); })
           ])
         ] };

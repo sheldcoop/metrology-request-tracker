@@ -73,6 +73,35 @@ window.MRT.domain = (function () {
    */
   function canMeasure(user) { return hasRole(user, 'quality'); }
 
+  /*
+   * Away (DECISIONS M1-14): vacation, sick leave - one period per person,
+   * stored on the user as away_from / away_until (YYYY-MM-DD, until optional =
+   * "until further notice") and an optional note. No reason is ever stored.
+   */
+  var AWAY_NOTE_MAX = 200;
+
+  /**
+   * Where a person stands on a day.
+   * @returns {null | {state: 'now'|'planned'|'over', from, until, note}}
+   */
+  function awayState(user, today_ymd) {
+    if (!user || !user.away_from) return null;
+    var st = today_ymd < user.away_from ? 'planned' : (user.away_until && today_ymd > user.away_until ? 'over' : 'now');
+    return { state: st, from: user.away_from, until: user.away_until || null, note: user.away_note || '' };
+  }
+
+  function isAway(user, today_ymd) { var a = awayState(user, today_ymd); return !!a && a.state === 'now'; }
+
+  /** Check an away period {from, until, note}; empty = fine. */
+  function validateAway(a) {
+    var p = [];
+    if (!isYmd(a.from)) p.push('Pick the first day away');
+    if (a.until && !isYmd(a.until)) p.push('"Back" must be a date');
+    if (isYmd(a.from) && isYmd(a.until) && a.until < a.from) p.push('The last day away cannot be before the first');
+    if (a.note && String(a.note).length > AWAY_NOTE_MAX) p.push('Keep the note under ' + AWAY_NOTE_MAX + ' characters');
+    return p;
+  }
+
   /**
    * A tool's primary and backup (stored as primary_operator_id /
    * backup_operator_id - the field names stay, the people are measurers)
@@ -258,6 +287,7 @@ window.MRT.domain = (function () {
         if (r.domain && !/^[A-Z0-9][A-Z0-9._-]{0,63}$/.test(r.domain)) p.push('Domain: letters and digits only, e.g. CORP');
         if (r.email && !isEmail(r.email)) p.push('That email address does not look right');
         if (r.email && dupBy(d.users, r.id, 'email', r.email, function (v) { return String(v).toLowerCase(); })) p.push('Email ' + r.email + ' already belongs to someone else');
+        if (r.away_from || r.away_until || r.away_note) p.push.apply(p, validateAway({ from: r.away_from, until: r.away_until, note: r.away_note }));
         break;
 
       case 'tools':
@@ -438,6 +468,10 @@ window.MRT.domain = (function () {
         else if (!u.active) add('warning', 'operator_inactive', t.code + ': the ' + k[1].toLowerCase() + ' quality engineer ' + u.name + ' is switched off', 'tools', t.id);
         else if (!canMeasure(u)) add('warning', 'operator_no_role', t.code + ': ' + u.name + ' is ' + k[1].toLowerCase() + ' but has no Quality engineer role', 'users', u.id);
       });
+      var pAway = users[t.primary_operator_id], bAway = users[t.backup_operator_id];
+      if (pAway && bAway && isAway(pAway, today) && isAway(bAway, today)) {
+        add('warning', 'both_away', t.code + ': primary ' + pAway.name + ' and backup ' + bAway.name + ' are both away today', 'tools', t.id);
+      }
       if (t.status !== 'up' && t.status_until && t.status_until < today) {
         add('warning', 'status_overdue', t.code + ' is still ' + TOOL_STATUS_LABEL[t.status] + ', but its "until" date ' + t.status_until + ' has passed', 'tools', t.id);
       }
@@ -467,6 +501,9 @@ window.MRT.domain = (function () {
 
     hasRole: hasRole,
     canMeasure: canMeasure,
+    awayState: awayState,
+    isAway: isAway,
+    validateAway: validateAway,
     canSetToolStatus: canSetToolStatus,
 
     parseWindowsLogin: parseWindowsLogin,

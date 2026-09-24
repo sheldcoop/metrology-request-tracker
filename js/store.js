@@ -607,6 +607,33 @@ window.MRT.store = (function () {
   }
 
   /** An admin has looked at a self-added user: the New mark goes. */
+  /**
+   * Away (DECISIONS M1-14): the person themselves, or an admin, records one
+   * period - dates and an optional note, never a reason. period null = back / clear.
+   * @param {string} userId
+   * @param {Object|null} period {from: 'YYYY-MM-DD', until: 'YYYY-MM-DD' | null, note}
+   */
+  function setAway(userId, period, reason) {
+    return guard(function () {
+      var me = requireUser();
+      var user = need('users', userId, 'User');
+      assert(me.id === user.id || D.hasRole(me, 'admin'), 'Only the person themselves or an admin can set this', 'not_allowed');
+      var next = period
+        ? { away_from: period.from || null, away_until: period.until || null, away_note: String(period.note || '').trim() || null }
+        : { away_from: null, away_until: null, away_note: null };
+      if (period) {
+        var problems = D.validateAway({ from: next.away_from, until: next.away_until, note: next.away_note });
+        assert(!problems.length, problems.join('. '), 'invalid', problems);
+      }
+      var keys = ['away_from', 'away_until', 'away_note'].filter(function (k) { return (user[k] || null) !== (next[k] || null); });
+      assert(keys.length, 'Nothing was changed', 'no_change');
+      keys.forEach(function (k) { audit('user', user.id, 'away', k, user[k] || null, next[k], reason || null); });
+      Object.assign(user, next);
+      user.version += 1;
+      return commit().then(function () { return user; });
+    });
+  }
+
   function markUserReviewed(userId, reason) {
     return guard(function () {
       requireAdmin();
@@ -1054,6 +1081,7 @@ window.MRT.store = (function () {
     selfRegister: selfRegister,
     linkIdentity: linkIdentity,
     markUserReviewed: markUserReviewed,
+    setAway: setAway,
     hasPin: hasPin,
     verifyPin: verifyPin,
     setAdminPin: setAdminPin,

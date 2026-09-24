@@ -174,6 +174,17 @@
     ok('a Windows ID belongs to one person', probs('users', { name: 'B', roles: ['engineer'], windows_id: 'aa' }).length === 1);
     ok('an email belongs to one person', probs('users', { name: 'B', roles: ['engineer'], email: 'A@corp.com' }).length === 1);
     ok('unknown roles are refused', probs('users', { name: 'B', roles: ['boss'] }).length === 1);
+    var away = { away_from: '2026-10-01', away_until: '2026-10-05', away_note: 'Tom covers' };
+    eq('away: before the first day it is planned', D.awayState(away, '2026-09-30').state, 'planned');
+    eq('...first and last day count as away', [D.isAway(away, '2026-10-01'), D.isAway(away, '2026-10-05')], [true, true]);
+    eq('...the day after it is over', D.awayState(away, '2026-10-06').state, 'over');
+    ok('...no last day = until further notice', D.isAway({ away_from: '2026-10-01' }, '2027-06-01'));
+    eq('...nobody is away without dates', [D.awayState({}, '2026-10-01'), D.isAway(null, '2026-10-01')], [null, false]);
+    eq('a good away period', D.validateAway({ from: '2026-10-01', until: '2026-10-01', note: '' }), []);
+    ok('away needs a first day', D.validateAway({ from: '', until: '2026-10-05' }).length === 1);
+    ok('...and the last day not before it', D.validateAway({ from: '2026-10-05', until: '2026-10-01' }).length === 1);
+    ok('...and a short note', D.validateAway({ from: '2026-10-01', note: new Array(202).join('x') }).length === 1);
+    ok('a user with a bad away period is refused', probs('users', { name: 'B', roles: ['engineer'], away_from: '2026-10-05', away_until: '2026-10-01' }).length === 1);
     eq('priorities: one active default', D.validatePriorities([{ is_default: true, active: true }, { active: true }]), []);
     ok('two defaults are refused', D.validatePriorities([{ is_default: true }, { is_default: true }]).length === 1);
     ok('a hidden default is refused', D.validatePriorities([{ is_default: true, active: false }, { active: true }]).length === 1);
@@ -285,6 +296,28 @@
     await refused('the last admin cannot lose the role', ST.saveEntry('users', { id: ST.currentUser().id, fields: { roles: ['engineer'] } }), 'invalid');
     eq('...and still has it', ST.currentUser().roles, ['admin']);
     await refused('people are never deleted', ST.deleteEntry('users', tom.id, 'left'));
+
+    group('Store: away (M1-14)');
+    var admin = ST.currentUser();
+    var olga = await ST.saveEntry('users', { fields: { name: 'Olga Quality', roles: ['quality'] } });
+    var olgaAway = await ST.setAway(olga.id, { from: '2026-10-01', until: '2026-10-05', note: '  Tom covers  ' }, 'Settings');
+    eq('an admin records away for someone', [olgaAway.away_from, olgaAway.away_until, olgaAway.away_note], ['2026-10-01', '2026-10-05', 'Tom covers']);
+    var awayAudit = ST.data().audit_log.filter(function (x) { return x.action === 'away' && x.entity_id === olga.id; });
+    eq('...audited per field, no reason field of its own', awayAudit.map(function (x) { return x.field; }), ['away_from', 'away_until', 'away_note']);
+    ok('...the user has no reason stored', !('away_reason' in ST.byId('users', olga.id)));
+    await refused('a last day before the first is refused', ST.setAway(olga.id, { from: '2026-10-05', until: '2026-10-01' }), 'invalid');
+    eq('...and not written', ST.byId('users', olga.id).away_until, '2026-10-05');
+    await refused('the same dates again: nothing changed', ST.setAway(olga.id, { from: '2026-10-01', until: '2026-10-05', note: 'Tom covers' }), 'no_change');
+    ST.setCurrentUser(tom.id);
+    await refused('an engineer cannot set someone else away', ST.setAway(olga.id, null), 'not_allowed');
+    var tomAway = await ST.setAway(tom.id, { from: '2026-12-21' });
+    eq('...but can set themselves away, until further notice', [tomAway.away_from, tomAway.away_until], ['2026-12-21', null]);
+    var tomBack = await ST.setAway(tom.id, null);
+    eq('"I\'m back" clears it', [tomBack.away_from, tomBack.away_until, tomBack.away_note], [null, null, null]);
+    await refused('...once', ST.setAway(tom.id, null), 'no_change');
+    ST.setCurrentUser(admin.id);
+    await ST.saveEntry('users', { id: olga.id, fields: { email: 'olga@corp.com' } });
+    eq('editing a person in Settings keeps their away dates', ST.byId('users', olga.id).away_from, '2026-10-01');
 
     /* =============== store: lists =============== */
     group('Store: lists (tools, types, fields, BKMs, codes, priorities, holidays)');
@@ -408,6 +441,14 @@
     eq('a primary/backup without the Quality engineer role is a warning', countOf(hi, 'operator_no_role'), 5);
     ok('Down past its until date is a warning', countOf(hi, 'status_overdue') === 1 && /FIB/.test(hi.filter(function (x) { return x.code === 'status_overdue'; })[0].text));
     ok('a user without roles is a warning', countOf(hi, 'user_no_role') === 1);
+    var ha = JSON.parse(JSON.stringify(hs2));
+    ha.users[1].away_from = '2026-09-20';
+    eq('only the primary away: no warning', countOf(D.healthIssues(ha, { today_ymd: '2026-09-24' }), 'both_away'), 0);
+    ha.users[2].away_from = '2026-09-24'; ha.users[2].away_until = '2026-09-30';
+    var hw = D.healthIssues(ha, { today_ymd: '2026-09-24' });
+    eq('primary and backup both away: a warning per tool (M1-14)', countOf(hw, 'both_away'), 5);
+    ok('...naming both', /Olga/.test(hw.filter(function (x) { return x.code === 'both_away'; })[0].text) && /Otto/.test(hw.filter(function (x) { return x.code === 'both_away'; })[0].text));
+    eq('...gone once the backup is back', countOf(D.healthIssues(ha, { today_ymd: '2026-10-01' }), 'both_away'), 0);
     ok('problems, warnings, notes only', hi.every(function (x) { return ['problem', 'warning', 'note'].indexOf(x.severity) !== -1; }));
 
     a = await adminStore();
