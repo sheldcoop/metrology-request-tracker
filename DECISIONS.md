@@ -348,9 +348,20 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
   2 Sample (one line Project · Lot · Build-up; panels; layers; process step) - 3 Where it is (magazine
   slots or a note; afterwards) - 4 Urgency - 5 Notes & extras; then Review. Each category opens when
   the one before is done and folds into a one-line summary; the traveller card builds up live.
-- **F-5** The **lot is typed or picked right in the form**: existing lots of the project are offered
-  as you type (build-up and part number fill in); a new number is registered automatically on Submit
-  with that project and build-up. Part number: optional, under that line.
+- **F-5** The **lot is typed or picked right in the form**: registered lots are offered as you type;
+  a new number is registered automatically on Submit. Part number: optional, under that line.
+- **F-6** (2026-09-24, Prince: "don't link project, lot and build-up") **Project, part number and
+  build-up belong to the request, not the lot.** One lot (e.g. 19189) runs through every build-up,
+  like a complete product. In the form they are three separate choices; typing a lot fills in and
+  locks nothing. Project: required; part number: optional, of that project; build-up: **optional**,
+  from the Settings list - when picked, the layers come from it (F-2), without it up to 5F / 5B.
+  A lot is its number, panel count, note and lot fields; the Lots page shows the projects of its
+  requests. Schema 10 moves the old lot values onto each request. Prince chose option A: a lot has no
+  fixed project either.
+- **F-7** (2026-09-24) A data file whose magazine list stayed empty gets the 20 sample magazines on
+  the upgrade to schema 10; Settings > Data also has "Add the sample magazines" (skips those there),
+  and Health warns when there are none - so a normal data folder can use every function, not only
+  the demo file.
 
 ## M4 notifications (2026-09-24, built; Prince: "decide what can be built and build it")
 - **M4-1** The bell (Q19) lists the last 30 days: requesters hear every status change, comment,

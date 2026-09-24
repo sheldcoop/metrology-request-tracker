@@ -309,23 +309,19 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Lots is live, empty at first, with Register lot', /No lots yet/.test(mainText()) && !!buttonByText(doc.getElementById('main'), 'Register lot'));
   buttonByText(doc.getElementById('main'), 'Register lot').click(); await settle();
   dlg2 = openDialog();
-  check('...the part number waits for the project', /pick the project first/.test(fieldIn(dlg2, 'Part number').textContent));
+  check('...a lot is its number: no project, part number or build-up asked (F-6)', !fieldIn(dlg2, 'Project') && !fieldIn(dlg2, 'Part number') && !fieldIn(dlg2, 'Build-up'));
   check('...the lot fields are asked too (Purpose, Started on, Lot status ...)', !!fieldIn(dlg2, 'Purpose of the lot') && !!fieldIn(dlg2, 'Started on') && !!fieldIn(dlg2, 'Lot status'));
   setVal(fieldIn(dlg2, 'Lot number'), '18178-A'); buttonByText(dlg2, 'Save').click(); await settle();
   check('...a bad lot number is refused in the dialog', openDialog() === dlg2 && /split lot adds .01/.test(dlg2.textContent));
   const c4f = MRT.store.list('projects').filter(p => p.code === 'C4F')[0], bu1 = MRT.store.list('buildups')[0];
   setVal(fieldIn(dlg2, 'Lot number'), '18178'); setVal(fieldIn(dlg2, 'Panels'), '12');
-  setVal(fieldIn(dlg2, 'Project'), c4f.id); await settle();
-  check('...picking C4F offers its one part number, already picked', fieldIn(dlg2, 'Part number').value === pn77.id);
-  setVal(fieldIn(dlg2, 'Build-up'), bu1.id);
   const purposeF = MRT.store.list('lot_fields').filter(f => f.label === 'Purpose of the lot')[0];
   setVal(fieldIn(dlg2, 'Purpose of the lot'), purposeF.choices[1].id);
   buttonByText(dlg2, 'Save').click(); await settle();
   const lot1 = (MRT.store.data().lots || []).filter(l => l.lot_number === '18178')[0];
-  check('...lot 18178 is registered with project, part number, build-up, 12 panels, owner',
-        !!lot1 && lot1.project_id === c4f.id && lot1.part_number_id === pn77.id && lot1.buildup_id === bu1.id && lot1.panel_count === 12 &&
-        lot1.owner_id === MRT.store.currentUser().id && !openDialog());
-  check('...and listed', /18178/.test(mainText()) && /PN-77/.test(mainText()) && /1 of 1 lots/.test(mainText()));
+  check('...lot 18178 is registered with 12 panels and its owner - no project or build-up on it',
+        !!lot1 && lot1.panel_count === 12 && !('project_id' in lot1) && !('buildup_id' in lot1) && lot1.owner_id === MRT.store.currentUser().id && !openDialog());
+  check('...and listed', /18178/.test(mainText()) && /1 of 1 lots/.test(mainText()));
   check('...with its purpose (DOE) stored', lot1.extra[purposeF.id] === purposeF.choices[1].id);
   $$('#main a.lot-link').filter(a => a.textContent === '18178')[0].click(); await settle();
   check('the lot number opens all its details, lot fields included', !!openDialog() && /Purpose of the lot/.test(openDialog().textContent) && /DOE/.test(openDialog().textContent));
@@ -333,7 +329,6 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.getElementById('main'), 'Register lot').click(); await settle();
   dlg2 = openDialog();
   setVal(fieldIn(dlg2, 'Lot number'), '18178'); setVal(fieldIn(dlg2, 'Panels'), '4');
-  setVal(fieldIn(dlg2, 'Project'), c4f.id); setVal(fieldIn(dlg2, 'Build-up'), bu1.id);
   buttonByText(dlg2, 'Save').click(); await settle();
   check('...the same lot number twice is refused', openDialog() === dlg2 && /already registered/.test(dlg2.textContent));
   setVal(fieldIn(dlg2, 'Lot number'), '18178.01'); buttonByText(dlg2, 'Save').click(); await settle();
@@ -370,8 +365,14 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Next opens step 2; step 1 folds into one line with the tool and type, ticked', isOpenStep('lot') && !isOpenStep('tool') &&
         /^FIB/.test(stepOf('tool').querySelector('.wz-sum').textContent) && stepOf('tool').classList.contains('is-done'));
   setVal(fieldIn(M(), 'Lot'), '18178'); await settle();
-  check('typing a registered lot finds it: its project and build-up fill in and are locked', /Lot found/.test(mainText()) &&
-        fieldIn(M(), 'Project').value === c4f.id && fieldIn(M(), 'Project').disabled && fieldIn(M(), 'Build-up').value === bu1.id);
+  check('typing a registered lot finds it - and fills in nothing: project, lot, build-up are separate (F-6)', /Lot found/.test(mainText()) &&
+        !fieldIn(M(), 'Project').disabled && fieldIn(M(), 'Build-up').value === '');
+  setVal(fieldIn(M(), 'Project'), c4f.id); await settle();
+  check('...the project offers its part numbers', !!fieldIn(M(), 'Part number') && fieldIn(M(), 'Part number').querySelectorAll('option').some(o => o.value === pn77.id));
+  setVal(fieldIn(M(), 'Part number'), pn77.id); await settle();
+  const lyAll = $$('#main .layer-chip').length;
+  setVal(fieldIn(M(), 'Build-up'), bu1.id); await settle();
+  check('...no build-up: layers up to 5F / 5B; BU-01 picked: up to 2F / 2B', lyAll === 10 && $$('#main .layer-chip').length === 4);
   setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
   check('Hirata IDs: "3252-3255" becomes four chips, and the traveller card shows them', $$('#main .panel-chip').length === 4 &&
         /3252, 3253, 3254, 3255/.test($('#main .traveller-mini').textContent) && /FIB-YYMMDD-NN/.test($('#main .traveller-mini').textContent));
@@ -401,7 +402,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(openDialog(), 'Submit anyway').click(); await settle();
   const req1 = MRT.store.data().requests.filter(r => r.status === 'submitted')[0];
   check('submitted: ID FIB-YYMMDD-01, Hirata IDs, layer, magazine slots, scrap, destructive ok', !!req1 && /^FIB-\d{6}-01$/.test(req1.request_no) &&
-        req1.panels.join() === '3252,3253,3254,3255' && req1.panel_count === 4 && req1.layers.join() === '2F' && req1.lot_id === lot1.id &&
+        req1.panels.join() === '3252,3253,3254,3255' && req1.project_id === c4f.id && req1.part_number_id === pn77.id && req1.buildup_id === bu1.id && req1.panel_count === 4 && req1.layers.join() === '2F' && req1.lot_id === lot1.id &&
         req1.magazine_id === mag1.id && req1.slots.join() === '3,4,5,6' && req1.after === 'scrap' && req1.destructive_ok === true);
   check('...its request page opens (M2 step 5)', win.location.hash === '#/request/' + req1.id && mainText().indexOf(req1.request_no) !== -1 && /M70345 · slots 3-6/.test(mainText()));
   check('the traveller card: ID, stamp "Submitted", priority stripe, the magazine with 4 slots', !!$('#main .traveller.prio-3') &&
@@ -456,7 +457,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   if (openDialog()) { buttonByText(openDialog(), 'Submit anyway').click(); await settle(); }
   const lotNew = MRT.store.data().lots.filter(l => l.lot_number === '19170')[0];
   const reqNew = MRT.store.data().requests.filter(r => r.status === 'submitted').slice(-1)[0];
-  check('...Submit registers lot 19170 (C4F, the build-up) and the request uses it: 3 panels, no IDs, the note', !!lotNew && lotNew.project_id === c4f.id && lotNew.buildup_id === bu1.id &&
+  check('...Submit registers lot 19170 and the request uses it: C4F, the build-up, 3 panels, no IDs, the note', !!lotNew && reqNew.project_id === c4f.id && reqNew.buildup_id === bu1.id &&
         reqNew.lot_id === lotNew.id && reqNew.panel_count === 3 && reqNew.panels.length === 0 && reqNew.panel_location === 'with Anna');
   await MRT.store.cancelRequest(reqNew.id, 'test only');
   win.setHash('#/request/' + req1.id); await settle();
@@ -512,7 +513,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // --- My queue (M3 step 2)
   const fibType = MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id;
   const prioBy = code => MRT.store.list('priorities').filter(p => p.code === code)[0].id;
-  const base = { tool_id: fib().id, type_id: fibType, lot_id: lot1.id, panel_location: 'Rack A', destructive_ok: true, after: 'scrap', purpose: 'x' };
+  const base = { project_id: c4f.id, tool_id: fib().id, type_id: fibType, lot_id: lot1.id, panel_location: 'Rack A', destructive_ok: true, after: 'scrap', purpose: 'x' };
   const qN = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [5], priority_id: prioBy('P3') }) });
   const qL = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [6], priority_id: prioBy('P1'), priority_reason: 'line 2 down' }) });
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
@@ -582,13 +583,16 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.getElementById('main'), 'Add several lots').click(); await settle();
   dlg2 = openDialog();
   setVal(fieldIn(dlg2, 'Lot numbers'), '30001-30003'); setVal(fieldIn(dlg2, 'Panels per lot'), '6');
-  setVal(fieldIn(dlg2, 'Project'), c4f.id); await settle(); setVal(fieldIn(dlg2, 'Build-up'), bu1.id);
   buttonByText(dlg2, 'Add lots').click(); await settle();
   check('..."Add several lots" adds 30001-30003 with 6 panels each', ['30001', '30002', '30003'].every(n => MRT.store.data().lots.some(l => l.lot_number === n && l.panel_count === 6)) && !openDialog());
   win.setHash('#/lots'); await settle();
   check('...and they show on the Lots page too', /30002/.test(mainText()));
+  check('...a lot lists the projects of its requests (F-6)', $$('#main tr').filter(r => /18178/.test(r.textContent) && !/18178\.01/.test(r.textContent))[0].textContent.indexOf('C4F') !== -1);
 
   // --- magazines and build-up layers (M2-23, F-2, F-3)
+  await tab('data');
+  buttonByText(M(), 'Add the sample magazines').click(); await settle();
+  check('Data: "Add the sample magazines" - all 20 there already, none doubled', /20 magazines in this file/.test(mainText()) && MRT.store.list('magazines', { all: true }).length === 20);
   await tab('lists');
   const magPanel = M().querySelectorAll('section').filter(x => /Magazines/.test(x.textContent))[0];
   check('Settings > Lists > Magazines: M70345-M70364, 24 slots, no racks any more', !!magPanel && /M70345/.test(magPanel.textContent) && /M70364/.test(magPanel.textContent) && !fieldIn(magPanel, 'Racks'));
@@ -598,13 +602,13 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   setVal(fieldIn(openDialog(), 'Build-up layers'), '2'); buttonByText(openDialog(), 'Save').click(); await settle();
   check('...an admin sets TEST to 2 layers: up to 3F / 3B', MRT.store.list('buildups').filter(x => x.code === 'TEST')[0].layers === 2 && MRT.domain.layersFor(MRT.store.list('buildups').filter(x => x.code === 'TEST')[0]).slice(-1)[0] === '3B');
   const fibT = MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id;
-  const inMag = await MRT.store.submitRequest({ fields: { tool_id: fib().id, type_id: fibT, lot_id: lot1.id, panels: ['3260', '3261'], priority_id: MRT.store.list('priorities')[2].id,
+  const inMag = await MRT.store.submitRequest({ fields: { project_id: c4f.id, tool_id: fib().id, type_id: fibT, lot_id: lot1.id, panels: ['3260', '3261'], priority_id: MRT.store.list('priorities')[2].id,
     magazine_id: mag1.id, slots: [1, 2], destructive_ok: true, after: 'scrap', purpose: 'x' } });
   win.setHash('#/new?lot=' + lot1.id); await settle();
   toolOpt('QVM').click(); await settle();
   setVal(fieldIn(M(), 'Magazine'), mag1.id); await settle();
   check('the form greys out slots another open request holds, with its ID', mzs()[0].classList.contains('is-taken') && mzs()[0].tagName === 'DIV' && mzs()[0].textContent.indexOf(inMag.request_no) !== -1);
-  const qvmReq = await MRT.store.submitRequest({ fields: { tool_id: MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id,
+  const qvmReq = await MRT.store.submitRequest({ fields: { project_id: c4f.id, tool_id: MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id,
     type_id: MRT.store.list('measurement_types').filter(m => m.tool_id === MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id)[0].id, lot_id: lot1.id,
     panels: ['3270'], priority_id: MRT.store.list('priorities')[2].id, magazine_id: mag1.id, slots: [7], after: 'back_to_me', purpose: 'x' } });
   const qvmT = MRT.store.list('tools').filter(t => t.code === 'QVM')[0];

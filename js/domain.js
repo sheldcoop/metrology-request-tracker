@@ -587,13 +587,6 @@ window.MRT.domain = (function () {
       case 'lots':
         if (!isLotNumber(r.lot_number)) p.push('Lot number: digits, a split lot adds .01 - e.g. 18178 or 18178.01');
         else if (dupBy(d.lots, r.id, 'lot_number', r.lot_number)) p.push('Lot ' + r.lot_number + ' is already registered');
-        if (!exists('projects', r.project_id)) p.push('Pick a project');
-        if (!exists('buildups', r.buildup_id)) p.push('Pick a build-up');
-        if (r.part_number_id) {
-          var pnr = (d.part_numbers || []).filter(function (x) { return x.id === r.part_number_id; })[0];
-          if (!pnr) p.push('Part number not found');
-          else if ((pnr.project_ids || []).indexOf(r.project_id) === -1) p.push('Part number ' + pnr.code + ' does not belong to this project');
-        }
         if (r.panel_count !== null && r.panel_count !== undefined &&
             (!isNum(r.panel_count) || r.panel_count < 1 || r.panel_count > LOT_MAX_PANELS || Math.floor(r.panel_count) !== r.panel_count)) {
           p.push('Panels: empty, or a whole number from 1 to ' + LOT_MAX_PANELS);
@@ -1042,14 +1035,18 @@ window.MRT.domain = (function () {
     if (nl) {
       if (!isLotNumber(nl.lot_number)) p.push('Lot number: digits, a split lot adds .01 - e.g. 18178 or 18178.01');
       else if ((d.lots || []).some(function (x) { return x.lot_number === nl.lot_number; })) p.push('Lot ' + nl.lot_number + ' exists already - pick it');
-      if (nl.project_id && !byId('projects', nl.project_id)) p.push('Project not found');
-      if (nl.buildup_id && !byId('buildups', nl.buildup_id)) p.push('Build-up not found');
     }
+    // project, part number and build-up belong to the request, not the lot (F-6): a lot runs through every build-up
+    if (r.project_id && !byId('projects', r.project_id)) p.push('Project not found');
+    var pnR = byId('part_numbers', r.part_number_id);
+    if (r.part_number_id && !pnR) p.push('Part number not found');
+    else if (pnR && r.project_id && (pnR.project_ids || []).indexOf(r.project_id) === -1) p.push('Part number ' + pnR.code + ' does not belong to this project');
+    if (r.buildup_id && !byId('buildups', r.buildup_id)) p.push('Build-up not found');
     if (r.panels && !Array.isArray(r.panels)) p.push('Panels must be a list');
     if ((r.panels || []).some(function (x) { return !isPanelId(x); })) p.push('Panels: Hirata IDs are digits, e.g. 3252');
     if ((r.panels || []).some(function (x, i, a) { return a.indexOf(x) !== i; })) p.push('A panel is listed twice');
     if (r.panel_count !== null && r.panel_count !== undefined && (!isNum(r.panel_count) || r.panel_count < 1 || r.panel_count > 99 || Math.floor(r.panel_count) !== r.panel_count)) p.push('How many panels: 1-99');
-    var buLayers = layersFor(byId('buildups', lot ? lot.buildup_id : nl && nl.buildup_id));
+    var buLayers = layersFor(byId('buildups', r.buildup_id));
     if ((r.layers || []).some(function (x) { return buLayers.indexOf(x) === -1; })) p.push('A layer does not belong to this build-up');
     var magR = byId('magazines', r.magazine_id);
     if (r.magazine_id && !magR) p.push('Magazine not found');
@@ -1072,8 +1069,8 @@ window.MRT.domain = (function () {
 
     if (tool.active === false) p.push(tool.code + ' is no longer offered');
     if (!type) p.push('Pick the measurement type');
+    if (!r.project_id) p.push('Pick the project');
     if (!lot && !nl) p.push('Pick or type the lot');
-    if (nl && (!nl.project_id || !nl.buildup_id)) p.push('A new lot needs its project and build-up');
     if (!panelCountOf(r)) p.push('Give the panels: their Hirata IDs, or how many');
     var taken = r.magazine_id ? takenSlots(d.requests, r.magazine_id, r.id) : {};
     var clash = (r.slots || []).filter(function (x) { return taken[x]; });
@@ -1225,14 +1222,15 @@ window.MRT.domain = (function () {
     });
     var projects = byIdMap(data.projects);
     var pns = byIdMap(data.part_numbers), bus = byIdMap(data.buildups);
-    (data.lots || []).forEach(function (l) {
-      if (!projects[l.project_id]) add('problem', 'lot_bad_project', 'Lot ' + l.lot_number + ': its project no longer exists', 'lots', l.id);
-      if (!bus[l.buildup_id]) add('problem', 'lot_bad_buildup', 'Lot ' + l.lot_number + ': its build-up no longer exists', 'lots', l.id);
-      if (l.part_number_id && !pns[l.part_number_id]) add('problem', 'lot_bad_pn', 'Lot ' + l.lot_number + ': its part number no longer exists', 'lots', l.id);
-      else if (l.part_number_id && (pns[l.part_number_id].project_ids || []).indexOf(l.project_id) === -1) {
-        add('warning', 'lot_pn_project', 'Lot ' + l.lot_number + ': part number ' + pns[l.part_number_id].code + ' is no longer linked to its project', 'lots', l.id);
-      }
+    (data.requests || []).forEach(function (r) {
+      var no = r.request_no || 'A draft';
+      if (r.project_id && !projects[r.project_id]) add('problem', 'req_bad_project', no + ': its project no longer exists', 'request', r.id);
+      if (r.buildup_id && !bus[r.buildup_id]) add('problem', 'req_bad_buildup', no + ': its build-up no longer exists', 'request', r.id);
+      if (r.part_number_id && !pns[r.part_number_id]) add('problem', 'req_bad_pn', no + ': its part number no longer exists', 'request', r.id);
     });
+    if (!(data.magazines || []).some(function (m) { return m.active !== false; })) {
+      add('warning', 'no_magazines', 'No magazines: the request form cannot offer any - add them in Settings > Lists, or "Add the sample magazines" in Settings > Data', 'lists', null);
+    }
     (data.part_numbers || []).forEach(function (pn) {
       if ((pn.project_ids || []).some(function (id) { return !projects[id]; })) {
         add('problem', 'pn_bad_project', 'Part number ' + pn.code + ' is linked to a project that no longer exists', 'lists', pn.id);

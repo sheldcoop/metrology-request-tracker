@@ -6,10 +6,12 @@
  * a finished step folds into one line that says what was given:
  *
  *   1 Tool           the tool (its glyph), measurement type, BKM (Q13, Q51, M2-10)
- *   2 Lot & panels   Project · Lot · Build-up on one line - pick a lot or type a
- *                    new one (registered on Submit, F-5); part number; the
- *                    panels by Hirata ID or just how many (F-1); layers from
- *                    the build-up (F-2); process step (M2-8)
+ *   2 Lot & panels   Project · Lot · Build-up on one line, three separate
+ *                    choices (F-6): a lot runs through every build-up. Pick a
+ *                    lot or type a new one (registered on Submit, F-5); the
+ *                    build-up is optional; part number (optional, of the
+ *                    project); the panels by Hirata ID or just how many (F-1);
+ *                    layers from the build-up (F-2); process step (M2-8)
  *   3 Where          the magazine and its slots on a front view, or a note
  *                    (F-3); where they go afterwards (M2-12, FIB always scrap
  *                    + a required tick, M2-11)
@@ -52,7 +54,8 @@ window.MRT.views['new'] = (function () {
 
   /** The fields a copy takes over (Q28): not the date, reason or where the panels are now. */
   function copyOf(r) {
-    return { tool_id: r.tool_id, type_id: r.type_id, lot_id: r.lot_id, panels: (r.panels || []).slice(), panel_count: r.panel_count || null,
+    return { tool_id: r.tool_id, type_id: r.type_id, project_id: r.project_id || null, part_number_id: r.part_number_id || null, buildup_id: r.buildup_id || null,
+             lot_id: r.lot_id, panels: (r.panels || []).slice(), panel_count: r.panel_count || null,
              layers: (r.layers || []).slice(), priority_id: r.priority_id, bkm_id: r.bkm_id, bkm_path: r.bkm_path, purpose: r.purpose,
              process_step_id: r.process_step_id, process_step_other: r.process_step_other, after: r.after, after_other: r.after_other,
              extra: JSON.parse(JSON.stringify(r.extra || {})), duplicated_from: r.id };
@@ -94,7 +97,7 @@ window.MRT.views['new'] = (function () {
     var src = draft ? JSON.parse(JSON.stringify(draft)) : null;
     var from = q.from ? byId('requests', q.from) : null;
     if (!src && from && D.canSeeRequest(me, from)) src = copyOf(from);
-    var st = Object.assign({ tool_id: null, type_id: null, lot_id: null, new_lot: null, panels: [], panel_count: null, layers: [],
+    var st = Object.assign({ tool_id: null, type_id: null, project_id: null, part_number_id: null, buildup_id: null, lot_id: null, new_lot: null, panels: [], panel_count: null, layers: [],
       priority_id: defaultPriority(), priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '', purpose: '',
       process_step_id: null, process_step_other: '', panel_location: '', magazine_id: null, slots: [], destructive_ok: false,
       after: 'back_to_me', after_other: '', extra: {}, duplicated_from: null }, src || {});
@@ -104,11 +107,9 @@ window.MRT.views['new'] = (function () {
     if (!st.layers) st.layers = [];
     if (!st.slots) st.slots = [];
 
-    // project / build-up / part number of the lot line: the lot's own, or the new lot's
+    // the lot number in the lot line: a registered lot's, or the one typed as new
     var lotNow = byId('lots', st.lot_id);
-    var line = lotNow ? { number: lotNow.lot_number, project_id: lotNow.project_id, buildup_id: lotNow.buildup_id, part_number_id: lotNow.part_number_id || null }
-      : st.new_lot ? { number: st.new_lot.lot_number, project_id: st.new_lot.project_id, buildup_id: st.new_lot.buildup_id, part_number_id: st.new_lot.part_number_id || null }
-      : { number: '', project_id: null, buildup_id: null, part_number_id: null };
+    var lotNumber = lotNow ? lotNow.lot_number : st.new_lot ? st.new_lot.lot_number : '';
     var panelMode = st.panels.length || !st.panel_count ? 'ids' : 'count';
 
     var title = editing ? 'Edit ' + draft.request_no : draft ? 'Draft' : from ? 'Copy of ' + (from.request_no || 'a draft') : 'New request';
@@ -187,12 +188,12 @@ window.MRT.views['new'] = (function () {
 
     function summaries() {
       var tool = byId('tools', st.tool_id), type = byId('measurement_types', st.type_id), bkm = byId('bkms', st.bkm_id);
-      var prio = byId('priorities', st.priority_id), bu = byId('buildups', line.buildup_id), proj = byId('projects', line.project_id);
+      var prio = byId('priorities', st.priority_id), bu = byId('buildups', st.buildup_id), proj = byId('projects', st.project_id);
       var mags = magsById();
       var n = D.panelCountOf(st);
       return {
         tool: tool ? [tool.code, type ? type.name : null, bkm ? 'BKM ' + bkm.name : st.bkm_path ? 'own BKM' : null].filter(Boolean).join('  ·  ') : 'Pick the tool',
-        lot: line.number ? [proj ? proj.code : null, 'lot ' + line.number + (st.new_lot ? ' (new)' : ''), bu ? bu.code : null,
+        lot: lotNumber || proj ? [proj ? proj.code : null, lotNumber ? 'lot ' + lotNumber + (st.new_lot ? ' (new)' : '') : null, bu ? bu.code : null,
           n ? (st.panels.length ? st.panels.join(', ') : n + ' panel' + (n === 1 ? '' : 's')) : null, st.layers.length ? st.layers.join(' ') : null].filter(Boolean).join('  ·  ') : '',
         where: [D.placeText(st, mags) || null, D.AFTER_LABEL[st.after] ? 'then ' + D.AFTER_LABEL[st.after].toLowerCase() : null].filter(Boolean).join('  ·  '),
         urgency: prio ? prio.name + (st.needed_by ? '  ·  by ' + st.needed_by : '') : '',
@@ -261,24 +262,29 @@ window.MRT.views['new'] = (function () {
     }
 
     /* 2. Lot and panels -------------------------------------------------- */
+    // Project, lot and build-up are three separate choices (F-6): one lot runs through every
+    // build-up, so the request - not the lot - says which project, part number and build-up.
     var layersHost = ui.el('div', { class: 'req-part' });
     var lotNote = ui.el('p', { class: 'muted lot-info', 'aria-live': 'polite' });
-    var projF, lotF, buF, pnHost = ui.el('div');
+    var lotF, pnHost = ui.el('div');
     function paintLot() {
-      var projects = store.list('projects', { all: true }).filter(function (p) { return p.active !== false || p.id === line.project_id; });
-      var bus = store.list('buildups', { all: true }).filter(function (b) { return b.active !== false || b.id === line.buildup_id; });
-      var lots = (store.data().lots || []).filter(function (l) { return !line.project_id || l.project_id === line.project_id; })
-        .sort(function (a, b) { return a.created_ts < b.created_ts ? 1 : -1; }).slice(0, 300);
-      var fixed = !!st.lot_id;                               // an existing lot brings its project and build-up
-      projF = ui.field({ label: 'Project', value: line.project_id || '', disabled: fixed,
+      var projects = store.list('projects', { all: true }).filter(function (p) { return p.active !== false || p.id === st.project_id; });
+      var bus = store.list('buildups', { all: true }).filter(function (b) { return b.active !== false || b.id === st.buildup_id; });
+      var lots = (store.data().lots || []).slice().sort(function (a, b) { return a.created_ts < b.created_ts ? 1 : -1; }).slice(0, 300);
+      if (!st.project_id && projects.length === 1 && !editing) st.project_id = projects[0].id;
+      var projF = ui.field({ label: 'Project', value: st.project_id || '',
         options: [{ value: '', label: '- pick -' }].concat(projects.map(function (p) { return { value: p.id, label: p.code + (p.name ? '  ·  ' + p.name : '') }; })) });
-      lotF = ui.field({ label: 'Lot', mono: true, value: line.number || '', placeholder: 'e.g. 18178 or 18178.01', inputmode: 'decimal',
-        list: lots.map(function (l) { var p = byId('projects', l.project_id), b = byId('buildups', l.buildup_id);
-          return { value: l.lot_number, label: [p ? p.code : null, b ? b.code : null].filter(Boolean).join(' · ') }; }) });
-      buF = ui.field({ label: 'Build-up', value: line.buildup_id || '', disabled: fixed,
-        options: [{ value: '', label: '- pick -' }].concat(bus.map(function (b) { return { value: b.id, label: b.code + (b.name ? '  ·  ' + b.name : '') }; })) });
-      projF.input.addEventListener('change', function () { line.project_id = projF.value() || null; line.part_number_id = null; syncLot(); paintPartNumber(); refreshLotList(); changed(); });
-      buF.input.addEventListener('change', function () { line.buildup_id = buF.value() || null; syncLot(); paintLayers(); changed(); });
+      lotF = ui.field({ label: 'Lot', mono: true, value: lotNumber || '', placeholder: 'e.g. 18178 or 18178.01', inputmode: 'decimal',
+        list: lots.map(function (l) { return { value: l.lot_number, label: l.note || null }; }) });
+      var buF = ui.field({ label: 'Build-up (optional)', value: st.buildup_id || '',
+        options: [{ value: '', label: '- none -' }].concat(bus.map(function (b) { return { value: b.id, label: b.code + (b.name ? '  ·  ' + b.name : '') }; })) });
+      projF.input.addEventListener('change', function () {
+        st.project_id = projF.value() || null;
+        var pn = byId('part_numbers', st.part_number_id);
+        if (pn && (pn.project_ids || []).indexOf(st.project_id) === -1) st.part_number_id = null;
+        paintPartNumber(); changed();
+      });
+      buF.input.addEventListener('change', function () { st.buildup_id = buF.value() || null; paintLayers(); changed(); });
       lotF.input.addEventListener('input', function () { lotTyped(lotF.value().trim()); });
       lotF.input.addEventListener('change', function () { lotTyped(lotF.value().trim()); });
 
@@ -311,37 +317,13 @@ window.MRT.views['new'] = (function () {
       paintLotNote(); paintPartNumber(); paintLayers();
     }
 
-    function refreshLotList() {
-      var val = lotF.value();
-      paintLot();
-      lotF.input.value = val;
-    }
-
-    /** The lot number typed: an existing lot, a new one, or not a lot number yet. */
+    /** The lot number typed: a registered lot, a new one (registered on Submit), or not a lot number yet. */
     function lotTyped(num) {
       var hit = (store.data().lots || []).filter(function (l) { return l.lot_number === num; })[0];
-      var wasFixed = !!st.lot_id;
-      line.number = num;
-      if (hit) {
-        st.lot_id = hit.id; st.new_lot = null;
-        line.project_id = hit.project_id; line.buildup_id = hit.buildup_id; line.part_number_id = hit.part_number_id || null;
-        paintLot();
-        focusLot();
-      } else {
-        st.lot_id = null;
-        if (wasFixed) { paintLot(); focusLot(); }
-        syncLot();
-        paintLotNote();
-      }
-      paintLayers(); changed();
-    }
-    function focusLot() { if (lotF && lotF.input.focus) { lotF.input.focus(); } }
-
-    /** Keep st.new_lot in step with the lot line when the lot is new. */
-    function syncLot() {
-      if (st.lot_id || !line.number) { st.new_lot = null; paintLotNote(); return; }
-      st.new_lot = { lot_number: line.number, project_id: line.project_id, buildup_id: line.buildup_id, part_number_id: line.part_number_id };
-      paintLotNote();
+      lotNumber = num;
+      st.lot_id = hit ? hit.id : null;
+      st.new_lot = !hit && num && D.isLotNumber(num) ? { lot_number: num } : null;
+      paintLotNote(); changed();
     }
 
     function paintLotNote() {
@@ -349,31 +331,29 @@ window.MRT.views['new'] = (function () {
       if (lot) {
         var owner = byId('users', lot.owner_id);
         ui.mount(lotNote, [ui.el('span', { class: 'chip ok', text: 'Lot found' }), '  ',
-          lot.part_number_id ? ['Part number ', ui.el('b', { class: 'mono', text: (byId('part_numbers', lot.part_number_id) || {}).code || '?' }), '  ·  '] : null,
+          lot.panel_count ? lot.panel_count + ' panels  ·  ' : null,
           (lot.scrapped || []).length ? ['Scrapped: ', ui.el('span', { class: 'mono', text: lot.scrapped.join(', ') }), '  ·  '] : null,
           owner ? 'Registered by ' + owner.name : null]);
         lotF.setState('valid');
-      } else if (line.number && !D.isLotNumber(line.number)) {
+      } else if (lotNumber && !D.isLotNumber(lotNumber)) {
         ui.mount(lotNote, null);
         lotF.setState('invalid', 'Lot numbers are digits; a split lot adds .01, e.g. 18178.01');
-      } else if (line.number) {
+      } else if (lotNumber) {
         ui.mount(lotNote, [ui.el('span', { class: 'chip warning', text: 'New lot' }), '  ',
-          'Lot ' + line.number + ' is not registered yet - it is registered with this project and build-up when you submit.']);
+          'Lot ' + lotNumber + ' is not registered yet - it is registered when you submit.']);
         lotF.setState(null);
       } else {
-        ui.mount(lotNote, 'Type the lot number, or pick one of the project\'s lots from the list.');
+        ui.mount(lotNote, 'Type the lot number, or pick it from the list.');
         lotF.setState(null);
       }
     }
 
     function paintPartNumber() {
-      var lot = byId('lots', st.lot_id);
-      if (lot) { ui.mount(pnHost, null); return; }
-      var pns = store.list('part_numbers').filter(function (p) { return !line.project_id || (p.project_ids || []).indexOf(line.project_id) !== -1; });
+      var pns = store.list('part_numbers').filter(function (p) { return st.project_id && (p.project_ids || []).indexOf(st.project_id) !== -1 || p.id === st.part_number_id; });
       if (!pns.length) { ui.mount(pnHost, null); return; }
-      var pnF = ui.field({ label: 'Part number (optional)', cls: 'half', value: line.part_number_id || '',
-        options: [{ value: '', label: '- none -' }].concat(pns.map(function (p) { return { value: p.id, label: p.code + (p.name ? '  ·  ' + p.name : '') }; })) });
-      pnF.input.addEventListener('change', function () { line.part_number_id = pnF.value() || null; syncLot(); changed(); });
+      var pnF = ui.field({ label: 'Part number (optional)', cls: 'half', value: st.part_number_id || '',
+        options: [{ value: '', label: '- none -' }].concat(pns.map(function (p) { return { value: p.id, label: p.code + (p.description ? '  ·  ' + p.description : '') }; })) });
+      pnF.input.addEventListener('change', function () { st.part_number_id = pnF.value() || null; changed(); });
       ui.mount(pnHost, ui.el('div', { class: 'form-grid' }, pnF.node));
     }
 
@@ -432,7 +412,7 @@ window.MRT.views['new'] = (function () {
 
     /** The layers of the build-up as chips to tick (F-2, optional). */
     function paintLayers() {
-      var bu = byId('buildups', line.buildup_id);
+      var bu = byId('buildups', st.buildup_id);
       var all = D.layersFor(bu);
       st.layers = st.layers.filter(function (x) { return all.indexOf(x) !== -1; });
       var chips = all.map(function (ly) {
@@ -568,8 +548,9 @@ window.MRT.views['new'] = (function () {
 
     /* --- what goes to the store ---------------------------------------- */
     function fields() {
-      var nl = !st.lot_id && line.number ? { lot_number: line.number, project_id: line.project_id, buildup_id: line.buildup_id, part_number_id: line.part_number_id } : null;
-      return { tool_id: st.tool_id, type_id: st.type_id, lot_id: st.lot_id, new_lot: nl, panels: st.panels.slice(), panel_count: st.panel_count,
+      var nl = !st.lot_id && lotNumber ? { lot_number: lotNumber } : null;
+      return { tool_id: st.tool_id, type_id: st.type_id, project_id: st.project_id, part_number_id: st.part_number_id, buildup_id: st.buildup_id,
+        lot_id: st.lot_id, new_lot: nl, panels: st.panels.slice(), panel_count: st.panel_count,
         layers: st.layers.slice(), priority_id: st.priority_id, priority_reason: st.priority_reason, needed_by: st.needed_by,
         bkm_id: st.bkm_id, bkm_path: st.bkm_path, purpose: st.purpose, process_step_id: st.process_step_id, process_step_other: st.process_step_other,
         panel_location: st.panel_location, magazine_id: st.magazine_id, slots: st.magazine_id ? st.slots.slice() : [],
@@ -581,7 +562,7 @@ window.MRT.views['new'] = (function () {
     var preview = ui.el('div');
     function paintPreview() {
       var tool = byId('tools', st.tool_id), prio = byId('priorities', st.priority_id), type = byId('measurement_types', st.type_id);
-      var bu = byId('buildups', line.buildup_id), proj = byId('projects', line.project_id);
+      var bu = byId('buildups', st.buildup_id), proj = byId('projects', st.project_id), pn = byId('part_numbers', st.part_number_id);
       var where = D.placeText(st, magsById());
       ui.mount(preview, ui.el('div', { class: 'traveller-mini prio-' + (prio ? prio.level : 3) }, [
         ui.el('div', { class: 'tm-head' }, [
@@ -591,8 +572,9 @@ window.MRT.views['new'] = (function () {
           prio ? ui.el('span', { class: 'tm-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono', text: prio.code })]) : null
         ]),
         ui.el('dl', { class: 'facts' }, [
-          ui.el('dt', { text: 'Lot' }), ui.el('dd', { class: 'mono' }, [line.number || '-', st.new_lot && line.number ? ui.el('span', { class: 'chip warning', text: 'new' }) : null]),
-          ui.el('dt', { text: 'Project' }), ui.el('dd', { class: 'mono', text: [proj ? proj.code : null, bu ? bu.code : null].filter(Boolean).join('  ·  ') || '-' }),
+          ui.el('dt', { text: 'Project' }), ui.el('dd', { class: 'mono', text: [proj ? proj.code : null, pn ? pn.code : null].filter(Boolean).join('  ·  ') || '-' }),
+          ui.el('dt', { text: 'Lot' }), ui.el('dd', { class: 'mono' }, [lotNumber || '-', st.new_lot && lotNumber ? ui.el('span', { class: 'chip warning', text: 'new' }) : null]),
+          ui.el('dt', { text: 'Build-up' }), ui.el('dd', { class: 'mono', text: bu ? bu.code : '-' }),
           ui.el('dt', { text: 'Panels' }), ui.el('dd', { class: 'mono', text: D.panelsText(st) }),
           ui.el('dt', { text: 'Layers' }), ui.el('dd', { class: 'mono', text: st.layers.length ? st.layers.join(' ') : '-' }),
           ui.el('dt', { text: 'Where' }), ui.el('dd', { text: where || '-' }),

@@ -1,9 +1,11 @@
 /**
  * Metrology Request Tracker - views/lots.js
  *
- * Lots (#/lots, DECISIONS M2-1): every registered lot - lot number, project,
- * part number (of that project), build-up, panel count, owner, note, plus
- * the admin-defined lot fields (Settings > Lists > Lot fields). Any
+ * Lots (#/lots, DECISIONS M2-1): every registered lot - lot number, panel
+ * count, owner, note, plus the admin-defined lot fields (Settings > Lists >
+ * Lot fields). Project, part number and build-up belong to each request, not
+ * the lot (F-6: one lot runs through every build-up); the list shows the
+ * projects its requests are for. Any
  * engineer registers a lot (Q7); its owner or an admin changes it or deletes
  * it while no request uses it. Newest first, 100 rows per page.
  *
@@ -25,6 +27,13 @@ window.MRT.views.lots = (function () {
   function code(coll, id) { var r = id ? store.byId(coll, id) : null; return r ? r.code : null; }
   function userName(id) { var u = id ? store.byId('users', id) : null; return u ? u.name : null; }
 
+  /** The projects the lot's requests are for (F-6), e.g. "C4F, HORUS". */
+  function lotProjects(l) {
+    var seen = [];
+    (store.data().requests || []).forEach(function (r) { if (r.lot_id === l.id && r.project_id && seen.indexOf(r.project_id) === -1) seen.push(r.project_id); });
+    return seen.map(function (id) { return code('projects', id) || '?'; }).sort().join(', ');
+  }
+
   /* --- Lot fields (admin-defined, js/views/extra-fields.js) ------------ */
 
   var X = window.MRT.extraFields;
@@ -43,12 +52,12 @@ window.MRT.views.lots = (function () {
     var all = store.data().lots || [];
     if (!all.length) {
       main.appendChild(ui.emptyState({ icon: 'lots', title: 'No lots yet',
-        text: canAdd ? 'Register the first lot: lot number, project, part number, build-up and panel count.'
+        text: canAdd ? 'Register the first lot: its number, and the panel count if you know it. Or type a new lot number right in the request form.'
                      : 'Engineers register lots.' }));
       return;
     }
 
-    var box = ui.field({ label: 'Filter', placeholder: 'Lot, project, part number, build-up, owner', value: view.filter });
+    var box = ui.field({ label: 'Filter', placeholder: 'Lot, project of its requests, owner, note', value: view.filter });
     var mine = ui.toggle({ kind: 'switch', label: 'Only my lots', checked: view.mine });
     var holder = ui.el('div');
     main.appendChild(ui.el('div', { class: 'lots-tools' }, [box.node, mine.node]));
@@ -80,8 +89,7 @@ window.MRT.views.lots = (function () {
     return (store.data().lots || []).filter(function (l) {
       if (view.mine && (!me || l.owner_id !== me.id)) return false;
       if (!q) return true;
-      var hay = [l.lot_number, code('projects', l.project_id), code('part_numbers', l.part_number_id),
-                 code('buildups', l.buildup_id), userName(l.owner_id), l.note].concat(store.list('lot_fields', { all: true }).map(function (f) {
+      var hay = [l.lot_number, lotProjects(l), userName(l.owner_id), l.note].concat(store.list('lot_fields', { all: true }).map(function (f) {
                    return answerText(f, (l.extra || {})[f.id]); })).join(' ');
       return D.normalizeName(hay).indexOf(q) !== -1;
     }).sort(function (a, b) { return a.created_ts < b.created_ts ? 1 : a.created_ts > b.created_ts ? -1 : 0; });
@@ -89,7 +97,7 @@ window.MRT.views.lots = (function () {
 
   function table(rows, me) {
     var k = K();
-    return k.table(['Lot', 'Project', 'Part number', 'Build-up', { label: 'Panels', cls: 'num' }, 'Owner', 'Registered', 'Note', { label: '', cls: 'actions' }],
+    return k.table(['Lot', 'Projects (of its requests)', { label: 'Panels', cls: 'num' }, 'Owner', 'Registered', 'Note', { label: '', cls: 'actions' }],
       rows.map(function (l) {
         var edit = D.canEditLot(me, l);
         return { id: 'row-' + l.id, cells: [
@@ -97,9 +105,7 @@ window.MRT.views.lots = (function () {
             ui.el('a', { class: 'mono lot-link', href: '#/lots/' + l.id, text: l.lot_number, title: 'All details of lot ' + l.lot_number,
               onclick: function (ev) { ev.preventDefault(); detailsDialog(l); } }),
             l.sample ? k.sampleTag() : null]),
-          code('projects', l.project_id) || k.muted('?'),
-          l.part_number_id ? ui.el('span', { class: 'mono', text: code('part_numbers', l.part_number_id) || '?' }) : k.muted('-'),
-          code('buildups', l.buildup_id) || k.muted('?'),
+          lotProjects(l) || k.muted('-'),
           ui.el('span', { class: 'num', text: l.panel_count ? String(l.panel_count) : '-' }),
           userName(l.owner_id) || k.muted('?'),
           ui.el('span', { class: 'num', text: ui.formatDate(l.created_ts) }),
@@ -111,61 +117,28 @@ window.MRT.views.lots = (function () {
 
   /* --- Register / edit ------------------------------------------------ */
 
-  /** Active entries, plus the one already picked (so a hidden one still shows). */
-  function options(coll, current, empty) {
-    return [{ value: '', label: empty }].concat(store.list(coll, { all: true })
-      .filter(function (r) { return r.active !== false || r.id === current; })
-      .map(function (r) { return { value: r.id, label: r.code + (r.name ? ' - ' + r.name : '') + (r.active === false ? ' (hidden)' : '') }; }));
-  }
-
-  /** The part numbers of a project (M2-1): one is picked for you when there is only one. */
-  function pnOptions(projectId, current) {
-    var list = store.list('part_numbers', { all: true }).filter(function (p) {
-      return (p.project_ids || []).indexOf(projectId) !== -1 && (p.active !== false || p.id === current);
-    }).map(function (p) { return { value: p.id, label: p.code + (p.description ? ' - ' + p.description : '') }; });
-    if (!projectId) return { options: [{ value: '', label: '- pick the project first -' }], value: '' };
-    if (!list.length) return { options: [{ value: '', label: '- none for this project -' }], value: '' };
-    var opts = [{ value: '', label: '- none -' }].concat(list);
-    return { options: opts, value: current || (list.length === 1 ? list[0].value : '') };
-  }
-
   function lotDialog(l) {
     var edit = !!l;
-    var start = pnOptions(edit ? l.project_id : '', edit ? l.part_number_id : null);
     return K().editDialog({
       title: edit ? 'Edit lot ' + l.lot_number : 'Register a lot', icon: 'lots', wide: true,
-      values: Object.assign(edit ? { lot_number: l.lot_number, panel_count: l.panel_count, project_id: l.project_id, part_number_id: start.value,
-                       buildup_id: l.buildup_id, note: l.note || '' }
-                   : { lot_number: '', panel_count: null, project_id: '', part_number_id: '', buildup_id: '', note: '' }, extraValues(l)),
+      intro: 'A lot is its number: project, part number and build-up are given on each request - one lot runs through every build-up.',
+      values: Object.assign(edit ? { lot_number: l.lot_number, panel_count: l.panel_count, note: l.note || '' }
+                   : { lot_number: '', panel_count: null, note: '' }, extraValues(l)),
       fields: [
         { key: 'lot_number', label: 'Lot number', kind: 'text', mono: true, cls: 'half', placeholder: 'e.g. 18178 or 18178.01',
           hint: 'A split lot adds .01, .02 ...' },
         { key: 'panel_count', label: 'Panels in the lot (optional)', kind: 'number', cls: 'half', hint: 'Requests name their panels by Hirata ID.' },
-        { key: 'project_id', label: 'Project', kind: 'select', cls: 'half', options: options('projects', edit ? l.project_id : null, '- pick a project -') },
-        { key: 'part_number_id', label: 'Part number', kind: 'select', cls: 'half', options: start.options,
-          hint: 'The part numbers of the project (Settings > Lists).' },
-        { key: 'buildup_id', label: 'Build-up', kind: 'select', cls: 'half', options: options('buildups', edit ? l.buildup_id : null, '- pick a build-up -') },
         { key: 'note', label: 'Note (optional)', kind: 'longtext', placeholder: 'e.g. panels 3-4 have a known scratch' }
       ].concat(extraSpecs(l)),
-      onForm: function (f) {
-        var prj = f.control('project_id');
-        prj.addEventListener('change', function () {
-          var o = pnOptions(prj.value, null);
-          f.setOptions('part_number_id', o.options, o.value);
-        });
-      },
       check: function (v) {
         if (!D.isLotNumber(v.lot_number)) return ['lot_number', 'Digits, a split lot adds .01 - e.g. 18178 or 18178.01'];
         if (v.panel_count !== null && (!(v.panel_count >= 1 && v.panel_count <= D.LOT_MAX_PANELS) || Math.floor(v.panel_count) !== v.panel_count)) {
           return ['panel_count', 'Empty, or a whole number from 1 to ' + D.LOT_MAX_PANELS];
         }
-        if (!v.project_id) return ['project_id', 'Pick a project'];
-        if (!v.buildup_id) return ['buildup_id', 'Pick a build-up'];
         return null;
       },
       save: function (v) {
-        var core = { lot_number: v.lot_number, panel_count: v.panel_count, project_id: v.project_id, part_number_id: v.part_number_id,
-                     buildup_id: v.buildup_id, note: v.note, extra: extraFrom(v) };
+        var core = { lot_number: v.lot_number, panel_count: v.panel_count, note: v.note, extra: extraFrom(v) };
         return store.saveLot({ id: edit ? l.id : undefined, version: edit ? l.version : undefined, fields: core });
       },
       done: edit ? 'Saved.' : 'Lot registered.'
@@ -177,8 +150,7 @@ window.MRT.views.lots = (function () {
     var ex = l.extra || {};
     function row(label, value) { return [ui.el('dt', { text: label }), ui.el('dd', {}, value === null || value === '' ? K().muted('-') : value)]; }
     var rows = [
-      row('Project', code('projects', l.project_id)), row('Part number', code('part_numbers', l.part_number_id)),
-      row('Build-up', code('buildups', l.buildup_id)), row('Panels in the lot', l.panel_count ? String(l.panel_count) : null),
+      row('Projects (of its requests)', lotProjects(l) || null), row('Panels in the lot', l.panel_count ? String(l.panel_count) : null),
       row('Scrapped panels', (l.scrapped || []).length ? l.scrapped.join(', ') : null),
       row('Owner', userName(l.owner_id)), row('Registered', ui.formatTs(l.created_ts)), row('Note', l.note || null)
     ].concat(store.list('lot_fields', { all: true }).filter(function (f) { return f.active !== false || !D.isEmptyAnswer(ex[f.id]); }).map(function (f) {
@@ -190,7 +162,8 @@ window.MRT.views.lots = (function () {
       var t = store.byId('tools', r.tool_id);
       return ui.el('li', {}, [
         ui.el('a', { class: 'mono', href: r.status === 'draft' ? '#/new/' + r.id : '#/request/' + r.id, text: r.request_no || ((t ? t.code : '?') + ' draft') }),
-        ui.el('span', { class: 'muted', text: ' · ' + D.REQUEST_STATUS_LABEL[r.status] + ' · panels ' + D.panelsText(r) })
+        ui.el('span', { class: 'muted', text: ' · ' + D.REQUEST_STATUS_LABEL[r.status] + ' · ' + [code('projects', r.project_id), code('buildups', r.buildup_id)].filter(Boolean).join(' ') +
+          ' · panels ' + D.panelsText(r) })
       ]);
     })) : ui.el('p', { class: 'muted', text: 'No requests on this lot yet.' });
     var acts = [{ label: 'Close', value: null }];
@@ -228,5 +201,5 @@ window.MRT.views.lots = (function () {
 
   // Settings > Lots (admins) reuses these, so both doors open the same list
   return { render: render, lotDialog: lotDialog, deleteButton: deleteButton, detailsDialog: detailsDialog,
-           projectOptions: options, pnOptions: pnOptions, extraSpecs: extraSpecs, extraFrom: extraFrom };
+           lotProjects: lotProjects, extraSpecs: extraSpecs, extraFrom: extraFrom };
 })();

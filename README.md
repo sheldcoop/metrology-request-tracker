@@ -18,8 +18,9 @@ Down with an "until" date, its quality engineers, measurement types and
 BKMs and its queue (open, late, oldest, typical wait). The tool's quality
 engineers and admins set the status here.
 
-**Lots** - register a lot: lot number (18178, split lot 18178.01), project,
-part number (of that project), build-up, panel count (optional), note.
+**Lots** - register a lot: lot number (18178, split lot 18178.01), panel
+count (optional), note. Project, part number and build-up are on each
+request, not the lot - one lot runs through every build-up.
 An engineer can also just type a new lot number in the request form; it is
 registered when the request is sent. Any engineer
 registers one; the owner or an admin changes it. Admins add further lot
@@ -33,7 +34,8 @@ taken. Complete says where the panels go back (same slots or others).
 
 **New request** - a guided form, one tool per request, step by step:
 1 tool, measurement type, BKM (or your own BKM path); 2 Project · Lot ·
-Build-up on one line (pick a lot or type a new one), the panels by Hirata ID
+Build-up on one line, three separate choices (pick a lot or type a new one;
+the build-up is optional), the panels by Hirata ID
 ("3252-3255") or just how many, the layers of the build-up (1FCO / 1BCO
 core, then 2F / 2B ...), process step; 3 the magazine slots or a note, and
 afterwards; 4 priority (+ reason) and needed-by (optional); 5 purpose and

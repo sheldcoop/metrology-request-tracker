@@ -41,8 +41,8 @@ window.MRT.views.slip = (function () {
       ui.el('div', { class: 'slip-code' }, ui.code128(r.request_no, { height: 44, module: 2, label: r.request_no })),
       ui.el('div', { class: 'slip-grid' }, [
         f('Tool', tool ? tool.code + (type ? ' - ' + type.name : '') : null),
-        f('Lot', lot ? lot.lot_number + '  ' + [(byId('projects', lot.project_id) || {}).code, lot.part_number_id ? (byId('part_numbers', lot.part_number_id) || {}).code : null,
-          (byId('buildups', lot.buildup_id) || {}).code].filter(Boolean).join(' · ') : null),
+        f('Lot', lot ? lot.lot_number + '  ' + [(byId('projects', r.project_id) || {}).code, r.part_number_id ? (byId('part_numbers', r.part_number_id) || {}).code : null,
+          (byId('buildups', r.buildup_id) || {}).code].filter(Boolean).join(' · ') : null),
         f('Panels', D.panelsText(r) + ((r.panels || []).length ? '  (' + r.panels.length + ')' : ''), 'wide'),
         f('Layers', (r.layers || []).join(', ') || null),
         f('Panels are', window.MRT.requestActions.whereOf(r) || null, 'wide'),

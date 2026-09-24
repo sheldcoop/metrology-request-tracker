@@ -87,8 +87,8 @@ window.MRT.views.request = (function () {
       ]),
       ui.el('div', { class: 'tr-grid' }, [
         cell('Lot', lot ? [ui.el('b', { class: 'mono', text: lot.lot_number }), ui.el('span', { class: 'muted', text: '  ' +
-          [(byId('projects', lot.project_id) || {}).code, lot.part_number_id ? (byId('part_numbers', lot.part_number_id) || {}).code : null,
-           (byId('buildups', lot.buildup_id) || {}).code].filter(Boolean).join(' · ') })] : muted('?')),
+          [(byId('projects', r.project_id) || {}).code, r.part_number_id ? (byId('part_numbers', r.part_number_id) || {}).code : null,
+           (byId('buildups', r.buildup_id) || {}).code].filter(Boolean).join(' · ') })] : muted('?')),
         cell('Priority', prio ? ui.el('span', { class: 'tr-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono muted', text: prio.code })]) : muted('-'),
              r.priority_reason ? r.priority_reason : null),
         cell('Needed by', r.needed_by ? ui.el('b', { class: 'num', text: ui.formatDate(r.needed_by + 'T12:00:00Z') }) : muted('no date'), null, clock),
