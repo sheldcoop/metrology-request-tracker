@@ -275,6 +275,9 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   it had (Submitted or Accepted) and shows in the queue again.
 - **M3-3** **Panels received** (Q25) does not block Start: if the panels are not marked received
   yet, Start asks once "Panels received? Kept where (optional)?" with the tick already set.
+- **M3-4** **On hold** reason picked from a list in Settings (starting list: Waiting for panels,
+  Tool down, Waiting for engineer info, Higher priority first, Other) plus an optional note, so
+  analytics can count on-hold reasons (Q20). Hold pauses the turnaround clock (Q9).
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
