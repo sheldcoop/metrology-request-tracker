@@ -216,7 +216,7 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 - **M2-7** Process step ("panels are after ..."): picked from a **process-step list** in Settings,
   or "Other" to type it. The list starts empty until Prince gives the real steps.
 - **M2-8** Where the panels are now: a **free-text field** - magazine number, rack/location, "in
-  MES", "with Anna" or anything else that helps the quality engineer find them.
+  MES", "with Anna" or anything else that helps the quality engineer find them. **Required.**
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
