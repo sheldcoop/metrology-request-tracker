@@ -20,11 +20,12 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
   `tests/tests.js` for Prince to open in `tests/test.html`. Headless Chromium or screenshots only when Prince asks.
 
 ## Git rules
-- Local git only for now (no push); GitHub comes later.
+- GitHub: `sheldcoop/metrology-request-tracker`. Push `main` and the step branch.
 - **Author:** Prince Khurana (set in this repo's git config). Never mention Claude or AI in commit
   messages, branch names or files: no "Co-Authored-By", no "Generated with".
 - **Branches:** always start from `main`, with short human names like `settings-users` or
-  `request-form`. Merge back into `main` once Prince approves the step.
+  `request-form`. **Merge each finished step into `main` right away and push** (2026-09-24,
+  Prince): he pulls `main` and checks there; fixes come as the next step.
 - **Commit messages:** short and plain, the way a person writes them, e.g. "Add tool list to Settings".
 
 ## Data in the repo (2026-09-24)
