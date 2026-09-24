@@ -26,6 +26,15 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
   `request-form`. Merge back into `main` once Prince approves the step.
 - **Commit messages:** short and plain, the way a person writes them, e.g. "Add tool list to Settings".
 
+## Data in the repo (2026-09-24)
+- **Live data never goes into git** (`data\`, `mrt_data*.json`, `backups/` are ignored).
+- **Reference data the office needs goes into the first-run setup** (`seedData` in `js/store.js`),
+  so a fresh clone starts with it: tools, measurement types, BKMs, extra fields, projects,
+  build-ups, priorities, lab calendar, closing days. When Prince gives real values, they replace
+  the sample ones there (and `sample: true` goes). Record each change in OFFICE_SETUP.md.
+- **People are not seeded** (names, Windows IDs, emails): they add themselves or an admin adds
+  them, so no colleague's personal data sits on GitHub.
+
 ## Philosophy
 - **Every component looks like what it is, as if an engineer designed it.** Tool glyphs (FIB beam and
   cut, QVM optics, PRF stylus, AOI camera, HRM probe), a request drawn as a lab **traveller card** with

@@ -1,0 +1,69 @@
+# Office setup checklist
+
+What is still fake or empty, and what to check when the tool first runs at the
+office. Tick items off as you go; delete this file when everything is done.
+
+Nothing fake is stored as a file in this repo: it all lives in the first-run
+setup in `js/store.js` (`seedData`). Opening the app on an empty `data\`
+folder creates `data\mrt_data.json` from it.
+
+---
+
+## 1. Fake data - replace or remove it (Settings, from M1 step 4)
+
+Every entry here carries a "Sample" tag, Lab status counts it, and Health
+lists it until it is edited or deleted.
+
+- [ ] **Measurement types**: 25 made-up ones, 5 per tool (DECISIONS M1-8,
+      OPEN_QUESTIONS #6). Check them with the engineers; rename, hide or delete.
+- [ ] **BKM library**: 25 made-up BKMs with fake paths `\\SAMPLE-SHARE\BKM\...`
+      (OPEN_QUESTIONS #7). Replace them with real names, paths and versions.
+      Delete fake BKMs *before* their measurement types (a type cannot be
+      deleted while a BKM points at it).
+
+## 2. Real, but please confirm
+
+- [ ] **Tools**: HRM, AOI, PRF, QVM, FIB, all Up (Q24).
+- [ ] **Priorities**: Line stop P1, Hot P2, Normal P3 (default), Low P4 (Q26).
+- [ ] **Projects**: C4F, SHIFT, HORUS. **Build-ups**: BU-01..BU-05, TEST, DOE, OPT
+      (copied from ABF Tracker's defaults).
+- [ ] **Lab hours**: 07:00-18:00. Days are **Mon-Fri** - not yet confirmed.
+- [ ] **Holidays**: Austrian public holidays 2026 and 2027 are filled in.
+      Company closing days (e.g. 24 and 31 December) are **not**: add them.
+
+## 3. Empty - needs real data
+
+- [ ] **Operators**: primary and backup operator per tool.
+- [ ] **Results roots**: the real share folder per tool (e.g. `\\server\lab\FIB`).
+- [ ] **Extra fields per tool**: none yet (OPEN_QUESTIONS #5).
+- [ ] **People and roles**: only the first admin exists. Colleagues add
+      themselves on first open (as Engineer); set their roles in Settings > Users.
+
+## 4. First run at the office - never tested there yet
+
+- [ ] Get the code on the share: `git clone https://github.com/sheldcoop/metrology-request-tracker.git`
+      (needs git + GitHub access on that PC), or download the ZIP from GitHub
+      and unpack it.
+- [ ] Make an empty folder `data` next to `index.html`.
+- [ ] **Everyone who uses the tool needs write access to `data\`** on the share.
+- [ ] Double-click `Metrology Tool.cmd`. Edge must open the app.
+      - from a mapped drive (e.g. `Z:\...`)
+      - from a network path (`\\server\share\...`) - Windows first prints
+        "UNC paths are not supported"; that is harmless.
+      - if Edge does not open, the window shows the address to paste by hand.
+- [ ] The app asks for the data folder once: pick that `data` folder.
+- [ ] First run: enter your name and an admin PIN. Check your Windows user
+      name is filled in (it comes from the launcher).
+- [ ] A colleague opens it on their PC: they should see "Who are you?", not
+      your name. After entering their name they are an Engineer.
+- [ ] Check `data\backups\` gets a file after the first change of the day.
+- [ ] Avoid `!` in the tool folder path (the launcher cannot handle it).
+      Folder names with ä/ö/ü are untested.
+
+## 5. Not built yet (for reference)
+
+- M1 step 4: Settings, Health, audit log, backups screen, "Change data folder".
+- M1 step 5: Help page, ui-kit.html, preview, accessibility audit, CONTRIBUTING.md.
+- Later milestones: requests (M2-M3), notifications (M4), analytics and Excel
+  export (M5), import of the old request list (M6), QR code on the traveller
+  slip (M2), real email and local AI (need a server and IT approval).
