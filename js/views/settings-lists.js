@@ -1,8 +1,8 @@
 /**
  * Metrology Request Tracker - views/settings-lists.js
  *
- * Settings > Lists: projects and build-ups (the lot pickers, Q7/Q8) and
- * priorities (Q26: Line stop / Hot / Normal / Low - renamable, one is the
+ * Settings > Lists: projects and build-ups (the lot pickers, Q7/Q8), part
+ * numbers linked to one or more projects (M1-13) and priorities (Q26: Line stop / Hot / Normal / Low - renamable, one is the
  * default, some need a reason). Lists are referenced by ID, so a rename
  * shows everywhere; delete only while unused, otherwise hide (Q47).
  */
@@ -22,6 +22,7 @@
       codeList('projects', 'Projects', 'project', 'e.g. C4F', 'lots'),
       codeList('buildups', 'Build-ups', 'build-up', 'e.g. BU-06', 'grid')
     ]));
+    body.appendChild(partNumbersPanel());
     body.appendChild(prioritiesPanel());
     K().focusRow(body, ctx.focusId);
   }
@@ -51,6 +52,54 @@
       ],
       check: function (v) { return D.isCode(v.code.toUpperCase(), 12) ? null : ['code', 'Capitals, digits and dashes, e.g. ' + example]; },
       save: function (v) { return store.saveEntry(collection, { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },
+      done: edit ? 'Saved.' : 'Added.'
+    }).catch(oops);
+  }
+
+  function projectCodes(ids) {
+    return (ids || []).map(function (id) { var p = store.byId('projects', id); return p ? p.code : '?'; });
+  }
+
+  function partNumbersPanel() {
+    var k = K();
+    var rows = store.list('part_numbers', { all: true });
+    var canAdd = store.list('projects').length > 0;
+    return k.panel('Part numbers', 'tag', [ui.button('Add', { size: 'sm', icon: 'plus', disabled: !canAdd,
+      title: canAdd ? null : 'Add a project first', onClick: function () { partNumberDialog(null); } })], [
+      ui.el('p', { class: 'muted', text: 'Each part number is stored once and linked to one or more projects. ' +
+        'From M2 a lot picks a project, then one of its part numbers.' }),
+      k.table(['Part number', 'Description', 'Projects', 'Status', { label: '', cls: 'actions' }], rows.map(function (r) {
+        return { id: 'row-' + r.id, cls: r.active === false ? 'is-off' : null, cells: [
+          ui.el('b', { class: 'mono', text: r.code }), r.description || k.muted('-'),
+          ui.el('span', { class: 'chip-row' }, projectCodes(r.project_ids).map(function (c) { return k.chip(c, 'neutral'); })),
+          activeChip(r),
+          ui.el('span', { class: 'row-actions' }, [k.editButton(r.code, function () { partNumberDialog(r); }), k.deleteButton('part_numbers', r, r.code)])
+        ] };
+      }), 'None yet. Add the part numbers of each project.')
+    ]);
+  }
+
+  function partNumberDialog(r) {
+    var edit = !!r;
+    var linked = edit ? r.project_ids || [] : [];
+    // active projects, plus hidden ones this part number already uses (so saving keeps them)
+    var options = store.list('projects', { all: true }).filter(function (p) { return p.active !== false || linked.indexOf(p.id) !== -1; })
+      .map(function (p) { return { value: p.id, label: p.code + (p.active === false ? ' (hidden)' : '') }; });
+    return K().editDialog({
+      title: edit ? 'Edit ' + r.code : 'Add a part number', icon: 'edit',
+      values: edit ? { code: r.code, description: r.description || '', project_ids: linked.slice(), active: r.active !== false } : { project_ids: [], active: true },
+      fields: [
+        { key: 'code', label: 'Part number', kind: 'text', mono: true, cls: 'half', placeholder: 'e.g. PN-10234-A', hint: 'Capitals, digits and - . _ /' },
+        { key: 'description', label: 'Description (optional)', kind: 'text', cls: 'half' },
+        { key: 'project_ids', label: 'Projects (one or more)', kind: 'checks', options: options },
+        { key: 'active', label: 'Active (untick to hide it from the pickers; lots using it keep it)', kind: 'check' }
+      ],
+      check: function (v) {
+        if (!D.isPartNumber(String(v.code || '').trim().toUpperCase())) return ['code', 'Capitals, digits and - . _ / (up to 30), e.g. PN-10234-A'];
+        if (!v.project_ids.length) return ['project_ids', 'Tick at least one project'];
+        return null;
+      },
+      save: function (v) { return store.saveEntry('part_numbers', { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },
       done: edit ? 'Saved.' : 'Added.'
     }).catch(oops);
   }

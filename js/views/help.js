@@ -112,6 +112,7 @@ window.MRT.views.help = (function () {
     { id: 'admin-lists', title: 'Admin: lists and lab calendar', icon: 'calendar', admin: true,
       steps: [
         'Settings > Lists: projects and build-ups (codes in capitals) and priorities (Line stop, Hot, Normal, Low - renamable, one default, some need a reason).',
+        'Part numbers (Settings > Lists): each one is stored once and linked to one or more projects - tick them. A project with part numbers cannot be deleted; hide it instead.',
         'Settings > Lab calendar: lab days and hours (Europe/Vienna). Turnaround and lateness count only these hours.',
         'Public holidays: the Austrian ones are filled in by rule; the button adds the next year. Add company closing days yourself.'
       ],

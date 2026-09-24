@@ -223,6 +223,12 @@ window.MRT.domain = (function () {
   /** Codes that become part of request IDs (FIB-260924-03) or lot names. */
   function isCode(s, max) { return typeof s === 'string' && new RegExp('^[A-Z0-9][A-Z0-9-]{0,' + ((max || 12) - 1) + '}$').test(s); }
 
+  /**
+   * A part number: capitals, digits and - . _ / , up to 30 characters.
+   * Provisional - the real format rule is still open (OPEN_QUESTIONS #17).
+   */
+  function isPartNumber(s) { return typeof s === 'string' && /^[A-Z0-9][A-Z0-9._\/-]{0,29}$/.test(s); }
+
   /** A Windows share or drive path: \\server\share\... or X:\... (M1-3, Q13, Q30). */
   function isSharePath(s) {
     return typeof s === 'string' && (/^\\\\[^\\\s][^\\]*\\[^\\]+/.test(s) || /^[A-Za-z]:\\/.test(s));
@@ -238,7 +244,7 @@ window.MRT.domain = (function () {
   /**
    * Check one list entry as it WOULD be after a save.
    * @param {string} collection  users | tools | measurement_types | tool_fields | bkms |
-   *                             projects | buildups | priorities | holidays
+   *                             projects | part_numbers | buildups | priorities | holidays
    * @param {Object} row         the entry (with id when it exists already)
    * @param {Object} data        the collections, for uniqueness and references
    * @returns {string[]} problems; empty means valid
@@ -322,6 +328,16 @@ window.MRT.domain = (function () {
         else if (dupBy(d[collection], r.id, 'code', r.code)) p.push(r.code + ' already exists');
         break;
 
+      case 'part_numbers':
+        if (!isPartNumber(r.code)) p.push('Part number: capitals, digits and - . _ / (up to 30), e.g. PN-10234-A');
+        else if (dupBy(d.part_numbers, r.id, 'code', r.code)) p.push('Part number ' + r.code + ' already exists');
+        if (!Array.isArray(r.project_ids) || !r.project_ids.length) p.push('Tick at least one project');
+        else {
+          if (r.project_ids.some(function (id) { return !exists('projects', id); })) p.push('A ticked project no longer exists');
+          if (r.project_ids.some(function (id, i) { return r.project_ids.indexOf(id) !== i; })) p.push('A project is ticked twice');
+        }
+        break;
+
       case 'priorities':
         if (!isCode(r.code, 4)) p.push('Code: e.g. P1');
         else if (dupBy(d.priorities, r.id, 'code', r.code)) p.push(r.code + ' already exists');
@@ -392,6 +408,10 @@ window.MRT.domain = (function () {
       }
     });
 
+    if (!(data.part_numbers || []).some(function (x) { return x.active !== false; })) {
+      add('no_part_numbers', 'No part numbers yet - add them per project before lots are registered', 'lists');
+    }
+
     if (!(o && o.calendar_confirmed)) add('calendar_unconfirmed', 'Lab days and hours are not confirmed yet', 'calendar');
     var hol = data.holidays || [];
     if (!hol.some(function (h) { return h.kind === 'closing'; })) add('no_closing_days', 'No company closing days are listed (e.g. 24 and 31 December)', 'calendar');
@@ -442,6 +462,14 @@ window.MRT.domain = (function () {
         add('warning', 'status_overdue', t.code + ' is still ' + TOOL_STATUS_LABEL[t.status] + ', but its "until" date ' + t.status_until + ' has passed', 'tools', t.id);
       }
     });
+    var projects = byIdMap(data.projects);
+    (data.part_numbers || []).forEach(function (pn) {
+      if ((pn.project_ids || []).some(function (id) { return !projects[id]; })) {
+        add('problem', 'pn_bad_project', 'Part number ' + pn.code + ' is linked to a project that no longer exists', 'lists', pn.id);
+      } else if (pn.active !== false && (pn.project_ids || []).length && pn.project_ids.every(function (id) { return projects[id].active === false; })) {
+        add('warning', 'pn_hidden_projects', 'Part number ' + pn.code + ' is active, but all its projects are hidden', 'lists', pn.id);
+      }
+    });
     (data.users || []).forEach(function (u) {
       if (u.active && (!u.roles || !u.roles.length)) add('warning', 'user_no_role', u.name + ' has no role', 'users', u.id);
     });
@@ -483,6 +511,7 @@ window.MRT.domain = (function () {
     austrianHolidays: austrianHolidays,
 
     isCode: isCode,
+    isPartNumber: isPartNumber,
     isSharePath: isSharePath,
     validateEntry: validateEntry,
     validatePriorities: validatePriorities,
