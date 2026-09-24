@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/lots.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -87,9 +87,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // --- the side menu (M1-6)
   const items = doc.getElementById('navItems').children;
   check('nine menu entries', items.length === 9, items.length);
-  check('three live: Lab status, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,settings,help');
-  check('six greyed with their milestone', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M3,M3,M2,M2,M3,M5');
-  check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 6);
+  check('four live: Lab status, Lots, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,lots,settings,help');
+  check('five greyed with their milestone', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M3,M3,M2,M3,M5');
+  check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 5);
 
   // --- Lab status
   check('start page is Lab status', win.location.hash === '#/lab', win.location.hash);
@@ -304,6 +304,42 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Data & PIN shows the file and today\'s backup', /mrt_data.json/.test(mainText()) && /latest/.test(mainText()));
   buttonByText(doc.getElementById('main'), 'Download a copy now').click(); await settle();
 
+  // --- Lots (M2-1)
+  win.setHash('#/lots'); await settle();
+  check('Lots is live, empty at first, with Register lot', /No lots yet/.test(mainText()) && !!buttonByText(doc.getElementById('main'), 'Register lot'));
+  buttonByText(doc.getElementById('main'), 'Register lot').click(); await settle();
+  dlg2 = openDialog();
+  check('...the part number waits for the project', /pick the project first/.test(fieldIn(dlg2, 'Part number').textContent));
+  setVal(fieldIn(dlg2, 'Lot number'), '18178-A'); buttonByText(dlg2, 'Save').click(); await settle();
+  check('...a bad lot number is refused in the dialog', openDialog() === dlg2 && /split lot adds .01/.test(dlg2.textContent));
+  const c4f = MRT.store.list('projects').filter(p => p.code === 'C4F')[0], bu1 = MRT.store.list('buildups')[0];
+  setVal(fieldIn(dlg2, 'Lot number'), '18178'); setVal(fieldIn(dlg2, 'Panels'), '12');
+  setVal(fieldIn(dlg2, 'Project'), c4f.id); await settle();
+  check('...picking C4F offers its one part number, already picked', fieldIn(dlg2, 'Part number').value === pn77.id);
+  setVal(fieldIn(dlg2, 'Build-up'), bu1.id);
+  buttonByText(dlg2, 'Save').click(); await settle();
+  const lot1 = (MRT.store.data().lots || []).filter(l => l.lot_number === '18178')[0];
+  check('...lot 18178 is registered with project, part number, build-up, 12 panels, owner',
+        !!lot1 && lot1.project_id === c4f.id && lot1.part_number_id === pn77.id && lot1.buildup_id === bu1.id && lot1.panel_count === 12 &&
+        lot1.owner_id === MRT.store.currentUser().id && !openDialog());
+  check('...and listed', /18178/.test(mainText()) && /PN-77/.test(mainText()) && /1 of 1 lots/.test(mainText()));
+  buttonByText(doc.getElementById('main'), 'Register lot').click(); await settle();
+  dlg2 = openDialog();
+  setVal(fieldIn(dlg2, 'Lot number'), '18178'); setVal(fieldIn(dlg2, 'Panels'), '4');
+  setVal(fieldIn(dlg2, 'Project'), c4f.id); setVal(fieldIn(dlg2, 'Build-up'), bu1.id);
+  buttonByText(dlg2, 'Save').click(); await settle();
+  check('...the same lot number twice is refused', openDialog() === dlg2 && /already registered/.test(dlg2.textContent));
+  setVal(fieldIn(dlg2, 'Lot number'), '18178.01'); buttonByText(dlg2, 'Save').click(); await settle();
+  check('...a split lot 18178.01 is fine', (MRT.store.data().lots || []).some(l => l.lot_number === '18178.01') && !openDialog());
+  const sbox = doc.getElementById('search'); sbox.value = '18178.0'; sbox.dispatch('input'); await settle();
+  check('the search finds lots', /Lot/.test(text('main') + doc.body.querySelector('.search-results').textContent) && /18178.01/.test(doc.body.querySelector('.search-results').textContent));
+  sbox.value = ''; sbox.dispatch('input');
+  const me0 = MRT.store.currentUser().id;
+  MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id);
+  win.setHash('#/lab'); await settle(); win.setHash('#/lots'); await settle();
+  check('an engineer sees the lots but cannot edit someone else\'s', /18178/.test(mainText()) && !doc.getElementById('main').querySelectorAll('button').some(b => /Edit lot/.test(b.getAttribute('aria-label') || '')));
+  MRT.store.setCurrentUser(me0);
+
   // a non-admin is kept out
   const saved = MRT.store.currentUser().id;
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id);
@@ -355,7 +391,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...and says when nothing is found', guides.every(g => g.hidden) && /Nothing found/.test(mainText()));
   win.setHash('#/help/admin-setup'); await settle();
   check('#/help/admin-setup opens that guide', $$('.help-guide').filter(g => g.classList.contains('is-selected')).map(g => g.id).join() === 'help-admin-setup');
-  check('every guide link goes to a live page', $$('.help-open').every(a => /^#\/(lab|settings|help)/.test(a.getAttribute('href'))));
+  check('every guide link goes to a live page', $$('.help-open').every(a => !!MRT.views[(a.getAttribute('href') || '').replace(/^#\//, '').split('/')[0]]));
 
   // --- a failed save: the lamp and a toast with Retry
   folder.failWrites = true;

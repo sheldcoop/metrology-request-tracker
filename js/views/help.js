@@ -63,6 +63,19 @@ window.MRT.views.help = (function () {
       tips: ['Queue length, the oldest open request and the typical wait appear here from M3.'],
       link: ['Open Lab status', '#/lab'] },
 
+    { id: 'lots', title: 'Lots: register a lot', icon: 'lots',
+      intro: 'A request picks its lot and panels, so the lot comes first. Any engineer registers one.',
+      steps: [
+        'Lots > Register lot. Lot number: digits, e.g. 18178; a split lot adds .01, .02 (18178.01).',
+        'Panels: how many panels the lot has - this draws the panel map on the request.',
+        'Pick the project: its part numbers appear. With only one it is picked for you; with several, choose. Then pick the build-up.',
+        'A note is optional, e.g. "panels 3-4 have a known scratch".',
+        'You (the owner) or an admin can change the lot later, or delete it while no request uses it.'
+      ],
+      tips: ['Filter by lot, project, part number, build-up or owner; "Only my lots" shows yours. The search box at the top finds lots too.',
+             'A project or build-up that lots use cannot be deleted in Settings - hide it instead.'],
+      link: ['Open Lots', '#/lots'] },
+
     { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
       intro: 'Tell the lab when you are not there, so people know who covers your tools.',
       steps: [

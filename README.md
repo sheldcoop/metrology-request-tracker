@@ -6,14 +6,19 @@ lab operators run them and hand back a results folder.
 Zero install: static files on the shared drive, opened in Microsoft Edge.
 No server, no build step, no internet.
 
-> Milestone M1 (the shell): Lab status, Settings and Help work. The other
-> menu entries are greyed until their milestone (M2: requests).
+> M1 (the shell) is done: Lab status, Settings and Help. M2 is being built:
+> Lots works; the request form and request page follow. The other menu
+> entries are greyed until their milestone.
 
 ## What the pages do (M1)
 
 **Lab status** - every tool as a nameplate: its glyph, Up / Maintenance /
 Down with an "until" date, its quality engineers, measurement types and
 BKMs. The tool's quality engineers and admins set the status here.
+
+**Lots** - register a lot: lot number (18178, split lot 18178.01), project,
+part number (of that project), build-up, panel count, note. Any engineer
+registers one; the owner or an admin changes it.
 
 **Away** - your name (top right) > "I'm away...": first and last day and an
 optional note, never a reason. Shown on Lab status, People and Health.

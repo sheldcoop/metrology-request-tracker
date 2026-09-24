@@ -610,6 +610,13 @@ window.MRT.app = (function () {
       store.list('bkms').forEach(function (b) {
         if (has(b.name + ' ' + b.path)) out.push({ kind: 'BKM', icon: 'requests', label: b.name, sub: b.path, href: '#/lab/' + b.tool_id });
       });
+      (data.lots || []).forEach(function (l) {
+        var prj = store.byId('projects', l.project_id), pn = l.part_number_id ? store.byId('part_numbers', l.part_number_id) : null;
+        if (has(l.lot_number + ' ' + (pn ? pn.code : ''))) {
+          out.push({ kind: 'Lot', icon: 'lots', label: l.lot_number,
+                     sub: [(prj || {}).code, pn ? pn.code : null, l.panel_count + ' panels'].filter(Boolean).join(' · '), href: '#/lots/' + l.id });
+        }
+      });
       store.list('users').forEach(function (u) {
         if (has(u.name + ' ' + (u.windows_id || '') + ' ' + (u.email || ''))) {
           out.push({ kind: 'Person', icon: 'user', label: u.name,

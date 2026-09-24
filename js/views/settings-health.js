@@ -22,7 +22,7 @@
     warning: { chip: 'warning', label: 'Warning' },
     note:    { chip: 'neutral', label: 'Note' }
   };
-  var TAB_LABEL = { users: 'People', tools: 'Tools', lists: 'Lists', calendar: 'Lab calendar' };
+  var TAB_LABEL = { users: 'People', tools: 'Tools', lists: 'Lists', calendar: 'Lab calendar', lots: 'Lots' };
 
   function K() { return window.MRT.settingsKit; }
 
@@ -31,7 +31,7 @@
     return [
       K().chip(s.label, s.chip),
       x.text,
-      ui.el('a', { class: 'btn btn-sm', href: '#/settings/' + x.tab + (x.id ? '/' + x.id : '') },
+      ui.el('a', { class: 'btn btn-sm', href: (x.tab === 'lots' ? '#/' : '#/settings/') + x.tab + (x.id ? '/' + x.id : '') },
             ['Open ' + (TAB_LABEL[x.tab] || x.tab), ui.icon('chevron_right', 14)])
     ];
   }

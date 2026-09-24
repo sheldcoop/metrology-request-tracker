@@ -421,6 +421,15 @@
       values: values,
       setError: function (key, message) { if (parts[key]) { parts[key].setState('invalid', message); if (parts[key].input.focus) parts[key].input.focus(); } },
       clearErrors: function () { Object.keys(parts).forEach(function (k) { parts[k].setState(null); }); },
+      /** A select's options, replaced (e.g. part numbers of the picked project). */
+      setOptions: function (key, options, value) {
+        var sel = parts[key] && parts[key].input;
+        if (!sel || sel.tagName !== 'SELECT') return;
+        clear(sel);
+        options.forEach(function (opt) { sel.appendChild(el('option', { value: opt.value, text: opt.label })); });
+        sel.value = value !== undefined && value !== null ? String(value) : (options[0] ? String(options[0].value) : '');
+      },
+      control: function (key) { return parts[key] ? parts[key].input : null; },
       focus: function () { var first = specs.filter(function (sp) { return !parts[sp.key].node.hidden; })[0]; if (first && parts[first.key].input.focus) parts[first.key].input.focus(); }
     };
   }
