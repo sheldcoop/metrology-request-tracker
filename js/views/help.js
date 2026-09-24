@@ -92,6 +92,19 @@ window.MRT.views.help = (function () {
              'The preview on the right shows what the quality engineer will see.'],
       link: ['New request', '#/new'] },
 
+    { id: 'request-page', title: 'The request page', icon: 'requests',
+      intro: 'Every submitted request has its own page: open it from the search (type part of the ID), from a lot\'s details or from your requests.',
+      steps: [
+        'The traveller card on top: request ID, tool, status stamp, lot, priority (the coloured stripe: red Line stop, amber Hot, green Normal, grey Low), needed-by and the panel map with the requested panels.',
+        'The countdown counts lab time only (lab days and hours, minus holidays): "13 h lab time left (3 days)". Outside lab hours it says "clock paused". Late requests turn red.',
+        'The status rail shows each step - Submitted, Accepted, In progress, Completed - with who and when.',
+        'On the right: the BKM path and the proposed results folder, each with a Copy button, the details and the people.',
+        'Timeline: every status change and comment. Write @Name (or @windowsid) to point someone at a comment - they are notified from M4.',
+        'Cancel request (requester, the tool\'s quality engineers, admins): give a reason. A cancelled request stays visible, never deleted.'
+      ],
+      tips: ['Accept, Start, Hold and Complete come with the queue in M3.'],
+      link: ['New request', '#/new'] },
+
     { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
       intro: 'Tell the lab when you are not there, so people know who covers your tools.',
       steps: [

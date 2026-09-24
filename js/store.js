@@ -1036,6 +1036,43 @@ window.MRT.store = (function () {
     });
   }
 
+  /**
+   * A comment on the timeline (Q11). @mentions are stored with it; the bell
+   * and emails come in M4.
+   */
+  function addComment(requestId, text) {
+    return guard(function () {
+      var me = requireUser();
+      var r = need('requests', requestId, 'Request');
+      assert(D.canComment(me, r), 'Comments are for submitted requests', 'not_allowed');
+      var t = String(text || '').trim();
+      assert(t, 'Write something first', 'invalid');
+      assert(t.length <= D.COMMENT_MAX, 'Keep a comment under ' + D.COMMENT_MAX + ' characters', 'invalid');
+      var mentions = D.findMentions(t, state.data.users);
+      state.data.request_events.push({ id: newId('rev'), request_id: r.id, ts: nowIso(), user_id: me.id, kind: 'comment',
+                                       from: null, to: null, text: t, mentions: mentions });
+      audit('request', r.id, 'comment', null, null, t.length > 80 ? t.slice(0, 80) + '...' : t, null);
+      return commit().then(function () { return r; });
+    });
+  }
+
+  /** Cancel with a reason (Q35). A cancelled request stays, never deleted. */
+  function cancelRequest(requestId, reason) {
+    return guard(function () {
+      var me = requireUser();
+      var r = need('requests', requestId, 'Request');
+      assert(D.canCancel(me, r, byId('tools', r.tool_id)), D.isOpen(r) ? 'Only the requester, the tool\'s quality engineers or an admin can cancel' : 'This request is not open', 'not_allowed');
+      assert(isStr(reason), 'A reason is required', 'invalid');
+      var from = r.status;
+      r.status = 'cancelled';
+      r.cancelled_ts = nowIso();
+      r.version += 1;
+      event(r.id, 'status', from, 'cancelled', reason.trim());
+      audit('request', r.id, 'status', 'status', from, 'cancelled', reason.trim());
+      return commit().then(function () { return r; });
+    });
+  }
+
   /** Requests the signed-in person may see (drafts only their own), newest first. */
   function visibleRequests(filter) {
     var me = currentUser();
@@ -1382,6 +1419,8 @@ window.MRT.store = (function () {
     saveDraft: saveDraft,
     submitRequest: submitRequest,
     deleteDraft: deleteDraft,
+    addComment: addComment,
+    cancelRequest: cancelRequest,
     visibleRequests: visibleRequests,
     requestEvents: requestEvents,
     addSampleLots: addSampleLots,

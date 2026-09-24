@@ -30,6 +30,7 @@ const REQUIRED = {
   lab: ['.tool-plate::before', '.tool-plate-facts', '.lab-grid'],
   lots: ['.lots-tools', '.cell-note'],
   request: ['.req-layout', '.tool-pick-opt.is-on', '.traveller-mini::before', '.req-errors'],
+  requestPage: ['.traveller.is-urgent::after', '.tr-stamp', '.status-rail', '.rail-step.is-now .rail-dot', '.timeline', '.mention'],
   panelmap: ['.panel-map', '.pm-cell.is-picked::after', '.pm-cell.is-scrapped', '.pm-cell::before'],
   form: ['.form-grid', '.form-checks', '.modal-error'],
   help: ['.help-layout', '.help-steps li::marker', '.help-roles', '@media print'],

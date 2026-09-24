@@ -13,10 +13,10 @@
  *   #/new               a new request (?lot=<lot id> picks the lot, ?tool=<tool id> the tool)
  *   #/new/<draft id>    carry on with a draft
  *   #/new?from=<id>     copy a request (Q28)
- *   #/new?done=<id>     just submitted: the summary  (the ?key= values arrive as ctx.params)
+ *   (the ?key= values arrive as ctx.params; after Submit the request page #/request/<id> opens)
  *
  * A traveller-card preview on the right shows what the quality engineer
- * will see. The request page itself comes in step 5.
+ * will see.
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -29,7 +29,6 @@ window.MRT.views['new'] = (function () {
   var X = window.MRT.extraFields;
 
   function byId(coll, id) { return id ? store.byId(coll, id) : null; }
-  function K() { return window.MRT.settingsKit; }
 
   /** The fields a copy takes over (Q28): not the date, reason or where the panels are now. */
   function copyOf(r) {
@@ -53,7 +52,7 @@ window.MRT.views['new'] = (function () {
         text: 'Ask an admin to tick the Engineer role for you (Settings > People).' }));
       return;
     }
-    if (q.done) return renderDone(main, byId('requests', q.done));
+    if (q.done) { location.hash = '#/request/' + q.done; return; }     // older links: the request page
 
     var draft = ctx.subpath ? byId('requests', ctx.subpath) : null;
     if (ctx.subpath && !D.canEditDraft(me, draft)) {
@@ -307,7 +306,7 @@ window.MRT.views['new'] = (function () {
         if (!ok) return;
         return store.submitRequest({ id: draft ? draft.id : undefined, version: draft ? draft.version : undefined, fields: f }).then(function (r) {
           ui.toast({ kind: 'success', message: 'Submitted ' + r.request_no + '.' });
-          location.hash = '#/new?done=' + r.id;
+          location.hash = '#/request/' + r.id;
         });
       }).catch(function (e) { ui.toastError('Could not submit: ' + e.message, e); });
     }
@@ -360,7 +359,7 @@ window.MRT.views['new'] = (function () {
       var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id);
       var label = r.request_no || ((tool ? tool.code : '?') + ' draft');
       return ui.el('li', {}, [
-        ui.el('a', { class: 'mono', href: r.status === 'draft' ? '#/new/' + r.id : '#/new?done=' + r.id, text: label }),
+        ui.el('a', { class: 'mono', href: r.status === 'draft' ? '#/new/' + r.id : '#/request/' + r.id, text: label }),
         ui.el('span', { class: 'muted', text: (lot ? ' · lot ' + lot.lot_number : '') + ' · ' + D.REQUEST_STATUS_LABEL[r.status] })
       ]);
     }
@@ -371,41 +370,6 @@ window.MRT.views['new'] = (function () {
       sent.length ? ui.el('ul', { class: 'req-list' }, sent.map(line)) : ui.el('p', { class: 'muted', text: 'None yet.' }),
       ui.el('p', { class: 'muted', text: 'My requests (all, with filters) comes in M3.' })
     ] }).node;
-  }
-
-  /** Just submitted: the summary, and what to do next. */
-  function renderDone(main, r) {
-    var me = store.currentUser();
-    if (!r || !D.canSeeRequest(me, r)) {
-      main.appendChild(ui.emptyState({ icon: 'requests', title: 'Request not found', actionLabel: 'New request', onAction: function () { location.hash = '#/new'; } }));
-      return;
-    }
-    var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id), type = byId('measurement_types', r.type_id);
-    var prio = byId('priorities', r.priority_id), bkm = byId('bkms', r.bkm_id), step = byId('process_steps', r.process_step_id);
-    function row(label, value) { return [ui.el('dt', { text: label }), ui.el('dd', {}, value === null || value === '' || value === undefined ? K().muted('-') : value)]; }
-    var extra = X.shown(D.fieldsForType(store.list('tool_fields', { all: true }), r.tool_id, r.type_id), r.extra).map(function (f) {
-      return row(f.label, X.answerText(f, (r.extra || {})[f.id]) || null);
-    });
-    main.appendChild(ui.pageHead(r.request_no || 'Draft', D.REQUEST_STATUS_LABEL[r.status] + (r.submitted_ts ? ' ' + ui.formatTs(r.submitted_ts) : '')));
-    main.appendChild(ui.el('div', { class: 'req-layout' }, [
-      ui.panel({ title: 'Submitted', icon: 'check', body: [
-        ui.el('p', {}, ['The request ', ui.el('b', { class: 'mono', text: r.request_no }), ' is with the ', tool ? tool.code : '', ' quality engineers. ',
-          'The full request page with its timeline comes in the next step (M2 step 5).']),
-        ui.el('dl', { class: 'facts' }, [].concat.apply([], [
-          row('Tool', tool ? tool.code + ' - ' + tool.name : null), row('Measurement type', type ? type.name : null),
-          row('Lot', lot ? lot.lot_number : null), row('Panels', r.panels.length ? D.formatPanels(r.panels) + ' (' + r.panels.length + ')' : null),
-          row('Priority', prio ? prio.name + (r.priority_reason ? ' - ' + r.priority_reason : '') : null), row('Needed by', r.needed_by || 'no date'),
-          row('BKM', bkm ? bkm.name : r.bkm_path || ui.el('span', { class: 'chip warning', text: 'No BKM' })), row('Purpose', r.purpose || null),
-          row('Panels are after', step ? step.name : r.process_step_other || null), row('Layer', r.layer || null),
-          row('Panels are now', r.panel_location), row('Afterwards', D.AFTER_LABEL[r.after] + (r.after_other ? ': ' + r.after_other : ''))
-        ].concat(extra)))
-      ] }).node,
-      ui.el('aside', { class: 'req-side' }, ui.panel({ title: 'Next', icon: 'request_new', body: ui.el('div', { class: 'req-next' }, [
-        ui.button('New request on lot ' + (lot ? lot.lot_number : ''), { kind: 'primary', icon: 'plus', onClick: function () { location.hash = '#/new?lot=' + r.lot_id; } }),
-        ui.button('Copy this request', { icon: 'copy', onClick: function () { location.hash = '#/new?from=' + r.id; } }),
-        ui.button('New request', { icon: 'request_new', onClick: function () { location.hash = '#/new'; } })
-      ]) }).node)
-    ]));
   }
 
   return { render: render };

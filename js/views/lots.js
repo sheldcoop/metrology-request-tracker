@@ -188,7 +188,7 @@ window.MRT.views.lots = (function () {
     var reqList = reqs.length ? ui.el('ul', { class: 'req-list' }, reqs.map(function (r) {
       var t = store.byId('tools', r.tool_id);
       return ui.el('li', {}, [
-        ui.el('a', { class: 'mono', href: r.status === 'draft' ? '#/new/' + r.id : '#/new?done=' + r.id, text: r.request_no || ((t ? t.code : '?') + ' draft') }),
+        ui.el('a', { class: 'mono', href: r.status === 'draft' ? '#/new/' + r.id : '#/request/' + r.id, text: r.request_no || ((t ? t.code : '?') + ' draft') }),
         ui.el('span', { class: 'muted', text: ' · ' + D.REQUEST_STATUS_LABEL[r.status] + ' · panels ' + (D.formatPanels(r.panels) || '-') })
       ]);
     })) : ui.el('p', { class: 'muted', text: 'No requests on this lot yet.' });

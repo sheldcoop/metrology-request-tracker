@@ -79,6 +79,31 @@
       return { id: 'lot_demo_' + i, lot_number: x[0], project_id: prj(x[1]), part_number_id: x[2], buildup_id: bu(x[3]), panel_count: x[4],
                owner_id: x[5], note: x[7], created_ts: new Date(now - x[6] * DAY).toISOString(), version: 1 };
     });
+    // demo requests (made up, preview only): a Line stop on FIB and a Normal one on QVM
+    function prioId(code) { return d.priorities.filter(function (p) { return p.code === code; })[0].id; }
+    function typeOf(code) { return d.measurement_types.filter(function (m) { return m.tool_id === tool(code).id; })[0].id; }
+    function iso(daysAgo) { return new Date(now - daysAgo * DAY).toISOString(); }
+    var ymdIn = function (days) { return new Date(now + days * DAY).toISOString().slice(0, 10); };
+    d.requests = [
+      { id: 'req_demo_1', request_no: 'FIB-' + ymdIn(-1).slice(2).replace(/-/g, '') + '-01', status: 'submitted', tool_id: tool('FIB').id, type_id: typeOf('FIB'),
+        lot_id: 'lot_demo_0', panels: [1, 2, 3, 4], priority_id: prioId('P1'), priority_reason: 'Line 2 stopped - voids suspected', needed_by: ymdIn(1),
+        bkm_id: d.bkms.filter(function (b) { return b.tool_id === tool('FIB').id; })[0].id, bkm_path: '', purpose: 'Check voids at via 3 after the new plating recipe',
+        process_step_id: 'pstep_demo_1', process_step_other: '', layer: 'L3', panel_location: 'Magazine 14, rack B2', destructive_ok: true, after: 'scrap',
+        after_other: '', extra: { fld_demo_side: 'ch_f' }, duplicated_from: null, requester_id: PEOPLE.engineer.id, created_ts: iso(1.1), updated_ts: iso(1),
+        submitted_ts: iso(1), version: 2 },
+      { id: 'req_demo_2', request_no: 'QVM-' + ymdIn(-2).slice(2).replace(/-/g, '') + '-01', status: 'submitted', tool_id: tool('QVM').id, type_id: typeOf('QVM'),
+        lot_id: 'lot_demo_2', panels: [1, 5, 9], priority_id: prioId('P3'), priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '',
+        purpose: 'Pad size on the corner coupons', process_step_id: null, process_step_other: 'after solder resist', layer: '', panel_location: 'In MES',
+        destructive_ok: false, after: 'back_to_me', after_other: '', extra: {}, duplicated_from: null, requester_id: PEOPLE.admin.id,
+        created_ts: iso(2), updated_ts: iso(2), submitted_ts: iso(2), version: 2 }
+    ];
+    d.request_events = [
+      { id: 'rev_d1', request_id: 'req_demo_1', ts: iso(1.1), user_id: PEOPLE.engineer.id, kind: 'created', from: null, to: 'draft', text: null },
+      { id: 'rev_d2', request_id: 'req_demo_1', ts: iso(1), user_id: PEOPLE.engineer.id, kind: 'status', from: 'draft', to: 'submitted', text: null },
+      { id: 'rev_d3', request_id: 'req_demo_1', ts: iso(0.5), user_id: PEOPLE.quality.id, kind: 'comment', text: 'Panels picked up. @Erik Wagner which via row?', mentions: [PEOPLE.engineer.id] },
+      { id: 'rev_d4', request_id: 'req_demo_2', ts: iso(2), user_id: PEOPLE.admin.id, kind: 'created', from: null, to: 'draft', text: null },
+      { id: 'rev_d5', request_id: 'req_demo_2', ts: iso(2), user_id: PEOPLE.admin.id, kind: 'status', from: 'draft', to: 'submitted', text: null }
+    ];
     d.revision = 12;
     d.saved_by = PEOPLE.admin.id;
     return sha256('salt_demo:' + DEMO_PIN).then(function (hash) {

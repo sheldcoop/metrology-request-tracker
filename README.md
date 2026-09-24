@@ -27,7 +27,13 @@ your own BKM path), lot and panels on the panel map, where the panels are,
 process step, layer, afterwards, priority (+ reason), needed-by (optional),
 purpose and the tool's extra fields. Save a private draft or submit; submit
 warns first (tool down, same panels already open, no BKM) and gives the ID
-(FIB-260924-03). The request page with its timeline follows (M2 step 5).
+(FIB-260924-03).
+
+**Request page** - the request as a traveller card (priority stripe, status
+stamp, panel map, needed-by countdown in lab time), status rail, BKM and
+results paths with Copy, details, and the timeline with comments and
+@mentions. Requester, the tool's quality engineers and admins can cancel
+(with a reason). The search finds requests by (part of) their ID.
 
 **Away** - your name (top right) > "I'm away...": first and last day and an
 optional note, never a reason. Shown on Lab status, People and Health.

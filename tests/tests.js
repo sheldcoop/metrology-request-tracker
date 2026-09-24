@@ -191,6 +191,26 @@
     eq('...so is text', D.parsePanels('1-5, panel 7', 12).errors.length, 1);
     eq('panels back to text: runs of 3+ become a range', [D.formatPanels([12, 1, 2, 3, 4, 5]), D.formatPanels([1, 2, 4, 5, 6]), D.formatPanels([])], ['1-5, 12', '1, 2, 4-6', '']);
     ok('...and parse(format(x)) gives x back', (function () { var x = [1, 3, 4, 5, 9, 10, 20]; return D.parsePanels(D.formatPanels(x), 20).panels.join() === x.join(); })());
+    var calW = { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' }, H = 3600000;
+    eq('Vienna wall clock: 18:00 is 16:00 UTC in summer, 17:00 UTC in winter', [new Date(D.viennaTs('2026-10-02', '18:00')).toISOString(), new Date(D.viennaTs('2026-12-02', '18:00')).toISOString()],
+       ['2026-10-02T16:00:00.000Z', '2026-12-02T17:00:00.000Z']);
+    eq('lab time skips the weekend: Fri 16:00 -> Mon 09:00 = 4 h (Q36)', D.workingMs(D.viennaTs('2026-10-02', '16:00'), D.viennaTs('2026-10-05', '09:00'), calW, {}) / H, 4);
+    eq('...across the October clock change: Fri 17:00 -> Mon 08:00 = 2 h', D.workingMs(D.viennaTs('2026-10-23', '17:00'), D.viennaTs('2026-10-26', '08:00'), calW, {}) / H, 2);
+    eq('...and holidays: Mon 26 Oct (national day) counts nothing', D.workingMs(D.viennaTs('2026-10-26', '07:00'), D.viennaTs('2026-10-26', '18:00'), calW, D.holidaySet([{ date: '2026-10-26' }])) / H, 0);
+    eq('...nights and early mornings do not count', D.workingMs(D.viennaTs('2026-10-01', '19:00'), D.viennaTs('2026-10-02', '06:00'), calW, {}), 0);
+    var cd = D.countdown(D.viennaTs('2026-10-02', '16:00'), '2026-10-05', calW, {});
+    eq('countdown to the end of the lab day on the date: 13 h left, 3 days, clock running', [cd.late, cd.lab_ms / H, cd.days, cd.paused], [false, 13, 3, false]);
+    var cl = D.countdown(D.viennaTs('2026-10-06', '09:00'), '2026-10-05', calW, {});
+    eq('...late by 2 h lab time the next morning, one day over', [cl.late, cl.lab_ms / H, cl.days], [true, 2, -1]);
+    ok('...paused on a Saturday', D.countdown(D.viennaTs('2026-10-03', '10:00'), '2026-10-05', calW, {}).paused);
+    eq('...no date, no countdown', D.countdown(0, null, calW, {}), null);
+    var ppl = [{ id: 'u1', name: 'Olga Berger', windows_id: 'oberger' }, { id: 'u2', name: 'Otto Huber', windows_id: 'ohuber' }, { id: 'u3', name: 'Old', windows_id: 'old', active: false }];
+    eq('@mentions by full name or Windows ID, each once (Q11)', D.findMentions('Hi @Olga  Berger and @ohuber, also @OBERGER', ppl), ['u1', 'u2']);
+    eq('...not a longer word, not switched-off people', [D.findMentions('@obergerx', ppl), D.findMentions('@old', ppl)], [[], []]);
+    var qeU = { id: 'q1', roles: ['quality'], active: true }, toolQ = { primary_operator_id: 'q1' };
+    eq('cancel (Q35): the requester, the tool\'s QE, an admin - only while open', [D.canCancel({ id: 'e1', roles: ['engineer'] }, { status: 'accepted', requester_id: 'e1' }, toolQ),
+       D.canCancel(qeU, { status: 'submitted', requester_id: 'x' }, toolQ), D.canCancel({ id: 'e2', roles: ['engineer'] }, { status: 'submitted', requester_id: 'x' }, toolQ),
+       D.canCancel({ id: 'e1', roles: ['engineer'] }, { status: 'completed', requester_id: 'e1' }, toolQ)], [true, true, false, false]);
     eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
        D.nextRequestNo('QVM', '2026-09-24', ['FIB-260924-01']), D.nextRequestNo('FIB', '2026-09-25', ['FIB-260924-09']), D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-09'])],
        ['FIB-260924-03', 'QVM-260924-01', 'FIB-260925-01', 'FIB-260924-10']);
@@ -568,6 +588,26 @@
     ST.setCurrentUser(adminL);
     await ST.deleteDraft(d2.id);
     eq('the author deletes the draft, and its timeline', [ST.byId('requests', d2.id), ST.requestEvents(d2.id).length], [null, 0]);
+
+    group('Store: comments and cancel (M2 step 5)');
+    await ST.saveEntry('users', { id: tomL.id, fields: { windows_id: 'tlot' } });
+    await ST.addComment(s1.id, '  please check pad 3, @tlot  ');
+    var cm = ST.requestEvents(s1.id).slice(-1)[0];
+    eq('a comment: trimmed, by me, @tlot found', [cm.kind, cm.text, cm.user_id, cm.mentions], ['comment', 'please check pad 3, @tlot', adminL, [tomL.id]]);
+    await refused('an empty comment is refused', ST.addComment(s1.id, '   '), 'invalid');
+    var d3 = await ST.saveDraft({ fields: { tool_id: qvm.id } });
+    await refused('no comments on a draft', ST.addComment(d3.id, 'x'), 'not_allowed');
+    ST.setCurrentUser(tomL.id);
+    await ST.addComment(s1.id, 'seen');
+    eq('anyone who can see it may comment', ST.requestEvents(s1.id).filter(function (e) { return e.kind === 'comment'; }).length, 2);
+    await refused('someone else cannot cancel it', ST.cancelRequest(s1.id, 'x'), 'not_allowed');
+    ST.setCurrentUser(adminL);
+    await refused('cancel needs a reason', ST.cancelRequest(s1.id, ' '), 'invalid');
+    var c1 = await ST.cancelRequest(s1.id, 'wrong lot');
+    eq('cancelled: status, timeline with the reason, still there (Q35)', [c1.status, ST.requestEvents(s1.id).slice(-1)[0].to, ST.requestEvents(s1.id).slice(-1)[0].text, !!ST.byId('requests', s1.id)],
+       ['cancelled', 'cancelled', 'wrong lot', true]);
+    await refused('...only once', ST.cancelRequest(s1.id, 'again'), 'not_allowed');
+    await ST.deleteDraft(d3.id);
     var fibT = await ST.saveEntry('tools', { id: tool('FIB').id, fields: { destructive: false } });
     eq('"destructive" can be switched per tool', fibT.destructive, false);
     eq('an unused part number can be deleted', ST.byId('part_numbers', pn.id), null);
