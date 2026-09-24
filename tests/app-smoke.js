@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -376,8 +376,20 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const req1 = MRT.store.data().requests.filter(r => r.status === 'submitted')[0];
   check('submitted: ID FIB-YYMMDD-01, panels, scrap, destructive ok', !!req1 && /^FIB-\d{6}-01$/.test(req1.request_no) && req1.panels.join() === '1,2,3,4' &&
         req1.after === 'scrap' && req1.destructive_ok === true && req1.panel_location === 'Magazine 14, rack B2');
-  check('...the summary page shows it', /#\/new\?done=/.test(win.location.hash) && mainText().indexOf(req1.request_no) !== -1 && /Magazine 14/.test(mainText()));
-  check('...and its timeline has "created" and "submitted"', MRT.store.requestEvents(req1.id).map(e => e.kind + ':' + (e.to || '')).join() === 'created:draft,status:submitted');
+  check('...its request page opens (M2 step 5)', win.location.hash === '#/request/' + req1.id && mainText().indexOf(req1.request_no) !== -1 && /Magazine 14/.test(mainText()));
+  check('the traveller card: ID, stamp "Submitted", priority stripe, panel map with panels 1-4', !!$('#main .traveller.prio-3') &&
+        $('#main .tr-stamp').textContent === 'Submitted' && $$('#main .traveller .pm-cell').length === 12 && $$('#main .traveller .pm-cell.is-picked').length === 4);
+  check('...no date: "the priority says how urgent it is"', /priority says how urgent/.test($('#main .tr-clock').textContent));
+  check('the status rail: Submitted now, by whom and when', $$('#main .rail-step').length === 4 && $('#main .rail-step.is-now').textContent.indexOf('Submitted') === 0 && /Prince Khurana/.test($('#main .rail-step.is-now').textContent));
+  check('the results folder is proposed from the tool root (Q30)', mainText().indexOf('\\\\srv\\lab\\FIB\\') !== -1 && mainText().indexOf(req1.request_no + '\\') !== -1);
+  setVal(fieldIn(doc.getElementById('main'), 'Add a comment'), 'Please cut near via 3, @olga');
+  buttonByText(doc.getElementById('main'), 'Add comment').click(); await settle();
+  const com = MRT.store.requestEvents(req1.id).filter(e => e.kind === 'comment')[0];
+  check('a comment joins the timeline, @olga is found as a mention', !!com && com.mentions.length === 1 && $$('#main .tl-item').length === 3 && !!$('#main .mention'));
+  const sbox2 = doc.getElementById('search'); sbox2.value = req1.request_no.slice(0, 8); sbox2.dispatch('input'); await settle();
+  check('the search finds the request by (part of) its ID (Q41)', doc.body.querySelector('.search-results').textContent.indexOf(req1.request_no) !== -1);
+  sbox2.value = ''; sbox2.dispatch('input');
+  check('...and its timeline has "created", "submitted", then the comment', MRT.store.requestEvents(req1.id).map(e => e.kind + ':' + (e.to || '')).join() === 'created:draft,status:submitted,comment:');
   buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
   check('"Copy this request" prefills tool, lot and panels, not where the panels are', $$('#main .tool-pick-opt.is-on').length === 1 &&
         fieldIn(doc.getElementById('main'), 'Lot').value === lot1.id && $$('#main .pm-cell.is-picked').length === 4 && fieldIn(doc.getElementById('main'), 'Where are the panels now').value === '');
@@ -395,6 +407,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.getElementById('main'), 'Delete draft').click(); await settle();
   buttonByText(openDialog(), 'Delete').click(); await settle();
   check('the author deletes the draft', !MRT.store.data().requests.some(r => r.id === draft1.id));
+  win.setHash('#/request/' + req1.id); await settle();
+  buttonByText(doc.getElementById('main'), 'Cancel request').click(); await settle();
+  const rdlg = openDialog(); setVal(rdlg.querySelector('textarea') || rdlg.querySelector('input'), 'Wrong lot');
+  buttonByText(rdlg, 'Cancel request').click(); await settle();
+  check('the requester cancels with a reason (Q35): stamp Cancelled, rail shows it, never deleted',
+        MRT.store.byId('requests', req1.id).status === 'cancelled' && $('#main .tr-stamp').textContent === 'Cancelled' && !!$('#main .rail-side') && /Wrong lot/.test(mainText()));
 
   win.setHash('#/lots'); await settle();
   check('...shown on Lots with the Sample tag', /99902.01/.test(mainText()) && $$('#main .sample-tag').length === 3);

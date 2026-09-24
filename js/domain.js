@@ -545,6 +545,77 @@ window.MRT.domain = (function () {
   }
 
   /* ------------------------------------------------------------------ *
+   * Working-time clock (Q36): lab days and hours, Europe/Vienna, minus
+   * public holidays and closing days. Turnaround and lateness count only
+   * this time; calendar time is kept too.
+   * ------------------------------------------------------------------ */
+
+  var offsetFmt = null;
+  /** Minutes Vienna is ahead of UTC at a moment (60 in winter, 120 in summer). */
+  function viennaOffsetMin(ts) {
+    offsetFmt = offsetFmt || new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit',
+      day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    var p = {};
+    offsetFmt.formatToParts(new Date(ts)).forEach(function (x) { p[x.type] = x.value; });
+    var local = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute);
+    return Math.round((local - Math.floor(ts / 60000) * 60000) / 60000);
+  }
+
+  var tsMemo = {};
+  /** The moment of a Vienna wall-clock time, e.g. ('2026-10-02', '18:00'). */
+  function viennaTs(ymd, hhmm) {
+    var key = ymd + ' ' + hhmm;
+    if (tsMemo[key] !== undefined) return tsMemo[key];
+    var guess = Date.UTC(+ymd.slice(0, 4), +ymd.slice(5, 7) - 1, +ymd.slice(8, 10), +hhmm.slice(0, 2), +hhmm.slice(3, 5));
+    var ts = guess - viennaOffsetMin(guess) * 60000;
+    ts = guess - viennaOffsetMin(ts) * 60000;          // second pass: right across the clock change
+    tsMemo[key] = ts;
+    return ts;
+  }
+
+  /** 1 = Monday ... 7 = Sunday for a 'YYYY-MM-DD'. */
+  function isoWeekday(ymd) { var d = new Date(ymd + 'T12:00:00Z').getUTCDay(); return d === 0 ? 7 : d; }
+
+  function isLabDay(ymd, cal, holidaySet) { return (cal.days || []).indexOf(isoWeekday(ymd)) !== -1 && !holidaySet[ymd]; }
+
+  /** {ymd: true} of the holidays and closing days. */
+  function holidaySet(holidays) { var s = {}; (holidays || []).forEach(function (h) { s[h.date] = true; }); return s; }
+
+  /** Lab (working) milliseconds between two moments. */
+  function workingMs(fromTs, toTs, cal, hs) {
+    if (!(toTs > fromTs)) return 0;
+    var total = 0, ymd = viennaYmd(fromTs), last = viennaYmd(toTs);
+    for (var guard = 0; ymd <= last && guard < 1500; guard++) {
+      if (isLabDay(ymd, cal, hs)) {
+        var s = viennaTs(ymd, cal.start), e = viennaTs(ymd, cal.end);
+        total += Math.max(0, Math.min(e, toTs) - Math.max(s, fromTs));
+      }
+      ymd = addDaysYmd(ymd, 1);
+    }
+    return total;
+  }
+
+  /** Is the lab clock running right now (a lab day, inside lab hours)? */
+  function isLabTime(ts, cal, hs) {
+    var ymd = viennaYmd(ts);
+    return isLabDay(ymd, cal, hs) && ts >= viennaTs(ymd, cal.start) && ts < viennaTs(ymd, cal.end);
+  }
+
+  /**
+   * The needed-by countdown (Q10, Q36): due at the end of the lab day on the
+   * needed-by date. Counts lab time; the clock pauses outside lab hours.
+   * @returns {null | {late, lab_ms, due_ts, days, paused}}  days = calendar days to/over the date
+   */
+  function countdown(nowTs, neededYmd, cal, hs) {
+    if (!neededYmd || !isYmd(neededYmd)) return null;
+    var due = viennaTs(neededYmd, cal.end);
+    var late = nowTs > due;
+    var days = Math.round((Date.parse(neededYmd + 'T00:00:00Z') - Date.parse(viennaYmd(nowTs) + 'T00:00:00Z')) / 86400000);
+    return { late: late, lab_ms: late ? workingMs(due, nowTs, cal, hs) : workingMs(nowTs, due, cal, hs), due_ts: due, days: days,
+             paused: !isLabTime(nowTs, cal, hs) };
+  }
+
+  /* ------------------------------------------------------------------ *
    * Requests (Q4-Q14, Q29, Q33, Q44, DECISIONS M2-4..M2-17)
    * ------------------------------------------------------------------ */
 
@@ -565,6 +636,44 @@ window.MRT.domain = (function () {
   /** A draft is its author's alone (Q33). */
   function canSeeRequest(user, r) { return !!user && !!r && (r.status !== 'draft' || r.requester_id === user.id); }
   function canEditDraft(user, r) { return !!user && !!r && r.status === 'draft' && r.requester_id === user.id; }
+
+  var OPEN_STATUSES = ['submitted', 'accepted', 'in_progress', 'clarification', 'on_hold'];
+  function isOpen(r) { return !!r && OPEN_STATUSES.indexOf(r.status) !== -1; }
+
+  /** Everyone who can see a submitted request may comment (Q11). */
+  function canComment(user, r) { return canSeeRequest(user, r) && r.status !== 'draft'; }
+
+  /** The tool's primary / backup (quality engineers) - they measure it (M1-12). */
+  function isToolMeasurer(user, tool) {
+    return !!user && !!tool && canMeasure(user) && (tool.primary_operator_id === user.id || tool.backup_operator_id === user.id);
+  }
+
+  /** Cancel (Q35): the requester any time, the tool's quality engineers and admins with a reason - while open. */
+  function canCancel(user, r, tool) {
+    if (!user || !isOpen(r)) return false;
+    return r.requester_id === user.id || hasRole(user, 'admin') || isToolMeasurer(user, tool);
+  }
+
+  /**
+   * @mentions in a comment (Q11): "@Anna Berger" (full name) or "@aberger"
+   * (Windows ID), case ignored. Returns the user IDs, each once.
+   */
+  function findMentions(text, users) {
+    var t = ' ' + String(text || '').toLowerCase().replace(/\s+/g, ' ') + ' ';
+    var out = [];
+    (users || []).forEach(function (u) {
+      if (u.active === false) return;
+      var names = [u.name && u.name.toLowerCase().replace(/\s+/g, ' '), u.windows_id].filter(Boolean);
+      var hit = names.some(function (n) {
+        var i = t.indexOf('@' + n);
+        return i !== -1 && !/[a-z0-9._-]/.test(t.charAt(i + 1 + n.length));
+      });
+      if (hit && out.indexOf(u.id) === -1) out.push(u.id);
+    });
+    return out;
+  }
+
+  var COMMENT_MAX = 2000;
 
   /**
    * The request ID (Q29): TOOL-YYMMDD-NN, NN running per tool per day
@@ -665,7 +774,7 @@ window.MRT.domain = (function () {
         w.push({ code: 'tool_down', text: tool.code + ' is ' + label + ' until ' + tool.status_until + (r.needed_by ? ', not before your needed-by date ' + r.needed_by : '') });
       }
     }
-    var open = ['submitted', 'accepted', 'in_progress', 'clarification', 'on_hold'];
+    var open = OPEN_STATUSES;
     var dup = (d.requests || []).filter(function (x) {
       return x.id !== r.id && open.indexOf(x.status) !== -1 && x.lot_id === r.lot_id && x.tool_id === r.tool_id &&
         (x.panels || []).some(function (n) { return (r.panels || []).indexOf(n) !== -1; });
@@ -839,6 +948,12 @@ window.MRT.domain = (function () {
     isCode: isCode,
     isPartNumber: isPartNumber,
     isLotNumber: isLotNumber,
+    viennaTs: viennaTs,
+    isoWeekday: isoWeekday,
+    holidaySet: holidaySet,
+    workingMs: workingMs,
+    isLabTime: isLabTime,
+    countdown: countdown,
     REQUEST_STATUSES: REQUEST_STATUSES,
     REQUEST_STATUS_LABEL: REQUEST_STATUS_LABEL,
     AFTER_OPTIONS: AFTER_OPTIONS,
@@ -846,6 +961,13 @@ window.MRT.domain = (function () {
     canRequest: canRequest,
     canSeeRequest: canSeeRequest,
     canEditDraft: canEditDraft,
+    OPEN_STATUSES: OPEN_STATUSES,
+    isOpen: isOpen,
+    canComment: canComment,
+    canCancel: canCancel,
+    isToolMeasurer: isToolMeasurer,
+    findMentions: findMentions,
+    COMMENT_MAX: COMMENT_MAX,
     nextRequestNo: nextRequestNo,
     fieldsForType: fieldsForType,
     requestProblems: requestProblems,

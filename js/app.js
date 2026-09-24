@@ -41,7 +41,12 @@ window.MRT.app = (function () {
     { key: 'help',      label: 'Help',        icon: 'help',        g: 'h', ms: 'M1' }
   ];
 
-  function navEntry(key) { return NAV.filter(function (n) { return n.key === key; })[0] || null; }
+  /** Pages reached by a link, not from the menu. */
+  var PAGES = [
+    { key: 'request', label: 'Request', icon: 'requests', ms: 'M2', menu: 'requests' }
+  ];
+
+  function navEntry(key) { return NAV.concat(PAGES).filter(function (n) { return n.key === key; })[0] || null; }
   function isLive(key) { return !!window.MRT.views[key]; }
   function livePages() { return NAV.filter(function (n) { return isLive(n.key); }); }
 
@@ -489,8 +494,9 @@ window.MRT.app = (function () {
     var entry = navEntry(parsed.route);
     app.route = entry ? parsed.route : 'lab';
 
+    var menuKey = (navEntry(app.route) || {}).menu || app.route;
     document.querySelectorAll('.nav-item[data-route]').forEach(function (a) {
-      var on = a.dataset.route === app.route;
+      var on = a.dataset.route === menuKey;
       a.classList.toggle('active', on);
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
@@ -615,6 +621,13 @@ window.MRT.app = (function () {
       });
       store.list('bkms').forEach(function (b) {
         if (has(b.name + ' ' + b.path)) out.push({ kind: 'BKM', icon: 'requests', label: b.name, sub: b.path, href: '#/lab/' + b.tool_id });
+      });
+      store.visibleRequests(function (r) { return r.status !== 'draft'; }).forEach(function (r) {
+        var t = store.byId('tools', r.tool_id), lot = store.byId('lots', r.lot_id);
+        if (has(r.request_no + ' ' + (r.purpose || ''))) {
+          out.push({ kind: 'Request', glyph: t ? t.glyph : null, icon: 'requests', label: r.request_no,
+                     sub: [D.REQUEST_STATUS_LABEL[r.status], lot ? 'lot ' + lot.lot_number : null].filter(Boolean).join(' · '), href: '#/request/' + r.id });
+        }
       });
       (data.lots || []).forEach(function (l) {
         var prj = store.byId('projects', l.project_id), pn = l.part_number_id ? store.byId('part_numbers', l.part_number_id) : null;

@@ -249,6 +249,13 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   needed-by date, the priority reason and where the panels are now; only the author sees and
   deletes a draft; submitted requests are never deleted (cancel instead, Q35). Every request has
   a timeline from the start (created, submitted) for the request page (step 5).
+- **M2-21** (2026-09-24, built in step 5) Request page: the needed-by countdown runs to the **end of
+  the lab day** on that date and counts **lab time** (Q36 - lab days/hours minus holidays and closing
+  days, Europe/Vienna); outside lab hours it shows "clock paused" (design idea P7, text only). Comments
+  from everyone who can see the request; @Name or @windowsid are stored as mentions (the bell/emails
+  are M4). Cancel: requester, the tool's quality engineers or an admin, with a reason (Q35). Still to
+  come: quality-engineer actions (M3, Q43) and editing a submitted request with a reason (Q14) - planned
+  with M3.
 - **Future (not scheduled): Hirata code** - integrate Prince's Hirata coder/decoder HTML app and let
   users attach decoded panel numbers to a lot (OPEN_QUESTIONS #22). Planned when the app is shared.
 - **M2 build order** (one branch per step, Prince reviews each): 1 `m2-settings` (process-step
