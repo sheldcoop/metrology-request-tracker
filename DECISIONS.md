@@ -243,6 +243,8 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   Settings > Lists links there.
 - **M2-19** (2026-09-24, Prince) Settings > Data & PIN > "Add 3 sample lots" (99901, 99902,
   99902.01, tagged Sample) to try the app with a real data file; Health lists them until deleted.
+- **Future (not scheduled): Hirata code** - integrate Prince's Hirata coder/decoder HTML app and let
+  users attach decoded panel numbers to a lot (OPEN_QUESTIONS #22). Planned when the app is shared.
 - **M2 build order** (one branch per step, Prince reviews each): 1 `m2-settings` (process-step
   list, "destructive" per tool) - 2 `lots` - 3 `panel-map` - 4 `request-form` (drafts, submit
   warnings Q44, request ID Q29, duplicate) - 5 `request-page` (traveller card, status rail,
