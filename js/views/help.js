@@ -105,6 +105,17 @@ window.MRT.views.help = (function () {
       tips: ['Edit request (requester): change anything but the tool, with a reason - the timeline shows each change.'],
       link: ['New request', '#/new'] },
 
+    { id: 'queue', title: 'My queue (quality engineers)', icon: 'inbox',
+      intro: 'The open requests of the tools where you are the primary or backup quality engineer - your start page.',
+      steps: [
+        'Order: Line stop always on top, then late requests (red, most overdue first), then by needed-by date; requests without a date come last, by priority.',
+        'Requests assigned to you come first; "Others of your tools" below. Take it moves one to you.',
+        'Each row has one-click Accept / Start / Complete / Resume / Panels received and Copy BKM path. Click the request ID for the full page.',
+        'Tick several rows for Accept all or Start all.',
+        'Filter by tool or status (Waiting = on hold or needs clarification).'
+      ],
+      link: ['Open My queue', '#/queue'] },
+
     { id: 'working', title: 'Quality engineers: working a request', icon: 'activity',
       intro: 'The buttons under the traveller card show what you may do now. Only the tool\'s primary and backup quality engineers (and admins) see them.',
       steps: [

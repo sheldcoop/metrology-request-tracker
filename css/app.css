@@ -1380,6 +1380,22 @@ table.grid tbody tr { scroll-margin: 80px; }
 .tl-text { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .mention { padding: 0 3px; border-radius: 3px; background: var(--accent-soft); color: var(--fg); font-weight: 600; }
 
+/* My queue (M3-10): priority stripe on the row, late rows red */
+.queue-status { flex: 0 1 240px; }
+.queue-bulk { display: flex; align-items: center; gap: 10px; margin: 6px 0; padding: 8px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); }
+.queue-bulk[hidden] { display: none; }
+.queue-sep td { padding-top: 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); }
+.q-row > td:first-child { border-left: 4px solid var(--ok); }
+.q-row.prio-1 > td:first-child { border-left-color: var(--critical); }
+.q-row.prio-2 > td:first-child { border-left-color: var(--warning); }
+.q-row.prio-4 > td:first-child { border-left-color: var(--fg-faint); }
+.q-row.is-late > td { background: var(--critical-bg); }
+.q-prio { display: grid; line-height: 1.15; }
+.q-prio .mono { font-size: 11px; }
+.q-clock { font: 12px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg-muted); }
+.q-clock.is-soon { color: var(--warning-fg); }
+.q-clock.is-late { color: var(--critical-fg); font-weight: 700; }
+
 /* Panel map (Q6, M2-2): each panel a small board with corner fiducials.
    Picked = lit (accent fill + glow); the light fades in via opacity only. */
 .pm { display: grid; gap: 10px; }

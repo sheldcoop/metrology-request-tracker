@@ -230,6 +230,16 @@
     ok('action data: Complete needs a share path and what happened to the panels', D.actionProblems('complete', { results_path: 'res', panels_outcome: 'x' }, {}).length === 2 &&
        !D.actionProblems('complete', { results_path: 'Z:\\res', panels_outcome: 'scrapped' }, {}).length);
     ok('...Hold needs a listed reason, Clarify a comment', D.actionProblems('hold', { hold_reason_id: 'h9' }, { hold_reasons: [{ id: 'h1' }] }).length === 1 && D.actionProblems('clarify', {}, {}).length === 1);
+    var lvQ = { p1: 1, p2: 2, p3: 3, p4: 4 };
+    var QL = [{ id: 'a', status: 'submitted', priority_id: 'p3', needed_by: '2026-10-10', submitted_ts: '1' }, { id: 'b', status: 'submitted', priority_id: 'p1', submitted_ts: '5' },
+      { id: 'c', status: 'accepted', priority_id: 'p3', needed_by: '2026-09-20', submitted_ts: '2' }, { id: 'd', status: 'submitted', priority_id: 'p2', needed_by: '2026-10-10', submitted_ts: '3' },
+      { id: 'e', status: 'submitted', priority_id: 'p4', submitted_ts: '0' }, { id: 'f', status: 'submitted', priority_id: 'p3', submitted_ts: '1' },
+      { id: 'g', status: 'submitted', priority_id: 'p3', submitted_ts: '0' }];
+    eq('queue order (M2-5): Line stop, late, by date (Hot first on the same day), then no date by priority, longest waiting first',
+       D.sortQueue(QL, { now_ts: Date.parse('2026-09-24T10:00:00Z'), cal: calW, levelOf: function (r) { return lvQ[r.priority_id]; } }).map(function (r) { return r.id; }).join(''), 'bcdagfe');
+    eq('late: past the end of the lab day on the date; never while on hold', [D.isLate({ status: 'accepted', needed_by: '2026-09-24' }, D.viennaTs('2026-09-24', '17:59'), calW),
+       D.isLate({ status: 'accepted', needed_by: '2026-09-24' }, D.viennaTs('2026-09-24', '18:01'), calW), D.isLate({ status: 'on_hold', needed_by: '2026-09-01' }, Date.now(), calW)], [false, true, false]);
+    eq('start page by role (M3-12): QE -> My queue, engineer -> My requests, else Lab status', [D.homeFor(qe1), D.homeFor(eng1), D.homeFor({ roles: ['manager'], active: true })], ['queue', 'requests', 'lab']);
     eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
        D.nextRequestNo('QVM', '2026-09-24', ['FIB-260924-01']), D.nextRequestNo('FIB', '2026-09-25', ['FIB-260924-09']), D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-09'])],
        ['FIB-260924-03', 'QVM-260924-01', 'FIB-260925-01', 'FIB-260924-10']);

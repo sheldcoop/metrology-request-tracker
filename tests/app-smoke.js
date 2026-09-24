@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -87,9 +87,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // --- the side menu (M1-6)
   const items = doc.getElementById('navItems').children;
   check('nine menu entries', items.length === 9, items.length);
-  check('five live: Lab status, New request, Lots, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,new,lots,settings,help');
-  check('four greyed with their milestone', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M3,M3,M3,M5');
-  check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 4);
+  check('six live: Lab status, My queue, New request, Lots, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,new,lots,settings,help');
+  check('three greyed with their milestone', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M3,M3,M5');
+  check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 3);
 
   // --- Lab status
   check('start page is Lab status', win.location.hash === '#/lab', win.location.hash);
@@ -99,8 +99,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('sample entries are flagged', $$('.tool-plate-sample').length === 5);
 
   // --- a page still to come
-  win.setHash('#/queue'); await settle();
-  check('#/queue says it comes in M3', /My queue comes in M3/.test(text('main')), text('main').slice(0, 80));
+  win.setHash('#/board'); await settle();
+  check('#/board says it comes in M3', /Board comes in M3/.test(text('main')), text('main').slice(0, 80));
   win.setHash('#/settings'); await settle();
   check('Settings opens (placeholder until step 4)', /Settings/.test(text('main')));
 
@@ -142,15 +142,15 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
   doc.getElementById('keysBtn').click(); await settle();
   const keys = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
-  check('the shortcut list opens and lists only live pages', !!keys && /Lab status/.test(keys.textContent) && !/My queue/.test(keys.textContent));
+  check('the shortcut list opens and lists only live pages', !!keys && /Lab status/.test(keys.textContent) && !/Board/.test(keys.textContent));
   if (keys) { buttonByText(keys, 'Close').click(); await settle(); }
   doc.dispatch('keydown', { key: '[', target: doc.body });
   check('[ collapses the side menu', doc.documentElement.getAttribute('data-nav') === 'collapsed');
   doc.dispatch('keydown', { key: '[', target: doc.body });
   doc.dispatch('keydown', { key: 'g', target: doc.body }); doc.dispatch('keydown', { key: 'h', target: doc.body }); await settle();
   check('g h goes to Help', win.location.hash === '#/help');
-  doc.dispatch('keydown', { key: 'g', target: doc.body }); doc.dispatch('keydown', { key: 'q', target: doc.body }); await settle();
-  check('g q does nothing yet (My queue is M3)', win.location.hash === '#/help');
+  doc.dispatch('keydown', { key: 'g', target: doc.body }); doc.dispatch('keydown', { key: 'b', target: doc.body }); await settle();
+  check('g b does nothing yet (the board comes later in M3)', win.location.hash === '#/help');
   win.setHash('#/lab'); await settle();
 
   // --- change user; an unknown Windows ID signs up
@@ -450,6 +450,23 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('the requester now sees Results OK and Reopen (Q34)', !!buttonByText($('#main .req-actbar'), 'Results OK') && !!buttonByText($('#main .req-actbar'), 'Reopen'));
   buttonByText($('#main .req-actbar'), 'Results OK').click(); await settle();
   check('...Results OK: stamp Closed', $('#main .tr-stamp').textContent === 'Closed' && !$('#main .req-actbar'));
+
+  // --- My queue (M3 step 2)
+  const fibType = MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id;
+  const prioBy = code => MRT.store.list('priorities').filter(p => p.code === code)[0].id;
+  const base = { tool_id: fib().id, type_id: fibType, lot_id: lot1.id, panel_location: 'Rack A', destructive_ok: true, after: 'scrap', purpose: 'x' };
+  const qN = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [5], priority_id: prioBy('P3') }) });
+  const qL = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [6], priority_id: prioBy('P1'), priority_reason: 'line 2 down' }) });
+  MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
+  const qRows = $$('#main .q-row');
+  check('My queue: Olga\'s FIB requests, the Line stop on top (M2-5)', qRows.length === 2 && qRows[0].textContent.indexOf(qL.request_no) !== -1 && qRows[0].classList.contains('prio-1'));
+  check('..."assigned to you" first, one-click Accept / Start on the row', /Assigned to you/.test(mainText()) && !!buttonByText(qRows[0], 'Accept') && !!buttonByText(qRows[0], 'Start'));
+  qRows.forEach(tr => { const cb = tr.querySelector('input'); cb.checked = true; cb.dispatch('change'); });
+  await settle();
+  check('...ticking two offers Accept all (2)', !!buttonByText($('#main .queue-bulk'), 'Accept all (2)'));
+  buttonByText($('#main .queue-bulk'), 'Accept all (2)').click(); await settle(); await settle();
+  check('...Accept all accepts both', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'accepted'));
+  MRT.store.setCurrentUser(meP);
 
   win.setHash('#/lots'); await settle();
   check('...shown on Lots with the Sample tag', /99902.01/.test(mainText()) && $$('#main .sample-tag').length === 3);
