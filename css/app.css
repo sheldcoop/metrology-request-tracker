@@ -1227,6 +1227,7 @@ kbd {
 .tool-plate-facts dt { color: var(--fg-muted); }
 .tool-plate-facts dd { margin: 0; text-align: right; }
 .tool-plate-facts dd.is-missing { color: var(--fg-faint); font-style: italic; }
+.tool-plate-facts dd.is-late { color: var(--critical-fg); font-weight: 700; }
 .tool-plate-sample { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warning-fg); }
 .tool-plate-actions { display: flex; gap: 8px; justify-content: flex-end; }
 @media (max-width: 760px) { .lab-kpis { grid-template-columns: 1fr; } }

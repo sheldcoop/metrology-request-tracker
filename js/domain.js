@@ -802,6 +802,25 @@ window.MRT.domain = (function () {
     }).map(function (x) { return x.r; });
   }
 
+  /**
+   * A tool's queue on Lab status (Q46): open requests (and how many late),
+   * the oldest open one, and the typical wait - the median lab time from
+   * submit to start over the last 20 started requests.
+   * @returns {{open, late, oldest: request|null, oldest_lab_ms, wait_ms: number|null, wait_n}}
+   */
+  function toolQueueStats(requests, toolId, nowTs, cal, hs) {
+    var mine = (requests || []).filter(function (r) { return r.tool_id === toolId; });
+    var open = mine.filter(isOpen);
+    var oldest = open.slice().sort(function (a, b) { return a.submitted_ts < b.submitted_ts ? -1 : 1; })[0] || null;
+    var started = mine.filter(function (r) { return r.started_ts && r.submitted_ts; })
+      .sort(function (a, b) { return a.started_ts < b.started_ts ? 1 : -1; }).slice(0, 20)
+      .map(function (r) { return workingMs(Date.parse(r.submitted_ts), Date.parse(r.started_ts), cal, hs); })
+      .sort(function (a, b) { return a - b; });
+    var mid = started.length ? (started.length % 2 ? started[(started.length - 1) / 2] : (started[started.length / 2 - 1] + started[started.length / 2]) / 2) : null;
+    return { open: open.length, late: open.filter(function (r) { return isLate(r, nowTs, cal); }).length, oldest: oldest,
+             oldest_lab_ms: oldest ? workingMs(Date.parse(oldest.submitted_ts), nowTs, cal, hs) : 0, wait_ms: mid, wait_n: started.length };
+  }
+
   /** The start page for a person (Q16, M3-12): quality engineers -> My queue, engineers -> My requests, else Lab status. */
   function homeFor(user) { return canMeasure(user) ? 'queue' : hasRole(user, 'engineer') ? 'requests' : 'lab'; }
 
@@ -1122,6 +1141,7 @@ window.MRT.domain = (function () {
     TRANSITIONS: TRANSITIONS,
     isLate: isLate,
     sortQueue: sortQueue,
+    toolQueueStats: toolQueueStats,
     homeFor: homeFor,
     PANEL_OUTCOMES: PANEL_OUTCOMES,
     PANEL_OUTCOME_LABEL: PANEL_OUTCOME_LABEL,

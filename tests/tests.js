@@ -239,6 +239,15 @@
        D.sortQueue(QL, { now_ts: Date.parse('2026-09-24T10:00:00Z'), cal: calW, levelOf: function (r) { return lvQ[r.priority_id]; } }).map(function (r) { return r.id; }).join(''), 'bcdagfe');
     eq('late: past the end of the lab day on the date; never while on hold', [D.isLate({ status: 'accepted', needed_by: '2026-09-24' }, D.viennaTs('2026-09-24', '17:59'), calW),
        D.isLate({ status: 'accepted', needed_by: '2026-09-24' }, D.viennaTs('2026-09-24', '18:01'), calW), D.isLate({ status: 'on_hold', needed_by: '2026-09-01' }, Date.now(), calW)], [false, true, false]);
+    var QS = [{ tool_id: 't', status: 'accepted', submitted_ts: '2026-09-21T07:00:00Z', needed_by: '2026-09-22', request_no: 'A' },
+      { tool_id: 't', status: 'submitted', submitted_ts: '2026-09-23T07:00:00Z', request_no: 'B' },
+      { tool_id: 't', status: 'completed', submitted_ts: '2026-09-14T06:00:00Z', started_ts: '2026-09-14T08:00:00Z' },
+      { tool_id: 't', status: 'completed', submitted_ts: '2026-09-15T06:00:00Z', started_ts: '2026-09-15T10:00:00Z' },
+      { tool_id: 't', status: 'completed', submitted_ts: '2026-09-16T06:00:00Z', started_ts: '2026-09-16T12:00:00Z' },
+      { tool_id: 'x', status: 'submitted', submitted_ts: '2026-09-01T07:00:00Z' }];
+    var qs = D.toolQueueStats(QS, 't', D.viennaTs('2026-09-24', '10:00'), calW, {});
+    eq('Lab status queue (Q46): open, late, oldest open, typical wait = median submit -> start in lab time',
+       [qs.open, qs.late, qs.oldest.request_no, qs.wait_ms / H, qs.wait_n], [2, 1, 'A', 4, 3]);
     eq('start page by role (M3-12): QE -> My queue, engineer -> My requests, else Lab status', [D.homeFor(qe1), D.homeFor(eng1), D.homeFor({ roles: ['manager'], active: true })], ['queue', 'requests', 'lab']);
     eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
        D.nextRequestNo('QVM', '2026-09-24', ['FIB-260924-01']), D.nextRequestNo('FIB', '2026-09-25', ['FIB-260924-09']), D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-09'])],
