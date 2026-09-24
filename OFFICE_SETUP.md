@@ -3,9 +3,17 @@
 What is still fake or empty, and what to check when the tool first runs at the
 office. Tick items off as you go; delete this file when everything is done.
 
-Nothing fake is stored as a file in this repo: it all lives in the first-run
-setup in `js/store.js` (`seedData`). Opening the app on an empty `data\`
-folder creates `data\mrt_data.json` from it.
+All starting data - real and fake - is in **`js/seed.js`**, one file, fake
+entries marked `sample: true`. Opening the app on an empty `data\` folder
+creates `data\mrt_data.json` from it. When real values come, change them in
+two places:
+- **`js/seed.js`** - so every *new* data file starts right (replace the entry,
+  drop `sample: true`);
+- **Settings** - to fix the data file that *already exists* (seed.js never
+  changes an existing file).
+
+This checklist will also be inside the app: an admin setup guide in Help and
+a live "still to do" list in Settings > Health (DECISIONS M1-11).
 
 ---
 

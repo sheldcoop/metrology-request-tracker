@@ -202,6 +202,29 @@
       return !dup;
     })());
 
+    // seed.js can carry real extra fields and closing days - no code change needed
+    var custom = { calendar: { days: [1, 2, 3, 4, 5, 6], start: '06:00', end: '22:00' },
+                   closing_days: [{ date: '2026-12-24', name: 'Christmas Eve' }, { date: '2026-12-25', name: 'dup of a public holiday' }],
+                   priorities: [{ code: 'P1', name: 'Normal', level: 1, is_default: true }], projects: [], buildups: [],
+                   tools: [{ code: 'SEM', name: 'SEM', glyph: 'generic', results_root: '\\\\srv\\lab\\SEM',
+                     types: [{ name: 'Top view' }, { name: 'Tilt view', sample: true }],
+                     bkms: [{ name: 'SEM BKM', type: 'Top view', path: 'Z:\\BKM\\sem.pdf', doc_version: 'v3' }],
+                     fields: [{ label: 'Tilt angle', type: 'number', unit: 'deg', min: 0, max: 60, only_for: ['Tilt view'] },
+                              { label: 'Detector', type: 'choice', choices: ['SE', 'BSE'] }] }] };
+    var cs = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'), custom);
+    eq('seed: calendar from seed.js', JSON.parse(cs.settings.filter(function (x) { return x.key === 'lab_start'; })[0].value_json), '06:00');
+    eq('seed: only entries marked sample are sample', cs.measurement_types.map(function (m) { return !!m.sample; }), [false, true]);
+    eq('seed: a real BKM links its type by name', cs.bkms[0].type_id, cs.measurement_types[0].id);
+    eq('seed: extra fields with unit, limits and "only for"', [cs.tool_fields[0].unit, cs.tool_fields[0].max, cs.tool_fields[0].type_ids[0]], ['deg', 60, cs.measurement_types[1].id]);
+    eq('seed: choices get IDs', cs.tool_fields[1].choices.map(function (c) { return c.label + ':' + /^ch_/.test(c.id); }), ['SE:true', 'BSE:true']);
+    ok('seed: every entry is valid', ['tools', 'measurement_types', 'tool_fields', 'bkms', 'holidays'].every(function (c) {
+      return cs[c].every(function (r) { return !D.validateEntry(c, r, cs).length; }); }));
+    eq('seed: closing day added, a date already a public holiday is skipped',
+       cs.holidays.filter(function (h) { return h.kind === 'closing'; }).map(function (h) { return h.date; }), ['2026-12-24']);
+    ok('seed: holidays in date order', cs.holidays.every(function (h, i) { return !i || cs.holidays[i - 1].date <= h.date; }));
+    try { ST._pure.seedData(0, { tools: [{ code: 'X', name: 'X', types: [], bkms: [{ name: 'b', type: 'nope', path: 'Z:\\b' }] }] }); record(false, 'seed: a BKM with an unknown type is refused'); }
+    catch (x) { eq('seed: a BKM with an unknown type is refused', x.code, 'bad_seed'); }
+
     var a = await freshStore();
     ok('first load writes the file', !!a.files[cfg.data_file]);
     eq('lab calendar Mon-Fri 07:00-18:00', ST.calendar(), { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' });
