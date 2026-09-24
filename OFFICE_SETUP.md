@@ -82,7 +82,8 @@ lists it until it is edited or deleted.
 
 ## 5. Before go-live (rollout plan, DECISIONS R1-R4)
 
-- [ ] After M3: one quality engineer and one engineer test for a few days before M4.
+- [ ] After M3: one quality engineer and one engineer test for a few days before M4 -
+      checklist in `TEST_RUN.md`.
 - [ ] Name a second admin; hand over the PIN, backups and restore.
 - [ ] Right before M6: an anonymised sample of the old request list.
 - [ ] IT: a small server / Kubernetes slot (asked now; the shared-file version runs meanwhile).
