@@ -225,6 +225,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   setVal(fieldIn(dlg2, 'Results root folder'), '\\\\srv\\lab\\FIB');
   buttonByText(dlg2, 'Save').click(); await settle();
   check('FIB gets Olga and a results root', fib().primary_operator_id === olga.id && fib().results_root === '\\\\srv\\lab\\FIB');
+  check('FIB is marked destructive (M2-11)', fib().destructive === true && /Destructive/.test(doc.getElementById('main').querySelectorAll('tr').filter(r => /FIB/.test(r.textContent))[0].textContent));
 
   // the FIB setup below the tool list: pick FIB
   const fibOpt = doc.getElementById('main').querySelectorAll('input').filter(i => i.getAttribute('value') === fib().id)[0];
@@ -276,6 +277,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const pn77 = MRT.store.list('part_numbers').filter(x => x.code === 'PN-77')[0];
   check('...with two projects it is added (M1-13)', !!pn77 && pn77.project_ids.length === 2 && !openDialog());
   check('...and shown with its project codes', /PN-77/.test(mainText()) && /NOVA/.test(mainText()));
+  const psPanel = doc.getElementById('main').querySelectorAll('section').filter(x => /Process steps/.test(x.textContent))[0];
+  check('Lists has a Process steps panel (M2-7)', !!psPanel && /None yet/.test(psPanel.textContent));
+  buttonByText(psPanel, 'Add').click(); await settle();
+  dlg2 = openDialog(); setVal(fieldIn(dlg2, 'Step'), 'After desmear'); buttonByText(dlg2, 'Save').click(); await settle();
+  check('...a step is added at position 1', MRT.store.list('process_steps').map(x => x.name + ':' + x.sort).join() === 'After desmear:1' && /After desmear/.test(mainText()));
 
   await tab('calendar');
   check('the calendar says it is not confirmed', /Not confirmed yet/.test(mainText()));

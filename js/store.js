@@ -22,11 +22,11 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 2;
+  var SCHEMA_VERSION = 3;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
-    'projects', 'part_numbers', 'buildups', 'priorities', 'holidays', 'audit_log'
+    'projects', 'part_numbers', 'buildups', 'process_steps', 'priorities', 'holidays', 'audit_log'
   ];
 
   /** In-memory state. `data` is the loaded file; never mutate it from a screen. */
@@ -116,7 +116,7 @@ window.MRT.store = (function () {
     function sampleFlag(row, x) { if (x && x.sample) row.sample = true; return row; }
 
     S.tools.forEach(function (t, i) {
-      var tool = { id: newId('tool'), code: t.code, name: t.name, glyph: t.glyph || 'generic', status: 'up', status_until: null,
+      var tool = { id: newId('tool'), code: t.code, name: t.name, glyph: t.glyph || 'generic', destructive: !!t.destructive, status: 'up', status_until: null,
                    status_note: '', primary_operator_id: null, backup_operator_id: null, results_root: t.results_root || '',
                    active: true, sort: i + 1, version: 1 };
       data.tools.push(tool);
@@ -153,6 +153,9 @@ window.MRT.store = (function () {
       (x.projects || []).forEach(function (c) { assert(prjIds[c], 'seed.js: part number "' + x.code + '" names an unknown project "' + c + '"', 'bad_seed'); });
       return sampleFlag({ id: newId('pn'), code: x.code, description: x.description || '',
                           project_ids: (x.projects || []).map(function (c) { return prjIds[c]; }), active: true, version: 1 }, x);
+    });
+    data.process_steps = (S.process_steps || []).map(function (n, i) {
+      return { id: newId('pstep'), name: n, active: true, sort: i + 1, version: 1 };
     });
     data.buildups = (S.buildups || []).map(function (c) {
       return { id: newId('bld'), code: c, name: '', active: true, version: 1 };
@@ -268,7 +271,12 @@ window.MRT.store = (function () {
    */
   var MIGRATIONS = {
     // 1 -> 2: part numbers, linked to projects (DECISIONS M1-13). Old files have none.
-    1: function (d) { if (!Array.isArray(d.part_numbers)) d.part_numbers = []; }
+    1: function (d) { if (!Array.isArray(d.part_numbers)) d.part_numbers = []; },
+    // 2 -> 3: process-step list (M2-7); "destructive" per tool, FIB on (M2-11).
+    2: function (d) {
+      if (!Array.isArray(d.process_steps)) d.process_steps = [];
+      (d.tools || []).forEach(function (t) { if (typeof t.destructive !== 'boolean') t.destructive = t.code === 'FIB'; });
+    }
   };
 
   function migrate(data) {
@@ -689,13 +697,14 @@ window.MRT.store = (function () {
 
   var LISTS = {
     users:             { prefix: 'usr',   label: 'user',             fields: ['name', 'windows_id', 'domain', 'email', 'roles', 'active'] },
-    tools:             { prefix: 'tool',  label: 'tool',             fields: ['code', 'name', 'glyph', 'status', 'status_until', 'status_note', 'primary_operator_id', 'backup_operator_id', 'results_root', 'active', 'sort'] },
+    tools:             { prefix: 'tool',  label: 'tool',             fields: ['code', 'name', 'glyph', 'destructive', 'status', 'status_until', 'status_note', 'primary_operator_id', 'backup_operator_id', 'results_root', 'active', 'sort'] },
     measurement_types: { prefix: 'mtype', label: 'measurement type', fields: ['tool_id', 'name', 'active', 'sort'] },
     tool_fields:       { prefix: 'fld',   label: 'field',            fields: ['tool_id', 'label', 'type', 'required', 'help', 'unit', 'min', 'max', 'choices', 'type_ids', 'active', 'sort'] },
     bkms:              { prefix: 'bkm',   label: 'BKM',              fields: ['tool_id', 'type_id', 'name', 'path', 'doc_version', 'active'] },
     projects:          { prefix: 'prj',   label: 'project',          fields: ['code', 'name', 'active'] },
     part_numbers:      { prefix: 'pn',    label: 'part number',      fields: ['code', 'description', 'project_ids', 'active'] },
     buildups:          { prefix: 'bld',   label: 'build-up',         fields: ['code', 'name', 'active'] },
+    process_steps:     { prefix: 'pstep', label: 'process step',     fields: ['name', 'active', 'sort'] },
     priorities:        { prefix: 'prio',  label: 'priority',         fields: ['code', 'name', 'level', 'needs_reason', 'is_default', 'active'] },
     holidays:          { prefix: 'hol',   label: 'holiday',          fields: ['date', 'name', 'kind'] }
   };
@@ -703,7 +712,7 @@ window.MRT.store = (function () {
   /** Defaults for a new entry, before the caller's fields. */
   var NEW_DEFAULTS = {
     users: { windows_id: null, domain: null, email: null, roles: ['engineer'], active: true, self_added: false, needs_review: false },
-    tools: { glyph: 'generic', status: 'up', status_until: null, status_note: '', primary_operator_id: null,
+    tools: { glyph: 'generic', destructive: false, status: 'up', status_until: null, status_note: '', primary_operator_id: null,
              backup_operator_id: null, results_root: '', active: true },
     measurement_types: { active: true },
     tool_fields: { required: false, help: '', unit: '', min: null, max: null, choices: [], type_ids: [], active: true },
@@ -711,6 +720,7 @@ window.MRT.store = (function () {
     projects: { name: '', active: true },
     part_numbers: { description: '', project_ids: [], active: true },
     buildups: { name: '', active: true },
+    process_steps: { active: true },
     priorities: { needs_reason: false, is_default: false, active: true },
     holidays: { kind: 'closing', source: 'manual' }
   };
@@ -759,7 +769,7 @@ window.MRT.store = (function () {
       var existing = o.id ? need(collection, o.id, spec.label) : null;
       if (existing) checkVersion(existing, o.version, spec.label);
       var next = existing ? clone(existing) : Object.assign({ id: newId(spec.prefix) }, clone(NEW_DEFAULTS[collection]));
-      if (!existing && (collection === 'measurement_types' || collection === 'tool_fields' || collection === 'tools')) {
+      if (!existing && (collection === 'measurement_types' || collection === 'tool_fields' || collection === 'tools' || collection === 'process_steps') && !('sort' in fields)) {
         next.sort = state.data[collection].filter(function (r) { return !fields.tool_id || r.tool_id === fields.tool_id; }).length + 1;
       }
       if (existing && 'tool_id' in fields) {
@@ -837,7 +847,7 @@ window.MRT.store = (function () {
     tools: [['measurement_types', 'tool_id', 'measurement type'], ['tool_fields', 'tool_id', 'field'], ['bkms', 'tool_id', 'BKM']],
     measurement_types: [['bkms', 'type_id', 'BKM'], ['tool_fields', 'type_ids', 'field']],
     projects: [['part_numbers', 'project_ids', 'part number']],
-    tool_fields: [], bkms: [], part_numbers: [], buildups: [], priorities: [], holidays: []
+    tool_fields: [], bkms: [], part_numbers: [], buildups: [], process_steps: [], priorities: [], holidays: []
   };
 
   /** {count, text} - text like "5 measurement types, 1 BKM". */

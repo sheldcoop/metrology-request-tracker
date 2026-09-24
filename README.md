@@ -29,7 +29,7 @@ optional note, never a reason. Shown on Lab status, People and Health.
 - *Tools* - code, glyph, primary and backup quality engineer, results root; per tool its measurement
   types, extra fields (8 kinds) and BKM library (Copy path).
 - *Lists* - projects, part numbers (each linked to one or more projects),
-  build-ups, priorities.
+  build-ups, process steps, priorities.
 - *Lab calendar* - lab days and hours, public holidays and closing days.
 - *Audit log* - every change, filterable.
 - *Data & PIN* - the data file, a copy to download, daily backups with

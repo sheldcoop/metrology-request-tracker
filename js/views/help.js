@@ -117,6 +117,7 @@ window.MRT.views.help = (function () {
         'Pick a tool under the list to set up its measurement types, extra fields and BKMs.',
         'Extra fields: 8 kinds - short text, long text, number (unit, min, max), one choice, several choices, yes/no, date, share path. "Only for" limits a field to some measurement types.',
         'BKMs: name, measurement type (or any), share path, version. The Copy button copies the path.',
+        'Destructive (tick in the tool\'s Edit): measuring destroys the panels, like FIB. Requests on that tool must confirm the panels may be scrapped.',
         'An entry that is used cannot be deleted - hide it instead (untick Active). Renaming is always safe: everything refers to it by ID.'
       ],
       link: ['Open Settings > Tools', '#/settings/tools'] },
@@ -125,6 +126,7 @@ window.MRT.views.help = (function () {
       steps: [
         'Settings > Lists: projects and build-ups (codes in capitals) and priorities (Line stop, Hot, Normal, Low - renamable, one default, some need a reason).',
         'Part numbers (Settings > Lists): each one is stored once and linked to one or more projects - tick them. A project with part numbers cannot be deleted; hide it instead.',
+        'Process steps (Settings > Lists): the steps of the line in order, e.g. After desmear. A request says which step its panels are at; engineers can still type another one.',
         'Settings > Lab calendar: lab days and hours (Europe/Vienna). Turnaround and lateness count only these hours.',
         'Public holidays: the Austrian ones are filled in by rule; the button adds the next year. Add company closing days yourself.'
       ],

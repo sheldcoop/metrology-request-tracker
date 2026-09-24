@@ -90,7 +90,8 @@ window.MRT.views.lab = (function () {
         ui.toolGlyph(t.glyph, { size: 56, state: s.glyph, label: t.name }),
         ui.el('div', { class: 'tool-plate-id' }, [
           ui.el('h2', { class: 'tool-code mono', text: t.code }),
-          ui.el('div', { class: 'tool-name', text: t.name })
+          ui.el('div', { class: 'tool-name', text: t.name }),
+          t.destructive ? ui.el('span', { class: 'chip warning', text: 'Destructive', title: 'Measuring destroys the panels' }) : null
         ]),
         statusChip(t.status)
       ]),

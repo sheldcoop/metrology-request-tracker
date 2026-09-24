@@ -2,7 +2,8 @@
  * Metrology Request Tracker - views/settings-lists.js
  *
  * Settings > Lists: projects and build-ups (the lot pickers, Q7/Q8), part
- * numbers linked to one or more projects (M1-13) and priorities (Q26: Line stop / Hot / Normal / Low - renamable, one is the
+ * numbers linked to one or more projects (M1-13), process steps ("the
+ * panels are after ...", M2-7) and priorities (Q26: Line stop / Hot / Normal / Low - renamable, one is the
  * default, some need a reason). Lists are referenced by ID, so a rename
  * shows everywhere; delete only while unused, otherwise hide (Q47).
  */
@@ -23,6 +24,7 @@
       codeList('buildups', 'Build-ups', 'build-up', 'e.g. BU-06', 'grid')
     ]));
     body.appendChild(partNumbersPanel());
+    body.appendChild(processStepsPanel());
     body.appendChild(prioritiesPanel());
     K().focusRow(body, ctx.focusId);
   }
@@ -100,6 +102,42 @@
         return null;
       },
       save: function (v) { return store.saveEntry('part_numbers', { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },
+      done: edit ? 'Saved.' : 'Added.'
+    }).catch(oops);
+  }
+
+  function processStepsPanel() {
+    var k = K();
+    var rows = store.list('process_steps', { all: true });
+    return k.panel('Process steps', 'activity', [ui.button('Add', { size: 'sm', icon: 'plus', onClick: function () { processStepDialog(null); } })], [
+      ui.el('p', { class: 'muted', text: 'A request says which step the panels are at ("after desmear"). ' +
+        'Listed in line order; engineers can still type another step.' }),
+      k.table([{ label: '#', cls: 'num' }, 'Step', 'Status', { label: '', cls: 'actions' }], rows.map(function (r) {
+        return { id: 'row-' + r.id, cls: r.active === false ? 'is-off' : null, cells: [
+          ui.el('span', { class: 'num', text: String(r.sort || '') }), ui.el('b', { text: r.name }), activeChip(r),
+          ui.el('span', { class: 'row-actions' }, [k.editButton(r.name, function () { processStepDialog(r); }), k.deleteButton('process_steps', r, r.name)])
+        ] };
+      }), 'None yet. Add the steps of the line, e.g. After desmear.')
+    ]);
+  }
+
+  function processStepDialog(r) {
+    var edit = !!r;
+    return K().editDialog({
+      title: edit ? 'Edit ' + r.name : 'Add a process step', icon: 'edit',
+      values: edit ? { name: r.name, sort: r.sort, active: r.active !== false }
+                   : { sort: store.list('process_steps', { all: true }).length + 1, active: true },
+      fields: [
+        { key: 'name', label: 'Step', kind: 'text', cls: 'half', placeholder: 'e.g. After desmear' },
+        { key: 'sort', label: 'Position (1 = first in the line)', kind: 'number', cls: 'half' },
+        { key: 'active', label: 'Active (untick to hide it from the request form)', kind: 'check' }
+      ],
+      check: function (v) {
+        if (!v.name) return ['name', 'Enter a name'];
+        if (!(v.sort >= 1) || Math.floor(v.sort) !== v.sort) return ['sort', 'A whole number, 1 or more'];
+        return null;
+      },
+      save: function (v) { return store.saveEntry('process_steps', { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },
       done: edit ? 'Saved.' : 'Added.'
     }).catch(oops);
   }

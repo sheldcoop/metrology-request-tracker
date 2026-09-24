@@ -145,6 +145,7 @@
                  measurement_types: [{ id: 'm1', tool_id: 't1', name: 'Via cross-section' }],
                  tool_fields: [], bkms: [], projects: [{ id: 'p1', code: 'C4F' }, { id: 'p2', code: 'SHIFT' }], buildups: [],
                  part_numbers: [{ id: 'pn1', code: 'PN-100', project_ids: ['p1'] }],
+                 process_steps: [{ id: 's1', name: 'After desmear', sort: 1 }],
                  priorities: [{ id: 'r1', code: 'P1' }], holidays: [{ id: 'h1', date: '2026-12-25' }] };
     function probs(c, r) { return D.validateEntry(c, r, base); }
     var goodTool = { code: 'SEM', name: 'SEM', status: 'up' };
@@ -178,6 +179,10 @@
     ok('...a project that exists', probs('part_numbers', { code: 'PN-300', project_ids: ['gone'] }).length === 1);
     ok('...ticked once', probs('part_numbers', { code: 'PN-300', project_ids: ['p1', 'p1'] }).length === 1);
     ok('part numbers: capitals, digits, - . _ / only', !D.isPartNumber('pn-1') && !D.isPartNumber('PN 1') && !D.isPartNumber('-PN') && D.isPartNumber('AB_12.3/4-X'));
+    eq('a process step', probs('process_steps', { name: 'After Cu plating', sort: 2 }), []);
+    ok('process steps are listed once (case and spaces ignored)', probs('process_steps', { name: 'after  DESMEAR' }).length === 1);
+    ok('...need a name and a whole position', probs('process_steps', { name: '', sort: 1.5 }).length === 2);
+    ok('"destructive" is yes or no', probs('tools', Object.assign({}, goodTool, { destructive: 'yes' })).length === 1 && !probs('tools', Object.assign({}, goodTool, { destructive: true })).length);
     ok('...up to 30 characters', D.isPartNumber(new Array(31).join('A')) && !D.isPartNumber(new Array(32).join('A')));
     ok('a holiday date is listed once', probs('holidays', { date: '2026-12-25', name: 'x', kind: 'closing' }).length === 1);
     ok('a Windows ID belongs to one person', probs('users', { name: 'B', roles: ['engineer'], windows_id: 'aa' }).length === 1);
@@ -201,7 +206,7 @@
     /* =============== store: first run and seed =============== */
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 2, revision 0', [seed.schema_version, seed.revision], [2, 0]);
+    eq('schema 3, revision 0', [seed.schema_version, seed.revision], [3, 0]);
     ok('every collection is present', ST.COLLECTIONS.every(function (c) { return Array.isArray(seed[c]); }));
     eq('no people in a new file', seed.users.length, 0);
     eq('five tools, all Up', seed.tools.map(function (t) { return t.code + ':' + t.status; }), ['HRM:up', 'AOI:up', 'PRF:up', 'QVM:up', 'FIB:up']);
@@ -215,6 +220,8 @@
     eq('projects as in ABF', seed.projects.map(function (p) { return p.code; }), ['C4F', 'SHIFT', 'HORUS']);
     eq('build-ups as in ABF', seed.buildups.map(function (b) { return b.code; }), ['BU-01', 'BU-02', 'BU-03', 'BU-04', 'BU-05', 'TEST', 'DOE', 'OPT']);
     eq('no part numbers yet (none known)', seed.part_numbers, []);
+    eq('no process steps yet (none known)', seed.process_steps, []);
+    eq('only FIB is destructive (M2-11)', seed.tools.filter(function (t) { return t.destructive; }).map(function (t) { return t.code; }), ['FIB']);
     eq('holidays of this year and next', seed.holidays.length, 26);
     eq('first and last holiday', [seed.holidays[0].date, seed.holidays[25].date], ['2026-01-01', '2027-12-26']);
     ok('every seeded list entry is valid', ['tools', 'measurement_types', 'bkms', 'projects', 'buildups', 'priorities', 'holidays'].every(function (c) {
@@ -408,6 +415,14 @@
     await ST.deleteEntry('projects', prj[1].id, 'unused now');
     eq('once unlinked, the project can go', ST.byId('projects', prj[1].id), null);
     await ST.deleteEntry('part_numbers', pn.id, 'test');
+    var ps1 = await ST.saveEntry('process_steps', { fields: { name: ' After desmear ' } });
+    var ps2 = await ST.saveEntry('process_steps', { fields: { name: 'After Cu plating' } });
+    eq('process steps: trimmed, numbered in the order added', [ps1.name, ps1.sort, ps2.sort, /^pstep_/.test(ps1.id)], ['After desmear', 1, 2, true]);
+    await ST.saveEntry('process_steps', { id: ps2.id, fields: { sort: 0.5 + 0.5 } });
+    eq('...a new position puts it first', ST.list('process_steps').map(function (x) { return x.name; }), ['After Cu plating', 'After desmear']);
+    await refused('...the same step twice is refused', ST.saveEntry('process_steps', { fields: { name: 'after desmear' } }), 'invalid');
+    var fibT = await ST.saveEntry('tools', { id: tool('FIB').id, fields: { destructive: false } });
+    eq('"destructive" can be switched per tool', fibT.destructive, false);
     eq('an unused part number can be deleted', ST.byId('part_numbers', pn.id), null);
 
     /* =============== store: tool status =============== */
@@ -444,6 +459,7 @@
     ok('...next year\'s holidays are there already', codes(todo).indexOf('no_holidays_next_year') === -1);
     ok('...a single admin is flagged', codes(todo).indexOf('one_admin') !== -1);
     ok('...no part numbers yet', codes(todo).indexOf('no_part_numbers') !== -1);
+    ok('...no process steps yet', codes(todo).indexOf('no_process_steps') !== -1);
     ok('every item says where to fix it', todo.every(function (x) { return x.severity === 'todo' && !!x.tab; }));
     var hs2 = JSON.parse(JSON.stringify(hs));
     hs2.measurement_types.forEach(function (m) { delete m.sample; });
@@ -452,6 +468,7 @@
     hs2.tools.forEach(function (t) { t.primary_operator_id = 'u2'; t.backup_operator_id = 'u3'; t.results_root = '\\\\srv\\lab\\' + t.code; });
     hs2.holidays.push({ id: 'hx', date: '2026-12-24', name: 'Christmas Eve', kind: 'closing' });
     hs2.part_numbers.push({ id: 'pnx', code: 'PN-1', project_ids: [hs2.projects[0].id], active: true });
+    hs2.process_steps.push({ id: 'psx', name: 'After desmear', sort: 1, active: true });
     eq('all set up: the list is empty', D.setupTodo(hs2, { today_ymd: '2026-09-24', calendar_confirmed: true }), []);
     ok('late in the year without next year\'s holidays: flagged', codes(D.setupTodo(hs2, { today_ymd: '2027-11-01', calendar_confirmed: true })).indexOf('no_holidays_next_year') !== -1);
     hs2.users.push({ id: 'u4', name: 'New Nora', roles: ['engineer'], active: true, needs_review: true });
@@ -580,10 +597,13 @@
     await refused('a damaged file is reported, not overwritten', ST.load(), 'bad_json');
     eq('...and left as it was', a.files[cfg.data_file], '{ not json');
 
-    // Schema 1 -> 2 adds part numbers (M1-13).
-    var v1 = ST._pure.seedData(); v1.schema_version = 1; delete v1.part_numbers;
-    eq('schema 1 -> 2: part numbers start empty', P.migrate(v1).part_numbers, []);
-    eq('...and the file says schema 2', v1.schema_version, 2);
+    // Schema 1 -> 2 adds part numbers (M1-13); 2 -> 3 process steps and "destructive" (M2-7, M2-11).
+    var v1 = ST._pure.seedData(); v1.schema_version = 1; delete v1.part_numbers; delete v1.process_steps;
+    v1.tools.forEach(function (t) { delete t.destructive; });
+    P.migrate(v1);
+    eq('schema 1 -> 3: part numbers and process steps start empty', [v1.part_numbers, v1.process_steps], [[], []]);
+    eq('...FIB becomes destructive, the others not', v1.tools.map(function (t) { return t.code + ':' + t.destructive; }), ['HRM:false', 'AOI:false', 'PRF:false', 'QVM:false', 'FIB:true']);
+    eq('...and the file says schema 3', v1.schema_version, 3);
 
     // An extra upgrade step, for this test only: schema 0 -> 1 (then 1 -> 2).
     P.MIGRATIONS[0] = function (d) { d.upgraded = true; };
@@ -593,10 +613,10 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v2_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v3_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [2, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [3, true]);
     eq('...and the status says so until the next save', ST.status().upgradedFrom, 0);
   }
 

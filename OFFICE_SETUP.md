@@ -31,7 +31,7 @@ lists it until it is edited or deleted.
 
 ## 2. Real, but please confirm
 
-- [ ] **Tools**: HRM, AOI, PRF, QVM, FIB, all Up (Q24).
+- [ ] **Tools**: HRM, AOI, PRF, QVM, FIB, all Up (Q24). Only FIB is destructive (M2-11).
 - [ ] **Priorities**: Line stop P1, Hot P2, Normal P3 (default), Low P4 (Q26).
 - [ ] **Projects**: C4F, SHIFT, HORUS. **Build-ups**: BU-01..BU-05, TEST, DOE, OPT
       (copied from ABF Tracker's defaults).
@@ -49,6 +49,8 @@ lists it until it is edited or deleted.
 - [ ] **Extra fields per tool**: none yet (OPEN_QUESTIONS #5).
 - [ ] **Part numbers**: none yet. Add them in Settings > Lists and tick their
       project(s) (DECISIONS M1-13); real ones also go into `js/seed.js`.
+- [ ] **Process steps**: none yet (DECISIONS M2-7). The steps of the line in order,
+      e.g. After desmear, After Cu plating - Settings > Lists and `js/seed.js`.
 - [ ] **People and roles**: only the first admin exists. Colleagues add
       themselves on first open (as Engineer); set their roles in Settings > Users.
 
