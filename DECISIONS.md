@@ -134,3 +134,8 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   sits next to `index.html` and builds the `file:///` address from its own folder (`%~dp0`), so it
   works from a mapped drive (`Z:\...`) and a UNC path (`\\server\share\...`), and the folder can be
   moved or copied. The app remembers the user per PC and strips `?who=` from the address bar.
+- **M1-4** Data lives in `data\` next to `index.html`: `data\mrt_data.json`, backups in
+  `data\backups\`. Each person picks that folder once per PC (browser rule). `data/` is in
+  `.gitignore`; only seed/sample data for tests goes into git (under `tests/`). Updates replace
+  program files only, never `data\` (README "Updating the app"). A schema upgrade writes a backup
+  of the old file first.
