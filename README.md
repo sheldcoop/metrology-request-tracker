@@ -40,6 +40,10 @@ clarification (the engineer answers), Complete (results folder + what
 happened to the panels), Take it. The engineer edits an open request with a
 reason, and confirms Results OK or Reopens.
 
+**My requests** - engineers: their requests, waiting-on-me first (answer a
+question, Results OK / Reopen), then open ones with countdown and expected
+done; filter by status, tool, or a lot number ("where is my lot").
+
 **My queue** - quality engineers: the open requests of their tools, Line
 stop on top, then late, then by needed-by date; assigned-to-me first;
 one-click actions per row, Accept all / Start all. It is their start page.
