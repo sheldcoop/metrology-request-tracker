@@ -27,7 +27,7 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
 
 ## Data in the repo (2026-09-24)
 - **Live data never goes into git** (`data\`, `mrt_data*.json`, `backups/` are ignored).
-- **Reference data the office needs goes into the first-run setup** (`seedData` in `js/store.js`),
+- **Reference data the office needs goes into `js/seed.js`** (the first-run data),
   so a fresh clone starts with it: tools, measurement types, BKMs, extra fields, projects,
   build-ups, priorities, lab calendar, closing days. When Prince gives real values, they replace
   the sample ones there (and `sample: true` goes). Record each change in OFFICE_SETUP.md.

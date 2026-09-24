@@ -174,6 +174,14 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   Austrian public holidays 2026 and 2027 filled in by rule (Easter-based ones computed, tested);
   admin adds company closing days and later years in Settings. Clock maths comes in M2/M3.
 
+- **M1-10** All starting data lives in `js/seed.js` (in the repo, fake entries marked
+  `sample: true`); `store.js` only turns it into records. Real values replace the sample ones
+  there later; an existing data file is fixed in Settings. Checklist: OFFICE_SETUP.md.
+- **M1-11** The office checklist also lives in the app so Prince does not have to remember it:
+  Help gets an "Admin: setting up the office" guide (step 5), and Settings > Health shows a live
+  "still to do" list - sample entries, tools without operators or results root, no closing
+  days, unconfirmed lab days (step 4).
+
 ## Future-proofing (2026-09-24, not built now)
 - **F1** Server later (Docker/Kubernetes, Node + SQLite + API): saving only in `store.js`, rules in
   `domain.js`, ID-based versioned collections, everything configurable (`js/config.js` + Settings).

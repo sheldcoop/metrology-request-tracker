@@ -1,0 +1,1045 @@
+{
+  "schema_version": 1,
+  "revision": 3,
+  "created_ts": "2026-09-24T18:51:43.941Z",
+  "saved_ts": "2026-09-24T19:02:04.740Z",
+  "saved_by": "usr_mufw3d2z_87497o",
+  "users": [
+    {
+      "id": "usr_mufw3d2z_87497o",
+      "name": "Prince Khurana",
+      "windows_id": "khurana",
+      "domain": null,
+      "email": "p.khurana@ats.net",
+      "roles": [
+        "admin"
+      ],
+      "active": true,
+      "self_added": false,
+      "needs_review": false,
+      "created_ts": "2026-09-24T18:52:57.467Z",
+      "version": 1
+    }
+  ],
+  "settings": [
+    {
+      "key": "lab_days",
+      "value_json": "[1,2,3,4,5]",
+      "version": 1
+    },
+    {
+      "key": "lab_start",
+      "value_json": "\"07:00\"",
+      "version": 1
+    },
+    {
+      "key": "lab_end",
+      "value_json": "\"18:00\"",
+      "version": 1
+    },
+    {
+      "key": "admin_pin_salt",
+      "value_json": "\"salt_mufw3d2z_dive34\"",
+      "version": 2
+    },
+    {
+      "key": "admin_pin_hash",
+      "value_json": "\"1037373804fd8401bec6209972e2c7ca8d2fa4b02b6fc8f6f32398c6fb631d86\"",
+      "version": 2
+    },
+    {
+      "key": "last_backup_date",
+      "value_json": "\"2026-09-24\"",
+      "version": 2
+    }
+  ],
+  "tools": [
+    {
+      "id": "tool_mufw1scp_1v76ips",
+      "code": "HRM",
+      "name": "HRM (roughness)",
+      "glyph": "hrm",
+      "status": "maintenance",
+      "status_until": "2026-09-25",
+      "status_note": "",
+      "primary_operator_id": null,
+      "backup_operator_id": null,
+      "results_root": "",
+      "active": true,
+      "sort": 1,
+      "version": 2
+    },
+    {
+      "id": "tool_mufw1scq_xclla3",
+      "code": "AOI",
+      "name": "AOI",
+      "glyph": "aoi",
+      "status": "down",
+      "status_until": "2026-10-03",
+      "status_note": "",
+      "primary_operator_id": null,
+      "backup_operator_id": null,
+      "results_root": "",
+      "active": true,
+      "sort": 2,
+      "version": 2
+    },
+    {
+      "id": "tool_mufw1scq_hobugd",
+      "code": "PRF",
+      "name": "PRF (profilometer)",
+      "glyph": "prf",
+      "status": "up",
+      "status_until": null,
+      "status_note": "",
+      "primary_operator_id": null,
+      "backup_operator_id": null,
+      "results_root": "",
+      "active": true,
+      "sort": 3,
+      "version": 1
+    },
+    {
+      "id": "tool_mufw1scq_15olkz9",
+      "code": "QVM",
+      "name": "QVM (vision measuring)",
+      "glyph": "qvm",
+      "status": "up",
+      "status_until": null,
+      "status_note": "",
+      "primary_operator_id": null,
+      "backup_operator_id": null,
+      "results_root": "",
+      "active": true,
+      "sort": 4,
+      "version": 1
+    },
+    {
+      "id": "tool_mufw1scq_1wurxv8",
+      "code": "FIB",
+      "name": "FIB",
+      "glyph": "fib",
+      "status": "up",
+      "status_until": null,
+      "status_note": "",
+      "primary_operator_id": null,
+      "backup_operator_id": null,
+      "results_root": "",
+      "active": true,
+      "sort": 5,
+      "version": 1
+    }
+  ],
+  "measurement_types": [
+    {
+      "id": "mtype_mufw1scp_p1qvdi",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "name": "Cu roughness after treatment",
+      "active": true,
+      "sample": true,
+      "sort": 1,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_1o0ocqx",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "name": "Dielectric roughness after desmear",
+      "active": true,
+      "sample": true,
+      "sort": 2,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_r0s18i",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "name": "Solder resist roughness",
+      "active": true,
+      "sample": true,
+      "sort": 3,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_1ncq73g",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "name": "Line roughness Ra/Rz",
+      "active": true,
+      "sample": true,
+      "sort": 4,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_12mecos",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "name": "Areal roughness Sa/Sz",
+      "active": true,
+      "sample": true,
+      "sort": 5,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_nvuh7k",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "name": "Full panel inspection",
+      "active": true,
+      "sample": true,
+      "sort": 1,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_khx1a9",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "name": "Defect review",
+      "active": true,
+      "sample": true,
+      "sort": 2,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_4dlqq3",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "name": "Line/space check",
+      "active": true,
+      "sample": true,
+      "sort": 3,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_xxby7x",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "name": "Via inspection",
+      "active": true,
+      "sample": true,
+      "sort": 4,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_187rme3",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "name": "Registration check",
+      "active": true,
+      "sample": true,
+      "sort": 5,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_1inpxe7",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "name": "2D profile",
+      "active": true,
+      "sample": true,
+      "sort": 1,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_c5jcsr",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "name": "3D scan",
+      "active": true,
+      "sample": true,
+      "sort": 2,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_uxwsv6",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "name": "Step height",
+      "active": true,
+      "sample": true,
+      "sort": 3,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_1wl0vik",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "name": "Bow / warpage",
+      "active": true,
+      "sample": true,
+      "sort": 4,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_1xspyjo",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "name": "Plating thickness profile",
+      "active": true,
+      "sample": true,
+      "sort": 5,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_sg6ipv",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "name": "Via diameter",
+      "active": true,
+      "sample": true,
+      "sort": 1,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_1vd72r4",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "name": "Line width / space",
+      "active": true,
+      "sample": true,
+      "sort": 2,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_1pzpet3",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "name": "Pad size",
+      "active": true,
+      "sample": true,
+      "sort": 3,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_175ebi",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "name": "Position / registration",
+      "active": true,
+      "sample": true,
+      "sort": 4,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_1missul",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "name": "Solder mask opening",
+      "active": true,
+      "sample": true,
+      "sort": 5,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_6r0gic",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "name": "Via cross-section",
+      "active": true,
+      "sample": true,
+      "sort": 1,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_4vcdxy",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "name": "Line cross-section",
+      "active": true,
+      "sample": true,
+      "sort": 2,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_128evdx",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "name": "Interface / void check",
+      "active": true,
+      "sample": true,
+      "sort": 3,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_5qej28",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "name": "Layer thickness",
+      "active": true,
+      "sample": true,
+      "sort": 4,
+      "version": 1
+    },
+    {
+      "id": "mtype_mufw1scq_7sbw4e",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "name": "TEM lamella prep",
+      "active": true,
+      "sample": true,
+      "sort": 5,
+      "version": 1
+    }
+  ],
+  "tool_fields": [],
+  "bkms": [
+    {
+      "id": "bkm_mufw1scp_auhnz1",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "type_id": "mtype_mufw1scp_p1qvdi",
+      "name": "HRM Cu roughness after treatment (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\HRM\\HRM_Cu_roughness_after_treatment.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_1n8r451",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "type_id": "mtype_mufw1scq_1o0ocqx",
+      "name": "HRM Dielectric roughness after desmear (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\HRM\\HRM_Dielectric_roughness_after_desmear.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_1ylecmb",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "type_id": "mtype_mufw1scq_r0s18i",
+      "name": "HRM Solder resist roughness (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\HRM\\HRM_Solder_resist_roughness.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_1nvrrf6",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "type_id": "mtype_mufw1scq_1ncq73g",
+      "name": "HRM Line roughness Ra/Rz (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\HRM\\HRM_Line_roughness_Ra_Rz.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_8xfo3q",
+      "tool_id": "tool_mufw1scp_1v76ips",
+      "type_id": "mtype_mufw1scq_12mecos",
+      "name": "HRM Areal roughness Sa/Sz (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\HRM\\HRM_Areal_roughness_Sa_Sz.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_xzu3d2",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "type_id": "mtype_mufw1scq_nvuh7k",
+      "name": "AOI Full panel inspection (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\AOI\\AOI_Full_panel_inspection.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_o72glf",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "type_id": "mtype_mufw1scq_khx1a9",
+      "name": "AOI Defect review (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\AOI\\AOI_Defect_review.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_o4aw31",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "type_id": "mtype_mufw1scq_4dlqq3",
+      "name": "AOI Line/space check (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\AOI\\AOI_Line_space_check.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_84womy",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "type_id": "mtype_mufw1scq_xxby7x",
+      "name": "AOI Via inspection (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\AOI\\AOI_Via_inspection.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_1wxywy7",
+      "tool_id": "tool_mufw1scq_xclla3",
+      "type_id": "mtype_mufw1scq_187rme3",
+      "name": "AOI Registration check (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\AOI\\AOI_Registration_check.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_1g59wfr",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "type_id": "mtype_mufw1scq_1inpxe7",
+      "name": "PRF 2D profile (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\PRF\\PRF_2D_profile.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_op5tv2",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "type_id": "mtype_mufw1scq_c5jcsr",
+      "name": "PRF 3D scan (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\PRF\\PRF_3D_scan.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_1wmn5ho",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "type_id": "mtype_mufw1scq_uxwsv6",
+      "name": "PRF Step height (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\PRF\\PRF_Step_height.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_heqqhn",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "type_id": "mtype_mufw1scq_1wl0vik",
+      "name": "PRF Bow / warpage (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\PRF\\PRF_Bow_warpage.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_1k6rpdf",
+      "tool_id": "tool_mufw1scq_hobugd",
+      "type_id": "mtype_mufw1scq_1xspyjo",
+      "name": "PRF Plating thickness profile (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\PRF\\PRF_Plating_thickness_profile.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_sqfr3y",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "type_id": "mtype_mufw1scq_sg6ipv",
+      "name": "QVM Via diameter (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\QVM\\QVM_Via_diameter.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_moqqew",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "type_id": "mtype_mufw1scq_1vd72r4",
+      "name": "QVM Line width / space (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\QVM\\QVM_Line_width_space.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_2pbjdv",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "type_id": "mtype_mufw1scq_1pzpet3",
+      "name": "QVM Pad size (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\QVM\\QVM_Pad_size.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_buimyn",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "type_id": "mtype_mufw1scq_175ebi",
+      "name": "QVM Position / registration (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\QVM\\QVM_Position_registration.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_oyb4jg",
+      "tool_id": "tool_mufw1scq_15olkz9",
+      "type_id": "mtype_mufw1scq_1missul",
+      "name": "QVM Solder mask opening (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\QVM\\QVM_Solder_mask_opening.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_czj9g0",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "type_id": "mtype_mufw1scq_6r0gic",
+      "name": "FIB Via cross-section (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\FIB\\FIB_Via_cross_section.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_6fbac5",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "type_id": "mtype_mufw1scq_4vcdxy",
+      "name": "FIB Line cross-section (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\FIB\\FIB_Line_cross_section.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_1gk2kpg",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "type_id": "mtype_mufw1scq_128evdx",
+      "name": "FIB Interface / void check (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\FIB\\FIB_Interface_void_check.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_1kyc723",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "type_id": "mtype_mufw1scq_5qej28",
+      "name": "FIB Layer thickness (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\FIB\\FIB_Layer_thickness.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    },
+    {
+      "id": "bkm_mufw1scq_862x0f",
+      "tool_id": "tool_mufw1scq_1wurxv8",
+      "type_id": "mtype_mufw1scq_7sbw4e",
+      "name": "FIB TEM lamella prep (sample)",
+      "path": "\\\\SAMPLE-SHARE\\BKM\\FIB\\FIB_TEM_lamella_prep.pdf",
+      "doc_version": "v0 (sample)",
+      "active": true,
+      "sample": true,
+      "version": 1
+    }
+  ],
+  "projects": [
+    {
+      "id": "prj_mufw1scq_ubervm",
+      "code": "C4F",
+      "name": "Chiplet4Future",
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "prj_mufw1scq_q70kri",
+      "code": "SHIFT",
+      "name": "",
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "prj_mufw1scq_1qf3rp6",
+      "code": "HORUS",
+      "name": "",
+      "active": true,
+      "version": 1
+    }
+  ],
+  "buildups": [
+    {
+      "id": "bld_mufw1scq_16t6xwv",
+      "code": "BU-01",
+      "name": "",
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "bld_mufw1scq_4wou3e",
+      "code": "BU-02",
+      "name": "",
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "bld_mufw1scq_njc2gc",
+      "code": "BU-03",
+      "name": "",
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "bld_mufw1scq_orflbf",
+      "code": "BU-04",
+      "name": "",
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "bld_mufw1scq_15lmnko",
+      "code": "BU-05",
+      "name": "",
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "bld_mufw1scq_b616of",
+      "code": "TEST",
+      "name": "",
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "bld_mufw1scq_1r7o6yc",
+      "code": "DOE",
+      "name": "",
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "bld_mufw1scq_2rzbt3",
+      "code": "OPT",
+      "name": "",
+      "active": true,
+      "version": 1
+    }
+  ],
+  "priorities": [
+    {
+      "id": "prio_mufw1scq_19laj3z",
+      "code": "P1",
+      "name": "Line stop",
+      "level": 1,
+      "needs_reason": true,
+      "is_default": false,
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "prio_mufw1scq_ot6526",
+      "code": "P2",
+      "name": "Hot",
+      "level": 2,
+      "needs_reason": true,
+      "is_default": false,
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "prio_mufw1scq_gnsvbo",
+      "code": "P3",
+      "name": "Normal",
+      "level": 3,
+      "needs_reason": false,
+      "is_default": true,
+      "active": true,
+      "version": 1
+    },
+    {
+      "id": "prio_mufw1scq_1r14yis",
+      "code": "P4",
+      "name": "Low",
+      "level": 4,
+      "needs_reason": false,
+      "is_default": false,
+      "active": true,
+      "version": 1
+    }
+  ],
+  "holidays": [
+    {
+      "id": "hol_mufw1sdf_1bwdqvd",
+      "date": "2026-01-01",
+      "name": "New Year's Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_u8qxvu",
+      "date": "2026-01-06",
+      "name": "Epiphany",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1avdaqs",
+      "date": "2026-04-06",
+      "name": "Easter Monday",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1olc2b5",
+      "date": "2026-05-01",
+      "name": "Labour Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1nt450o",
+      "date": "2026-05-14",
+      "name": "Ascension Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_5tl0jg",
+      "date": "2026-05-25",
+      "name": "Whit Monday",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1eartww",
+      "date": "2026-06-04",
+      "name": "Corpus Christi",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1nmqq8l",
+      "date": "2026-08-15",
+      "name": "Assumption Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_12x8ap1",
+      "date": "2026-10-26",
+      "name": "National Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_kw6m0j",
+      "date": "2026-11-01",
+      "name": "All Saints' Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_98ylak",
+      "date": "2026-12-08",
+      "name": "Immaculate Conception",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1fol085",
+      "date": "2026-12-25",
+      "name": "Christmas Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_zrcfz9",
+      "date": "2026-12-26",
+      "name": "St. Stephen's Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_17s6a7v",
+      "date": "2027-01-01",
+      "name": "New Year's Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1z0aufj",
+      "date": "2027-01-06",
+      "name": "Epiphany",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_19re559",
+      "date": "2027-03-29",
+      "name": "Easter Monday",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1spftmt",
+      "date": "2027-05-01",
+      "name": "Labour Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_cl357c",
+      "date": "2027-05-06",
+      "name": "Ascension Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_leshrv",
+      "date": "2027-05-17",
+      "name": "Whit Monday",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1yptke3",
+      "date": "2027-05-27",
+      "name": "Corpus Christi",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_bgbm4a",
+      "date": "2027-08-15",
+      "name": "Assumption Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1as5mqz",
+      "date": "2027-10-26",
+      "name": "National Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_ds2l9y",
+      "date": "2027-11-01",
+      "name": "All Saints' Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1n441n6",
+      "date": "2027-12-08",
+      "name": "Immaculate Conception",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1s5wzku",
+      "date": "2027-12-25",
+      "name": "Christmas Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    },
+    {
+      "id": "hol_mufw1sdf_1y0dbly",
+      "date": "2027-12-26",
+      "name": "St. Stephen's Day",
+      "kind": "public",
+      "source": "rule",
+      "version": 1
+    }
+  ],
+  "audit_log": [
+    {
+      "id": "aud_mufw3d30_17024g9",
+      "ts": "2026-09-24T18:52:57.468Z",
+      "user_id": "usr_mufw3d2z_87497o",
+      "entity": "user",
+      "entity_id": "usr_mufw3d2z_87497o",
+      "action": "create",
+      "field": "name",
+      "old_value": null,
+      "new_value": "Prince Khurana",
+      "reason": "First run: first admin"
+    },
+    {
+      "id": "aud_mufw3d30_1815hc4",
+      "ts": "2026-09-24T18:52:57.468Z",
+      "user_id": "usr_mufw3d2z_87497o",
+      "entity": "setting",
+      "entity_id": "admin_pin_hash",
+      "action": "update",
+      "field": "admin_pin_hash",
+      "old_value": null,
+      "new_value": "(set)",
+      "reason": "First run"
+    },
+    {
+      "id": "aud_mufwed7p_1bxlv5r",
+      "ts": "2026-09-24T19:01:30.853Z",
+      "user_id": "usr_mufw3d2z_87497o",
+      "entity": "tool",
+      "entity_id": "tool_mufw1scp_1v76ips",
+      "action": "status",
+      "field": "status",
+      "old_value": "up",
+      "new_value": "maintenance",
+      "reason": null
+    },
+    {
+      "id": "aud_mufwed7p_17m1dyb",
+      "ts": "2026-09-24T19:01:30.853Z",
+      "user_id": "usr_mufw3d2z_87497o",
+      "entity": "tool",
+      "entity_id": "tool_mufw1scp_1v76ips",
+      "action": "status",
+      "field": "status_until",
+      "old_value": null,
+      "new_value": "2026-09-25",
+      "reason": null
+    },
+    {
+      "id": "aud_mufwf3cw_d4c7o3",
+      "ts": "2026-09-24T19:02:04.736Z",
+      "user_id": "usr_mufw3d2z_87497o",
+      "entity": "tool",
+      "entity_id": "tool_mufw1scq_xclla3",
+      "action": "status",
+      "field": "status",
+      "old_value": "up",
+      "new_value": "down",
+      "reason": null
+    },
+    {
+      "id": "aud_mufwf3cw_dr35ij",
+      "ts": "2026-09-24T19:02:04.736Z",
+      "user_id": "usr_mufw3d2z_87497o",
+      "entity": "tool",
+      "entity_id": "tool_mufw1scq_xclla3",
+      "action": "status",
+      "field": "status_until",
+      "old_value": null,
+      "new_value": "2026-10-03",
+      "reason": null
+    }
+  ]
+}

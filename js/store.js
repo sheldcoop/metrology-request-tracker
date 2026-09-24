@@ -83,11 +83,13 @@ window.MRT.store = (function () {
   }
 
   /* ------------------------------------------------------------------ *
-   * Seed data - DECISIONS M1-8 / M1-9. Used only for a brand-new file.
+   * First-run data. The VALUES live in js/seed.js (reference data, in the
+   * repo, sample entries marked). This only turns them into records.
    * ------------------------------------------------------------------ */
 
+  /** Settings every file has; the lab calendar defaults come from seed.js. */
   var SEED_SETTINGS = {
-    lab_days: [1, 2, 3, 4, 5],        // ISO weekdays, Mon-Fri
+    lab_days: [1, 2, 3, 4, 5],
     lab_start: '07:00',
     lab_end: '18:00',
     admin_pin_salt: null,
@@ -95,71 +97,56 @@ window.MRT.store = (function () {
     last_backup_date: null
   };
 
-  var SEED_TOOLS = [
-    ['HRM', 'HRM (roughness)', 'hrm'],
-    ['AOI', 'AOI', 'aoi'],
-    ['PRF', 'PRF (profilometer)', 'prf'],
-    ['QVM', 'QVM (vision measuring)', 'qvm'],
-    ['FIB', 'FIB', 'fib']
-  ];
-
-  // Sample measurement types: allowed by Prince until engineers confirm (M1-8).
-  var SAMPLE_TYPES = {
-    HRM: ['Cu roughness after treatment', 'Dielectric roughness after desmear', 'Solder resist roughness',
-          'Line roughness Ra/Rz', 'Areal roughness Sa/Sz'],
-    AOI: ['Full panel inspection', 'Defect review', 'Line/space check', 'Via inspection', 'Registration check'],
-    PRF: ['2D profile', '3D scan', 'Step height', 'Bow / warpage', 'Plating thickness profile'],
-    QVM: ['Via diameter', 'Line width / space', 'Pad size', 'Position / registration', 'Solder mask opening'],
-    FIB: ['Via cross-section', 'Line cross-section', 'Interface / void check', 'Layer thickness', 'TEM lamella prep']
-  };
-
-  var SEED_PRIORITIES = [
-    ['P1', 'Line stop', 1, true, false],
-    ['P2', 'Hot', 2, true, false],
-    ['P3', 'Normal', 3, false, true],
-    ['P4', 'Low', 4, false, false]
-  ];
-
-  var SEED_PROJECTS = [['C4F', 'Chiplet4Future'], ['SHIFT', ''], ['HORUS', '']];
-  var SEED_BUILDUPS = ['BU-01', 'BU-02', 'BU-03', 'BU-04', 'BU-05', 'TEST', 'DOE', 'OPT'];
-
-  /** A file name part from a type name: '2D profile' -> '2D_profile'. */
-  function fileSafe(s) { return String(s).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, ''); }
-
-  /** A brand-new data file. No people: the first person becomes Admin (M1-5). */
-  function seedData(now_ts) {
+  /** A brand-new data file from js/seed.js. No people: the first person becomes Admin (M1-5). */
+  function seedData(now_ts, seed) {
+    var S = seed || window.MRT.seed;
+    assert(S && Array.isArray(S.tools), 'js/seed.js is missing - it holds the starting data', 'no_seed');
     var now = now_ts === undefined ? Date.now() : now_ts;
     var iso = new Date(now).toISOString();
     var data = { schema_version: SCHEMA_VERSION, revision: 0, created_ts: iso, saved_ts: iso, saved_by: null };
     COLLECTIONS.forEach(function (c) { data[c] = []; });
 
-    data.settings = Object.keys(SEED_SETTINGS).map(function (k) {
-      return { key: k, value_json: JSON.stringify(SEED_SETTINGS[k]), version: 1 };
+    var settings = clone(SEED_SETTINGS);
+    if (S.calendar) { settings.lab_days = S.calendar.days; settings.lab_start = S.calendar.start; settings.lab_end = S.calendar.end; }
+    data.settings = Object.keys(settings).map(function (k) {
+      return { key: k, value_json: JSON.stringify(settings[k]), version: 1 };
     });
 
-    SEED_TOOLS.forEach(function (t, i) {
-      var tool = { id: newId('tool'), code: t[0], name: t[1], glyph: t[2], status: 'up', status_until: null,
-                   status_note: '', primary_operator_id: null, backup_operator_id: null, results_root: '',
+    function sampleFlag(row, x) { if (x && x.sample) row.sample = true; return row; }
+
+    S.tools.forEach(function (t, i) {
+      var tool = { id: newId('tool'), code: t.code, name: t.name, glyph: t.glyph || 'generic', status: 'up', status_until: null,
+                   status_note: '', primary_operator_id: null, backup_operator_id: null, results_root: t.results_root || '',
                    active: true, sort: i + 1, version: 1 };
       data.tools.push(tool);
-      SAMPLE_TYPES[t[0]].forEach(function (name, j) {
-        var type = { id: newId('mtype'), tool_id: tool.id, name: name, active: true, sample: true, sort: j + 1, version: 1 };
+      var typeIds = {};
+      (t.types || []).forEach(function (x, j) {
+        var type = sampleFlag({ id: newId('mtype'), tool_id: tool.id, name: x.name, active: true, sort: j + 1, version: 1 }, x);
+        typeIds[x.name] = type.id;
         data.measurement_types.push(type);
-        data.bkms.push({ id: newId('bkm'), tool_id: tool.id, type_id: type.id,
-                         name: t[0] + ' ' + name + ' (sample)',
-                         path: '\\\\SAMPLE-SHARE\\BKM\\' + t[0] + '\\' + t[0] + '_' + fileSafe(name) + '.pdf',
-                         doc_version: 'v0 (sample)', active: true, sample: true, version: 1 });
+      });
+      (t.bkms || []).forEach(function (x) {
+        assert(!x.type || typeIds[x.type], 'seed.js: BKM "' + x.name + '" names an unknown type "' + x.type + '"', 'bad_seed');
+        data.bkms.push(sampleFlag({ id: newId('bkm'), tool_id: tool.id, type_id: x.type ? typeIds[x.type] : null, name: x.name,
+                                    path: x.path, doc_version: x.doc_version || '', active: true, version: 1 }, x));
+      });
+      (t.fields || []).forEach(function (x, j) {
+        (x.only_for || []).forEach(function (n) { assert(typeIds[n], 'seed.js: field "' + x.label + '" names an unknown type "' + n + '"', 'bad_seed'); });
+        data.tool_fields.push(sampleFlag({ id: newId('fld'), tool_id: tool.id, label: x.label, type: x.type, required: !!x.required,
+          help: x.help || '', unit: x.unit || '', min: x.min === undefined ? null : x.min, max: x.max === undefined ? null : x.max,
+          choices: (x.choices || []).map(function (c) { return { id: newId('ch'), label: c, active: true }; }),
+          type_ids: (x.only_for || []).map(function (n) { return typeIds[n]; }), active: true, sort: j + 1, version: 1 }, x));
       });
     });
 
-    data.priorities = SEED_PRIORITIES.map(function (p) {
-      return { id: newId('prio'), code: p[0], name: p[1], level: p[2], needs_reason: p[3], is_default: p[4],
-               active: true, version: 1 };
+    data.priorities = (S.priorities || []).map(function (p) {
+      return { id: newId('prio'), code: p.code, name: p.name, level: p.level, needs_reason: !!p.needs_reason,
+               is_default: !!p.is_default, active: true, version: 1 };
     });
-    data.projects = SEED_PROJECTS.map(function (p) {
-      return { id: newId('prj'), code: p[0], name: p[1], active: true, version: 1 };
+    data.projects = (S.projects || []).map(function (p) {
+      return { id: newId('prj'), code: p.code, name: p.name || '', active: true, version: 1 };
     });
-    data.buildups = SEED_BUILDUPS.map(function (c) {
+    data.buildups = (S.buildups || []).map(function (c) {
       return { id: newId('bld'), code: c, name: '', active: true, version: 1 };
     });
 
@@ -169,6 +156,11 @@ window.MRT.store = (function () {
         data.holidays.push({ id: newId('hol'), date: h.date, name: h.name, kind: 'public', source: 'rule', version: 1 });
       });
     });
+    (S.closing_days || []).forEach(function (c) {
+      if (data.holidays.some(function (h) { return h.date === c.date; })) return;
+      data.holidays.push({ id: newId('hol'), date: c.date, name: c.name, kind: 'closing', source: 'seed', version: 1 });
+    });
+    data.holidays.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     return data;
   }
 
