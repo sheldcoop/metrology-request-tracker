@@ -20,6 +20,19 @@ Updated 2026-09-24. Decisions: `DECISIONS.md`; parked questions: `OPEN_QUESTIONS
 Nothing - everything that needs no outside input is built. Next: the R1 test run.
 
 
+## Quick tasks (2026-09-24)
+Who | Task | How
+---|---|---
+Prince | Click through the demo | `git pull`, app > Change data folder > `demo-data`, PIN 1234
+Prince | Browser check: looks, 3 themes, drag on the board, glyph motion | Edge; `tests/preview.html?demo=big&audit=1` for the a11y audit
+Prince | Office check: launcher, share, two PCs saving, pop-ups, Outlook draft, A6 print | `TEST_RUN.md` sections 0, 2b, 3
+Prince | Try a hand scanner on a printed slip | request page > Print slip, scan anywhere in the app
+Prince | Decide: QR code on the slip too (phones)? | today Code 128 only; a phone app would only show the ID
+Prince | Real data from the team | types, BKMs, extra fields, process steps, part numbers, magazine numbers
+Prince | Ask IT | server slot, SSO, SMTP (OPEN_QUESTIONS #2, #8, #9, #19)
+Both | R1 test run | `TEST_RUN.md`; notes back -> fixes
+Claude | After R1: fixes, then M5 analytics + exports | -
+
 ## Left, and why
 | Item | Decision | Why not now |
 |---|---|---|
