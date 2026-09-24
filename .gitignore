@@ -1,0 +1,7 @@
+# Daily copies of the data file - noise in version control.
+backups/
+
+# Scratch and OS noise
+.DS_Store
+_preview.html
+.claude/
