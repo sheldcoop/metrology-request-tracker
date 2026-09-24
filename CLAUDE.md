@@ -13,8 +13,9 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
 - **When unsure how to do something, look at `../abf-tracker` first** - it already solved most of it.
 - **No browser runs by Claude** (Prince tests in the browser; it saves tokens). Claude runs only
   code-level checks: `node -e "new Function(require('fs').readFileSync(f,'utf8'))"` syntax checks,
-  `node tests/css-check.js`, `node tests/contrast.js`, `node tests/ui-smoke.js`, and writes tests into
-  `tests/test.html` for Prince to open. Headless Chromium or screenshots only when Prince asks.
+  `node tests/css-check.js`, `node tests/contrast.js`, `node tests/ui-smoke.js`,
+  `node tests/run-tests.js` (the same tests as `tests/test.html`), and writes tests into
+  `tests/tests.js` for Prince to open in `tests/test.html`. Headless Chromium or screenshots only when Prince asks.
 
 ## Git rules
 - Local git only for now (no push); GitHub comes later.
