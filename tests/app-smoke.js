@@ -38,7 +38,7 @@ const realError = console.error;
 console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
-['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/store.js', 'js/identity.js',
+['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/seed.js', 'js/store.js', 'js/identity.js',
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
