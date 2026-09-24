@@ -50,6 +50,8 @@ async function boot(query, hash) {
   check('Settings unlock by themselves (demo PIN)', /People/.test(d.doc.getElementById('main').textContent) && /Nora Steiner/.test(d.doc.getElementById('main').textContent));
 
   d = await boot('?as=quality');
+  check('?as=quality: a quality engineer starts on My queue (M3-12)', /My queue/.test(d.doc.getElementById('main').textContent));
+  d = await boot('?as=quality', '#/lab');
   const btns = d.doc.getElementById('main').querySelectorAll('button').filter(b => /Set status/.test(b.textContent));
   check('?as=quality: Olga, who may set FIB and QVM only', d.win.MRT.store.currentUser().name === 'Olga Berger' && btns.length === 2, btns.length);
 
