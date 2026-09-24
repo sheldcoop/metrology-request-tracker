@@ -545,6 +545,137 @@ window.MRT.domain = (function () {
   }
 
   /* ------------------------------------------------------------------ *
+   * Requests (Q4-Q14, Q29, Q33, Q44, DECISIONS M2-4..M2-17)
+   * ------------------------------------------------------------------ */
+
+  /** Workflow (Q9). Draft is private; the rest are shared. */
+  var REQUEST_STATUSES = ['draft', 'submitted', 'accepted', 'in_progress', 'completed', 'clarification', 'on_hold', 'cancelled'];
+  var REQUEST_STATUS_LABEL = {
+    draft: 'Draft', submitted: 'Submitted', accepted: 'Accepted', in_progress: 'In progress', completed: 'Completed',
+    clarification: 'Needs clarification', on_hold: 'On hold', cancelled: 'Cancelled'
+  };
+  /** Where the panels go after measuring (M2-12). */
+  var AFTER_OPTIONS = ['back_to_me', 'back_to_line', 'scrap', 'other'];
+  var AFTER_LABEL = { back_to_me: 'Back to me', back_to_line: 'Back to the line', scrap: 'Lab may scrap them', other: 'Other' };
+  var REQUEST_TEXT_MAX = 2000;
+
+  /** Engineers request measurements (Q17); admins too. */
+  function canRequest(user) { return hasRole(user, 'engineer') || hasRole(user, 'admin'); }
+
+  /** A draft is its author's alone (Q33). */
+  function canSeeRequest(user, r) { return !!user && !!r && (r.status !== 'draft' || r.requester_id === user.id); }
+  function canEditDraft(user, r) { return !!user && !!r && r.status === 'draft' && r.requester_id === user.id; }
+
+  /**
+   * The request ID (Q29): TOOL-YYMMDD-NN, NN running per tool per day
+   * (Europe/Vienna date of the submit). Never changes afterwards.
+   * @param {string} toolCode  e.g. FIB
+   * @param {string} ymd       submit day, 'YYYY-MM-DD'
+   * @param {string[]} taken   request numbers that exist already
+   */
+  function nextRequestNo(toolCode, ymd, taken) {
+    var prefix = toolCode + '-' + ymd.slice(2, 4) + ymd.slice(5, 7) + ymd.slice(8, 10) + '-';
+    var max = 0;
+    (taken || []).forEach(function (no) {
+      if (typeof no === 'string' && no.indexOf(prefix) === 0) {
+        var n = parseInt(no.slice(prefix.length), 10);
+        if (n > max) max = n;
+      }
+    });
+    var next = max + 1;
+    return prefix + (next < 10 ? '0' + next : String(next));
+  }
+
+  /** The tool's extra fields that apply to a measurement type ("only for", Q5). */
+  function fieldsForType(fields, toolId, typeId) {
+    return (fields || []).filter(function (f) {
+      return f.tool_id === toolId && (!f.type_ids || !f.type_ids.length || f.type_ids.indexOf(typeId) !== -1);
+    });
+  }
+
+  /**
+   * Problems of a request. A draft needs only its tool; a submit needs
+   * everything (o.submit). Warnings (Q44) are separate - see submitWarnings.
+   * @param {Object} r     the request as it would be saved
+   * @param {Object} d     the data (tools, types, lots, ...)
+   * @param {Object} o     {submit: bool}
+   */
+  function requestProblems(r, d, o) {
+    var p = [];
+    function byId(coll, id) { return id ? (d[coll] || []).filter(function (x) { return x.id === id; })[0] || null : null; }
+    var tool = byId('tools', r.tool_id);
+    if (!tool) { p.push('Pick a tool'); return p; }
+    var submit = !!(o && o.submit);
+    var type = byId('measurement_types', r.type_id);
+    if (r.type_id && (!type || type.tool_id !== tool.id)) p.push('The measurement type belongs to another tool');
+    var lot = byId('lots', r.lot_id);
+    if (r.lot_id && !lot) p.push('Lot not found');
+    if (r.panels && !Array.isArray(r.panels)) p.push('Panels must be a list');
+    if (lot && (r.panels || []).some(function (n) { return !isNum(n) || n < 1 || n > lot.panel_count || Math.floor(n) !== n; })) {
+      p.push('Panels: lot ' + lot.lot_number + ' has panels 1-' + lot.panel_count);
+    }
+    var prio = byId('priorities', r.priority_id);
+    if (r.priority_id && !prio) p.push('Priority not found');
+    if (r.needed_by && !isYmd(r.needed_by)) p.push('"Needed by" must be a date');
+    var bkm = byId('bkms', r.bkm_id);
+    if (r.bkm_id && (!bkm || bkm.tool_id !== tool.id)) p.push('The BKM belongs to another tool');
+    if (r.bkm_path && !isSharePath(r.bkm_path)) p.push('BKM path: a share path like \\\\server\\share\\... or Z:\\...');
+    if (r.process_step_id && !byId('process_steps', r.process_step_id)) p.push('Process step not found');
+    if (r.after && AFTER_OPTIONS.indexOf(r.after) === -1) p.push('Pick where the panels go afterwards');
+    ['purpose', 'panel_location', 'layer', 'priority_reason', 'after_other', 'process_step_other'].forEach(function (k) {
+      if (r[k] && String(r[k]).length > REQUEST_TEXT_MAX) p.push('Text too long: ' + k);
+    });
+    var ex = r.extra || {};
+    Object.keys(ex).forEach(function (k) { if (!(d.tool_fields || []).some(function (f) { return f.id === k && f.tool_id === tool.id; })) p.push('Unknown field ' + k); });
+    if (!submit) return p;
+
+    if (tool.active === false) p.push(tool.code + ' is no longer offered');
+    if (!type) p.push('Pick the measurement type');
+    if (!lot) p.push('Pick the lot');
+    if (!(r.panels || []).length) p.push('Pick at least one panel');
+    if (!prio) p.push('Pick a priority');
+    else if (prio.needs_reason && !isStr(r.priority_reason)) p.push(prio.name + ' needs a reason');
+    if (!bkm && !r.bkm_path && !isStr(r.purpose)) p.push('Without a BKM, the purpose must say what to measure');
+    if (!isStr(r.panel_location)) p.push('Say where the panels are now');
+    if (tool.destructive && r.destructive_ok !== true) p.push(tool.code + ' destroys the panels - tick that they may be scrapped');
+    if (!r.after) p.push('Say where the panels go afterwards');
+    else if (r.after === 'other' && !isStr(r.after_other)) p.push('Say where the panels go afterwards (Other)');
+    if (tool.destructive && r.after && r.after !== 'scrap') p.push(tool.code + ' destroys the panels - they cannot come back');
+    if (r.process_step_other && r.process_step_id) p.push('Pick a process step or type one, not both');
+    fieldsForType(d.tool_fields, tool.id, r.type_id).forEach(function (f) {
+      if (f.active === false && isEmptyAnswer(ex[f.id])) return;
+      p.push.apply(p, extraValueProblems(f, ex[f.id]));
+    });
+    return p;
+  }
+
+  /**
+   * Submit warnings (Q44) - shown, never blocking: the tool is Down or in
+   * Maintenance (past the needed-by date, or with no date to compare); an open
+   * request on the same lot, tool and a shared panel; no BKM (Q45).
+   * @returns {{code, text}[]}
+   */
+  function submitWarnings(r, d) {
+    var w = [];
+    var tool = (d.tools || []).filter(function (t) { return t.id === r.tool_id; })[0];
+    if (tool && tool.status !== 'up') {
+      var label = TOOL_STATUS_LABEL[tool.status];
+      if (!tool.status_until) w.push({ code: 'tool_down', text: tool.code + ' is ' + label + ' with no date when it is back' });
+      else if (!r.needed_by || tool.status_until >= r.needed_by) {
+        w.push({ code: 'tool_down', text: tool.code + ' is ' + label + ' until ' + tool.status_until + (r.needed_by ? ', not before your needed-by date ' + r.needed_by : '') });
+      }
+    }
+    var open = ['submitted', 'accepted', 'in_progress', 'clarification', 'on_hold'];
+    var dup = (d.requests || []).filter(function (x) {
+      return x.id !== r.id && open.indexOf(x.status) !== -1 && x.lot_id === r.lot_id && x.tool_id === r.tool_id &&
+        (x.panels || []).some(function (n) { return (r.panels || []).indexOf(n) !== -1; });
+    })[0];
+    if (dup) w.push({ code: 'duplicate', text: dup.request_no + ' is already open for this lot on ' + (tool ? tool.code : 'this tool') + ' with some of the same panels' });
+    if (!r.bkm_id && !r.bkm_path) w.push({ code: 'no_bkm', text: 'No BKM - the quality engineer sees a "No BKM" badge and goes by your purpose' });
+    return w;
+  }
+
+  /* ------------------------------------------------------------------ *
    * Health and the setup to-do list (Settings > Health, M1-11)
    * Pure reads of the whole file. Each item: {severity, code, text, tab, id}
    *   severity: 'problem' (broken, fix it) | 'warning' (odd) | 'todo' (setup
@@ -708,6 +839,17 @@ window.MRT.domain = (function () {
     isCode: isCode,
     isPartNumber: isPartNumber,
     isLotNumber: isLotNumber,
+    REQUEST_STATUSES: REQUEST_STATUSES,
+    REQUEST_STATUS_LABEL: REQUEST_STATUS_LABEL,
+    AFTER_OPTIONS: AFTER_OPTIONS,
+    AFTER_LABEL: AFTER_LABEL,
+    canRequest: canRequest,
+    canSeeRequest: canSeeRequest,
+    canEditDraft: canEditDraft,
+    nextRequestNo: nextRequestNo,
+    fieldsForType: fieldsForType,
+    requestProblems: requestProblems,
+    submitWarnings: submitWarnings,
     parsePanels: parsePanels,
     extraValueProblems: extraValueProblems,
     isEmptyAnswer: isEmptyAnswer,

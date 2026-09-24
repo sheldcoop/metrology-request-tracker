@@ -191,6 +191,38 @@
     eq('...so is text', D.parsePanels('1-5, panel 7', 12).errors.length, 1);
     eq('panels back to text: runs of 3+ become a range', [D.formatPanels([12, 1, 2, 3, 4, 5]), D.formatPanels([1, 2, 4, 5, 6]), D.formatPanels([])], ['1-5, 12', '1, 2, 4-6', '']);
     ok('...and parse(format(x)) gives x back', (function () { var x = [1, 3, 4, 5, 9, 10, 20]; return D.parsePanels(D.formatPanels(x), 20).panels.join() === x.join(); })());
+    eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
+       D.nextRequestNo('QVM', '2026-09-24', ['FIB-260924-01']), D.nextRequestNo('FIB', '2026-09-25', ['FIB-260924-09']), D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-09'])],
+       ['FIB-260924-03', 'QVM-260924-01', 'FIB-260925-01', 'FIB-260924-10']);
+    var rq = { tools: [{ id: 't1', code: 'FIB', status: 'up', destructive: true }, { id: 't2', code: 'QVM', status: 'maintenance', status_until: '2026-10-10' }],
+      measurement_types: [{ id: 'm1', tool_id: 't1', name: 'Via' }, { id: 'm2', tool_id: 't2', name: 'Pad' }],
+      tool_fields: [{ id: 'f1', tool_id: 't1', label: 'Cut side', type: 'choice', required: true, choices: [{ id: 'c1', label: 'Front' }, { id: 'c2', label: 'Back' }], type_ids: [] },
+                    { id: 'f2', tool_id: 't1', label: 'Depth', type: 'number', required: true, type_ids: ['m9'] }],
+      bkms: [{ id: 'b1', tool_id: 't1', name: 'FIB BKM', path: 'Z:\\b.pdf' }],
+      lots: [{ id: 'l1', lot_number: '18178', panel_count: 12 }],
+      priorities: [{ id: 'p1', name: 'Line stop', level: 1, needs_reason: true }, { id: 'p3', name: 'Normal', level: 3 }],
+      process_steps: [{ id: 's1', name: 'After desmear' }], requests: [] };
+    var full = { tool_id: 't1', type_id: 'm1', lot_id: 'l1', panels: [1, 2], priority_id: 'p3', bkm_id: 'b1', panel_location: 'Magazine 14',
+      destructive_ok: true, after: 'scrap', extra: { f1: 'c1' } };
+    eq('a complete FIB request', D.requestProblems(full, rq, { submit: true }), []);
+    eq('a draft needs only its tool', [D.requestProblems({ tool_id: 't1' }, rq, {}), D.requestProblems({}, rq, {})], [[], ['Pick a tool']]);
+    ok('...but panels outside the lot are refused even in a draft', D.requestProblems({ tool_id: 't1', lot_id: 'l1', panels: [13] }, rq, {}).length === 1);
+    function sub(ch) { return D.requestProblems(Object.assign({}, full, ch), rq, { submit: true }); }
+    ok('submit: type, lot, panels, priority, where the panels are - all required', [{ type_id: null }, { lot_id: null }, { panels: [] }, { priority_id: null }, { panel_location: ' ' }].every(function (c) { return sub(c).length >= 1; }));
+    ok('Line stop needs a reason (Q26)', sub({ priority_id: 'p1' }).length === 1 && !sub({ priority_id: 'p1', priority_reason: 'line 2 down' }).length);
+    ok('no BKM: the purpose must say what to measure (Q45, M2-13)', sub({ bkm_id: null }).length === 1 && !sub({ bkm_id: null, purpose: 'voids at via 3' }).length && !sub({ bkm_id: null, bkm_path: 'Z:\\my.pptx' }).length);
+    ok('FIB: the destructive tick is required, and afterwards is scrap (M2-11, M2-12)', sub({ destructive_ok: false }).length === 1 && sub({ after: 'back_to_me' }).length === 1);
+    ok('"Other" afterwards needs the text', D.requestProblems(Object.assign({}, full, { tool_id: 't2', type_id: 'm2', bkm_id: null, bkm_path: 'Z:\\\\q.pptx', after: 'other', extra: {} }), rq, { submit: true }).length === 1);
+    ok('the tool\'s required extra field must be answered; "only for" another type does not apply (Q5)', sub({ extra: {} }).length === 1 && !sub({}).some(function (x) { return /Depth/.test(x); }));
+    ok('a BKM of another tool is refused', D.requestProblems(Object.assign({}, full, { tool_id: 't2', type_id: 'm2', bkm_id: 'b1', after: 'back_to_me', extra: {} }), rq, {}).length === 1);
+    eq('warnings (Q44): QVM in Maintenance past the date, and no BKM', D.submitWarnings({ tool_id: 't2', needed_by: '2026-10-01', lot_id: 'l1', panels: [1] }, rq).map(function (w) { return w.code; }), ['tool_down', 'no_bkm']);
+    eq('...no warning when the tool is back before the date', D.submitWarnings({ tool_id: 't2', needed_by: '2026-10-20', bkm_path: 'Z:\\x', lot_id: 'l1', panels: [1] }, rq), []);
+    rq.requests = [{ id: 'r9', request_no: 'FIB-260920-01', status: 'accepted', tool_id: 't1', lot_id: 'l1', panels: [2, 3] }];
+    eq('...an open request on the same lot, tool and a shared panel', D.submitWarnings(full, rq).map(function (w) { return w.code; }), ['duplicate']);
+    rq.requests[0].status = 'completed';
+    eq('...not once it is completed', D.submitWarnings(full, rq), []);
+    var engU = { id: 'e1', roles: ['engineer'], active: true };
+    eq('drafts are private (Q33)', [D.canSeeRequest(engU, { status: 'draft', requester_id: 'e1' }), D.canSeeRequest(engU, { status: 'draft', requester_id: 'x' }), D.canSeeRequest(engU, { status: 'submitted', requester_id: 'x' })], [true, false, true]);
     ok('lot numbers: 5 digits, a split lot adds .01 (M2-1)', D.isLotNumber('18178') && D.isLotNumber('18178.01') && D.isLotNumber('18178.2'));
     ok('...not letters, dashes or a trailing dot', !D.isLotNumber('L18178') && !D.isLotNumber('18178-01') && !D.isLotNumber('18178.') && !D.isLotNumber('18178.001'));
     var lotB = Object.assign({}, base, { users: base.users, buildups: [{ id: 'b1', code: 'BU-01' }],
@@ -231,7 +263,8 @@
     /* =============== store: first run and seed =============== */
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 5, revision 0', [seed.schema_version, seed.revision], [5, 0]);
+    eq('schema 6, revision 0', [seed.schema_version, seed.revision], [6, 0]);
+    eq('no requests in a new file', [seed.requests, seed.request_events], [[], []]);
     eq('seven sample lot fields (first ideas)', seed.lot_fields.map(function (f) { return f.label + (f.sample ? '*' : ''); }),
        ['Purpose of the lot*', 'Started on*', 'Started by*', 'DOE / experiment ID*', 'Customer*', 'Expected finish*', 'Lot status*']);
     ok('...all valid, choices with IDs', seed.lot_fields.every(function (f) { return !D.validateEntry('lot_fields', f, seed).length; }) &&
@@ -503,6 +536,38 @@
     ST.setCurrentUser(tomL.id);
     await refused('...only admins add them', ST.addSampleLots(), 'not_admin');
     ST.setCurrentUser(adminL);
+
+    group('Store: requests - drafts and submit (M2 step 4)');
+    var qvm = tool('QVM'), qType = typesOf('QVM')[0];
+    var normal = ST.list('priorities').filter(function (p) { return p.is_default; })[0];
+    var d1 = await ST.saveDraft({ fields: { tool_id: qvm.id, purpose: '  pads  ' } });
+    eq('a draft: no ID yet, trimmed, private, timeline "created"', [d1.status, d1.request_no, d1.purpose, d1.requester_id, ST.requestEvents(d1.id).map(function (e) { return e.kind; })],
+       ['draft', null, 'pads', adminL, ['created']]);
+    await refused('a draft without a tool is refused', ST.saveDraft({ fields: { purpose: 'x' } }), 'invalid');
+    await refused('...saving it unchanged is "nothing changed"', ST.saveDraft({ id: d1.id, fields: { purpose: 'pads' } }), 'no_change');
+    await refused('submit checks everything', ST.submitRequest({ id: d1.id, fields: {} }), 'invalid');
+    eq('...and changes nothing', [ST.byId('requests', d1.id).status, ST.byId('requests', d1.id).request_no], ['draft', null]);
+    var s1 = await ST.submitRequest({ id: d1.id, fields: { type_id: qType.id, lot_id: lx.id, panels: [3, 1, 3], priority_id: normal.id, panel_location: 'Rack B2', after: 'back_to_me', bkm_path: 'Z:\\bkm\\my.pptx' } });
+    ok('submitted: ID QVM-YYMMDD-01, panels sorted once', /^QVM-\d{6}-01$/.test(s1.request_no) && s1.status === 'submitted' && s1.panels.join() === '1,3' && !!s1.submitted_ts);
+    eq('...timeline: created, then draft -> submitted', ST.requestEvents(s1.id).map(function (e) { return e.kind + ':' + e.from + '>' + e.to; }), ['created:null>draft', 'status:draft>submitted']);
+    ok('...audited with its ID', ST.data().audit_log.slice(-1)[0].action === 'submit' && ST.data().audit_log.slice(-1)[0].reason === s1.request_no);
+    var s2 = await ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [2], priority_id: normal.id, panel_location: 'Rack B2', after: 'back_to_me', purpose: 'pads' } });
+    ok('a second QVM request the same day gets 02 - submitted straight away, no draft first', /^QVM-\d{6}-02$/.test(s2.request_no));
+    await refused('a submitted request is not a draft any more', ST.saveDraft({ id: s1.id, fields: { purpose: 'x' } }), 'not_allowed');
+    await refused('...and is never deleted (cancel instead, Q35)', ST.deleteDraft(s1.id), 'not_allowed');
+    eq('a lot with requests counts them', ST.lotUsage(lx.id).text, '2 requests');
+    await refused('...and cannot be deleted', ST.deleteLot(lx.id, 'x'), 'in_use');
+    eq('the tool, type and priority count as used', [ST.entryUsage('tools', qvm.id).text.indexOf('2 requests') !== -1, ST.entryUsage('priorities', normal.id).text], [true, '2 requests']);
+    var d2 = await ST.saveDraft({ fields: { tool_id: qvm.id } });
+    ST.setCurrentUser(tomL.id);
+    eq('someone else sees the submitted requests, not the draft', ST.visibleRequests().map(function (r) { return r.request_no; }).sort(), [s1.request_no, s2.request_no].sort());
+    await refused('...cannot change it', ST.saveDraft({ id: d2.id, fields: { purpose: 'x' } }), 'not_allowed');
+    await refused('...or delete it', ST.deleteDraft(d2.id), 'not_allowed');
+    ST.setCurrentUser(qeL.id);
+    await refused('a quality engineer alone does not request', ST.saveDraft({ fields: { tool_id: qvm.id } }), 'not_allowed');
+    ST.setCurrentUser(adminL);
+    await ST.deleteDraft(d2.id);
+    eq('the author deletes the draft, and its timeline', [ST.byId('requests', d2.id), ST.requestEvents(d2.id).length], [null, 0]);
     var fibT = await ST.saveEntry('tools', { id: tool('FIB').id, fields: { destructive: false } });
     eq('"destructive" can be switched per tool', fibT.destructive, false);
     eq('an unused part number can be deleted', ST.byId('part_numbers', pn.id), null);
@@ -687,11 +752,12 @@
 
     // Schema 1 -> 2 adds part numbers (M1-13); 2 -> 3 process steps and "destructive" (M2-7, M2-11).
     var v1 = ST._pure.seedData(); v1.schema_version = 1; delete v1.part_numbers; delete v1.process_steps; delete v1.lots; delete v1.lot_fields;
+    delete v1.requests; delete v1.request_events;
     v1.tools.forEach(function (t) { delete t.destructive; });
     P.migrate(v1);
     eq('schema 1 -> 3: part numbers and process steps start empty', [v1.part_numbers, v1.process_steps], [[], []]);
     eq('...FIB becomes destructive, the others not', v1.tools.map(function (t) { return t.code + ':' + t.destructive; }), ['HRM:false', 'AOI:false', 'PRF:false', 'QVM:false', 'FIB:true']);
-    eq('...and the file says schema 5, with no lots', [v1.schema_version, v1.lots], [5, []]);
+    eq('...and the file says schema 6, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [6, [], [], []]);
     eq('...schema 4 -> 5 brings the sample lot fields', v1.lot_fields.map(function (f) { return f.label; }).length, 7);
 
     // An extra upgrade step, for this test only: schema 0 -> 1 (then 1 -> 2).
@@ -702,10 +768,10 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v5_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v6_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [5, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [6, true]);
     eq('...and the status says so until the next save', ST.status().upgradedFrom, 0);
   }
 

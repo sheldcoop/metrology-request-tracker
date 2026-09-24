@@ -243,6 +243,12 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   Settings > Lists links there.
 - **M2-19** (2026-09-24, Prince) Settings > Data & PIN > "Add 3 sample lots" (99901, 99902,
   99902.01, tagged Sample) to try the app with a real data file; Health lists them until deleted.
+- **M2-20** (2026-09-24, built in step 4) Request form details: the request ID is given **at
+  submit** (drafts have none, so no numbers are used up); a draft needs only its tool; the process
+  step is optional (the list is still empty); "Copy this request" takes everything except the
+  needed-by date, the priority reason and where the panels are now; only the author sees and
+  deletes a draft; submitted requests are never deleted (cancel instead, Q35). Every request has
+  a timeline from the start (created, submitted) for the request page (step 5).
 - **Future (not scheduled): Hirata code** - integrate Prince's Hirata coder/decoder HTML app and let
   users attach decoded panel numbers to a lot (OPEN_QUESTIONS #22). Planned when the app is shared.
 - **M2 build order** (one branch per step, Prince reviews each): 1 `m2-settings` (process-step

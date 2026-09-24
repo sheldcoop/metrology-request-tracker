@@ -77,6 +77,21 @@ window.MRT.views.help = (function () {
              'A project or build-up that lots use cannot be deleted in Settings - hide it instead.'],
       link: ['Open Lots', '#/lots'] },
 
+    { id: 'new-request', title: 'New request', icon: 'request_new',
+      intro: 'One request = one tool. Several tools on a lot = several requests. Register the lot first (Lots).',
+      steps: [
+        '1 Tool: click its drawing. A tool that is Down or in Maintenance shows it.',
+        '2 What to measure: the measurement type, and the BKM from the library - or paste the path of your own BKM PowerPoint. The BKM says where and what to measure. Without a BKM, write it in the purpose.',
+        '3 Lot and panels: pick the lot; its panel map appears. Click panels (Shift+click a run) or type "1-5, 12".',
+        '4 The panels: where they are now (required, e.g. "Magazine 14, rack B2", "in MES", "with Anna"), the process step, the layer, and where they go afterwards. FIB destroys panels: tick that they may be scrapped.',
+        '5 Priority and date: Line stop and Hot need a reason. The needed-by date is optional.',
+        '6 Tool fields: whatever the tool asks in addition.',
+        'Save draft keeps it for later - only you see drafts. Submit checks everything, warns about a Down tool, an open request on the same panels, or a missing BKM, and then gives the request its ID, e.g. FIB-260924-03.'
+      ],
+      tips: ['"Copy this request" (after submitting) or "New request on this lot" (lot details) saves typing.',
+             'The preview on the right shows what the quality engineer will see.'],
+      link: ['New request', '#/new'] },
+
     { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
       intro: 'Tell the lab when you are not there, so people know who covers your tools.',
       steps: [

@@ -22,6 +22,13 @@ registers one; the owner or an admin changes it. Admins add further lot
 fields (purpose, started on, status ...) in Settings > Lists > Lot fields.
 To try it: Settings > Data & PIN > "Add 3 sample lots".
 
+**New request** - one tool per request: tool, measurement type, BKM (or
+your own BKM path), lot and panels on the panel map, where the panels are,
+process step, layer, afterwards, priority (+ reason), needed-by (optional),
+purpose and the tool's extra fields. Save a private draft or submit; submit
+warns first (tool down, same panels already open, no BKM) and gives the ID
+(FIB-260924-03). The request page with its timeline follows (M2 step 5).
+
 **Away** - your name (top right) > "I'm away...": first and last day and an
 optional note, never a reason. Shown on Lab status, People and Health.
 

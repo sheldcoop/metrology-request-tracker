@@ -136,13 +136,21 @@ module.exports = function createDom(o) {
   (o.ids || []).forEach(id => { const e = new El('div'); e.setAttribute('id', id); doc.body.appendChild(e); });
 
   // location / history for file:///.../index.html?who=...#/lab
-  const loc = { search: '', hash: '', pathname: '/index.html' };
+  // like a browser: code that sets location.hash fires "hashchange" (after the current task)
+  let hashNow = '';
+  const loc = { search: '', pathname: '/index.html' };
+  Object.defineProperty(loc, 'hash', { enumerable: true, get: () => hashNow, set: v => {
+    const next = v === '' || String(v)[0] === '#' ? String(v) : '#' + v;
+    if (next === hashNow) return;
+    hashNow = next;
+    timers.push(() => (win.listeners.hashchange || []).forEach(f => f({})));
+  } });
   function setUrl(u) {
     const m = String(u).match(/^[^?#]*?([^/?#]*\/?[^?#]*)?(\?[^#]*)?(#.*)?$/);
-    loc.search = (m && m[2]) || ''; loc.hash = (m && m[3]) || '';
+    loc.search = (m && m[2]) || ''; hashNow = (m && m[3]) || '';
   }
   if (o.url) setUrl(o.url);
-  const history = { replaceState(s, t, u) { if (u !== undefined) { const i = String(u).indexOf('#'); const q = String(u).indexOf('?'); loc.search = q !== -1 ? String(u).slice(q, i === -1 ? undefined : i) : ''; loc.hash = i !== -1 ? String(u).slice(i) : ''; } } };
+  const history = { replaceState(s, t, u) { if (u !== undefined) { const i = String(u).indexOf('#'); const q = String(u).indexOf('?'); loc.search = q !== -1 ? String(u).slice(q, i === -1 ? undefined : i) : ''; hashNow = i !== -1 ? String(u).slice(i) : ''; } } };
 
   const win = {
     document: doc, console, Math, JSON, Date, Intl, Object, Array, String, Number, Promise, Proxy, Set, Map, RegExp, Error,
@@ -168,7 +176,7 @@ module.exports = function createDom(o) {
     addEventListener(t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); },
     removeEventListener() {},
     dispatchEvent(ev) { (this.listeners[ev.type] || []).forEach(f => f(ev)); return true; },
-    setHash(h) { loc.hash = h; (this.listeners.hashchange || []).forEach(f => f({})); }
+    setHash(h) { hashNow = h; (this.listeners.hashchange || []).forEach(f => f({})); }
   };
   win.window = win;
 
