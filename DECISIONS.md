@@ -146,3 +146,8 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   "Is this you?"; picking yes links the Windows ID (audited). A match that already has a different
   Windows ID is not relinked: "Ask an admin". Admins are told about every self-added user: in M1 a
   "New" mark in Settings > Users until an admin reviews it (+ audit entry); from M4 also the bell.
+- **M1-6** Side menu shows the full future layout from M1; unbuilt pages are greyed (not
+  clickable, tooltip "Coming in Mx", announced as unavailable), driven by one list in `app.js`.
+  Order: Lab status (live in M1: tools, glyphs, Up/Down/Maintenance, operators) · My queue (M3) ·
+  My requests (M3) · New request (M2) · Lots (M2) · Board (M3) · Analytics (M5) · Settings (M1) ·
+  Help (M1). Bell in the top bar from M4. Start page in M1: Lab status; role-based from M3 (Q16).
