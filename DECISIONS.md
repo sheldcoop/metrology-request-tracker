@@ -282,6 +282,10 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   tool (the ID is tied to it - cancel and copy instead), with a reason; each change shows in the
   timeline ("panels 1-4 -> 1-6. Reason: ..."), the quality engineer is notified from M4. No edits
   once Completed or Cancelled.
+- **M3-6** **Complete** dialog: results folder (required, pre-filled with the proposal Q30, may be
+  changed), what happened to the panels (pre-set from the request's "afterwards": Returned / Scrapped
+  / Other - FIB always Scrapped, Q25) and an optional note. Then the engineer gets Results OK /
+  Reopen (Q34).
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
