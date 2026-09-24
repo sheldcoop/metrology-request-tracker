@@ -65,10 +65,10 @@ window.MRT.views.help = (function () {
       link: ['Open Lab status', '#/lab'] },
 
     { id: 'lots', title: 'Lots: register a lot', icon: 'lots',
-      intro: 'A request picks its lot and panels, so the lot comes first. Any engineer registers one.',
+      intro: 'Any engineer registers a lot here - or simply types a new lot number in the request form; it is registered when the request is sent.',
       steps: [
         'Lots > Register lot. Lot number: digits, e.g. 18178; a split lot adds .01, .02 (18178.01).',
-        'Panels: how many panels the lot has - this draws the panel map on the request.',
+        'Panels in the lot: optional. Requests name their panels by Hirata ID.',
         'Pick the project: its part numbers appear. With only one it is picked for you; with several, choose. Then pick the build-up.',
         'A note is optional, e.g. "panels 3-4 have a known scratch". Below it come the lot fields the admin set up (e.g. Purpose of the lot, Started on, Lot status).',
         'Click a lot number to see all its details.',
@@ -79,24 +79,24 @@ window.MRT.views.help = (function () {
       link: ['Open Lots', '#/lots'] },
 
     { id: 'new-request', title: 'New request', icon: 'request_new',
-      intro: 'One request = one tool. Several tools on a lot = several requests. Register the lot first (Lots).',
+      intro: 'One request = one tool. Several tools on a lot = several requests. The form goes step by step: tool first, and each finished step folds into one line.',
       steps: [
-        '1 Tool: click its drawing. A tool that is Down or in Maintenance shows it.',
-        '2 What to measure: the measurement type, and the BKM from the library - or paste the path of your own BKM PowerPoint. The BKM says where and what to measure. Without a BKM, write it in the purpose.',
-        '3 Lot and panels: pick the lot; its panel map appears. Click panels (Shift+click a run) or type "1-5, 12".',
-        '4 The panels: where they are now (required, e.g. "Magazine 14, rack B2", "in MES", "with Anna"), the process step, the layer, and where they go afterwards. FIB destroys panels: tick that they may be scrapped.',
-        '5 Priority and date: Line stop and Hot need a reason. The needed-by date is optional.',
-        '6 Tool fields: whatever the tool asks in addition.',
-        'Save draft keeps it for later - only you see drafts. Submit checks everything, warns about a Down tool, an open request on the same panels, or a missing BKM, and then gives the request its ID, e.g. FIB-260924-03.'
+        '1 Tool: click its drawing, then the measurement type and the BKM from the library - or paste the path of your own BKM PowerPoint. Without a BKM, say what to measure in the purpose (step 5).',
+        '2 Lot and panels: Project · Lot · Build-up on one line. Type the lot number or pick it from the list; a lot that is not registered yet shows "New lot" and is registered when you submit. Then the panels: their Hirata IDs ("3252, 3253" or "3252-3255"), or just how many (usually 2). Tick the layers if it matters: 1FCO / 1BCO is the core, BU-01 adds 2F / 2B, up to BU-04 = 5F / 5B.',
+        '3 Where the panels are: pick the magazine and click the slots they sit in (or press and drag over several), or write a note ("in MES", "with Anna"). Slots other open requests hold are greyed out. Then where the panels go afterwards; FIB destroys panels: tick that they may be scrapped.',
+        '4 Priority and date: Line stop and Hot need a reason. The needed-by date is optional.',
+        '5 Purpose and tool fields: why the measurement, and whatever the tool asks in addition.',
+        'Review lists what is still missing, step by step. Save draft keeps it for later - only you see drafts. Submit warns about a Down tool, an open request on the same panels, or a missing BKM, and then gives the request its ID, e.g. FIB-260924-03.'
       ],
-      tips: ['"Copy this request" (after submitting) or "New request on this lot" (lot details) saves typing.',
-             'The preview on the right shows what the quality engineer will see.'],
+      tips: ['The strip on top jumps to any step: green is done, amber still needs something.',
+             '"Copy this request" (after submitting) or "New request on this lot" (lot details) saves typing.',
+             'The traveller card on the right builds up as you fill in: what the quality engineer will see.'],
       link: ['New request', '#/new'] },
 
     { id: 'request-page', title: 'The request page', icon: 'requests',
       intro: 'Every submitted request has its own page: open it from the search (type part of the ID), from a lot\'s details or from your requests.',
       steps: [
-        'The traveller card on top: request ID, tool, status stamp, lot, priority (the coloured stripe: red Line stop, amber Hot, green Normal, grey Low), needed-by and the panel map with the requested panels.',
+        'The traveller card on top: request ID, tool, status stamp, lot, priority (the coloured stripe: red Line stop, amber Hot, green Normal, grey Low), needed-by, the panels (Hirata IDs or how many), layers, and the magazine with its slots.',
         'The countdown counts lab time only (lab days and hours, minus holidays): "13 h lab time left (3 days)". Outside lab hours it says "clock paused". Late requests turn red.',
         'The status rail shows each step - Submitted, Accepted, In progress, Completed - with who and when.',
         'On the right: the BKM path and the proposed results folder, each with a Copy button, the details and the people.',
@@ -164,16 +164,16 @@ window.MRT.views.help = (function () {
       ],
       tips: ['When someone else saves, the app loads their change by itself - unless you are in the middle of something; then a banner asks.'] },
 
-    { id: 'magazines', title: 'Magazines and racks', icon: 'grid',
-      intro: 'A magazine is a cassette of 24 slots (M70345 ...) standing in a rack (1-24). A lot\'s panels sit in its magazines, one per slot.',
+    { id: 'magazines', title: 'Magazines', icon: 'grid',
+      intro: 'A PCB magazine (M70345 ...) holds 24 panels, one per slot, numbered from the top - the magazines that feed the Hirata loader.',
       steps: [
-        'Register or edit a lot: tick its magazines. Panel 1 goes into slot 1, and on; a lot with more than 24 panels takes a second magazine.',
-        'Lot details show each magazine as a cassette. Move panels: click a slot, then another to swap or move; a slot then the tray takes a panel out; a tray panel then a slot puts it in.',
-        'New request: pick the panels - the magazine and its rack fill in ("M70345 · Rack 7 · slots 2, 3"). Change the rack if the magazine stands somewhere else, or write a note instead.',
-        'Complete (quality engineer): say where the panels go back - magazine, rack, same slots or the first free ones. Scrapped panels (FIB) leave the magazine and cannot be requested again.',
-        'Admins keep the list in Settings > Lists > Magazines (number, slots, rack now) and set how many racks there are.'
+        'New request, step 3: pick the magazine, then the slots the panels sit in - click, or press and drag over several. Slot order = panel order: the first slot gets the first Hirata ID.',
+        'Slots of other open requests show greyed out with their request ID and cannot be picked. When a request is completed or cancelled its slots are free again.',
+        'The request page and the slip show the magazine with the picked slots ("M70345 · slots 3-5").',
+        'Complete (quality engineer): say where the panels go back - the same magazine and slots, or another. Scrapped panels (FIB) are marked on the lot and cannot be requested again.',
+        'Admins keep the list in Settings > Lists > Magazines (number, slots, active); "in use now" shows how many slots open requests hold.'
       ],
-      link: ['Open Lots', '#/lots'] },
+      link: ['New request', '#/new'] },
 
     { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
       intro: 'Tell the lab when you are not there, so people know who covers your tools.',
@@ -236,7 +236,7 @@ window.MRT.views.help = (function () {
 
     { id: 'admin-lists', title: 'Admin: lists and lab calendar', icon: 'calendar', admin: true,
       steps: [
-        'Settings > Lists: projects and build-ups (codes in capitals) and priorities (Line stop, Hot, Normal, Low - renamable, one default, some need a reason).',
+        'Settings > Lists: projects and build-ups (codes in capitals; a build-up can set its number of layers - empty means the number in the code, BU-04 = up to 5F / 5B) and priorities (Line stop, Hot, Normal, Low - renamable, one default, some need a reason).',
         'Part numbers (Settings > Lists): each one is stored once and linked to one or more projects - tick them. A project with part numbers cannot be deleted; hide it instead.',
         'Process steps (Settings > Lists): the steps of the line in order, e.g. After desmear. A request says which step its panels are at; engineers can still type another one.',
         'Settings > Lots: the same list as the Lots page. "Add several lots" registers a batch (e.g. 18178-18180) with the same project, part number, build-up and panels; the person button gives a lot to another owner; any unused lot can be deleted with a reason.',

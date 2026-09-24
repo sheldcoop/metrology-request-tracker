@@ -266,16 +266,16 @@
     eq('...an admin: the @mention and the person who added themselves', nIds('a1'), ['v3', 'usr:n1']);
     eq('...only what came after "since"', nIds('q1', Date.parse('2026-09-24T10:30:00Z')), ['v3']);
     ok('...the mention says so', /mentioned you/.test(D.notificationsFor(ND.users[2], ND).filter(function (n) { return n.id === 'v3'; })[0].text));
-    var MG = { m1: { id: 'm1', code: 'M70345', slots: 24, rack: 7 }, m2: { id: 'm2', code: 'M70346', slots: 24, rack: null } };
-    var ld = D.defaultLoad(30, [MG.m1, MG.m2], [3]);
-    eq('magazines (M2-23): panel n into slot n, then the next magazine; scrapped panels stay out', [ld.length, ld[0], ld[2], ld[23].magazine_id, ld[23].slot, ld[28]],
-       [29, { panel: 1, magazine_id: 'm1', slot: 1 }, { panel: 4, magazine_id: 'm1', slot: 3 }, 'm1', 24, { panel: 30, magazine_id: 'm2', slot: 5 }]);
-    var lotM = { panel_count: 30, magazine_ids: ['m1', 'm2'], scrapped: [3], load: ld };
-    eq('...where: "M70345 · Rack 7 · slots 1-2", scrapped and loose panels named', D.whereText(lotM, [1, 2, 3], MG, null), 'M70345 · Rack 7 · slots 1, 2; panel 3 scrapped');
-    eq('...the request\'s rack wins over the magazine\'s', D.whereText(lotM, [26, 27, 28], MG, 12), 'M70346 · Rack 12 · slots 1-3');
-    eq('...a good map has no problems', D.loadProblems(ld, lotM, MG), []);
-    eq('...two panels in one slot, a slot past 24, a magazine not of the lot', D.loadProblems([{ panel: 1, magazine_id: 'm1', slot: 5 }, { panel: 2, magazine_id: 'm1', slot: 5 },
-       { panel: 4, magazine_id: 'm1', slot: 25 }, { panel: 5, magazine_id: 'm9', slot: 1 }], lotM, MG).length, 3);
+    eq('panels by Hirata ID (F-1): commas, lines, runs, each once, order kept', D.parsePanelIds('3252, 23\n0045-0047 3252'), { ids: ['3252', '23', '0045', '0046', '0047'], errors: [] });
+    eq('...bad ones are named', D.parsePanelIds('32a5, 10-9').errors.length, 2);
+    eq('...shown as IDs, or "2 panels" when only counted', [D.panelsText({ panels: ['3252', '3253'] }), D.panelsText({ panels: [], panel_count: 2 }), D.panelCountOf({ panels: [], panel_count: 3 })], ['3252, 3253', '2 panels', 3]);
+    eq('layers from the build-up (F-2): core 1FCO/1BCO, BU-01 adds 2F/2B, BU-04 up to 5F/5B', [D.layersFor({ code: 'BU-01' }), D.layersFor({ code: 'BU-04' }).slice(-2), D.layersFor({ code: 'DOE' }).length, D.layersFor({ code: 'DOE', layers: 1 }).length],
+       [['1FCO', '1BCO', '2F', '2B'], ['5F', '5B'], 10, 4]);
+    var MG = { m1: { id: 'm1', code: 'M70345', slots: 24 } };
+    eq('where (F-3): "M70345 · slots 3, 4", with the note after', [D.placeText({ magazine_id: 'm1', slots: [4, 3] }, MG), D.placeText({ magazine_id: 'm1', slots: [1, 2, 3], panel_location: 'cart 2' }, MG), D.placeText({ panel_location: 'in MES' }, MG)],
+       ['M70345 · slots 3, 4', 'M70345 · slots 1-3 - cart 2', 'in MES']);
+    eq('...slots taken by other open requests of that magazine', D.takenSlots([{ id: 'a', status: 'accepted', magazine_id: 'm1', slots: [3], request_no: 'X-1' }, { id: 'b', status: 'completed', magazine_id: 'm1', slots: [4] },
+       { id: 'c', status: 'submitted', magazine_id: 'm1', slots: [5], request_no: 'X-3' }], 'm1', 'c'), { 3: 'X-1' });
     ok('magazine numbers: M and digits', D.isMagazineCode('M70345') && !D.isMagazineCode('70345') && !D.isMagazineCode('M-1'));
     eq('start page by role (M3-12): QE -> My queue, engineer -> My requests, else Lab status', [D.homeFor(qe1), D.homeFor(eng1), D.homeFor({ roles: ['manager'], active: true })], ['queue', 'requests', 'lab']);
     eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
@@ -289,11 +289,14 @@
       lots: [{ id: 'l1', lot_number: '18178', panel_count: 12 }],
       priorities: [{ id: 'p1', name: 'Line stop', level: 1, needs_reason: true }, { id: 'p3', name: 'Normal', level: 3 }],
       process_steps: [{ id: 's1', name: 'After desmear' }], requests: [] };
-    var full = { tool_id: 't1', type_id: 'm1', lot_id: 'l1', panels: [1, 2], priority_id: 'p3', bkm_id: 'b1', panel_location: 'Magazine 14',
+    var full = { tool_id: 't1', type_id: 'm1', lot_id: 'l1', panels: ['3252', '3253'], priority_id: 'p3', bkm_id: 'b1', panel_location: 'Magazine 14',
       destructive_ok: true, after: 'scrap', extra: { f1: 'c1' } };
     eq('a complete FIB request', D.requestProblems(full, rq, { submit: true }), []);
     eq('a draft needs only its tool', [D.requestProblems({ tool_id: 't1' }, rq, {}), D.requestProblems({}, rq, {})], [[], ['Pick a tool']]);
-    ok('...but panels outside the lot are refused even in a draft', D.requestProblems({ tool_id: 't1', lot_id: 'l1', panels: [13] }, rq, {}).length === 1);
+    ok('...but a panel ID that is not digits is refused even in a draft', D.requestProblems({ tool_id: 't1', lot_id: 'l1', panels: ['32a'] }, rq, {}).length === 1);
+    ok('only a count, no IDs, is fine (F-1)', !D.requestProblems(Object.assign({}, full, { panels: [], panel_count: 2 }), rq, { submit: true }).length);
+    ok('a new lot typed in the form needs project and build-up (F-5)', D.requestProblems(Object.assign({}, full, { lot_id: null, new_lot: { lot_number: '19000' } }), rq, { submit: true }).length === 1 &&
+       D.requestProblems(Object.assign({}, full, { lot_id: null, new_lot: { lot_number: '18178', project_id: null, buildup_id: null } }), rq, { submit: true }).some(function (x) { return /exists already/.test(x); }));
     function sub(ch) { return D.requestProblems(Object.assign({}, full, ch), rq, { submit: true }); }
     ok('submit: type, lot, panels, priority, where the panels are - all required', [{ type_id: null }, { lot_id: null }, { panels: [] }, { priority_id: null }, { panel_location: ' ' }].every(function (c) { return sub(c).length >= 1; }));
     ok('Line stop needs a reason (Q26)', sub({ priority_id: 'p1' }).length === 1 && !sub({ priority_id: 'p1', priority_reason: 'line 2 down' }).length);
@@ -304,7 +307,7 @@
     ok('a BKM of another tool is refused', D.requestProblems(Object.assign({}, full, { tool_id: 't2', type_id: 'm2', bkm_id: 'b1', after: 'back_to_me', extra: {} }), rq, {}).length === 1);
     eq('warnings (Q44): QVM in Maintenance past the date, and no BKM', D.submitWarnings({ tool_id: 't2', needed_by: '2026-10-01', lot_id: 'l1', panels: [1] }, rq).map(function (w) { return w.code; }), ['tool_down', 'no_bkm']);
     eq('...no warning when the tool is back before the date', D.submitWarnings({ tool_id: 't2', needed_by: '2026-10-20', bkm_path: 'Z:\\x', lot_id: 'l1', panels: [1] }, rq), []);
-    rq.requests = [{ id: 'r9', request_no: 'FIB-260920-01', status: 'accepted', tool_id: 't1', lot_id: 'l1', panels: [2, 3] }];
+    rq.requests = [{ id: 'r9', request_no: 'FIB-260920-01', status: 'accepted', tool_id: 't1', lot_id: 'l1', panels: ['3253', '3300'] }];
     eq('...an open request on the same lot, tool and a shared panel', D.submitWarnings(full, rq).map(function (w) { return w.code; }), ['duplicate']);
     rq.requests[0].status = 'completed';
     eq('...not once it is completed', D.submitWarnings(full, rq), []);
@@ -353,7 +356,7 @@
     /* =============== store: first run and seed =============== */
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 8, revision 0', [seed.schema_version, seed.revision], [8, 0]);
+    eq('schema 9, revision 0', [seed.schema_version, seed.revision], [9, 0]);
     eq('20 sample magazines M70345-M70364, 24 slots each (M2-23)', [seed.magazines.length, seed.magazines[0].code, seed.magazines[19].code, seed.magazines.every(function (m) { return m.slots === 24 && m.sample; })],
        [20, 'M70345', 'M70364', true]);
     eq('on-hold reasons (M3-4)', seed.hold_reasons.map(function (h) { return h.name; }), ['Waiting for panels', 'Tool down', 'Waiting for engineer info', 'Higher priority first', 'Other']);
@@ -645,21 +648,14 @@
     await refused('an engineer cannot add lots in bulk', ST.addLots({ numbers: ['20009'], fields: { project_id: prjL.id, buildup_id: buL.id, panel_count: 2 } }), 'not_admin');
     ST.setCurrentUser(adminL);
 
-    group('Store: magazines and the loading map (M2-23)');
-    var m1 = ST.list('magazines')[0], m2 = ST.list('magazines')[1];
-    var ml = await ST.saveLot({ fields: { lot_number: '40001', project_id: prjL.id, buildup_id: buL.id, panel_count: 30, magazine_ids: [m1.id, m2.id] } });
-    eq('a lot with two magazines gets the default map: 24 + 6', [ml.load.length, ml.load.filter(function (x) { return x.magazine_id === m2.id; }).length], [30, 6]);
-    var moved = ml.load.map(function (x) { return x.panel === 1 ? { panel: 1, magazine_id: m1.id, slot: 2 } : x.panel === 2 ? { panel: 2, magazine_id: m1.id, slot: 1 } : x; });
-    await ST.setLotLoad(ml.id, moved, 'swap 1 and 2');
-    eq('Move panels: panels 1 and 2 swapped slots', ST.byId('lots', ml.id).load.slice(0, 2).map(function (x) { return x.panel + ':' + x.slot; }), ['1:2', '2:1']);
-    await refused('...two panels in one slot is refused', ST.setLotLoad(ml.id, moved.map(function (x) { return x.panel === 3 ? { panel: 3, magazine_id: m1.id, slot: 1 } : x; })), 'invalid');
-    ST.setCurrentUser(qeL.id);
-    await ST.setLotLoad(ml.id, moved.filter(function (x) { return x.panel !== 30; }), 'panel 30 at the bench');
-    eq('...a quality engineer may move panels too (out of the magazine)', ST.byId('lots', ml.id).load.length, 29);
-    ST.setCurrentUser(adminL);
-    await refused('the rack count is a whole number', ST.setRackCount(0), 'invalid');
-    await ST.setRackCount(30);
-    eq('...an admin sets the number of racks', ST.getSetting('rack_count'), 30);
+    group('Store: form v2 - Hirata IDs, layers, magazine slots, a new lot at submit (F-1..F-5)');
+    var m1 = ST.list('magazines')[0];
+    var ml = await ST.saveLot({ fields: { lot_number: '40001', project_id: prjL.id, buildup_id: buL.id } });
+    eq('a lot without a panel count (F-1)', ml.panel_count, null);
+    var bu4 = ST.list('buildups').filter(function (b) { return b.code === 'BU-04'; })[0];
+    await ST.saveEntry('buildups', { id: bu4.id, fields: { layers: 3 } });
+    eq('an admin sets a build-up\'s layers', D.layersFor(ST.byId('buildups', bu4.id)).slice(-1), ['4B']);
+    await refused('...a whole number 0-20', ST.saveEntry('buildups', { id: bu4.id, fields: { layers: 30 } }), 'invalid');
 
     group('Store: requests - drafts and submit (M2 step 4)');
     var qvm = tool('QVM'), qType = typesOf('QVM')[0];
@@ -672,7 +668,7 @@
     await refused('submit checks everything', ST.submitRequest({ id: d1.id, fields: {} }), 'invalid');
     eq('...and changes nothing', [ST.byId('requests', d1.id).status, ST.byId('requests', d1.id).request_no], ['draft', null]);
     var s1 = await ST.submitRequest({ id: d1.id, fields: { type_id: qType.id, lot_id: lx.id, panels: [3, 1, 3], priority_id: normal.id, panel_location: 'Rack B2', after: 'back_to_me', bkm_path: 'Z:\\bkm\\my.pptx' } });
-    ok('submitted: ID QVM-YYMMDD-01, panels sorted once', /^QVM-\d{6}-01$/.test(s1.request_no) && s1.status === 'submitted' && s1.panels.join() === '1,3' && !!s1.submitted_ts);
+    ok('submitted: ID QVM-YYMMDD-01, panels once in the order given, counted', /^QVM-\d{6}-01$/.test(s1.request_no) && s1.status === 'submitted' && s1.panels.join() === '3,1' && s1.panel_count === 2 && !!s1.submitted_ts);
     eq('...timeline: created, then draft -> submitted', ST.requestEvents(s1.id).map(function (e) { return e.kind + ':' + e.from + '>' + e.to; }), ['created:null>draft', 'status:draft>submitted']);
     ok('...audited with its ID', ST.data().audit_log.slice(-1)[0].action === 'submit' && ST.data().audit_log.slice(-1)[0].reason === s1.request_no);
     var s2 = await ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [2], priority_id: normal.id, panel_location: 'Rack B2', after: 'back_to_me', purpose: 'pads' } });
@@ -755,25 +751,29 @@
     eq('...the timeline tells the whole story', ST.requestEvents(w.id).map(function (e) { return e.kind === 'status' ? e.to : e.kind; }),
        ['created', 'submitted', 'accepted', 'panels', 'on_hold', 'accepted', 'clarification', 'accepted', 'in_progress', 'completed', 'accepted', 'in_progress', 'completed', 'results_ok']);
 
-    group('Store: where the panels go at Complete (M3-13)');
-    var mq = await ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: ml.id, panels: [5, 6], priority_id: normal.id,
-      magazine_id: m1.id, rack: 9, after: 'back_to_me', purpose: 'pads' } });
-    eq('submit with magazine and rack (no note needed); the magazine now stands in rack 9', [mq.rack, ST.byId('magazines', m1.id).rack], [9, 9]);
+    group('Store: magazine slots, a new lot, put back, scrapped (F-3, F-5, M3-13)');
+    var mq = await ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, new_lot: { lot_number: '40002', project_id: prjL.id, buildup_id: buL.id },
+      panels: ['3252', '3253'], layers: ['1fco', '2F'], priority_id: normal.id, magazine_id: m1.id, slots: [4, 3], after: 'back_to_me', purpose: 'pads' } });
+    var newLot = ST.data().lots.filter(function (x) { return x.lot_number === '40002'; })[0];
+    eq('a lot typed in the form is registered at submit, owned by the requester', [!!newLot, mq.lot_id === (newLot || {}).id, (newLot || {}).owner_id, mq.new_lot], [true, true, adminL, null]);
+    eq('...magazine slots sorted, layers tidied, no note needed', [mq.slots, mq.layers, D.placeText(mq, (function () { var o = {}; o[m1.id] = m1; return o; })())], [[3, 4], ['1FCO', '2F'], m1.code + ' · slots 3, 4']);
+    await refused('a slot taken by another open request is refused', ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: mq.lot_id, panel_count: 1,
+      priority_id: normal.id, magazine_id: m1.id, slots: [4], after: 'back_to_me', purpose: 'x' } }), 'invalid');
+    await refused('a layer not of the build-up is refused', ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: mq.lot_id, panel_count: 1,
+      priority_id: normal.id, panel_location: 'x', layers: ['9F'], after: 'back_to_me', purpose: 'x' } }), 'invalid');
     ST.setCurrentUser(qeL.id);
     await ST.requestAction(mq.id, 'start', { received: true });
     var m3 = ST.list('magazines')[2];
-    await ST.requestAction(mq.id, 'complete', { results_path: 'Z:\\r', panels_outcome: 'returned', put_back: { magazine_id: m3.id, rack: 4, keep_slots: true } });
-    var mlot = ST.byId('lots', ml.id);
-    eq('put back into another magazine: first free slots, magazine added to the lot, rack set', [mlot.load.filter(function (x) { return x.panel === 5 || x.panel === 6; }).map(function (x) { return x.magazine_id === m3.id ? x.slot : 'x'; }),
-       mlot.magazine_ids.indexOf(m3.id) !== -1, ST.byId('magazines', m3.id).rack], [[1, 2], true, 4]);
+    await ST.requestAction(mq.id, 'complete', { results_path: 'Z:\\r', panels_outcome: 'returned', put_back: { magazine_id: m3.id, slots: [1, 2] } });
+    eq('Complete: put back into another magazine\'s slots', ST.byId('requests', mq.id).put_back, { magazine_id: m3.id, slots: [1, 2] });
     ST.setCurrentUser(adminL);
-    var fq = await ST.submitRequest({ fields: { tool_id: tool('FIB').id, type_id: typesOf('FIB')[0].id, lot_id: ml.id, panels: [7], priority_id: normal.id,
+    var fq = await ST.submitRequest({ fields: { tool_id: tool('FIB').id, type_id: typesOf('FIB')[0].id, lot_id: mq.lot_id, panels: ['3252'], priority_id: normal.id,
       panel_location: 'bench', destructive_ok: true, after: 'scrap', purpose: 'x' } });
     await ST.requestAction(fq.id, 'start', {});
     await ST.requestAction(fq.id, 'complete', { results_path: 'Z:\\r', panels_outcome: 'scrapped' });
-    await refused('a scrapped panel cannot be requested again', ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: ml.id, panels: [7], priority_id: normal.id,
+    eq('FIB: the panel is marked scrapped on the lot', ST.byId('lots', mq.lot_id).scrapped, ['3252']);
+    await refused('...and cannot be requested again', ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: mq.lot_id, panels: ['3252'], priority_id: normal.id,
       panel_location: 'x', after: 'back_to_me', purpose: 'x' } }), 'invalid');
-    eq('scrapped panels leave the magazine and are marked on the lot', [ST.byId('lots', ml.id).scrapped, ST.byId('lots', ml.id).load.some(function (x) { return x.panel === 7; })], [[7], false]);
 
     group('Store: edit a submitted request, take it (M3-5, M3-7)');
     var e1 = await ST.submitRequest({ fields: { tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [1, 2, 3, 4], priority_id: normal.id,
@@ -782,9 +782,12 @@
     await refused('...the tool cannot change', ST.editRequest({ id: e1.id, fields: { tool_id: tool('FIB').id }, reason: 'x' }), 'invalid');
     e1 = await ST.editRequest({ id: e1.id, fields: { panels: [1, 2, 3, 4, 5, 6], panel_location: 'Rack C1' }, reason: 'two more panels' });
     eq('an edit: saved, and the timeline says what changed and why', [e1.panels.length, ST.requestEvents(e1.id).slice(-1)[0].text],
-       [6, 'panels 1-4 -> 1-6; panels are now Rack B2 -> Rack C1. Reason: two more panels']);
+       [6, 'panels 1, 2, 3, 4 -> 1, 2, 3, 4, 5, 6; panels are now Rack B2 -> Rack C1; how many panels 4 -> 6. Reason: two more panels']);
+    e1 = await ST.editRequest({ id: e1.id, fields: { lot_id: null, new_lot: { lot_number: '40003', project_id: prjL.id, buildup_id: buL.id } }, reason: 'wrong lot' });
+    var lot3 = ST.data().lots.filter(function (x) { return x.lot_number === '40003'; })[0];
+    eq('an edit to a lot typed new registers it too, and the timeline names it', [!!lot3 && e1.lot_id === lot3.id, e1.new_lot, /lot .* -> 40003/.test(ST.requestEvents(e1.id).slice(-1)[0].text)], [true, null, true]);
     ST.setCurrentUser(tomL.id);
-    await refused('someone else cannot edit it', ST.editRequest({ id: e1.id, fields: { layer: 'L2' }, reason: 'x' }), 'not_allowed');
+    await refused('someone else cannot edit it', ST.editRequest({ id: e1.id, fields: { layers: ['2F'] }, reason: 'x' }), 'not_allowed');
     ST.setCurrentUser(adminL);
     await ST.saveEntry('users', { id: tomL.id, fields: { roles: ['engineer', 'quality'] } });
     await ST.saveEntry('tools', { id: qvm.id, fields: { backup_operator_id: tomL.id } });
@@ -969,8 +972,12 @@
     var roleCount = function (r) { return DD.users.filter(function (u) { return u.active !== false && D.hasRole(u, r); }).length; };
     ok('...roles present: engineers, operators, quality engineers, managers, admin', roleCount('engineer') >= 7 && roleCount('operator') === 2 && roleCount('quality') >= 5 && roleCount('manager') === 2 && roleCount('admin') === 1);
     var badLots = DD.lots.map(function (l) { return [l.lot_number, D.validateEntry('lots', l, DD)]; }).filter(function (x) { return x[1].length; });
-    eq('every lot is valid (magazines, loading map, lot fields)', badLots.slice(0, 3), []);
-    ok('...split lots and lots in magazines', DD.lots.some(function (l) { return /\.01$/.test(l.lot_number); }) && DD.lots.filter(function (l) { return l.load.length; }).length >= 10);
+    eq('every lot is valid (lot fields, panel count optional)', badLots.slice(0, 3), []);
+    ok('...split lots, and lots without a panel count', DD.lots.some(function (l) { return /\.01$/.test(l.lot_number); }) && DD.lots.some(function (l) { return l.panel_count === null; }));
+    ok('...requests with Hirata IDs, with just a count, with layers, in magazine slots, with a note',
+       DD.requests.some(function (r) { return r.panels.length && r.panels.every(D.isPanelId); }) && DD.requests.some(function (r) { return !r.panels.length && r.panel_count; }) &&
+       DD.requests.some(function (r) { return r.layers.length; }) && DD.requests.filter(function (r) { return D.isOpen(r) && r.slots.length; }).length >= 20 &&
+       DD.requests.some(function (r) { return !r.magazine_id && r.panel_location; }));
     var badReq = DD.requests.map(function (r) { return [r.request_no || r.id, D.requestProblems(r, DD, { submit: r.status !== 'draft', allowScrapped: true })]; }).filter(function (x) { return x[1].length; });
     eq('every request keeps the request rules', badReq.slice(0, 3), []);
     var nos = DD.requests.map(function (r) { return r.request_no; }).filter(Boolean);
@@ -1025,7 +1032,7 @@
     P.migrate(v1);
     eq('schema 1 -> 3: part numbers and process steps start empty', [v1.part_numbers, v1.process_steps], [[], []]);
     eq('...FIB becomes destructive, the others not', v1.tools.map(function (t) { return t.code + ':' + t.destructive; }), ['HRM:false', 'AOI:false', 'PRF:false', 'QVM:false', 'FIB:true']);
-    eq('...and the file says schema 8, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [8, [], [], []]);
+    eq('...and the file says schema 9, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [9, [], [], []]);
     eq('...schema 7 -> 8 brings the magazines', v1.magazines.length, 20);
     eq('...schema 6 -> 7 brings the on-hold reasons', v1.hold_reasons.length, 5);
     eq('...schema 4 -> 5 brings the sample lot fields', v1.lot_fields.map(function (f) { return f.label; }).length, 7);
@@ -1038,10 +1045,19 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v8_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v9_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [8, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [9, true]);
+    // 8 -> 9 (form v2): panel numbers become IDs; the lot's old loading map gives the request its slots
+    var v8 = ST._pure.seedData(); v8.schema_version = 8;
+    v8.lots = [{ id: 'L', lot_number: '1', project_id: v8.projects[0].id, buildup_id: v8.buildups[0].id, panel_count: 4, owner_id: 'u', scrapped: [2],
+                 magazine_ids: ['M'], load: [{ panel: 1, magazine_id: 'M', slot: 7 }, { panel: 3, magazine_id: 'M', slot: 9 }] }];
+    v8.requests = [{ id: 'R', lot_id: 'L', panels: [1, 3], magazine_id: 'M', rack: 5, layer: '2f' }, { id: 'S', lot_id: 'L', panels: [4], layer: 'L7' }];
+    P.migrate(v8);
+    eq('schema 8 -> 9: IDs, count, slots from the old map, layer to layers (or the note), lots lose the map',
+       [v8.requests[0].panels, v8.requests[0].panel_count, v8.requests[0].slots, v8.requests[0].layers, v8.requests[1].layers, v8.requests[1].panel_location, v8.lots[0].scrapped, 'load' in v8.lots[0]],
+       [['1', '3'], 2, [7, 9], ['2F'], [], 'layer L7', ['2'], false]);
     eq('...and the status says so until the next save', ST.status().upgradedFrom, 0);
   }
 

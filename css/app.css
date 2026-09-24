@@ -1355,6 +1355,63 @@ table.grid tbody tr { scroll-margin: 80px; }
 .tool-pick-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tool-pick-opt.is-on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent), 0 0 var(--glow-blur, 10px) var(--accent-glow); }
 .tool-pick-opt .chip { font-size: 10px; }
+.tool-pick-name { font-size: 11px; color: var(--fg-muted); max-width: 110px; text-align: center; line-height: 1.2; }
+
+/* The guided form (F-4): a progress strip, then steps that fold to one line when done */
+.req-wizard { grid-template-columns: minmax(0, 1fr) 360px; }
+.wz-main { min-width: 0; }
+@media (max-width: 1280px) { .req-wizard { grid-template-columns: minmax(0, 1fr); } .req-wizard .req-side { position: static; } }
+.wz-progress { list-style: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 0 0 14px; padding: 0; }
+.wz-dot { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-top: 3px solid var(--line-strong);
+  background: transparent; color: var(--fg-muted); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.wz-dot-no { font-weight: 700; }
+.wz-dot-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wz-dot.is-done { border-top-color: var(--ok); color: var(--fg); }
+.wz-dot.is-missing { border-top-color: var(--warning); color: var(--fg); }
+.wz-dot.is-now { border-top-color: var(--accent); color: var(--fg); box-shadow: 0 -2px var(--glow-blur, 10px) -4px var(--accent-glow); }
+.wz-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wz-steps { display: grid; gap: 10px; }
+.wz-step { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.wz-step.is-open { border-color: var(--line-strong); box-shadow: 0 0 0 1px var(--accent-soft); }
+.wz-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; border: 0; background: transparent;
+  color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.wz-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.wz-no { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--line-strong); font-size: 13px; font-weight: 700; }
+.wz-step.is-open .wz-no { border-color: var(--accent); color: var(--accent); }
+.wz-step.is-done .wz-no { border-color: var(--ok); background: var(--ok-bg); color: var(--ok-fg); }
+.wz-step.is-missing .wz-no { border-color: var(--warning); background: var(--warning-bg); color: var(--warning-fg); }
+.wz-title { display: grid; min-width: 0; }
+.wz-sum { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--fg-muted); }
+.wz-step.is-open .wz-sum { display: none; }
+.wz-body { display: grid; gap: 14px; padding: 4px 14px 14px 52px; }
+.wz-next { display: flex; justify-content: flex-end; }
+.wz-where { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: start; }
+@media (max-width: 1100px) { .wz-where { grid-template-columns: minmax(0, 1fr); } }
+.wz-review { list-style: none; display: grid; gap: 8px; margin: 0; padding: 0; }
+.wz-rev { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: var(--radius); font-size: 13px; }
+.wz-rev ul { margin: 4px 0 0; padding-left: 18px; }
+.wz-rev.is-done > svg { color: var(--ok); }
+.wz-rev.is-missing { border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
+.wz-rev.is-missing > svg { color: var(--warning); }
+.wz-ready { margin: 0; color: var(--ok-fg); font-weight: 600; }
+/* Project · Lot · Build-up on one line (F-5) */
+.lot-line { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: start; }
+.lot-line-dot { padding-top: 30px; color: var(--fg-faint); font-weight: 700; }
+@media (max-width: 900px) { .lot-line { grid-template-columns: minmax(0, 1fr); } .lot-line-dot { display: none; } }
+/* Hirata IDs as chips, layers as chips to tick (F-1, F-2) */
+.panel-chips, .layer-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 24px; }
+.panel-chip { padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-2); font-size: 12px; }
+.panel-chip.is-scrapped { border-color: var(--danger); color: var(--danger-fg); background: var(--danger-bg); text-decoration: line-through; }
+.layer-chip { min-width: 52px; padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface-2);
+  color: var(--fg); font-size: 12px; cursor: pointer; transition: transform var(--t-fast) var(--ease); }
+.layer-chip.is-core { border-style: dashed; }
+.layer-chip:hover { transform: translateY(-1px); }
+.layer-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.layer-chip.is-on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); font-weight: 700; }
+.tm-mag { margin: 4px 0 10px; }
+.tm-mag .mz-frame { width: 100%; }
 /* traveller preview: priority stripe on the left edge (1 = Line stop ... 4 = Low) */
 .traveller-mini { position: relative; padding: 12px 12px 4px 18px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface-2); }
 .traveller-mini::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; border-radius: var(--radius) 0 0 var(--radius); background: var(--ok); }
@@ -1387,6 +1444,7 @@ table.grid tbody tr { scroll-margin: 80px; }
 .tr-stamp.is-warning { color: var(--warning-fg); }
 .tr-stamp.is-expired { color: var(--expired-fg); }
 .tr-stamp.is-neutral { color: var(--fg-muted); }
+.tr-mag { display: flex; }
 .tr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px 20px; }
 .tr-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); }
 .tr-value { margin-top: 2px; font-size: 15px; }
@@ -1472,25 +1530,26 @@ table.grid tbody tr { scroll-margin: 80px; }
   background: var(--danger); color: var(--on-danger); font: 700 10px/16px var(--font-mono); text-align: center; }
 .bell-count[hidden] { display: none; }
 
-/* Magazine map (M2-23): cassettes with numbered slots, two rails, the panel in each slot */
-.mag-map { display: grid; gap: 10px; }
-.mag-row { display: flex; flex-wrap: wrap; gap: 14px; }
-.mag { display: grid; gap: 4px; }
-.mag-head { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
-.mag-body { display: grid; gap: 2px; padding: 4px 6px; border-left: 4px solid var(--line-strong); border-right: 4px solid var(--line-strong);
-  border-radius: 3px; background: var(--inset); }
-.mag-slot { display: grid; grid-template-columns: 22px 64px; align-items: center; gap: 4px; padding: 0 4px; height: 18px; border: 0; border-radius: 2px;
-  background: transparent; color: var(--fg-muted); font: 11px/1 var(--font-mono); text-align: left; }
-.mag-slot.is-full .mag-panel { display: block; padding: 2px 4px; border-radius: 2px; background: var(--surface-3); color: var(--fg); }
-.mag-slot.is-hi .mag-panel { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); color: var(--fg); font-weight: 700; }
-.mag-no { color: var(--fg-faint); text-align: right; }
-button.mag-slot { cursor: pointer; }
-button.mag-slot:hover { background: var(--surface-2); }
-button.mag-slot:focus-visible, .mag-loose:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.mag-slot.is-sel, .mag-loose.is-sel { box-shadow: 0 0 0 2px var(--accent); }
-.mag-tray { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 30px; padding: 6px 8px; border: 1px dashed var(--line-strong); border-radius: var(--radius); }
-.mag-loose { padding: 2px 6px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-2); color: var(--fg); font: 11px/1.4 var(--font-mono); }
-.mag-loose.is-hi { border-color: var(--accent); }
+/* Magazine, front view (F-3): side walls, slots stacked from the top, a panel in each picked slot */
+.mz { display: inline-grid; gap: 6px; }
+.mz-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 12px; }
+.mz-count { color: var(--fg-muted); }
+.mz-frame { display: grid; width: 300px; padding: 6px 0; border-left: 10px solid var(--line-strong); border-right: 10px solid var(--line-strong);
+  border-top: 3px solid var(--line-strong); border-bottom: 3px solid var(--line-strong); border-radius: 3px; background: var(--inset); }
+.mz-slot { position: relative; display: grid; grid-template-columns: 26px 1fr; align-items: center; height: 17px; padding: 0 8px 0 0; border: 0;
+  background: transparent; color: var(--fg-faint); font: 10px/1 var(--font-mono); text-align: left; }
+.mz-no { text-align: right; padding-right: 4px; }
+.mz-rail { height: 1px; background: var(--line-strong); }
+.mz-panel { position: absolute; left: 30px; right: 8px; top: 3px; height: 11px; border-radius: 2px; opacity: 0; transform: translateX(-12px);
+  background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); transition: opacity var(--t) var(--ease-out), transform var(--t) var(--ease-out); }
+.mz-id { position: absolute; left: 8px; top: 0; font: 700 10px/11px var(--font-mono); color: var(--fg); }
+.mz-slot.is-picked .mz-panel { opacity: 1; transform: none; }
+.mz-slot.is-picked .mz-no { color: var(--accent); font-weight: 700; }
+.mz-slot.is-taken .mz-panel { opacity: 1; transform: none; background: repeating-linear-gradient(135deg, var(--surface-3) 0 4px, transparent 4px 7px); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.mz-taken { position: absolute; right: 12px; top: 3px; font-size: 9px; color: var(--fg-muted); }
+button.mz-slot { cursor: pointer; }
+button.mz-slot:hover .mz-rail { background: var(--accent); }
+button.mz-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
 
 /* Panel map (Q6, M2-2): each panel a small board with corner fiducials.
    Picked = lit (accent fill + glow); the light fades in via opacity only. */

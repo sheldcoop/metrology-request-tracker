@@ -13,14 +13,18 @@ A screenshot helps. Everything else is welcome too: missing fields, confusing wo
       (pop-up about backups\ - fine).
 - [ ] Settings > People: give the QE the **Quality engineer** role, the engineer **Engineer**.
 - [ ] Settings > Tools: make the QE **primary** of one tool (e.g. FIB), set its **results root**.
-- [ ] Settings > Lists: add a real **process step** or two; check the **on-hold reasons**.
+- [ ] Settings > Lists: add a real **process step** or two; check the **on-hold reasons**; check the **build-up layers** (BU-04 = up to 5F / 5B).
 - [ ] Settings > Data & PIN > "Add 3 sample lots", or register real lots on the Lots page.
 
 ## 1. Engineer
 - [ ] Opens on **My requests**.
-- [ ] Lots > Register lot: lot number, project -> part numbers appear, build-up, panels, lot fields.
-- [ ] New request: tool drawing, type, BKM (or own path), lot, pick panels on the map
-      (click, Shift+click, type "1-5, 12"), where the panels are, priority, date. Submit.
+- [ ] Lots > Register lot: lot number, project -> part numbers appear, build-up, panels (optional), lot fields.
+- [ ] New request (guided): tool drawing, type, BKM (or own path) -> Next. Project · Lot · Build-up on one
+      line: type a registered lot (it fills in), then a new number ("New lot"). Hirata IDs ("3252-3255")
+      or "Just how many". Tick a layer. Is it easy to follow? Do the folded lines say the right thing?
+- [ ] Step 3: pick a magazine, press and drag over slots (real mouse); the IDs show in the slots in order.
+      Slots of another open request are grey. Or write a note instead.
+- [ ] Priority, date, purpose. Review: every step green. Submit. A new lot shows up on Lots.
 - [ ] Warnings before submit make sense (no BKM, tool down, same panels open).
 - [ ] The request page: traveller card, countdown in lab time, status rail, Copy buttons.
 - [ ] Comment with @Name of the QE.
@@ -34,6 +38,7 @@ A screenshot helps. Everything else is welcome too: missing fields, confusing wo
 - [ ] Accept (with and without an expected-done date), Panels received, Start.
 - [ ] Hold with a reason, Resume. Needs clarification.
 - [ ] Complete: the proposed results folder is right (Copy works, the folder can be opened).
+      Put back: the same magazine and slots are offered; pick other slots once.
 - [ ] Tick several rows: Accept all / Start all.
 - [ ] **Board**: drag a card to the next column (Edge, real mouse); the allowed columns light up.
 - [ ] Set yourself Away (user menu): new requests go to the backup.

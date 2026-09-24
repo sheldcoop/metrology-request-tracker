@@ -72,15 +72,19 @@ check('barcode',()=>{const b=put(ui.code128('FIB-260924-03',{height:40}));const 
   const v=ui.code128Values('FIB-260924-03');expect('code 128: start B, 13 characters, checksum, stop',v.length===16&&v[0]===104&&v[15]===106);
   expect('...3 bars per symbol, 2 more for stop',bars.length===15*3+4);expect('...labelled for screen readers',/FIB-260924-03/.test(b.getAttribute('aria-label')));
   let bad=false;try{ui.code128Values('é')}catch(e){bad=true}expect('...refuses what set B cannot encode',bad)});
-check('magazine map',()=>{let got=null;
-  const mm=put(ui.magazineMap({magazines:[{id:'a',code:'M70345',slots:24,rack:7}],load:[{panel:1,magazine_id:'a',slot:1},{panel:2,magazine_id:'a',slot:2}],panelCount:3,highlight:[2],editable:true,onChange:l=>{got=l}}));
-  const slots=()=>mm.node.querySelectorAll('.mag-slot');
-  expect('magazine: 24 slots, panel 2 lit, panel 3 in the tray',slots().length===24&&slots()[1].classList.contains('is-hi')&&/P3/.test(mm.node.querySelector('.mag-tray').textContent));
-  slots()[0].click();slots()[1].click();expect('click slot 1 then slot 2 swaps panels',got.filter(x=>x.panel===1)[0].slot===2&&got.filter(x=>x.panel===2)[0].slot===1);
-  slots()[4].click();mm.node.querySelector('.mag-loose').click();
-  expect('a tray panel into an empty slot',mm.value().some(x=>x.panel===3&&x.slot===5));
-  slots()[4].click();mm.node.querySelector('.mag-tray').click();expect('a slot, then the tray: taken out',!mm.value().some(x=>x.panel===3));
-  const ro=put(ui.magazineMap({magazines:[{id:'a',code:'M1',slots:4}],load:[],panelCount:2,scrapped:[2]}));expect('read-only: no buttons, scrapped named',!ro.node.querySelector('button')&&/Scrapped/.test(ro.node.textContent))});
+check('magazine slots',()=>{let got=null;
+  const mm=put(ui.magazineSlots({magazine:{code:'M70345',slots:24},picked:[1],labels:{1:'3252'},taken:{9:'FIB-260924-01'},onChange:l=>{got=l}}));
+  const slots=()=>mm.node.querySelectorAll('.mz-slot');
+  expect('front view: 24 slots, slot 1 picked with its Hirata ID, slot 9 taken (not a button)',slots().length===24&&slots()[0].classList.contains('is-picked')&&
+    /3252/.test(slots()[0].textContent)&&slots()[8].classList.contains('is-taken')&&slots()[8].tagName==='DIV'&&/FIB-260924-01/.test(slots()[8].textContent));
+  slots()[2].dispatch('mousedown');slots()[3].dispatch('mouseover');slots()[4].dispatch('mouseover');doc.dispatch('mouseup');slots()[5].dispatch('mouseover');
+  expect('press and drag picks 3-5; after the mouse is up, hovering picks nothing',got.join()==='1,3,4,5'&&mm.value().join()==='1,3,4,5');
+  slots()[0].click();expect('keyboard click (Space/Enter) takes slot 1 out',mm.value().join()==='3,4,5'&&/3-5/.test(mm.node.querySelector('.mz-count').textContent));
+  slots()[8].dispatch('mousedown');expect('a taken slot cannot be picked',mm.value().indexOf(9)===-1);
+  mm.setLabels({3:'10',4:'11'});expect('setLabels names the panels',/10/.test(slots()[2].textContent)&&/11/.test(slots()[3].textContent));
+  mm.set([7]);expect('set() replaces the pick',mm.value().join()==='7');
+  expect('formatSlots: runs of 3+',ui.formatSlots([9,3,4,5,1])==='1, 3-5, 9'&&ui.formatSlots([1,2])==='1, 2');
+  const ro=put(ui.magazineSlots({magazine:{code:'M1',slots:4},picked:[2],readOnly:true}));expect('read-only: no buttons',!ro.node.querySelector('button')&&ro.node.querySelectorAll('.mz-slot.is-picked').length===1)});
 check('heatmap',()=>{put(ui.heatmap({rows:['Mon','Tue'],cols:['07','08','09'],values:[[0,2,5],[1,0,0]],label:'Load',unit:'Requests',colour:'teal'}));put(ui.heatmap({rows:['a'],cols:['b'],values:[[0]]}))});
 check('glyphs',()=>{expect('six glyphs',ui.GLYPHS.length===6);
   ui.GLYPHS.forEach(g=>['idle','live','maint','off'].forEach(s=>{const n=ui.toolGlyph(g.key,{size:40,state:s,label:g.label});root.appendChild(n);

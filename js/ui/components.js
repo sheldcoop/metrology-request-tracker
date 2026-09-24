@@ -130,7 +130,8 @@
    * Returns {node, input, setState(state, message), value()}.
    * @param {Object} o {label, id, name, type, value, unit, hint, placeholder,
    *                    mono, min, max, step, inputmode, required, disabled,
-   *                    options:[{value,label}], multiline, cls}
+   *                    options:[{value,label}], multiline, cls,
+   *                    list:[{value,label}] - suggestions to type from (a datalist)}
    */
   function field(o) {
     o = o || {};
@@ -156,9 +157,10 @@
         value: o.value !== undefined && o.value !== null ? String(o.value) : null,
         placeholder: o.placeholder || null, min: o.min, max: o.max, step: o.step,
         inputmode: o.inputmode || (o.type === 'number' ? 'decimal' : null),
-        required: !!o.required, autocomplete: 'off'
+        required: !!o.required, autocomplete: 'off', list: o.list ? id + '-list' : null
       });
     }
+    var datalist = o.list ? el('datalist', { id: id + '-list' }, o.list.map(function (x) { return el('option', { value: x.value, label: x.label || null }); })) : null;
     control.setAttribute('aria-describedby', msgId);
     var msg = el('div', { class: 'ifield-msg', id: msgId, 'aria-live': 'polite' }, o.hint || null);
     var node = el('div', { class: 'ifield' + (o.cls ? ' ' + o.cls : '') }, [
@@ -167,7 +169,7 @@
         o.unit ? el('span', { class: 'sr-only', text: ' (' + o.unit + ')' }) : null
       ]),
       el('div', { class: 'ifield-box' }, [
-        control,
+        control, datalist,
         o.unit ? el('span', { class: 'ifield-unit', text: o.unit, 'aria-hidden': 'true' }) : null
       ]),
       msg

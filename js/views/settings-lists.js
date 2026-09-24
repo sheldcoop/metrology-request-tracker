@@ -39,12 +39,17 @@
   function codeList(collection, title, label, example, icon) {
     var k = K();
     var rows = store.list(collection, { all: true });
+    var bu = collection === 'buildups';
     return k.panel(title, icon, [ui.button('Add', { size: 'sm', icon: 'plus', onClick: function () { codeDialog(collection, label, example, null); } })], [
-      k.table(['Code', 'Name', 'Status', { label: '', cls: 'actions' }], rows.map(function (r) {
+      bu ? ui.el('p', { class: 'muted', text: 'Layers for the request form (F-2): 1FCO / 1BCO is the core, each build-up layer adds F and B. ' +
+        'BU-04 has 4 (up to 5F / 5B); a code without a number (TEST, DOE) also gets 4 unless you set it.' }) : null,
+      k.table(['Code', 'Name'].concat(bu ? ['Layers'] : []).concat(['Status', { label: '', cls: 'actions' }]), rows.map(function (r) {
+        var ly = bu ? D.layersFor(r) : null;
         return { id: 'row-' + r.id, cls: r.active === false ? 'is-off' : null, cells: [
-          ui.el('b', { class: 'mono', text: r.code }), r.name || k.muted('-'), activeChip(r),
+          ui.el('b', { class: 'mono', text: r.code }), r.name || k.muted('-')].concat(bu ? [ui.el('span', { class: 'mono', title: ly.join(' '),
+            text: 'up to ' + ly.slice(-2).join(' / ') + (r.layers === null || r.layers === undefined ? '' : ' (set)') })] : []).concat([activeChip(r),
           ui.el('span', { class: 'row-actions' }, [k.editButton(r.code, function () { codeDialog(collection, label, example, r); }), k.deleteButton(collection, r, r.code)])
-        ] };
+        ]) };
       }), 'None yet.')
     ]);
   }
@@ -53,14 +58,23 @@
     var edit = !!r;
     return K().editDialog({
       title: edit ? 'Edit ' + r.code : 'Add a ' + label, icon: 'edit',
-      values: edit ? { code: r.code, name: r.name || '', active: r.active !== false } : { active: true },
+      values: edit ? { code: r.code, name: r.name || '', layers: r.layers === undefined ? null : r.layers, active: r.active !== false } : { active: true },
       fields: [
         { key: 'code', label: 'Code', kind: 'text', mono: true, cls: 'half', placeholder: example, hint: 'Capitals, digits and dashes.' },
         { key: 'name', label: 'Long name (optional)', kind: 'text', cls: 'half' },
+        collection === 'buildups' ? { key: 'layers', label: 'Build-up layers (optional)', kind: 'number', cls: 'half',
+          hint: 'Empty: the number in the code (BU-04 = 4, up to 5F / 5B), else 4.' } : null,
         { key: 'active', label: 'Active (untick to hide it from the pickers; lots using it keep it)', kind: 'check' }
-      ],
-      check: function (v) { return D.isCode(v.code.toUpperCase(), 12) ? null : ['code', 'Capitals, digits and dashes, e.g. ' + example]; },
-      save: function (v) { return store.saveEntry(collection, { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },
+      ].filter(Boolean),
+      check: function (v) {
+        if (!D.isCode(v.code.toUpperCase(), 12)) return ['code', 'Capitals, digits and dashes, e.g. ' + example];
+        if (collection === 'buildups' && v.layers !== null && v.layers !== undefined && v.layers !== '' && (!(v.layers >= 0 && v.layers <= 20) || Math.floor(v.layers) !== v.layers)) return ['layers', 'Empty, or a whole number 0-20'];
+        return null;
+      },
+      save: function (v) {
+        if (collection === 'buildups' && (v.layers === '' || v.layers === undefined || (typeof v.layers === 'number' && isNaN(v.layers)))) v.layers = null;
+        return store.saveEntry(collection, { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' });
+      },
       done: edit ? 'Saved.' : 'Added.'
     }).catch(oops);
   }
@@ -133,26 +147,20 @@
     }).catch(oops);
   }
 
-  /** Magazines (M2-23): M-number, slots, the rack it stands in now, which lots use it. */
+  /** Magazines (F-3): M-number and slots; which open requests have panels in it now. */
   function magazinesPanel() {
     var k = K();
     var rows = store.list('magazines', { all: true });
-    var racks = store.getSetting('rack_count');
-    var lots = store.data().lots || [];
-    var rackF = ui.field({ label: 'Racks', type: 'number', value: racks, cls: 'rack-count' });
-    var saveRacks = ui.button('Save', { size: 'sm', onClick: function () {
-      store.setRackCount(Number(rackF.value())).then(function () { ui.toast({ kind: 'success', message: 'Racks saved.' }); window.MRT.app.route(); }).catch(oops);
-    } });
+    var reqs = store.data().requests || [];
     return k.panel('Magazines', 'grid', [ui.button('Add', { size: 'sm', icon: 'plus', onClick: function () { magazineDialog(null); } })], [
-      ui.el('p', { class: 'muted', text: 'Cassettes that hold a lot\'s panels, one panel per slot, standing in a rack. ' +
-        'A lot picks its magazines; the request and the quality engineer say which rack.' }),
-      ui.el('div', { class: 'lots-tools' }, [rackF.node, saveRacks]),
-      k.table(['Magazine', { label: 'Slots', cls: 'num' }, { label: 'Rack now', cls: 'num' }, 'Lots', 'Status', { label: '', cls: 'actions' }], rows.map(function (m) {
-        var used = lots.filter(function (l) { return (l.magazine_ids || []).indexOf(m.id) !== -1; }).map(function (l) { return l.lot_number; });
+      ui.el('p', { class: 'muted', text: 'PCB magazines, one panel per slot (24 slots). A request says which magazine and slots its panels sit in.' }),
+      k.table(['Magazine', { label: 'Slots', cls: 'num' }, { label: 'In use now', cls: 'num' }, 'Status', { label: '', cls: 'actions' }], rows.map(function (m) {
+        var used = 0;
+        reqs.forEach(function (r) { if (r.magazine_id === m.id && D.isOpen(r)) used += (r.slots || []).length; });
         return { id: 'row-' + m.id, cls: m.active === false ? 'is-off' : null, cells: [
           ui.el('span', { class: 'cell-main' }, [ui.el('b', { class: 'mono', text: m.code }), m.sample ? k.sampleTag() : null]),
-          ui.el('span', { class: 'num', text: String(m.slots) }), ui.el('span', { class: 'num', text: m.rack ? String(m.rack) : '-' }),
-          used.length ? ui.el('span', { class: 'mono', text: used.join(', ') }) : k.muted('-'), activeChip(m),
+          ui.el('span', { class: 'num', text: String(m.slots) }), ui.el('span', { class: 'num', text: used ? used + ' slot' + (used === 1 ? '' : 's') : '-' }),
+          activeChip(m),
           ui.el('span', { class: 'row-actions' }, [k.editButton(m.code, function () { magazineDialog(m); }), k.deleteButton('magazines', m, m.code)])
         ] };
       }), 'No magazines yet.')
@@ -161,15 +169,13 @@
 
   function magazineDialog(m) {
     var edit = !!m;
-    var racks = store.getSetting('rack_count');
     return K().editDialog({
       title: edit ? 'Edit ' + m.code : 'Add a magazine', icon: 'grid',
-      values: edit ? { code: m.code, slots: m.slots, rack: m.rack ? String(m.rack) : '', active: m.active !== false } : { slots: 24, rack: '', active: true },
+      values: edit ? { code: m.code, slots: m.slots, active: m.active !== false } : { slots: 24, active: true },
       fields: [
         { key: 'code', label: 'Magazine', kind: 'text', mono: true, cls: 'half', placeholder: 'e.g. M70365' },
         { key: 'slots', label: 'Slots', kind: 'number', cls: 'half' },
-        { key: 'rack', label: 'Rack now', kind: 'select', cls: 'half', options: [{ value: '', label: '- none -' }].concat(rackOptions(racks)) },
-        { key: 'active', label: 'Active (untick to hide it from the pickers)', kind: 'check' }
+        { key: 'active', label: 'Active (untick to hide it from the form)', kind: 'check' }
       ],
       check: function (v) {
         if (!D.isMagazineCode(String(v.code || '').trim().toUpperCase())) return ['code', 'M and digits, e.g. M70365'];
@@ -177,14 +183,11 @@
         return null;
       },
       save: function (v) {
-        return store.saveEntry('magazines', { id: edit ? m.id : undefined, version: edit ? m.version : undefined,
-          fields: { code: v.code, slots: v.slots, rack: v.rack ? Number(v.rack) : null, active: v.active }, reason: 'Settings' });
+        return store.saveEntry('magazines', { id: edit ? m.id : undefined, version: edit ? m.version : undefined, fields: v, reason: 'Settings' });
       },
       done: edit ? 'Saved.' : 'Added.'
     }).catch(oops);
   }
-
-  function rackOptions(n) { var o = []; for (var i = 1; i <= n; i++) o.push({ value: String(i), label: 'Rack ' + i }); return o; }
 
   /** A plain ordered list of names (process steps, on-hold reasons). */
   var NAMED = {
