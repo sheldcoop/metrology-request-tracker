@@ -821,6 +821,13 @@ window.MRT.domain = (function () {
              oldest_lab_ms: oldest ? workingMs(Date.parse(oldest.submitted_ts), nowTs, cal, hs) : 0, wait_ms: mid, wait_n: started.length };
   }
 
+  /** A draft untouched for 30+ days - flagged for cleanup (Q33). */
+  var OLD_DRAFT_DAYS = 30;
+  function isOldDraft(r, nowTs) {
+    var t = r && r.status === 'draft' ? Date.parse(r.updated_ts || r.created_ts) : NaN;
+    return !isNaN(t) && nowTs - t >= OLD_DRAFT_DAYS * 86400000;
+  }
+
   /** The start page for a person (Q16, M3-12): quality engineers -> My queue, engineers -> My requests, else Lab status. */
   function homeFor(user) { return canMeasure(user) ? 'queue' : hasRole(user, 'engineer') ? 'requests' : 'lab'; }
 
@@ -1142,6 +1149,7 @@ window.MRT.domain = (function () {
     isLate: isLate,
     sortQueue: sortQueue,
     toolQueueStats: toolQueueStats,
+    isOldDraft: isOldDraft,
     homeFor: homeFor,
     PANEL_OUTCOMES: PANEL_OUTCOMES,
     PANEL_OUTCOME_LABEL: PANEL_OUTCOME_LABEL,

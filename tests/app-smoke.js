@@ -389,6 +389,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const sbox2 = doc.getElementById('search'); sbox2.value = req1.request_no.slice(0, 8); sbox2.dispatch('input'); await settle();
   check('the search finds the request by (part of) its ID (Q41)', doc.body.querySelector('.search-results').textContent.indexOf(req1.request_no) !== -1);
   sbox2.value = ''; sbox2.dispatch('input');
+  sbox2.value = 'near via 3'; sbox2.dispatch('input'); await settle();
+  check('...and by words in its comments (Q41)', doc.body.querySelector('.search-results').textContent.indexOf(req1.request_no) !== -1);
+  sbox2.value = ''; sbox2.dispatch('input');
   check('...and its timeline has "created", "submitted", then the comment', MRT.store.requestEvents(req1.id).map(e => e.kind + ':' + (e.to || '')).join() === 'created:draft,status:submitted,comment:');
   buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
   check('"Copy this request" prefills tool, lot and panels, not where the panels are', $$('#main .tool-pick-opt.is-on').length === 1 &&

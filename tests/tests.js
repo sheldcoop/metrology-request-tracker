@@ -248,6 +248,9 @@
     var qs = D.toolQueueStats(QS, 't', D.viennaTs('2026-09-24', '10:00'), calW, {});
     eq('Lab status queue (Q46): open, late, oldest open, typical wait = median submit -> start in lab time',
        [qs.open, qs.late, qs.oldest.request_no, qs.wait_ms / H, qs.wait_n], [2, 1, 'A', 4, 3]);
+    eq('old drafts (Q33): a draft untouched for 30+ days', [D.isOldDraft({ status: 'draft', created_ts: '2026-08-01T00:00:00Z' }, Date.parse('2026-09-24T00:00:00Z')),
+       D.isOldDraft({ status: 'draft', created_ts: '2026-08-01T00:00:00Z', updated_ts: '2026-09-20T00:00:00Z' }, Date.parse('2026-09-24T00:00:00Z')),
+       D.isOldDraft({ status: 'submitted', created_ts: '2026-01-01T00:00:00Z' }, Date.parse('2026-09-24T00:00:00Z'))], [true, false, false]);
     eq('start page by role (M3-12): QE -> My queue, engineer -> My requests, else Lab status', [D.homeFor(qe1), D.homeFor(eng1), D.homeFor({ roles: ['manager'], active: true })], ['queue', 'requests', 'lab']);
     eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
        D.nextRequestNo('QVM', '2026-09-24', ['FIB-260924-01']), D.nextRequestNo('FIB', '2026-09-25', ['FIB-260924-09']), D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-09'])],

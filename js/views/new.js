@@ -386,9 +386,11 @@ window.MRT.views['new'] = (function () {
     function line(r) {
       var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id);
       var label = r.request_no || ((tool ? tool.code : '?') + ' draft');
+      var old = D.isOldDraft(r, Date.now());
       return ui.el('li', {}, [
         ui.el('a', { class: 'mono', href: r.status === 'draft' ? '#/new/' + r.id : '#/request/' + r.id, text: label }),
-        ui.el('span', { class: 'muted', text: (lot ? ' · lot ' + lot.lot_number : '') + ' · ' + D.REQUEST_STATUS_LABEL[r.status] })
+        ui.el('span', { class: 'muted', text: (lot ? ' · lot ' + lot.lot_number : '') + ' · ' + D.REQUEST_STATUS_LABEL[r.status] }),
+        old ? ui.el('span', { class: 'chip warning', text: '30+ days' }) : null
       ]);
     }
     return ui.panel({ title: 'Your requests', icon: 'inbox', body: [
