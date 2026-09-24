@@ -526,9 +526,10 @@ window.MRT.domain = (function () {
         break;
 
       case 'process_steps':
+      case 'hold_reasons':
         if (!isStr(r.name)) p.push('Enter a name');
         else if (r.name.length > 60) p.push('Keep the name under 60 characters');
-        else if (others(d.process_steps, r.id).some(function (x) { return normalizeName(x.name) === normalizeName(r.name); })) p.push(r.name + ' is already listed');
+        else if (others(d[collection], r.id).some(function (x) { return normalizeName(x.name) === normalizeName(r.name); })) p.push(r.name + ' is already listed');
         if (r.sort !== undefined && r.sort !== null && (!isNum(r.sort) || r.sort < 1 || Math.floor(r.sort) !== r.sort)) p.push('Position must be a whole number, 1 or more');
         break;
 
@@ -674,6 +675,101 @@ window.MRT.domain = (function () {
   function canCancel(user, r, tool) {
     if (!user || !isOpen(r)) return false;
     return r.requester_id === user.id || hasRole(user, 'admin') || isToolMeasurer(user, tool);
+  }
+
+  /*
+   * Workflow actions (Q9, Q43, DECISIONS M3-1..M3-9) - the ONE table of who
+   * may move a request where. "measurer": the tool's primary/backup quality
+   * engineer or an admin. "requester": the one who asked, or an admin.
+   * back: true = returns to the status it had before (return_to).
+   */
+  var TRANSITIONS = {
+    accept:   { label: 'Accept',              from: ['submitted'],                             to: 'accepted',      who: 'measurer' },
+    start:    { label: 'Start',               from: ['submitted', 'accepted'],                 to: 'in_progress',   who: 'measurer' },
+    hold:     { label: 'Hold',                from: ['submitted', 'accepted', 'in_progress'],  to: 'on_hold',       who: 'measurer' },
+    resume:   { label: 'Resume',              from: ['on_hold'],                               back: true,          who: 'measurer' },
+    clarify:  { label: 'Needs clarification', from: ['submitted', 'accepted', 'in_progress'],  to: 'clarification', who: 'measurer' },
+    answer:   { label: 'Answered',            from: ['clarification'],                         back: true,          who: 'requester' },
+    complete: { label: 'Complete',            from: ['in_progress'],                           to: 'completed',     who: 'measurer' },
+    reopen:   { label: 'Reopen',              from: ['completed'],                             to: 'accepted',      who: 'requester' },
+    results_ok: { label: 'Results OK',        from: ['completed'],                             to: 'completed',     who: 'requester' }
+  };
+  var PANEL_OUTCOMES = ['returned', 'scrapped', 'other'];
+  var PANEL_OUTCOME_LABEL = { returned: 'Returned to the requester / line', scrapped: 'Scrapped', other: 'Other' };
+  var CLOSE_AFTER_DAYS = 7;
+
+  /** Completed and either marked Results OK or completed 7+ days ago (Q34). */
+  function isClosed(r, nowTs) {
+    if (!r || r.status !== 'completed') return false;
+    if (r.results_ok_ts) return true;
+    return !!r.completed_ts && nowTs - Date.parse(r.completed_ts) >= CLOSE_AFTER_DAYS * 86400000;
+  }
+
+  function isMeasurerOf(user, tool) { return hasRole(user, 'admin') || isToolMeasurer(user, tool); }
+
+  /** May this person do this action on this request now? */
+  function canAct(user, action, r, tool, nowTs) {
+    var t = TRANSITIONS[action];
+    if (!t || !user || !r || t.from.indexOf(r.status) === -1) return false;
+    if ((action === 'reopen' || action === 'results_ok') && isClosed(r, nowTs || 0)) return false;
+    if (action === 'results_ok' && r.results_ok_ts) return false;
+    if (t.who === 'measurer') return isMeasurerOf(user, tool);
+    return r.requester_id === user.id || hasRole(user, 'admin');
+  }
+
+  /** The actions a person may take now, in TRANSITIONS order. */
+  function actionsFor(user, r, tool, nowTs) {
+    return Object.keys(TRANSITIONS).filter(function (a) { return canAct(user, a, r, tool, nowTs); });
+  }
+
+  /** Panels received (Q25): the tool's quality engineers, while open, once. */
+  function canReceive(user, r, tool) { return isOpen(r) && !r.received_ts && isMeasurerOf(user, tool); }
+
+  /** "Take it" (M3-7): the tool's other quality engineer takes the request over. */
+  function canTake(user, r, tool) { return isOpen(r) && isToolMeasurer(user, tool) && r.assigned_to !== user.id; }
+
+  /** Edit a submitted request (Q14, M3-5): the requester or an admin, until Completed / Cancelled. */
+  function canEditSubmitted(user, r) {
+    return !!user && !!r && isOpen(r) && (r.requester_id === user.id || hasRole(user, 'admin'));
+  }
+
+  /**
+   * Who gets a new request (M3-7): the primary, or the backup when the
+   * primary is away that day. Both away (or no backup): the primary.
+   * @returns {{id, note}}
+   */
+  function assignOnSubmit(tool, users, today) {
+    function u(id) { return (users || []).filter(function (x) { return x.id === id; })[0] || null; }
+    var p = u(tool && tool.primary_operator_id), b = u(tool && tool.backup_operator_id);
+    if (p && isAway(p, today) && b && b.active !== false && !isAway(b, today)) {
+      return { id: b.id, note: p.name + ' is away - assigned to the backup, ' + b.name };
+    }
+    return { id: p ? p.id : (b ? b.id : null), note: null };
+  }
+
+  /**
+   * Check the data an action needs.
+   * @param {string} action
+   * @param {Object} x {expected_done, hold_reason_id, note, text, results_path, panels_outcome, received_where}
+   * @param {Object} d data (hold_reasons)
+   * @returns {string[]}
+   */
+  function actionProblems(action, x, d) {
+    var p = [];
+    x = x || {};
+    if (action === 'accept' && x.expected_done && !isYmd(x.expected_done)) p.push('"Expected done" must be a date');
+    if (action === 'hold') {
+      if (!(d.hold_reasons || []).some(function (h) { return h.id === x.hold_reason_id; })) p.push('Pick why it is on hold');
+    }
+    if ((action === 'clarify' || action === 'answer') && !isStr(x.text)) p.push(action === 'clarify' ? 'Say what is missing' : 'Write your answer');
+    if (action === 'reopen' && !isStr(x.text)) p.push('Say why the results are not OK');
+    if (action === 'complete') {
+      if (!isSharePath(x.results_path)) p.push('Results folder: a share path like \\\\server\\share\\... or Z:\\...');
+      if (PANEL_OUTCOMES.indexOf(x.panels_outcome) === -1) p.push('Say what happened to the panels');
+      else if (x.panels_outcome === 'other' && !isStr(x.note)) p.push('Say what happened to the panels (Other)');
+    }
+    ['text', 'note', 'received_where'].forEach(function (k) { if (x[k] && String(x[k]).length > REQUEST_TEXT_MAX) p.push('Text too long'); });
+    return p;
   }
 
   /**
@@ -990,6 +1086,17 @@ window.MRT.domain = (function () {
     canCancel: canCancel,
     isToolMeasurer: isToolMeasurer,
     findMentions: findMentions,
+    TRANSITIONS: TRANSITIONS,
+    PANEL_OUTCOMES: PANEL_OUTCOMES,
+    PANEL_OUTCOME_LABEL: PANEL_OUTCOME_LABEL,
+    isClosed: isClosed,
+    canAct: canAct,
+    actionsFor: actionsFor,
+    canReceive: canReceive,
+    canTake: canTake,
+    canEditSubmitted: canEditSubmitted,
+    assignOnSubmit: assignOnSubmit,
+    actionProblems: actionProblems,
     COMMENT_MAX: COMMENT_MAX,
     nextRequestNo: nextRequestNo,
     fieldsForType: fieldsForType,

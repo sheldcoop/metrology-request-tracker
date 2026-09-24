@@ -71,6 +71,9 @@ window.MRT.seed = {
     { label: 'Lot status', type: 'choice', choices: ['Running', 'On hold', 'Finished', 'Scrapped'], sample: true }
   ],
 
+  // Why a request is on hold (DECISIONS M3-4) - admins change them in Settings > Lists.
+  hold_reasons: ['Waiting for panels', 'Tool down', 'Waiting for engineer info', 'Higher priority first', 'Other'],
+
   // Process steps ("the panels are after ..."), in line order (DECISIONS M2-7). None known yet -
   // e.g. ['After desmear', 'After Cu plating'] once Prince gives the real list.
   process_steps: [],

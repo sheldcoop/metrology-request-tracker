@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -280,7 +280,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const psPanel = doc.getElementById('main').querySelectorAll('section').filter(x => /Process steps/.test(x.textContent))[0];
   check('Lists has a Process steps panel (M2-7)', !!psPanel && /None yet/.test(psPanel.textContent));
   buttonByText(psPanel, 'Add').click(); await settle();
-  dlg2 = openDialog(); setVal(fieldIn(dlg2, 'Step'), 'After desmear'); buttonByText(dlg2, 'Save').click(); await settle();
+  dlg2 = openDialog(); setVal(fieldIn(dlg2, 'Name'), 'After desmear'); buttonByText(dlg2, 'Save').click(); await settle();
   check('...a step is added at position 1', MRT.store.list('process_steps').map(x => x.name + ':' + x.sort).join() === 'After desmear:1' && /After desmear/.test(mainText()));
 
   await tab('calendar');
@@ -413,6 +413,43 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(rdlg, 'Cancel request').click(); await settle();
   check('the requester cancels with a reason (Q35): stamp Cancelled, rail shows it, never deleted',
         MRT.store.byId('requests', req1.id).status === 'cancelled' && $('#main .tr-stamp').textContent === 'Cancelled' && !!$('#main .rail-side') && /Wrong lot/.test(mainText()));
+
+  // --- the workflow on the request page (M3 step 1)
+  buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
+  setVal(fieldIn(doc.getElementById('main'), 'Where are the panels now'), 'Magazine 15');
+  const dT2 = tickIn(doc.getElementById('main'), 'I know FIB'); dT2.checked = true; dT2.dispatch('change');
+  buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
+  if (openDialog()) { buttonByText(openDialog(), 'Submit anyway').click(); await settle(); }
+  const req2 = MRT.store.data().requests.filter(r => r.status === 'submitted').slice(-1)[0];
+  check('a second FIB request gets -02 and is assigned to Olga (primary, M3-7)', /-02$/.test(req2.request_no) && req2.assigned_to === olga.id && /Olga Quality/.test(mainText()));
+  check('...the requester sees Edit request', !!buttonByText(doc.getElementById('main'), 'Edit request'));
+  buttonByText(doc.getElementById('main'), 'Edit request').click(); await settle();
+  check('Edit request opens the form, tool locked', mainText().indexOf('Edit ' + req2.request_no) !== -1 && $$('#main .tool-pick-opt').filter(b => b.disabled).length === 4);
+  setVal(fieldIn(doc.getElementById('main'), 'Layer'), 'L2');
+  buttonByText(doc.getElementById('main'), 'Save changes').click(); await settle();
+  const edlg = openDialog(); setVal(edlg.querySelector('textarea') || edlg.querySelector('input'), 'Layer was missing');
+  buttonByText(edlg, 'Save changes').click(); await settle();
+  check('...saved with a reason, the timeline says what changed', MRT.store.byId('requests', req2.id).layer === 'L2' && /layer - -> L2\. Reason: Layer was missing/.test(mainText()));
+  const meP = MRT.store.currentUser().id;
+  MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
+  check('Olga sees Accept, Start, Hold, Needs clarification, Panels received', ['Accept', 'Start', 'Hold', 'Needs clarification', 'Panels received'].every(t => !!buttonByText($('#main .req-actbar'), t)));
+  buttonByText($('#main .req-actbar'), 'Accept').click(); await settle();
+  setVal(fieldIn(openDialog(), 'Expected done'), '2030-01-10'); buttonByText(openDialog(), 'Save').click(); await settle();
+  check('Accept with an expected done date: stamp Accepted, date on the card', MRT.store.byId('requests', req2.id).status === 'accepted' && $('#main .tr-stamp').textContent === 'Accepted' && /Expected done/.test($('#main .traveller').textContent));
+  buttonByText($('#main .req-actbar'), 'Start').click(); await settle();
+  check('Start asks "Panels received?" once, ticked (M3-3)', !!openDialog() && tickIn(openDialog(), 'Panels received').checked === true);
+  setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Save').click(); await settle();
+  const r2 = MRT.store.byId('requests', req2.id);
+  check('...In progress, panels received with the place', r2.status === 'in_progress' && r2.received_where === 'FIB cabinet' && /FIB cabinet/.test($('#main .traveller').textContent));
+  buttonByText($('#main .req-actbar'), 'Complete').click(); await settle();
+  check('Complete: results folder proposed, panels Scrapped for FIB (M3-6)', /\\\\srv\\lab\\FIB\\/.test(fieldIn(openDialog(), 'Results folder').value) && fieldIn(openDialog(), 'The panels').value === 'scrapped');
+  buttonByText(openDialog(), 'Save').click(); await settle();
+  check('...Completed, the results path shown with Copy', MRT.store.byId('requests', req2.id).status === 'completed' && $('#main .tr-stamp').textContent === 'Completed' &&
+        !!$$('#main button').filter(b => b.getAttribute('aria-label') === 'Copy Results path')[0]);
+  MRT.store.setCurrentUser(meP); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
+  check('the requester now sees Results OK and Reopen (Q34)', !!buttonByText($('#main .req-actbar'), 'Results OK') && !!buttonByText($('#main .req-actbar'), 'Reopen'));
+  buttonByText($('#main .req-actbar'), 'Results OK').click(); await settle();
+  check('...Results OK: stamp Closed', $('#main .tr-stamp').textContent === 'Closed' && !$('#main .req-actbar'));
 
   win.setHash('#/lots'); await settle();
   check('...shown on Lots with the Sample tag', /99902.01/.test(mainText()) && $$('#main .sample-tag').length === 3);

@@ -29,7 +29,8 @@
     ]));
     body.appendChild(lotFieldsPanel());
     body.appendChild(partNumbersPanel());
-    body.appendChild(processStepsPanel());
+    body.appendChild(namedPanel('process_steps'));
+    body.appendChild(namedPanel('hold_reasons'));
     body.appendChild(prioritiesPanel());
     K().focusRow(body, ctx.focusId);
   }
@@ -131,38 +132,48 @@
     }).catch(oops);
   }
 
-  function processStepsPanel() {
-    var k = K();
-    var rows = store.list('process_steps', { all: true });
-    return k.panel('Process steps', 'activity', [ui.button('Add', { size: 'sm', icon: 'plus', onClick: function () { processStepDialog(null); } })], [
-      ui.el('p', { class: 'muted', text: 'A request says which step the panels are at ("after desmear"). ' +
-        'Listed in line order; engineers can still type another step.' }),
-      k.table([{ label: '#', cls: 'num' }, 'Step', 'Status', { label: '', cls: 'actions' }], rows.map(function (r) {
+  /** A plain ordered list of names (process steps, on-hold reasons). */
+  var NAMED = {
+    process_steps: { title: 'Process steps', icon: 'activity', what: 'process step', placeholder: 'e.g. After desmear',
+      intro: 'A request says which step the panels are at ("after desmear"). Listed in line order; engineers can still type another step.',
+      empty: 'None yet. Add the steps of the line, e.g. After desmear.', pos: 'Position (1 = first in the line)',
+      active: 'Active (untick to hide it from the request form)' },
+    hold_reasons: { title: 'On-hold reasons', icon: 'clock', what: 'on-hold reason', placeholder: 'e.g. Waiting for panels',
+      intro: 'A quality engineer picks one when putting a request on hold (plus an optional note). Analytics counts them (M3-4).',
+      empty: 'None - a request cannot be put on hold without a reason.', pos: 'Position in the list', active: 'Active (untick to hide it)' }
+  };
+
+  function namedPanel(coll) {
+    var k = K(), c = NAMED[coll];
+    var rows = store.list(coll, { all: true });
+    return k.panel(c.title, c.icon, [ui.button('Add', { size: 'sm', icon: 'plus', onClick: function () { namedDialog(coll, null); } })], [
+      ui.el('p', { class: 'muted', text: c.intro }),
+      k.table([{ label: '#', cls: 'num' }, 'Name', 'Status', { label: '', cls: 'actions' }], rows.map(function (r) {
         return { id: 'row-' + r.id, cls: r.active === false ? 'is-off' : null, cells: [
           ui.el('span', { class: 'num', text: String(r.sort || '') }), ui.el('b', { text: r.name }), activeChip(r),
-          ui.el('span', { class: 'row-actions' }, [k.editButton(r.name, function () { processStepDialog(r); }), k.deleteButton('process_steps', r, r.name)])
+          ui.el('span', { class: 'row-actions' }, [k.editButton(r.name, function () { namedDialog(coll, r); }), k.deleteButton(coll, r, r.name)])
         ] };
-      }), 'None yet. Add the steps of the line, e.g. After desmear.')
+      }), c.empty)
     ]);
   }
 
-  function processStepDialog(r) {
-    var edit = !!r;
+  function namedDialog(coll, r) {
+    var edit = !!r, c = NAMED[coll];
     return K().editDialog({
-      title: edit ? 'Edit ' + r.name : 'Add a process step', icon: 'edit',
+      title: edit ? 'Edit ' + r.name : 'Add a ' + c.what, icon: 'edit',
       values: edit ? { name: r.name, sort: r.sort, active: r.active !== false }
-                   : { sort: store.list('process_steps', { all: true }).length + 1, active: true },
+                   : { sort: store.list(coll, { all: true }).length + 1, active: true },
       fields: [
-        { key: 'name', label: 'Step', kind: 'text', cls: 'half', placeholder: 'e.g. After desmear' },
-        { key: 'sort', label: 'Position (1 = first in the line)', kind: 'number', cls: 'half' },
-        { key: 'active', label: 'Active (untick to hide it from the request form)', kind: 'check' }
+        { key: 'name', label: 'Name', kind: 'text', cls: 'half', placeholder: c.placeholder },
+        { key: 'sort', label: c.pos, kind: 'number', cls: 'half' },
+        { key: 'active', label: c.active, kind: 'check' }
       ],
       check: function (v) {
         if (!v.name) return ['name', 'Enter a name'];
         if (!(v.sort >= 1) || Math.floor(v.sort) !== v.sort) return ['sort', 'A whole number, 1 or more'];
         return null;
       },
-      save: function (v) { return store.saveEntry('process_steps', { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },
+      save: function (v) { return store.saveEntry(coll, { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },
       done: edit ? 'Saved.' : 'Added.'
     }).catch(oops);
   }
