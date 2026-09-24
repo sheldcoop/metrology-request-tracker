@@ -1548,7 +1548,30 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
   .help-toc { position: static; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 }
 /* Print / PDF: only the guides */
+/* Traveller slip (Q38): A6 card, priority stripe, big ID, barcode */
+.slip { position: relative; width: 148mm; min-height: 105mm; box-sizing: border-box; padding: 6mm 6mm 6mm 10mm; display: grid; gap: 3mm; align-content: start;
+  border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface); }
+.slip::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4mm; background: var(--ok); }
+.slip.prio-1::before { background: var(--critical); }
+.slip.prio-2::before { background: var(--warning); }
+.slip.prio-4::before { background: var(--fg-faint); }
+.slip-head { display: flex; align-items: center; gap: 4mm; }
+.slip-id { font-size: 26px; font-weight: 800; letter-spacing: .02em; }
+.slip-prio { margin-left: auto; display: grid; justify-items: end; line-height: 1.1; }
+.slip-prio b { font-size: 20px; text-transform: uppercase; }
+.slip-code { background: #fff; padding: 2mm 0; }
+.slip-code .barcode { display: block; max-width: 100%; fill: #000; }
+.slip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; font-size: 12px; }
+.slip-f { display: grid; }
+.slip-f.wide { grid-column: 1 / -1; }
+.slip-f span { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); }
+.slip-warn { padding: 1.5mm 3mm; border: 2px solid var(--critical); font-weight: 800; font-size: 12px; }
+
 @media print {
+  .main:has(.slip) .page-head { display: none !important; }
+  .slip { border-color: #000 !important; }
+  .slip::before { background: #000 !important; }
+  .slip.prio-3::before, .slip.prio-4::before { background: transparent !important; border-right: 1px dashed #000; }
   .topbar, .nav, .alert-banner, .conflict-banner, .help-toc, .head-actions, .help-open, .toasts, .skip-link { display: none !important; }
   /* paper is white in every theme: dark text, no fills or glows (print is the one place for plain black) */
   body, .main, .main * { color: #000 !important; background: transparent !important; box-shadow: none !important; }

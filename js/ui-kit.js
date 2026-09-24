@@ -404,6 +404,8 @@
       section('Tool glyphs', glyphs(), 'One drawing per tool: probe (HRM), camera (AOI), stylus (PRF), optics (QVM), ion column (FIB), reticle (any other).'),
       section('Charts (Chart.js, shared theme)', charts(), 'One theme config in js/ui/charts.js: token colours, gradients, draw-in, panel-style tooltip, full screen.'),
       section('Panel map', panelMapDemo(), 'Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
+      section('Barcode (Code 128)', el('div', { class: 'kit-row' }, [ui.code128('FIB-260924-03', { height: 44 }), ui.code128('QVM-261231-12', { height: 30, module: 1 })]),
+        'Drawn in js/ui/barcode.js, no vendor file. On the traveller slip; a hand scanner types the request ID into the search.'),
       section('Heatmap', heatDemo(), 'Strength is the opacity of a colour layer; hover or focus a cell for the card.'),
       section('Data table', table(), 'Sticky header, hover row, selected row, a hidden (off) row, row actions.'),
       section('Tabs', tabsDemo()),

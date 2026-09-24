@@ -42,6 +42,10 @@ clarification (the engineer answers), Complete (results folder + what
 happened to the panels), Take it. The engineer edits an open request with a
 reason, and confirms Results OK or Reopens.
 
+**Traveller slip** - "Print slip" on the request page: an A6 card with the
+ID as a Code 128 barcode, lot, panels, priority, needed-by. A hand scanner
+reading it opens the request.
+
 **My requests** - engineers: their requests, waiting-on-me first (answer a
 question, Results OK / Reopen), then open ones with countdown and expected
 done; filter by status, tool, or a lot number ("where is my lot").

@@ -43,7 +43,8 @@ window.MRT.app = (function () {
 
   /** Pages reached by a link, not from the menu. */
   var PAGES = [
-    { key: 'request', label: 'Request', icon: 'requests', ms: 'M2', menu: 'requests' }
+    { key: 'request', label: 'Request', icon: 'requests', ms: 'M2', menu: 'requests' },
+    { key: 'slip', label: 'Traveller slip', icon: 'requests', ms: 'M3', menu: 'requests' }
   ];
 
   function navEntry(key) { return NAV.concat(PAGES).filter(function (n) { return n.key === key; })[0] || null; }
@@ -920,6 +921,28 @@ window.MRT.app = (function () {
     }
   };
 
+  /**
+   * A hand scanner reading the slip's barcode (Q38) "types" the request ID
+   * fast and ends with Enter. Outside a text field: open that request.
+   * Keys more than 80 ms apart are a person typing, not a scanner.
+   */
+  var scan = { buf: '', last: 0 };
+  function scanKey(ev) {
+    var now = Date.now();
+    if (now - scan.last > 80) scan.buf = '';
+    scan.last = now;
+    if (ev.key === 'Enter' && scan.buf.length >= 6) {
+      var id = scan.buf.toUpperCase();
+      scan.buf = '';
+      var r = store.visibleRequests(function (x) { return x.request_no === id; })[0];
+      if (r) { ev.preventDefault(); location.hash = '#/request/' + r.id; return true; }
+      ui.toast({ message: 'Scanned "' + id + '" - no such request.' });
+      return true;
+    }
+    if (ev.key && ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) scan.buf += ev.key;
+    return false;
+  }
+
   function wireGlobalEvents() {
     document.addEventListener('click', function (ev) {
       var target = ev.target.closest('[data-action]');
@@ -947,6 +970,7 @@ window.MRT.app = (function () {
           !document.querySelector('dialog[open]') && store.undoInfo()) {
         ev.preventDefault(); undo(); return;
       }
+      if (!typing && scanKey(ev)) return;
       if (!typing) onShortcut(ev);
     });
 
