@@ -135,8 +135,8 @@ window.MRT.views.lots = (function () {
     return K().editDialog({
       title: edit ? 'Edit lot ' + l.lot_number : 'Register a lot', icon: 'lots', wide: true,
       values: Object.assign(edit ? { lot_number: l.lot_number, panel_count: l.panel_count, project_id: l.project_id, part_number_id: start.value,
-                       buildup_id: l.buildup_id, note: l.note || '' }
-                   : { lot_number: '', panel_count: null, project_id: '', part_number_id: '', buildup_id: '', note: '' }, extraValues(l)),
+                       buildup_id: l.buildup_id, note: l.note || '', magazine_ids: (l.magazine_ids || []).slice() }
+                   : { lot_number: '', panel_count: null, project_id: '', part_number_id: '', buildup_id: '', note: '', magazine_ids: [] }, extraValues(l)),
       fields: [
         { key: 'lot_number', label: 'Lot number', kind: 'text', mono: true, cls: 'half', placeholder: 'e.g. 18178 or 18178.01',
           hint: 'A split lot adds .01, .02 ...' },
@@ -145,7 +145,10 @@ window.MRT.views.lots = (function () {
         { key: 'part_number_id', label: 'Part number', kind: 'select', cls: 'half', options: start.options,
           hint: 'The part numbers of the project (Settings > Lists).' },
         { key: 'buildup_id', label: 'Build-up', kind: 'select', cls: 'half', options: options('buildups', edit ? l.buildup_id : null, '- pick a build-up -') },
-        { key: 'note', label: 'Note (optional)', kind: 'longtext', placeholder: 'e.g. panels 3-4 have a known scratch' }
+        { key: 'note', label: 'Note (optional)', kind: 'longtext', placeholder: 'e.g. panels 3-4 have a known scratch' },
+        { key: 'magazine_ids', label: 'Magazines (24 panels each; panel 1 goes into slot 1 - change it afterwards with Move panels)', kind: 'checks',
+          options: store.list('magazines', { all: true }).filter(function (m) { return m.active !== false || (edit && (l.magazine_ids || []).indexOf(m.id) !== -1); })
+            .map(function (m) { return { value: m.id, label: m.code + (m.rack ? ' (rack ' + m.rack + ')' : '') }; }) }
       ].concat(extraSpecs(l)),
       onForm: function (f) {
         var prj = f.control('project_id');
@@ -165,7 +168,7 @@ window.MRT.views.lots = (function () {
       },
       save: function (v) {
         var core = { lot_number: v.lot_number, panel_count: v.panel_count, project_id: v.project_id, part_number_id: v.part_number_id,
-                     buildup_id: v.buildup_id, note: v.note, extra: extraFrom(v) };
+                     buildup_id: v.buildup_id, note: v.note, extra: extraFrom(v), magazine_ids: v.magazine_ids };
         return store.saveLot({ id: edit ? l.id : undefined, version: edit ? l.version : undefined, fields: core });
       },
       done: edit ? 'Saved.' : 'Lot registered.'
@@ -192,16 +195,34 @@ window.MRT.views.lots = (function () {
         ui.el('span', { class: 'muted', text: ' · ' + D.REQUEST_STATUS_LABEL[r.status] + ' · panels ' + (D.formatPanels(r.panels) || '-') })
       ]);
     })) : ui.el('p', { class: 'muted', text: 'No requests on this lot yet.' });
+    var mags = (l.magazine_ids || []).map(function (id) { return store.byId('magazines', id); }).filter(Boolean);
+    var magMap = mags.length || (l.scrapped || []).length ? ui.magazineMap({ magazines: mags, load: l.load, panelCount: l.panel_count, scrapped: l.scrapped }).node
+      : ui.el('p', { class: 'muted', text: 'No magazines yet - Edit the lot to pick them.' });
     var acts = [{ label: 'Close', value: null }];
+    if (mags.length && (D.canEditLot(me, l) || D.canMeasure(me))) acts.push({ label: 'Move panels', value: 'move' });
     if (D.canRequest(me)) acts.push({ label: 'New request on this lot', value: 'new' });
     if (D.canEditLot(me, l)) acts.push({ label: 'Edit', kind: 'primary', value: 'edit' });
     ui.dialog({ title: 'Lot ' + l.lot_number + (l.sample ? ' (sample)' : ''), icon: 'lots', wide: true,
-      body: [ui.el('dl', { class: 'facts' }, [].concat.apply([], rows)), ui.el('div', { class: 'ifield-label', text: 'Requests' }), reqList],
+      body: [ui.el('dl', { class: 'facts' }, [].concat.apply([], rows)), ui.el('div', { class: 'ifield-label', text: 'Magazines' }), magMap,
+             ui.el('div', { class: 'ifield-label', text: 'Requests' }), reqList],
       actions: acts
     }).then(function (v) {
       if (v === 'edit') lotDialog(l);
       if (v === 'new') location.hash = '#/new?lot=' + l.id;
+      if (v === 'move') moveDialog(l);
     });
+  }
+
+  /** Move panels between slots and magazines (M2-23): click a slot, then another. */
+  function moveDialog(l) {
+    var mags = (l.magazine_ids || []).map(function (id) { return store.byId('magazines', id); }).filter(Boolean);
+    var mm = ui.magazineMap({ magazines: mags, load: l.load, panelCount: l.panel_count, scrapped: l.scrapped, editable: true });
+    ui.dialog({ title: 'Move panels - lot ' + l.lot_number, icon: 'grid', wide: true,
+      body: [ui.el('p', { class: 'muted', text: 'Click a slot, then another slot to swap or move. Click a slot, then the tray to take a panel out; a tray panel, then a slot to put it in.' }), mm.node],
+      actions: [{ label: 'Cancel', value: null }, { label: 'Save', kind: 'primary', value: function () { return mm.value(); },
+        submit: function (load) { return store.setLotLoad(l.id, load); } }]
+    }).then(function (res) { if (res) { ui.toast({ kind: 'success', message: 'Panels moved.' }); window.MRT.app.route(); } })
+      .catch(function (e) { if (e && e.code === 'no_change') ui.toast({ message: 'Nothing was changed.' }); else ui.toastError(e.message, e); });
   }
 
   function deleteButton(l) {
@@ -227,5 +248,5 @@ window.MRT.views.lots = (function () {
 
   // Settings > Lots (admins) reuses these, so both doors open the same list
   return { render: render, lotDialog: lotDialog, deleteButton: deleteButton, detailsDialog: detailsDialog,
-           projectOptions: options, pnOptions: pnOptions, extraSpecs: extraSpecs, extraFrom: extraFrom };
+           projectOptions: options, pnOptions: pnOptions, extraSpecs: extraSpecs, extraFrom: extraFrom, moveDialog: moveDialog };
 })();

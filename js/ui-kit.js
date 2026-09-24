@@ -404,6 +404,13 @@
       section('Tool glyphs', glyphs(), 'One drawing per tool: probe (HRM), camera (AOI), stylus (PRF), optics (QVM), ion column (FIB), reticle (any other).'),
       section('Charts (Chart.js, shared theme)', charts(), 'One theme config in js/ui/charts.js: token colours, gradients, draw-in, panel-style tooltip, full screen.'),
       section('Panel map', panelMapDemo(), 'Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
+      section('Magazine map', el('div', { class: 'kit-grid' }, [
+          labelled('Read-only: panels 5-8 asked for, panel 30 in no magazine', ui.magazineMap({ magazines: [{ id: 'a', code: 'M70345', slots: 24, rack: 7 }, { id: 'b', code: 'M70346', slots: 24, rack: 7 }],
+            load: (function () { var l = []; for (var p = 1; p <= 29; p++) l.push({ panel: p, magazine_id: p <= 24 ? 'a' : 'b', slot: p <= 24 ? p : p - 24 }); return l; })(),
+            panelCount: 30, highlight: [5, 6, 7, 8], scrapped: [] }).node),
+          labelled('Editable: click a slot, then another', ui.magazineMap({ magazines: [{ id: 'c', code: 'M70347', slots: 24, rack: 3 }],
+            load: [{ panel: 1, magazine_id: 'c', slot: 1 }, { panel: 2, magazine_id: 'c', slot: 2 }], panelCount: 4, scrapped: [4], editable: true }).node)
+        ]), 'M2-23: a cassette of 24 slots in a rack; the lot\'s loading map. Click a slot then another to swap or move; the tray holds panels in no magazine.'),
       section('Barcode (Code 128)', el('div', { class: 'kit-row' }, [ui.code128('FIB-260924-03', { height: 44 }), ui.code128('QVM-261231-12', { height: 30, module: 1 })]),
         'Drawn in js/ui/barcode.js, no vendor file. On the traveller slip; a hand scanner types the request ID into the search.'),
       section('Heatmap', heatDemo(), 'Strength is the opacity of a colour layer; hover or focus a cell for the card.'),

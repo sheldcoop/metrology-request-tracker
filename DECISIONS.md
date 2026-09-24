@@ -319,6 +319,19 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
 - **M3 build order**: 1 `m3-workflow` (actions, hold reasons, request page buttons, edit with
   reason, assignment) - 2 `my-queue` - 3 `my-requests` - 4 `board`. Each merged into main.
 
+## Magazines (2026-09-24, Prince)
+- **M2-23** A **magazine** is a cassette with **24 slots** (M70345 ...; the list in Settings > Lists,
+  20 sample ones for now) standing in a **rack 1-24** (the number of racks is a setting). A lot has one
+  or more magazines and a **loading map** (which panel in which slot): panel n goes into slot n by
+  default, then the next magazine; the lot owner, a quality engineer or an admin can **move panels**
+  (click a slot, then another). The magazine remembers the rack it stands in.
+- **M2-24** The request says where the panels are: the magazine (filled in from the lot's map when
+  panels are picked) and the **rack**, or a note ("in MES", "with Anna") - one of them is required.
+  Shown everywhere as "M70345 · Rack 7 · slots 1-4". Scrapped panels cannot be requested again.
+- **M3-13** On **Complete** the quality engineer says where the panels go back: magazine, rack, same
+  slots or the first free ones; the lot's map follows. Scrapped panels (FIB) leave the magazine and
+  are marked scrapped on the lot.
+
 ## M4 notifications (2026-09-24, built; Prince: "decide what can be built and build it")
 - **M4-1** The bell (Q19) lists the last 30 days: requesters hear every status change, comment,
   edit and "panels received" on their requests; the tool's quality engineers hear of new requests,

@@ -68,7 +68,7 @@ window.MRT.views['new'] = (function () {
     if (!src && from && D.canSeeRequest(me, from)) src = copyOf(from);
     var st = Object.assign({ tool_id: null, type_id: null, lot_id: null, panels: [], priority_id: defaultPriority(), priority_reason: '',
       needed_by: null, bkm_id: null, bkm_path: '', purpose: '', process_step_id: null, process_step_other: '', layer: '',
-      panel_location: '', destructive_ok: false, after: 'back_to_me', after_other: '', extra: {}, duplicated_from: null }, src || {});
+      panel_location: '', magazine_id: null, rack: null, destructive_ok: false, after: 'back_to_me', after_other: '', extra: {}, duplicated_from: null }, src || {});
     if (!src && q.lot && byId('lots', q.lot)) st.lot_id = q.lot;
     if (!src && q.tool && byId('tools', q.tool)) st.tool_id = q.tool;
 
@@ -150,8 +150,8 @@ window.MRT.views['new'] = (function () {
       })) });
       lotF.input.addEventListener('change', function () {
         collect();
-        st.lot_id = lotF.value() || null; st.panels = [];
-        paintLot(); paintPreview();
+        st.lot_id = lotF.value() || null; st.panels = []; st.magazine_id = null; st.rack = null;
+        paintLot(); paintPanels(); paintPreview();
       });
       var lot = byId('lots', st.lot_id);
       var info = lot ? ui.el('p', { class: 'muted lot-info' }, [
@@ -160,13 +160,15 @@ window.MRT.views['new'] = (function () {
         '  ·  Build-up ', ui.el('b', { text: (byId('buildups', lot.buildup_id) || {}).code || '?' }),
         lot.note ? ['  ·  ', ui.el('span', { text: lot.note })] : null
       ]) : null;
-      panelMap = lot ? ui.panelMap({ count: lot.panel_count, selected: st.panels, label: 'Panels to measure', parse: D.parsePanels, format: D.formatPanels,
-        onChange: function (list) { st.panels = list; paintPreview(); } }) : null;
+      var marks = {};
+      if (lot) (lot.scrapped || []).forEach(function (n) { marks[n] = 'scrapped'; });
+      panelMap = lot ? ui.panelMap({ count: lot.panel_count, selected: st.panels, marks: marks, label: 'Panels to measure', parse: D.parsePanels, format: D.formatPanels,
+        onChange: function (list) { st.panels = list; refreshWhere(); paintPreview(); } }) : null;
       ui.mount(el, [lotF.node, info, panelMap ? panelMap.node : ui.el('p', { class: 'muted', text: 'Pick the lot to see its panel map.' })]);
     }
 
     /* 4. The panels: where they are, step, layer, afterwards */
-    var stepF, stepOtherF, layerF, whereF, afterF, afterOtherF, destructiveT;
+    var stepF, stepOtherF, layerF, whereF, afterF, afterOtherF, destructiveT, magF, rackF, whereLine;
     function paintPanels() {
       var el = parts.panels;
       var tool = byId('tools', st.tool_id);
@@ -179,8 +181,25 @@ window.MRT.views['new'] = (function () {
       stepOtherF.node.hidden = stepVal !== '__other';
       stepF.input.addEventListener('change', function () { stepOtherF.node.hidden = stepF.value() !== '__other'; collect(); });
       layerF = ui.field({ label: 'Layer (optional)', cls: 'half', value: st.layer || '', placeholder: 'e.g. L3, top SR' });
-      whereF = ui.field({ label: 'Where are the panels now?', value: st.panel_location || '',
-        placeholder: 'e.g. Magazine 14, rack B2  /  in MES  /  with Anna', hint: 'Required - the quality engineer picks them up there.' });
+      // where the panels are (M2-23): the lot's magazine (from its loading map) and the rack, or a note
+      var lotNow = byId('lots', st.lot_id);
+      var mags = store.list('magazines', { all: true }).filter(function (m) { return m.active !== false || m.id === st.magazine_id; });
+      var own = lotNow ? (lotNow.magazine_ids || []) : [];
+      mags.sort(function (a, b) { return (own.indexOf(a.id) === -1) - (own.indexOf(b.id) === -1); });
+      magF = ui.field({ label: 'Magazine', cls: 'half', value: st.magazine_id || '', options: [{ value: '', label: '- none / not in a magazine -' }].concat(mags.map(function (m) {
+        return { value: m.id, label: m.code + (own.indexOf(m.id) !== -1 ? ' (this lot)' : '') }; })) });
+      var racks = [];
+      for (var rk = 1; rk <= store.getSetting('rack_count'); rk++) racks.push({ value: String(rk), label: 'Rack ' + rk });
+      rackF = ui.field({ label: 'Rack', cls: 'half', value: st.rack ? String(st.rack) : '', options: [{ value: '', label: '- pick -' }].concat(racks) });
+      whereF = ui.field({ label: 'Where are the panels now? (note)', value: st.panel_location || '',
+        placeholder: 'e.g. in MES  /  with Anna  /  top shelf', hint: 'Magazine and rack, or this note - the quality engineer picks them up there.' });
+      whereLine = ui.el('p', { class: 'muted lot-info' });
+      magF.input.addEventListener('change', function () {
+        var m = byId('magazines', magF.value());
+        if (m && m.rack && !rackF.value()) rackF.input.value = String(m.rack);
+        collect(); refreshWhere();
+      });
+      rackF.input.addEventListener('change', function () { collect(); refreshWhere(); });
       var destructive = tool && tool.destructive;
       afterF = ui.field({ label: 'After measuring, the panels go', cls: 'half', value: destructive ? 'scrap' : (st.after || 'back_to_me'),
         options: D.AFTER_OPTIONS.map(function (a) { return { value: a, label: D.AFTER_LABEL[a] }; }), disabled: !!destructive,
@@ -191,10 +210,28 @@ window.MRT.views['new'] = (function () {
       destructiveT = destructive ? ui.toggle({ label: 'I know ' + tool.code + ' destroys these panels - they may be scrapped', checked: !!st.destructive_ok }) : null;
       if (destructiveT) destructiveT.input.addEventListener('change', function () { collect(); });
       ui.mount(el, [
-        whereF.node,
+        ui.el('div', { class: 'form-grid' }, [magF.node, rackF.node]), whereLine, whereF.node,
         ui.el('div', { class: 'form-grid' }, [stepF.node, stepOtherF.node, layerF.node, afterF.node, afterOtherF.node]),
         destructiveT ? ui.el('div', { class: 'req-destructive' }, [ui.icon('alert', 16), destructiveT.node]) : null
       ]);
+    }
+
+    /** The picked panels' magazine and rack, filled in from the lot's loading map when still empty. */
+    function refreshWhere() {
+      if (!magF) return;
+      var lot = byId('lots', st.lot_id);
+      if (lot && !magF.value() && st.panels.length) {
+        var x = (lot.load || []).filter(function (l) { return l.panel === st.panels[0]; })[0];
+        if (x) {
+          magF.input.value = x.magazine_id;
+          var m = byId('magazines', x.magazine_id);
+          if (m && m.rack && !rackF.value()) rackF.input.value = String(m.rack);
+          collect();
+        }
+      }
+      var mags = {};
+      store.list('magazines', { all: true }).forEach(function (m) { mags[m.id] = m; });
+      whereLine.textContent = lot && st.panels.length ? D.whereText(lot, st.panels, mags, st.rack) : '';
     }
 
     /* 5. Urgency */
@@ -235,6 +272,7 @@ window.MRT.views['new'] = (function () {
         st.process_step_id = sv && sv !== '__other' ? sv : null;
         st.process_step_other = sv === '__other' ? stepOtherF.value() : '';
         st.layer = layerF.value(); st.panel_location = whereF.value();
+        st.magazine_id = magF.value() || null; st.rack = rackF.value() ? Number(rackF.value()) : null;
         st.after = tool && tool.destructive ? 'scrap' : afterF.value();
         st.after_other = st.after === 'other' ? afterOtherF.value() : '';
         st.destructive_ok = destructiveT ? destructiveT.input.checked : false;
@@ -250,7 +288,8 @@ window.MRT.views['new'] = (function () {
       return { tool_id: st.tool_id, type_id: st.type_id, lot_id: st.lot_id, panels: st.panels, priority_id: st.priority_id,
         priority_reason: st.priority_reason, needed_by: st.needed_by, bkm_id: st.bkm_id, bkm_path: st.bkm_path, purpose: st.purpose,
         process_step_id: st.process_step_id, process_step_other: st.process_step_other, layer: st.layer, panel_location: st.panel_location,
-        destructive_ok: st.destructive_ok, after: st.after, after_other: st.after_other, extra: st.extra, duplicated_from: st.duplicated_from };
+        destructive_ok: st.destructive_ok, after: st.after, after_other: st.after_other, extra: st.extra, duplicated_from: st.duplicated_from,
+        magazine_id: st.magazine_id, rack: st.rack };
     }
 
     /* --- the traveller-card preview ------------------------------------ */
@@ -371,7 +410,7 @@ window.MRT.views['new'] = (function () {
         ui.button('Submit', { kind: 'primary', icon: 'check', onClick: submit })
       ])
     ]);
-    paintAll(); paintLot(); paintUrgency();
+    paintAll(); paintLot(); paintUrgency(); refreshWhere();
 
     ui.mount(side, [
       ui.panel({ title: 'What the lab will see', icon: 'requests', body: preview }).node,

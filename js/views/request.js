@@ -92,7 +92,7 @@ window.MRT.views.request = (function () {
         cell('Priority', prio ? ui.el('span', { class: 'tr-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono muted', text: prio.code })]) : muted('-'),
              r.priority_reason ? r.priority_reason : null),
         cell('Needed by', r.needed_by ? ui.el('b', { class: 'num', text: ui.formatDate(r.needed_by + 'T12:00:00Z') }) : muted('no date'), null, clock),
-        cell('Panels', ui.el('b', { class: 'mono', text: (D.formatPanels(r.panels) || '-') + '  (' + (r.panels || []).length + ')' })),
+        cell('Panels', ui.el('b', { class: 'mono', text: (D.formatPanels(r.panels) || '-') + '  (' + (r.panels || []).length + ')' }), window.MRT.requestActions.whereOf(r) || null),
         cell('Submitted', ui.el('span', { class: 'num', text: ui.formatTs(r.submitted_ts) })),
         r.expected_done ? cell('Expected done', ui.el('b', { class: 'num', text: ui.formatDate(r.expected_done + 'T12:00:00Z') }),
           r.needed_by && r.expected_done > r.needed_by ? 'later than needed' : null) : null,
@@ -175,7 +175,7 @@ window.MRT.views.request = (function () {
       return row(f.label, X.answerText(f, (r.extra || {})[f.id]) || null);
     });
     return ui.panel({ title: 'Details', icon: 'requests', body: ui.el('dl', { class: 'facts' }, [].concat.apply([], [
-      row('Panels are now', r.panel_location), row('Panels are after', step ? step.name : r.process_step_other || null),
+      row('Panels are now', window.MRT.requestActions.whereOf(r) || null), row('Panels are after', step ? step.name : r.process_step_other || null),
       row('Layer', r.layer || null), row('Afterwards', D.AFTER_LABEL[r.after] + (r.after_other ? ': ' + r.after_other : '')),
       tool && tool.destructive ? row('Destructive', r.destructive_ok ? 'Confirmed by the requester' : 'NOT confirmed') : [],
       row('Purpose', r.purpose || null)

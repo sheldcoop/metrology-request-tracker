@@ -24,6 +24,10 @@ registers one; the owner or an admin changes it. Admins add further lot
 fields (purpose, started on, status ...) in Settings > Lists > Lot fields.
 To try it: Settings > Data & PIN > "Add 3 sample lots".
 
+**Magazines** - cassettes of 24 slots (M70345 ...) in racks 1-24. A lot has
+its magazines and a loading map (panel -> slot) that can be edited; requests
+show "M70345 · Rack 7 · slots 1-4"; Complete says where the panels go back.
+
 **New request** - one tool per request: tool, measurement type, BKM (or
 your own BKM path), lot and panels on the panel map, where the panels are,
 process step, layer, afterwards, priority (+ reason), needed-by (optional),

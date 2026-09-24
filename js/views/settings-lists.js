@@ -29,6 +29,7 @@
     ]));
     body.appendChild(lotFieldsPanel());
     body.appendChild(partNumbersPanel());
+    body.appendChild(magazinesPanel());
     body.appendChild(namedPanel('process_steps'));
     body.appendChild(namedPanel('hold_reasons'));
     body.appendChild(prioritiesPanel());
@@ -131,6 +132,59 @@
       done: edit ? 'Saved.' : 'Added.'
     }).catch(oops);
   }
+
+  /** Magazines (M2-23): M-number, slots, the rack it stands in now, which lots use it. */
+  function magazinesPanel() {
+    var k = K();
+    var rows = store.list('magazines', { all: true });
+    var racks = store.getSetting('rack_count');
+    var lots = store.data().lots || [];
+    var rackF = ui.field({ label: 'Racks', type: 'number', value: racks, cls: 'rack-count' });
+    var saveRacks = ui.button('Save', { size: 'sm', onClick: function () {
+      store.setRackCount(Number(rackF.value())).then(function () { ui.toast({ kind: 'success', message: 'Racks saved.' }); window.MRT.app.route(); }).catch(oops);
+    } });
+    return k.panel('Magazines', 'grid', [ui.button('Add', { size: 'sm', icon: 'plus', onClick: function () { magazineDialog(null); } })], [
+      ui.el('p', { class: 'muted', text: 'Cassettes that hold a lot\'s panels, one panel per slot, standing in a rack. ' +
+        'A lot picks its magazines; the request and the quality engineer say which rack.' }),
+      ui.el('div', { class: 'lots-tools' }, [rackF.node, saveRacks]),
+      k.table(['Magazine', { label: 'Slots', cls: 'num' }, { label: 'Rack now', cls: 'num' }, 'Lots', 'Status', { label: '', cls: 'actions' }], rows.map(function (m) {
+        var used = lots.filter(function (l) { return (l.magazine_ids || []).indexOf(m.id) !== -1; }).map(function (l) { return l.lot_number; });
+        return { id: 'row-' + m.id, cls: m.active === false ? 'is-off' : null, cells: [
+          ui.el('span', { class: 'cell-main' }, [ui.el('b', { class: 'mono', text: m.code }), m.sample ? k.sampleTag() : null]),
+          ui.el('span', { class: 'num', text: String(m.slots) }), ui.el('span', { class: 'num', text: m.rack ? String(m.rack) : '-' }),
+          used.length ? ui.el('span', { class: 'mono', text: used.join(', ') }) : k.muted('-'), activeChip(m),
+          ui.el('span', { class: 'row-actions' }, [k.editButton(m.code, function () { magazineDialog(m); }), k.deleteButton('magazines', m, m.code)])
+        ] };
+      }), 'No magazines yet.')
+    ]);
+  }
+
+  function magazineDialog(m) {
+    var edit = !!m;
+    var racks = store.getSetting('rack_count');
+    return K().editDialog({
+      title: edit ? 'Edit ' + m.code : 'Add a magazine', icon: 'grid',
+      values: edit ? { code: m.code, slots: m.slots, rack: m.rack ? String(m.rack) : '', active: m.active !== false } : { slots: 24, rack: '', active: true },
+      fields: [
+        { key: 'code', label: 'Magazine', kind: 'text', mono: true, cls: 'half', placeholder: 'e.g. M70365' },
+        { key: 'slots', label: 'Slots', kind: 'number', cls: 'half' },
+        { key: 'rack', label: 'Rack now', kind: 'select', cls: 'half', options: [{ value: '', label: '- none -' }].concat(rackOptions(racks)) },
+        { key: 'active', label: 'Active (untick to hide it from the pickers)', kind: 'check' }
+      ],
+      check: function (v) {
+        if (!D.isMagazineCode(String(v.code || '').trim().toUpperCase())) return ['code', 'M and digits, e.g. M70365'];
+        if (!(v.slots >= 1 && v.slots <= 99) || Math.floor(v.slots) !== v.slots) return ['slots', 'A whole number, 1-99'];
+        return null;
+      },
+      save: function (v) {
+        return store.saveEntry('magazines', { id: edit ? m.id : undefined, version: edit ? m.version : undefined,
+          fields: { code: v.code, slots: v.slots, rack: v.rack ? Number(v.rack) : null, active: v.active }, reason: 'Settings' });
+      },
+      done: edit ? 'Saved.' : 'Added.'
+    }).catch(oops);
+  }
+
+  function rackOptions(n) { var o = []; for (var i = 1; i <= n; i++) o.push({ value: String(i), label: 'Rack ' + i }); return o; }
 
   /** A plain ordered list of names (process steps, on-hold reasons). */
   var NAMED = {

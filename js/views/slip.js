@@ -44,6 +44,7 @@ window.MRT.views.slip = (function () {
         f('Lot', lot ? lot.lot_number + '  ' + [(byId('projects', lot.project_id) || {}).code, lot.part_number_id ? (byId('part_numbers', lot.part_number_id) || {}).code : null,
           (byId('buildups', lot.buildup_id) || {}).code].filter(Boolean).join(' · ') : null),
         f('Panels', (D.formatPanels(r.panels) || '-') + '  (' + (r.panels || []).length + ')', 'wide'),
+        f('Panels are', window.MRT.requestActions.whereOf(r) || null, 'wide'),
         f('Needed by', r.needed_by || 'no date'),
         f('Requested by', who ? who.name : null),
         f('Submitted', ui.formatDate(r.submitted_ts)),

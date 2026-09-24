@@ -164,6 +164,17 @@ window.MRT.views.help = (function () {
       ],
       tips: ['When someone else saves, the app loads their change by itself - unless you are in the middle of something; then a banner asks.'] },
 
+    { id: 'magazines', title: 'Magazines and racks', icon: 'grid',
+      intro: 'A magazine is a cassette of 24 slots (M70345 ...) standing in a rack (1-24). A lot\'s panels sit in its magazines, one per slot.',
+      steps: [
+        'Register or edit a lot: tick its magazines. Panel 1 goes into slot 1, and on; a lot with more than 24 panels takes a second magazine.',
+        'Lot details show each magazine as a cassette. Move panels: click a slot, then another to swap or move; a slot then the tray takes a panel out; a tray panel then a slot puts it in.',
+        'New request: pick the panels - the magazine and its rack fill in ("M70345 · Rack 7 · slots 2, 3"). Change the rack if the magazine stands somewhere else, or write a note instead.',
+        'Complete (quality engineer): say where the panels go back - magazine, rack, same slots or the first free ones. Scrapped panels (FIB) leave the magazine and cannot be requested again.',
+        'Admins keep the list in Settings > Lists > Magazines (number, slots, rack now) and set how many racks there are.'
+      ],
+      link: ['Open Lots', '#/lots'] },
+
     { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
       intro: 'Tell the lab when you are not there, so people know who covers your tools.',
       steps: [

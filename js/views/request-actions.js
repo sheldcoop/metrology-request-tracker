@@ -26,6 +26,16 @@ window.MRT.requestActions = (function () {
 
   function toolOf(r) { return store.byId('tools', r.tool_id); }
 
+  /** Where the request's panels are: "M70345 · Rack 7 · slots 1-4" (+ the note), M2-23. */
+  function whereOf(r) {
+    var lot = store.byId('lots', r.lot_id);
+    var mags = {};
+    store.list('magazines', { all: true }).forEach(function (m) { mags[m.id] = m; });
+    var t = lot ? D.whereText(lot, r.panels, mags, r.magazine_id ? r.rack : null) : '';
+    if (r.magazine_id && !lot) t = ((mags[r.magazine_id] || {}).code || '') + (r.rack ? ' · Rack ' + r.rack : '');
+    return [t, r.panel_location].filter(Boolean).join(' - ');
+  }
+
   /** What this person may do on this request now, in a fixed order. */
   function available(r) {
     var me = store.currentUser(), tool = toolOf(r);
@@ -151,12 +161,29 @@ window.MRT.requestActions = (function () {
       case 'complete': {
         var root = tool && tool.results_root ? tool.results_root.replace(/\\+$/, '') + '\\' + (r.submitted_ts || '').slice(0, 4) + '\\' + r.request_no + '\\' : '';
         var outcome = r.after === 'scrap' || (tool && tool.destructive) ? 'scrapped' : r.after === 'other' ? 'other' : 'returned';
+        var lotC = store.byId('lots', r.lot_id) || {};
+        var ownMags = lotC.magazine_ids || [];
+        var magOpts = store.list('magazines').slice().sort(function (a, b) { return (ownMags.indexOf(a.id) === -1) - (ownMags.indexOf(b.id) === -1); })
+          .map(function (m) { return { value: m.id, label: m.code + (ownMags.indexOf(m.id) !== -1 ? ' (this lot)' : '') }; });
+        var firstLoad = (lotC.load || []).filter(function (x) { return (r.panels || []).indexOf(x.panel) !== -1; })[0];
+        var magNow = r.magazine_id || (firstLoad && firstLoad.magazine_id) || '';
+        var magObj = magNow ? store.byId('magazines', magNow) : null;
+        var rackOpts = [{ value: '', label: '- same / none -' }];
+        for (var rk = 1; rk <= store.getSetting('rack_count'); rk++) rackOpts.push({ value: String(rk), label: 'Rack ' + rk });
+        var notScrap = function (v) { return v.panels_outcome !== 'scrapped'; };
         p = ask('Complete ' + r.request_no, 'check', [
           { key: 'results_path', label: 'Results folder', kind: 'path', placeholder: '\\\\server\\share\\...', hint: 'Proposed from the tool\'s results root - change it if needed.' },
           { key: 'panels_outcome', label: 'The panels', kind: 'select', options: D.PANEL_OUTCOMES.map(function (o) { return { value: o, label: D.PANEL_OUTCOME_LABEL[o] }; }) },
-          { key: 'note', label: 'Note (optional; required for Other)', kind: 'text', placeholder: r.after === 'other' ? r.after_other : '' }
-        ], { results_path: root, panels_outcome: outcome, note: r.after === 'other' ? r.after_other : '' },
-        function (v) { return store.requestAction(r.id, 'complete', v); },
+          { key: 'note', label: 'Note (optional; required for Other)', kind: 'text', placeholder: r.after === 'other' ? r.after_other : '' },
+          { key: 'magazine_id', label: 'Put back into magazine', kind: 'select', cls: 'half', options: [{ value: '', label: '- not into a magazine -' }].concat(magOpts), showIf: notScrap },
+          { key: 'rack', label: 'In rack', kind: 'select', cls: 'half', options: rackOpts, showIf: notScrap },
+          { key: 'keep_slots', label: 'Same slots as before (else the first free ones)', kind: 'check', showIf: notScrap }
+        ], { results_path: root, panels_outcome: outcome, note: r.after === 'other' ? r.after_other : '', magazine_id: magNow,
+             rack: magObj && magObj.rack ? String(magObj.rack) : (r.rack ? String(r.rack) : ''), keep_slots: true },
+        function (v) {
+          return store.requestAction(r.id, 'complete', { results_path: v.results_path, panels_outcome: v.panels_outcome, note: v.note,
+            put_back: v.panels_outcome !== 'scrapped' && v.magazine_id ? { magazine_id: v.magazine_id, rack: v.rack ? Number(v.rack) : null, keep_slots: v.keep_slots } : null });
+        },
         function (v) { return D.isSharePath(v.results_path) ? null : ['results_path', 'A share path like \\\\server\\share\\... or Z:\\...']; })
           .then(function (res) { return res ? done(res, 'completed.', 'complete') : null; });
         break;
@@ -188,5 +215,5 @@ window.MRT.requestActions = (function () {
     return p.catch(fail);
   }
 
-  return { buttons: buttons, run: run, available: available, label: label, emailOffer: emailOffer };
+  return { buttons: buttons, run: run, available: available, label: label, emailOffer: emailOffer, whereOf: whereOf };
 })();
