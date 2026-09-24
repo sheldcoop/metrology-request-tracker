@@ -278,6 +278,10 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 - **M3-4** **On hold** reason picked from a list in Settings (starting list: Waiting for panels,
   Tool down, Waiting for engineer info, Higher priority first, Other) plus an optional note, so
   analytics can count on-hold reasons (Q20). Hold pauses the turnaround clock (Q9).
+- **M3-5** **Editing a submitted request** (Q14): the requester may change everything except the
+  tool (the ID is tied to it - cancel and copy instead), with a reason; each change shows in the
+  timeline ("panels 1-4 -> 1-6. Reason: ..."), the quality engineer is notified from M4. No edits
+  once Completed or Cancelled.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
