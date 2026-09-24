@@ -63,6 +63,17 @@ window.MRT.views.help = (function () {
       tips: ['Queue length, the oldest open request and the typical wait appear here from M3.'],
       link: ['Open Lab status', '#/lab'] },
 
+    { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
+      intro: 'Tell the lab when you are not there, so people know who covers your tools.',
+      steps: [
+        'Click your name (top right) > I\'m away... Pick the first day, and the last day if you know it. Empty = until further notice.',
+        'A note is optional, e.g. "Tom covers FIB". Never write why you are away - no reason is needed or stored.',
+        'While you are away, Lab status shows "Away" next to your name. Settings > Health warns when a tool\'s primary and backup are both away.',
+        'Back early? Your name > Away ... - change > I\'m back.'
+      ],
+      tips: ['An admin can set or clear Away for anyone in Settings > People (the calendar button).',
+             'From M3 new requests for your tools go to the backup while you are away.'] },
+
     { id: 'saving', title: 'Saving, Undo and "someone else saved"', icon: 'save',
       steps: [
         'Each change is written to the data file at once, and recorded in the audit log.',
@@ -95,6 +106,7 @@ window.MRT.views.help = (function () {
         'Settings > People > Add person: name, Windows user name (lowercase, no domain), optional domain and email, roles.',
         'People who added themselves show "New". Check their roles, then click Reviewed.',
         'People are never deleted. Untick Active to switch someone off; their name stays in the history.',
+        'Away: the calendar button on a row sets or clears someone\'s away dates (e.g. when they are off sick and cannot do it themselves).',
         'At least one active admin must remain.'
       ],
       link: ['Open Settings > People', '#/settings/users'] },

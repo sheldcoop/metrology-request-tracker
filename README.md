@@ -15,13 +15,16 @@ No server, no build step, no internet.
 Down with an "until" date, its quality engineers, measurement types and
 BKMs. The tool's quality engineers and admins set the status here.
 
+**Away** - your name (top right) > "I'm away...": first and last day and an
+optional note, never a reason. Shown on Lab status, People and Health.
+
 **Settings** (admins, PIN once per visit):
 - *Health* - "still to do before real use" (the office checklist, live:
   sample entries, missing operators and results roots, calendar, closing
   days, people to review) and "data health" (broken links, odd states).
   Every line links to where it is fixed.
-- *People* - name, Windows ID, email, roles (ticks), active; review people
-  who added themselves. Roles: Engineer (requests), Quality engineer
+- *People* - name, Windows ID, email, roles (ticks), active, away; review
+  people who added themselves. Roles: Engineer (requests), Quality engineer
   (measures), Operator (no rights yet), Manager, Admin.
 - *Tools* - code, glyph, primary and backup quality engineer, results root; per tool its measurement
   types, extra fields (8 kinds) and BKM library (Copy path).

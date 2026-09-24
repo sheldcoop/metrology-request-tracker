@@ -752,11 +752,15 @@ window.MRT.app = (function () {
       ui.toast({ message: 'Start page: ' + navEntry(home.value).label, timeout_ms: 1800 });
     });
     var roles = (u.roles || []).map(function (r) { return D.ROLE_LABEL[r]; }).join(', ') || 'No role';
+    var away = D.awayState(u, D.viennaYmd(Date.now()));
+    var awayLabel = away && away.state !== 'over' ? 'Away ' + awayText(away) + ' - change' : 'I\'m away...';
 
     ui.menu(anchor, [
       { node: [ui.el('span', { text: 'Theme' }), themeSeg.node] },
       { node: motion.node },
       { node: [ui.el('span', { text: 'Start page' }), home] },
+      { sep: true },
+      { label: awayLabel, icon: 'calendar', onClick: function () { awayDialog(u); } },
       { sep: true },
       { label: 'Keyboard shortcuts', icon: 'keyboard', aside: '?', onClick: showKeys },
       { label: 'Reload from the share', icon: 'refresh', onClick: reloadData },
@@ -772,6 +776,50 @@ window.MRT.app = (function () {
       ui.el('span', { class: 'user-avatar', text: ui.initials(u.name) }),
       ui.el('div', {}, [ui.el('b', { text: u.name }), ui.el('span', { text: roles + (u.windows_id ? '  ·  ' + u.windows_id : '') })])
     ])]);
+  }
+
+  /** "1 Oct - 5 Oct" / "from 1 Oct" for an away period (dates are YYYY-MM-DD). */
+  function awayText(a) {
+    return a.until ? (a.from === a.until ? 'on ' + a.from : a.from + ' to ' + a.until) : 'from ' + a.from;
+  }
+
+  /**
+   * Away (DECISIONS M1-14): dates and an optional note - no reason. Opened from
+   * the user menu (yourself) and from Settings > People (admins, for anyone).
+   */
+  function awayDialog(user) {
+    var me = store.currentUser();
+    var self = me && me.id === user.id;
+    var today = D.viennaYmd(Date.now());
+    var had = !!user.away_from;
+    var f = ui.form([
+      { key: 'from', label: 'First day away', kind: 'date', cls: 'half' },
+      { key: 'until', label: 'Last day away (optional)', kind: 'date', cls: 'half', hint: 'Empty = until further notice.' },
+      { key: 'note', label: 'Note (optional)', kind: 'text', placeholder: 'e.g. Tom covers FIB',
+        hint: 'No reason needed - please do not write why (e.g. sick leave).' }
+    ], { from: user.away_from || today, until: user.away_until || '', note: user.away_note || '' });
+    var actions = [{ label: 'Cancel', value: null }];
+    if (had) actions.push({ label: self ? 'I\'m back' : 'Clear', value: 'clear',
+      submit: function () { return store.setAway(user.id, null, self ? null : 'Settings'); } });
+    actions.push({ label: 'Save', kind: 'primary', value: function () { return f.values(); },
+      submit: function (v) {
+        f.clearErrors();
+        var p = D.validateAway({ from: v.from, until: v.until || null, note: v.note });
+        if (p.length) { f.setError(/before|Back/.test(p[0]) ? 'until' : /note/.test(p[0]) ? 'note' : 'from', p[0]); return Promise.reject(new Error(p[0])); }
+        return store.setAway(user.id, { from: v.from, until: v.until || null, note: v.note }, self ? null : 'Settings');
+      } });
+    return ui.dialog({
+      title: self ? 'I\'m away' : user.name + ' is away', icon: 'calendar',
+      body: [ui.el('p', { class: 'muted', text: 'Shown on Lab status and in Settings. From M3 new requests for your tools go to the backup while you are away.' }), f.node],
+      actions: actions
+    }).then(function (res) {
+      if (!res) return;
+      ui.toast({ kind: 'success', message: res.away_from ? (self ? 'Saved: away ' : user.name + ': away ') + awayText(D.awayState(res, today)) + '.' : (self ? 'Welcome back.' : 'Cleared.') });
+      route();
+    }).catch(function (e) {
+      if (e && e.code === 'no_change') return ui.toast({ message: 'Nothing was changed.', timeout_ms: 2000 });
+      ui.toastError(e.message, e);
+    });
   }
 
   /* ------------------------------------------------------------------ *
@@ -887,6 +935,8 @@ window.MRT.app = (function () {
     paintAlertBanner: paintAlertBanner,
     downloadText: downloadText,
     recheckUser: recheckUser,
+    awayDialog: awayDialog,
+    awayText: awayText,
     NAV: NAV,
     state: app
   };

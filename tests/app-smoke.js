@@ -305,6 +305,32 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Settings are closed to engineers', /Settings are for admins/.test(mainText()) && /Prince Khurana/.test(mainText()));
   MRT.store.setCurrentUser(saved);
 
+  // Away (M1-14): an admin for someone else in People, then yourself in the user menu
+  await tab('users');
+  doc.getElementById('main').querySelectorAll('button').filter(b => b.getAttribute('aria-label') === 'Away: Olga Quality')[0].click(); await settle();
+  dlg2 = openDialog();
+  check('People: the away dialog starts today, no reason field', !!dlg2 && !!fieldIn(dlg2, 'First day away').value && !fieldIn(dlg2, 'Reason'));
+  setVal(fieldIn(dlg2, 'Last day away'), '2000-01-01'); buttonByText(dlg2, 'Save').click(); await settle();
+  check('...a last day before the first stays open with the reason', openDialog() === dlg2 && /before the first/.test(dlg2.textContent));
+  const todayYmd = fieldIn(dlg2, 'First day away').value;
+  setVal(fieldIn(dlg2, 'Last day away'), todayYmd); setVal(fieldIn(dlg2, 'Note'), 'Tom covers FIB');
+  buttonByText(dlg2, 'Save').click(); await settle();
+  const olgaNow = MRT.store.data().users.filter(u => u.name === 'Olga Quality')[0];
+  check('...an admin sets Olga away for today', !openDialog() && olgaNow.away_from === todayYmd && olgaNow.away_until === todayYmd && olgaNow.away_note === 'Tom covers FIB');
+  check('...People shows it', /Away on /.test(mainText()));
+  win.setHash('#/lab'); await settle();
+  check('Lab status marks the FIB primary as away', /Away until/.test($$('.tool-plate').filter(p => /FIB/.test(p.textContent))[0].textContent));
+  doc.getElementById('userBtn').click(); await settle();
+  buttonByText(doc.body.querySelector('.menu'), 'I\'m away...').click(); await settle();
+  dlg2 = openDialog(); buttonByText(dlg2, 'Save').click(); await settle();
+  check('user menu: "I\'m away..." saves your own away dates', !!MRT.store.currentUser().away_from && !MRT.store.currentUser().away_until);
+  doc.getElementById('userBtn').click(); await settle();
+  const awayItem = doc.body.querySelector('.menu').querySelectorAll('button').filter(b => /^Away from/.test(b.textContent.trim()))[0];
+  check('...the menu then says so', !!awayItem);
+  awayItem.click(); await settle();
+  dlg2 = openDialog(); buttonByText(dlg2, 'I\'m back').click(); await settle();
+  check('..."I\'m back" clears it', !openDialog() && !MRT.store.currentUser().away_from);
+
   // Change data folder (user menu)
   win.setHash('#/lab'); await settle();
   doc.getElementById('userBtn').click(); await settle();
