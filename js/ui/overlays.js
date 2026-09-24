@@ -90,7 +90,11 @@
    * Open a modal. Returns a promise resolving to the value passed by an
    * action button, or null when cancelled (Esc, backdrop, Cancel).
    * Scales and fades in over a blurred backdrop.
-   * @param {Object} o {title, icon, wide, cls, body (Node), actions:[{label, value, kind, validate}]}
+   * @param {Object} o {title, icon, wide, cls, body (Node), actions:[{label, value, kind, validate, submit}]}
+   *
+   * submit(value) -> Promise: the dialog stays open while it runs (buttons
+   * off, spinner) and closes with its result; a rejection is shown INSIDE
+   * the dialog, so the person can fix the entry instead of starting over.
    */
   function dialog(o) {
     return new Promise(function (resolve) {
@@ -120,28 +124,47 @@
                        onclick: function () { close(null); } }, icon('close', 16))
       ]);
 
-      var body = el('div', { class: 'modal-body' }, o.body || null);
+      var errBox = el('div', { class: 'modal-error', role: 'alert', hidden: true });
+      var body = el('div', { class: 'modal-body' }, [o.body || null, errBox]);
+      var busy = false;
 
       var actions = (o.actions || [{ label: 'Close', value: null }]).map(function (a) {
-        return el('button', {
+        var btn = el('button', {
           class: a.kind === 'primary' ? 'btn-primary' : a.kind === 'danger' ? 'btn-danger' : 'btn',
           type: 'button', text: a.label,
           onclick: function () {
+            if (busy) return;
             if (a.validate) {
               var problem = a.validate();
               if (problem) return; // the validator shows the inline message
             }
-            close(a.value === undefined ? true : (typeof a.value === 'function' ? a.value() : a.value));
+            var value = a.value === undefined ? true : (typeof a.value === 'function' ? a.value() : a.value);
+            if (!a.submit) return close(value);
+            busy = true;
+            errBox.hidden = true;
+            actions.forEach(function (b) { b.disabled = true; });
+            btn.classList.add('is-busy');
+            Promise.resolve().then(function () { return a.submit(value); }).then(function (res) {
+              busy = false;
+              close(res === undefined ? value : res);
+            }).catch(function (e) {
+              busy = false;
+              actions.forEach(function (b) { b.disabled = false; });
+              btn.classList.remove('is-busy');
+              mount(errBox, [icon('alert', 16), el('span', { text: (e && e.message) || String(e) })]);
+              errBox.hidden = false;
+            });
           }
         });
+        return btn;
       });
 
       dlg.appendChild(head);
       dlg.appendChild(body);
       dlg.appendChild(el('div', { class: 'modal-foot' }, actions));
 
-      // Esc closes. `cancel` fires for Esc.
-      dlg.addEventListener('cancel', function (e) { e.preventDefault(); close(null); });
+      // Esc closes (not while a save is running). `cancel` fires for Esc.
+      dlg.addEventListener('cancel', function (e) { e.preventDefault(); if (!busy) close(null); });
       ui.linkLabels(dlg);
       host.appendChild(dlg);
       dlg.showModal();
@@ -312,7 +335,32 @@
     return openMenu;
   }
 
+  /**
+   * Copy text to the clipboard (a share path, a request ID) and say so.
+   * Falls back to a hidden textarea where the Clipboard API is not allowed.
+   */
+  function copyText(text, label) {
+    function done() { toast({ kind: 'success', message: (label || 'Copied') + ': ' + text, timeout_ms: 2500 }); }
+    function fallback() {
+      var ta = el('textarea', { class: 'sr-only', 'aria-hidden': 'true' });
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      if (ok) done(); else toast({ kind: 'warning', message: 'Could not copy. Select the text and press Ctrl+C: ' + text });
+    }
+    var nav = window.navigator;
+    if (nav && nav.clipboard && nav.clipboard.writeText) {
+      return nav.clipboard.writeText(text).then(done, fallback);
+    }
+    fallback();
+    return Promise.resolve();
+  }
+
   ui.bindTips = bindTips;
+  ui.copyText = copyText;
   ui.confirm = confirm;
   ui.dialog = dialog;
   ui.hideTip = hideTip;

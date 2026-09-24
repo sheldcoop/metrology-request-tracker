@@ -28,6 +28,8 @@ const REQUIRED = {
   glyph: ['.tool-glyph .tg-beam', '.tool-glyph.is-live', '.tool-glyph.is-off', '.tool-glyph.is-maint'],
   shell: ['.topbar', '.nav-item', '.save-led', '.undo-btn', '.alert-banner', '.gate-card', '.nav-item.is-soon', '.gate-error'],
   lab: ['.tool-plate::before', '.tool-plate-facts', '.lab-grid'],
+  form: ['.form-grid', '.form-checks', '.modal-error'],
+  settings: ['.sample-tag', '.row-actions', 'tr.is-off', '.setup-note', '.lock-panel', '.settings-cols'],
   motion: ['[data-motion="reduce"]', '.offscreen']
 };
 for (const [comp, sels] of Object.entries(REQUIRED)) {

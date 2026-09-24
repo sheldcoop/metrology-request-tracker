@@ -131,6 +131,7 @@ module.exports = function createDom(o) {
   doc.createTextNode = t => new Text_(t);
   doc.getElementById = id => doc.querySelector('#' + id);
   doc.hidden = false;
+  doc.execCommand = () => true;
   (o.ids || []).forEach(id => { const e = new El('div'); e.setAttribute('id', id); doc.body.appendChild(e); });
 
   // location / history for file:///.../index.html?who=...#/lab
@@ -149,6 +150,7 @@ module.exports = function createDom(o) {
     URL: { createObjectURL: () => 'blob:x', revokeObjectURL() {} },
     crypto: globalThis.crypto,
     location: loc, history,
+    navigator: { clipboard: { text: null, writeText(t) { this.text = String(t); return Promise.resolve(); } } },
     matchMedia: () => ({ matches: false }),
     IntersectionObserver: class { observe() {} unobserve() {} },
     ResizeObserver: class { observe() {} },

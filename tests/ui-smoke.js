@@ -36,6 +36,16 @@ check('segmented',()=>{const s=put(ui.segmented({label:'Theme',value:'a',options
 check('toggle',()=>{put(ui.toggle({label:'Check',checked:true,onChange(){}}));put(ui.toggle({kind:'switch',label:'Switch',onChange(){}}))});
 check('field',()=>{const f=put(ui.field({label:'Cut depth',type:'number',unit:'µm',hint:'0-50'}));f.setState('valid','ok');f.setState('invalid','too deep');f.setState(null);
   put(ui.field({label:'Tool',options:[{value:'a',label:'A'}],value:'a'}));put(ui.field({label:'Purpose',multiline:true,value:'x'}));put(ui.field({label:'Off',disabled:true}))});
+check('form',()=>{const f=put(ui.form([{key:'code',label:'Code',kind:'text'},{key:'n',label:'Level',kind:'number',unit:'µm',cls:'half'},
+  {key:'type',label:'Type',kind:'select',options:[{value:'a',label:'A'},{value:'b',label:'B'}]},{key:'unit',label:'Unit',kind:'text',showIf:v=>v.type==='b'},
+  {key:'req',label:'Required',kind:'check'},{key:'days',label:'Days',kind:'checks',options:[{value:1,label:'Mon'},{value:2,label:'Tue'}]},
+  {key:'txt',label:'Notes',kind:'longtext'}],{code:'FIB',n:5,type:'a',days:[2]}));
+  expect('form values',JSON.stringify(f.values())===JSON.stringify({code:'FIB',n:5,type:'a',unit:'',req:false,days:[2],txt:''}));
+  expect('showIf hides',f.node.children[3].hidden===true);
+  f.node.children[2].querySelector('select').value='b';f.node.dispatch('change');expect('showIf shows',f.node.children[3].hidden===false);
+  f.node.children[1].querySelector('input').value='abc';expect('a bad number is NaN',isNaN(f.values().n));
+  f.node.children[1].querySelector('input').value='';expect('an empty number is null',f.values().n===null);
+  f.setError('code','Taken');expect('setError marks the field',f.node.children[0].classList.contains('is-invalid'));f.clearErrors();f.setError('days','Pick one');f.focus()});
 check('chips+leds',()=>{['ok','warning','critical','expired','blocked','neutral',{expired:true},{blocked:true},{status:'ok'}].forEach(s=>{root.appendChild(ui.statusChip(s));root.appendChild(ui.led(s,'x'))});
   expect('displayStatus expired wins',ui.displayStatus({expired:true,blocked:true})==='expired')});
 check('kpi',()=>{['ok','critical','expired',undefined].forEach(s=>{const k=put(ui.kpiTile({label:'Open',value:12,status:s,icon:'inbox',sub:'s',href:'#/x'}));k.update(0,'none')})});
@@ -60,6 +70,24 @@ check('dialogs',()=>{ui.dialog({title:'D',icon:'info',body:ui.el('p',{text:'b'})
 check('menu',()=>{const a=ui.el('button');root.appendChild(a);ui.menu(a,[{label:'One',icon:'user',aside:'?',onClick(){}},{sep:true},{node:ui.el('span',{text:'n'})}],[ui.el('b',{text:'h'})])});
 check('tips',()=>{const box=ui.el('div',{},[ui.el('span',{class:'tipme',text:'t'})]);root.appendChild(box);ui.bindTips(box,'.tipme',()=>ui.tipRow('a','b'));box.querySelector('.tipme').dispatch('mouseover');box.querySelector('.tipme').dispatch('mouseout')});
 
+// a dialog that saves: stays open on an error and shows it inside, closes on success
+let submitted=null,tries=0;
+const saveDlg=()=>doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d=>d.getAttribute('aria-label')==='Save test')[0];
+async function dialogSubmitChecks(){
+  ui.dialog({title:'Save test',body:ui.el('p',{text:'x'}),actions:[{label:'Cancel',value:null},{label:'Save',kind:'primary',value:()=>'v',
+    submit:v=>{tries++;return tries===1?Promise.reject(new Error('Code already exists')):Promise.resolve(v)}}]}).then(v=>{submitted=v});
+  flush();
+  const save=()=>saveDlg().querySelectorAll('button').filter(b=>b.textContent==='Save')[0];
+  save().click();await new Promise(r=>setTimeout(r,5));flush();
+  expect('a failed save keeps the dialog open',!!saveDlg()&&saveDlg().open);
+  expect('...and shows the error inside it',/Code already exists/.test(saveDlg().querySelector('.modal-error').textContent)&&!saveDlg().querySelector('.modal-error').hidden);
+  expect('...buttons usable again',!save().disabled);
+  save().click();await new Promise(r=>setTimeout(r,5));flush();await new Promise(r=>setTimeout(r,5));
+  expect('a good save closes it with the value',submitted==='v'&&!saveDlg());
+  await ui.copyText('\\\\srv\\lab\\FIB','Path copied');
+  expect('copyText puts the text on the clipboard',win.navigator.clipboard.text==='\\\\srv\\lab\\FIB');
+}
+
 // click every button, change every input
 let clicked=0;
 for(const b of root.querySelectorAll('button')){check('click '+b.textContent,()=>{b.dispatch('click');clicked++})}
@@ -70,7 +98,9 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick()})}
 
+(async()=>{await dialogSubmitChecks().catch(e=>{errs++;console.log('ERR dialog submit',e.stack)});
 console.log('charts built',charts,'destroyed',destroyed);
 console.log('clicked',clicked,'toasts',doc.getElementById('toasts').children.length,'errors',errs);
 console.log(errs?'SMOKE FAILED':'smoke ok');
 if(errs)process.exitCode=1;
+})();

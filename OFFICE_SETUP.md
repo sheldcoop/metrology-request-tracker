@@ -41,7 +41,10 @@ lists it until it is edited or deleted.
 
 ## 3. Empty - needs real data
 
-- [ ] **Operators**: primary and backup operator per tool.
+- [ ] **Quality engineers**: tick the role in Settings > People, then set the
+      primary and backup quality engineer per tool (Settings > Tools).
+- [ ] **Rights per role**: decide what Operators may do (today: nothing yet) -
+      OPEN_QUESTIONS #14.
 - [ ] **Results roots**: the real share folder per tool (e.g. `\\server\lab\FIB`).
 - [ ] **Extra fields per tool**: none yet (OPEN_QUESTIONS #5).
 - [ ] **People and roles**: only the first admin exists. Colleagues add
@@ -70,7 +73,8 @@ lists it until it is edited or deleted.
 
 ## 5. Not built yet (for reference)
 
-- M1 step 4: Settings, Health, audit log, backups screen, "Change data folder".
+- ~~M1 step 4: Settings, Health, audit log, backups screen, "Change data folder".~~ Done:
+  Settings > Health now shows this checklist live.
 - M1 step 5: Help page, ui-kit.html, preview, accessibility audit, CONTRIBUTING.md.
 - Later milestones: requests (M2-M3), notifications (M4), analytics and Excel
   export (M5), import of the old request list (M6), QR code on the traveller

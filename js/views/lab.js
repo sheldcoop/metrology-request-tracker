@@ -4,8 +4,8 @@
  * Lab status (#/lab, the start page in M1): every active tool as its
  * nameplate - the tool glyph (beam on when Up, dashed amber in
  * Maintenance, off when Down), code, status with its "until" date and
- * note, primary and backup operator, and what is set up for it
- * (measurement types, BKMs). The tool's operators and admins set the
+ * note, primary and backup quality engineer, and what is set up for it
+ * (measurement types, BKMs). The tool's quality engineers and admins set the
  * status here (Q27). From M3 each plate also shows its queue length, the
  * oldest open request and the typical wait (Q46).
  *
@@ -91,8 +91,8 @@ window.MRT.views.lab = (function () {
         t.status_note || null
       ]) : null,
       ui.el('dl', { class: 'tool-plate-facts' }, [
-        row('Primary operator', userName(t.primary_operator_id) || 'not set', t.primary_operator_id ? null : 'is-missing'),
-        row('Backup operator', userName(t.backup_operator_id) || 'not set', t.backup_operator_id ? null : 'is-missing'),
+        row('Primary quality engineer', userName(t.primary_operator_id) || 'not set', t.primary_operator_id ? null : 'is-missing'),
+        row('Backup quality engineer', userName(t.backup_operator_id) || 'not set', t.backup_operator_id ? null : 'is-missing'),
         row('Measurement types', String(types.length), 'num'),
         row('BKMs', String(bkms.length), 'num'),
         row('Queue', 'from M3', 'is-missing')

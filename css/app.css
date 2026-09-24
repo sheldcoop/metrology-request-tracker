@@ -658,6 +658,12 @@ dialog.modal::backdrop {
 .modal-head .panel-icon { color: var(--accent); }
 .modal-body { padding: 20px; overflow: auto; }
 .modal-body p { margin: 0 0 12px; color: var(--fg-muted); }
+.modal-error {
+  display: flex; align-items: flex-start; gap: 8px; margin-top: 4px; padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent); border-radius: var(--radius);
+  background: var(--danger-bg); color: var(--danger-fg); font-size: 13px;
+}
+.modal-error svg { flex: none; margin-top: 1px; }
 .modal-foot {
   display: flex; justify-content: flex-end; gap: 8px;
   padding: 12px 20px; border-top: 1px solid var(--line); background: var(--surface-2);
@@ -1173,6 +1179,17 @@ kbd {
 .user-pick:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
 .gate-brand .tool-glyph { color: var(--accent); }
 
+/* --- Form (ui.form): specs -> controls --------------------------------- */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.form-grid > .ifield, .form-grid > .form-checks, .form-grid > .form-check { grid-column: 1 / -1; }
+.form-grid > .half { grid-column: auto; }
+.form-check { display: grid; gap: 4px; margin-bottom: 14px; }
+.form-checks { margin: 0 0 14px; padding: 0; border: 0; min-width: 0; }
+.form-checks legend { padding: 0; margin-bottom: 6px; }
+.form-checks-row { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.form-checks.is-invalid .ifield-msg { color: var(--danger-fg); }
+@media (max-width: 560px) { .form-grid > .half { grid-column: 1 / -1; } }
+
 /* --- Dialog rows that are not a single field --------------------------- */
 .dlg-row { display: grid; gap: 6px; margin-bottom: 14px; }
 
@@ -1213,4 +1230,65 @@ kbd {
 .tool-plate-sample { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warning-fg); }
 .tool-plate-actions { display: flex; gap: 8px; justify-content: flex-end; }
 @media (max-width: 760px) { .lab-kpis { grid-template-columns: 1fr; } }
+
+/* --- Small text helpers ------------------------------------------------ */
+.muted { color: var(--fg-muted); }
+p.muted { margin: 0 0 12px; font-size: 13px; }
+.fine { margin: 12px 0 0; font-size: 12px; color: var(--fg-faint); }
+.nowrap { white-space: nowrap; }
+.form-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.form-error { margin: 0 0 12px; color: var(--danger-fg); font-size: 13px; }
+.chip-row { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.chip.accent-chip { background: var(--accent-soft); color: var(--accent); border-color: var(--line-hi); }
+
+/* --- Settings ---------------------------------------------------------- */
+.lock-panel { max-width: 460px; }
+.lock-form { display: grid; gap: 4px; justify-items: start; }
+.lock-form .ifield { width: 100%; }
+.settings-body > .panel + .panel,
+.settings-body > .panel + .settings-cols,
+.settings-body > .settings-cols + .panel,
+.settings-body > .health-kpis + .panel,
+.settings-body > .tool-picker + .panel { margin-top: 16px; }
+.settings-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; align-items: start; }
+.health-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)); gap: 16px; margin-bottom: 16px; }
+@media (max-width: 760px) { .health-kpis { grid-template-columns: 1fr; } }
+
+.table-empty { margin: 4px 0; }
+table.grid th.actions, table.grid td.actions { width: 1%; white-space: nowrap; text-align: right; }
+table.grid tbody tr.is-off td { color: var(--fg-faint); }
+table.grid tbody tr.is-off td b { color: var(--fg-muted); }
+table.grid tbody tr { scroll-margin: 80px; }
+.row-actions { display: inline-flex; gap: 2px; align-items: center; justify-content: flex-end; }
+.row-actions .btn-ghost.btn-sm { padding: 3px 7px; min-height: 28px; }
+.cell-main { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cell-tool { display: inline-flex; align-items: center; gap: 10px; }
+.cell-tool .tool-glyph { padding: 2px; border: 1px solid var(--line); border-radius: 4px; background: var(--inset); box-sizing: content-box; }
+.cell-path { display: inline-flex; align-items: center; gap: 4px; max-width: 420px; }
+.cell-path .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.prio-label { display: inline-flex; align-items: baseline; gap: 8px; }
+.prio-label b { font-size: 15px; }
+.prio-label .mono { font-size: 11px; }
+
+/* "Sample": a made-up entry, like a sticker that says "not real yet" */
+.sample-tag {
+  display: inline-block; padding: 0 6px; border: 1px dashed var(--warning); border-radius: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; line-height: 16px;
+  color: var(--warning-fg); background: var(--warning-bg);
+}
+.setup-note {
+  display: flex; align-items: flex-start; gap: 8px; margin: 0 0 14px; padding: 8px 12px;
+  border: 1px dashed var(--warning); border-radius: var(--radius); background: var(--warning-bg);
+  color: var(--warning-fg); font-size: 13px;
+}
+.setup-note svg { flex: none; margin-top: 2px; }
+
+.tool-picker { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 24px; }
+.year-pick { margin-bottom: 12px; }
+.audit-filter { max-width: 420px; }
+.audit-values { font-size: 12px; color: var(--fg-muted); }
+
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 0 0 14px; font-size: 13px; }
+.facts dt { color: var(--fg-muted); }
+.facts dd { margin: 0; }
 

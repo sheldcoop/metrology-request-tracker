@@ -370,6 +370,34 @@ window.MRT.app = (function () {
     });
   }
 
+  /** Pick another data folder (the wrong one was picked, or the share moved). */
+  function changeFolder() {
+    var go = function () {
+      store.connect().then(function () {
+        stopTimers();
+        ui.toast({ message: 'Data folder changed to ' + (store.status().folderName || 'the new folder') + '.', kind: 'success' });
+        afterLoad();
+      }).catch(function (e) {
+        if (e && e.name === 'AbortError') return;
+        ui.toastError('Could not open that folder: ' + e.message, e);
+      });
+    };
+    if (store.status().pendingSave) {
+      return ui.confirm({ title: 'Discard the unsaved change?', danger: true, confirmLabel: 'Change folder and lose it',
+        message: 'A change could not be saved and is only in memory. Download it first if you need it.' })
+        .then(function (yes) { if (yes) go(); });
+    }
+    go();
+  }
+
+  /** After the data was replaced (restore, reload): is the signed-in person still in it? */
+  function recheckUser() {
+    var u = store.currentUser();
+    if (!u || !u.active) { changeUser(); return false; }
+    paintUser(); paintFooter(); paintUndo();
+    return true;
+  }
+
   function changeUser() {
     identity.forget();
     store.signOut();
@@ -673,10 +701,7 @@ window.MRT.app = (function () {
     var uid = store.status().currentUserId;
     store.load().then(function () {
       document.getElementById('conflictBanner').hidden = true;
-      if (!store.byId('users', uid) || !store.byId('users', uid).active) return changeUser();
-      paintUser();
-      paintFooter();
-      paintUndo();
+      if (!recheckUser()) return;
       route();
       ui.toast({ message: 'Data reloaded.', kind: 'success' });
     }).catch(function (e) { ui.toastError('Could not reload the data file: ' + e.message, e); });
@@ -735,6 +760,7 @@ window.MRT.app = (function () {
       { sep: true },
       { label: 'Keyboard shortcuts', icon: 'keyboard', aside: '?', onClick: showKeys },
       { label: 'Reload from the share', icon: 'refresh', onClick: reloadData },
+      { label: 'Change data folder', icon: 'folder', onClick: changeFolder },
       { label: 'Change user', icon: 'user', onClick: changeUser },
       { sep: true },
       { node: ui.el('div', { class: 'menu-folder' }, [
@@ -859,6 +885,8 @@ window.MRT.app = (function () {
     reloadData: reloadData,
     reportSaveFailure: reportSaveFailure,
     paintAlertBanner: paintAlertBanner,
+    downloadText: downloadText,
+    recheckUser: recheckUser,
     NAV: NAV,
     state: app
   };

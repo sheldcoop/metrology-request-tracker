@@ -182,6 +182,15 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   "still to do" list - sample entries, tools without operators or results root, no closing
   days, unconfirmed lab days (step 4).
 
+- **M1-12** (2026-09-24) Roles: **Engineer** (requests), **Quality engineer** (new - runs the
+  measurements today), **Operator** (kept, **no rights of its own yet**), Manager, Admin. Who
+  measures is decided in ONE place, `domain.canMeasure()` - today Quality engineers only. Wherever
+  earlier decisions say "operator" as the person who measures (Q2 primary/backup, Q3 Away, Q16
+  My queue, Q27 tool status, Q39 board, Q43 queue actions), read "quality engineer". Stored field
+  names stay (`primary_operator_id`, `backup_operator_id`) - no data upgrade. The rights per role
+  are designed later (OPEN_QUESTIONS #14); giving Operators rights then is a change in canMeasure
+  and its tests, not a data change.
+
 ## Future-proofing (2026-09-24, not built now)
 - **F1** Server later (Docker/Kubernetes, Node + SQLite + API): saving only in `store.js`, rules in
   `domain.js`, ID-based versioned collections, everything configurable (`js/config.js` + Settings).

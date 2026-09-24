@@ -109,7 +109,8 @@ keyboard shortcuts · collapsible menu · full-screen charts · exports · 3 the
 
 ## Identity
 Launcher `Metrology Tool.cmd` on the share opens the app and passes `%USERNAME%`; admin maps Windows
-IDs to users (roles: Engineer, Operator, Manager, Admin - several allowed). Unknown ID → "Who are you?"
+IDs to users (roles: Engineer, Quality engineer, Operator, Manager, Admin - several allowed; today
+Quality engineers measure and Operators have no rights yet - DECISIONS M1-12, `domain.canMeasure()`). Unknown ID → "Who are you?"
 once. Admin actions need the PIN.
 - **Identity comes from ONE function**, `MRT.identity.detect()` in `js/identity.js`. Today it reads
   the launcher's `?who=`; later it reads the company SSO (Windows / Entra ID). Nothing else in the
