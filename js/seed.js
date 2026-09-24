@@ -19,6 +19,7 @@
  * Shapes (all optional unless noted):
  *   tools[]:  code (required, 1-6 capitals), name (required), glyph
  *             (hrm | aoi | prf | qvm | fib | generic), results_root ('\\server\share\...'),
+ *             destructive (true = measuring destroys the panels; requests must confirm, M2-11),
  *             types[]:  { name, sample }
  *             bkms[]:   { name, type (a type name of this tool, or null), path, doc_version, sample }
  *             fields[]: { label, type (text | longtext | number | choice | multichoice |
@@ -55,6 +56,10 @@ window.MRT.seed = {
   // Part numbers per project (DECISIONS M1-13). None known yet - admins add them in
   // Settings > Lists; real ones go here too so a new data file starts with them.
   part_numbers: [],
+
+  // Process steps ("the panels are after ..."), in line order (DECISIONS M2-7). None known yet -
+  // e.g. ['After desmear', 'After Cu plating'] once Prince gives the real list.
+  process_steps: [],
 
   buildups: ['BU-01', 'BU-02', 'BU-03', 'BU-04', 'BU-05', 'TEST', 'DOE', 'OPT'],
 
@@ -134,7 +139,7 @@ window.MRT.seed = {
       fields: []
     },
     {
-      code: 'FIB', name: 'FIB', glyph: 'fib', results_root: '',
+      code: 'FIB', name: 'FIB', glyph: 'fib', results_root: '', destructive: true,
       types: [
         { name: 'Via cross-section', sample: true },
         { name: 'Line cross-section', sample: true },

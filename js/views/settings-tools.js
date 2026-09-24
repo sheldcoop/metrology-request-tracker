@@ -1,8 +1,8 @@
 /**
  * Metrology Request Tracker - views/settings-tools.js
  *
- * Settings > Tools: the tools (code, name, glyph, primary and backup quality
- * engineer, results root),
+ * Settings > Tools: the tools (code, name, glyph, destructive, primary and
+ * backup quality engineer, results root),
  * and per tool its measurement types (Q51), extra fields (Q5, M1-7) and BKM
  * library (Q13). A new tool or field needs no code change. The status
  * (Up / Down / Maintenance) is set on Lab status, by the tool's quality
@@ -39,7 +39,8 @@
       k.table([{ label: 'Tool' }, 'Name', 'Primary QE', 'Backup QE', 'Results root', 'Setup', 'Status', { label: '', cls: 'actions' }], tools.map(function (t) {
         var types = ofTool('measurement_types', t.id).length, fields = ofTool('tool_fields', t.id).length, bkms = ofTool('bkms', t.id).length;
         return { id: 'row-' + t.id, cls: t.active === false ? 'is-off' : null, cells: [
-          ui.el('span', { class: 'cell-tool' }, [ui.toolGlyph(t.glyph, { size: 28 }), ui.el('b', { class: 'mono', text: t.code })]),
+          ui.el('span', { class: 'cell-tool' }, [ui.toolGlyph(t.glyph, { size: 28 }), ui.el('b', { class: 'mono', text: t.code }),
+            t.destructive ? k.chip('Destructive', 'warning') : null]),
           t.name,
           k.userName(t.primary_operator_id) || k.muted('not set'),
           k.userName(t.backup_operator_id) || k.muted('not set'),
@@ -73,8 +74,8 @@
     return k.editDialog({
       title: edit ? 'Edit ' + t.code : 'Add a tool', icon: 'wrench',
       values: edit ? { code: t.code, name: t.name, glyph: t.glyph, primary_operator_id: t.primary_operator_id || '', backup_operator_id: t.backup_operator_id || '',
-                       results_root: t.results_root || '', active: t.active !== false }
-                   : { glyph: 'generic', active: true },
+                       results_root: t.results_root || '', destructive: !!t.destructive, active: t.active !== false }
+                   : { glyph: 'generic', destructive: false, active: true },
       fields: [
         { key: 'code', label: 'Code', kind: 'text', mono: true, cls: 'half', hint: '1-6 capitals, e.g. FIB. Starts every request ID.' },
         { key: 'glyph', label: 'Glyph', kind: 'select', cls: 'half', options: ui.GLYPHS.map(function (g) { return { value: g.key, label: g.label }; }) },
@@ -84,6 +85,7 @@
         { key: 'backup_operator_id', label: 'Backup quality engineer', kind: 'select', cls: 'half', options: k.userOptions(measurers) },
         { key: 'results_root', label: 'Results root folder', kind: 'path', placeholder: '\\\\server\\share\\Lab\\FIB',
           hint: 'The app proposes <root>\\YYYY\\<request ID>\\ for results (Q30).' },
+        { key: 'destructive', label: 'Destructive - measuring destroys the panels (e.g. FIB). Requests must confirm it.', kind: 'check' },
         { key: 'active', label: 'Active (untick to hide the tool - it stays in the history)', kind: 'check' }
       ],
       check: function (v) {

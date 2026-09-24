@@ -273,7 +273,7 @@ window.MRT.domain = (function () {
   /**
    * Check one list entry as it WOULD be after a save.
    * @param {string} collection  users | tools | measurement_types | tool_fields | bkms |
-   *                             projects | part_numbers | buildups | priorities | holidays
+   *                             projects | part_numbers | buildups | process_steps | priorities | holidays
    * @param {Object} row         the entry (with id when it exists already)
    * @param {Object} data        the collections, for uniqueness and references
    * @returns {string[]} problems; empty means valid
@@ -303,6 +303,7 @@ window.MRT.domain = (function () {
         if (TOOL_STATUSES.indexOf(r.status) === -1) p.push('Status must be Up, Down or Maintenance');
         if (r.status_until && !isYmd(r.status_until)) p.push('"Until" must be a date');
         if (r.status === 'up' && r.status_until) p.push('An Up tool has no "until" date');
+        if (r.destructive !== undefined && typeof r.destructive !== 'boolean') p.push('"Destructive" must be yes or no');
         if (r.primary_operator_id && !exists('users', r.primary_operator_id)) p.push('Primary quality engineer not found');
         if (r.backup_operator_id && !exists('users', r.backup_operator_id)) p.push('Backup quality engineer not found');
         if (r.primary_operator_id && r.primary_operator_id === r.backup_operator_id) p.push('Primary and backup must be different people');
@@ -366,6 +367,13 @@ window.MRT.domain = (function () {
           if (r.project_ids.some(function (id) { return !exists('projects', id); })) p.push('A ticked project no longer exists');
           if (r.project_ids.some(function (id, i) { return r.project_ids.indexOf(id) !== i; })) p.push('A project is ticked twice');
         }
+        break;
+
+      case 'process_steps':
+        if (!isStr(r.name)) p.push('Enter a name');
+        else if (r.name.length > 60) p.push('Keep the name under 60 characters');
+        else if (others(d.process_steps, r.id).some(function (x) { return normalizeName(x.name) === normalizeName(r.name); })) p.push(r.name + ' is already listed');
+        if (r.sort !== undefined && r.sort !== null && (!isNum(r.sort) || r.sort < 1 || Math.floor(r.sort) !== r.sort)) p.push('Position must be a whole number, 1 or more');
         break;
 
       case 'priorities':
@@ -438,6 +446,9 @@ window.MRT.domain = (function () {
       }
     });
 
+    if (!(data.process_steps || []).some(function (x) { return x.active !== false; })) {
+      add('no_process_steps', 'No process steps yet - requests say which step the panels are at', 'lists');
+    }
     if (!(data.part_numbers || []).some(function (x) { return x.active !== false; })) {
       add('no_part_numbers', 'No part numbers yet - add them per project before lots are registered', 'lists');
     }
