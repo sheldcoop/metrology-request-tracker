@@ -9,11 +9,11 @@ Updated 2026-09-24. Decisions: `DECISIONS.md`; parked questions: `OPEN_QUESTIONS
 - **M3** workflow (accept ... complete, hold, clarify, reopen, edit with a reason, assignment,
   Take it), My queue, My requests, board. Test checklist: `TEST_RUN.md`.
 - Lab status queue part (Q46): open, late, oldest open, typical wait per tool.
+- Working tool glyphs (design plan P1): alive while their tool measures; Down lamp blinks.
 
 ## Being built now (no outside input needed)
 | Item | Decision | Note |
 |---|---|---|
-| Working tool glyphs | P1 | Prince 2026-09-24: "glyph replacement nice" - approval for P1 only |
 | Search in comments | Q41 | small gap |
 | Old drafts flagged | Q33 | small gap |
 | Printable traveller slip + barcode | Q38 | own Code 128 generator (no vendor file, no internet) |

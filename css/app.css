@@ -882,11 +882,51 @@ kbd {
 .tool-glyph .tg-block  { fill: var(--surface-3); stroke: var(--fg-muted); }
 .tool-glyph .tg-beam   { fill: none; stroke: var(--accent); transition: opacity var(--t) ease; }
 .tool-glyph .tg-dot    { fill: var(--accent); stroke: none; }
-.tool-glyph.is-live .tg-beam, .tool-glyph.is-live .tg-dot { animation: pulse 1.6s ease-in-out infinite; }
+/* P1 working glyphs: parts move only while the tool works (.is-live). The still
+   drawing is the last frame, so Reduce motion shows a complete picture.
+   transform / opacity (and the PRF trace's stroke draw-in) only. */
+.tool-glyph .tg-scan    { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.tool-glyph .tg-defect  { fill: var(--critical); stroke: none; }
+.tool-glyph .tg-measure { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.tool-glyph .tg-face    { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .8; }
+.tool-glyph .tg-lamp    { fill: var(--warning); stroke: var(--surface); stroke-width: 1; opacity: 0; }
+.tool-glyph .tg-probe, .tool-glyph .tg-scroll, .tool-glyph .tg-scan, .tool-glyph .tg-stylus,
+.tool-glyph .tg-reticle, .tool-glyph .tg-raster, .tool-glyph .tg-spin { transform-box: view-box; }
+.tool-glyph .tg-measure, .tool-glyph .tg-face { transform-box: fill-box; transform-origin: left top; }
+.tool-glyph .tg-spin { transform-origin: 24px 24px; }
+.tool-glyph.is-live .tg-probe   { animation: tg-tap .9s ease-in-out infinite; }
+.tool-glyph.is-live .tg-scroll  { animation: tg-scroll 1.8s linear infinite; }
+.tool-glyph.is-live .tg-scan    { animation: tg-scan 2.6s ease-in-out infinite alternate; }
+.tool-glyph.is-live .tg-defect  { animation: tg-blink 2.6s steps(1) infinite; }
+.tool-glyph.is-live .tg-d2      { animation-delay: -1.3s; }
+.tool-glyph.is-live .tg-stylus  { animation: tg-glide 3.2s linear infinite; }
+.tool-glyph.is-live .tg-trace   { stroke-dasharray: 48; animation: tg-draw 3.2s linear infinite; }
+.tool-glyph.is-live .tg-reticle { animation: tg-lock 3s cubic-bezier(.2, .8, .2, 1) infinite; }
+.tool-glyph.is-live .tg-measure { animation: tg-snap 3s ease-out infinite; }
+.tool-glyph.is-live .tg-raster  { animation: tg-raster .8s ease-in-out infinite alternate; }
+.tool-glyph.is-live .tg-sparks  { animation: pulse .4s ease-in-out infinite; }
+.tool-glyph.is-live .tg-face    { animation: tg-mill 4s steps(4, end) infinite; }
+.tool-glyph.is-live .tg-spin    { animation: spin 6s linear infinite; }
+@keyframes tg-tap    { 50% { transform: translateY(2px); } }
+@keyframes tg-scroll { from { transform: translateX(-8px); } to { transform: none; } }
+@keyframes tg-scan   { from { transform: translateX(-24px); } to { transform: none; } }
+@keyframes tg-blink  { 0% { opacity: 0; } 55% { opacity: 1; } }
+@keyframes tg-glide  { 0% { transform: none; } 28% { transform: translateX(9px); } 30% { transform: translate(9px, 6px); }
+                       64% { transform: translate(21px, 6px); } 66% { transform: translateX(21px); } 92% { transform: translateX(30px); }
+                       100% { transform: translateX(30px); opacity: 0; } }
+@keyframes tg-draw   { 0% { stroke-dashoffset: 48; } 92% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; opacity: .2; } }
+@keyframes tg-lock   { 0% { transform: translate(-8px, -4px); opacity: .4; } 35%, 100% { transform: none; opacity: 1; } }
+@keyframes tg-snap   { 0%, 40% { transform: scaleX(0); opacity: 0; } 55%, 100% { transform: none; opacity: 1; } }
+@keyframes tg-raster { from { transform: translateX(-2.5px); } to { transform: translateX(2.5px); } }
+@keyframes tg-mill   { from { transform: scaleY(0); } to { transform: none; } }
+@keyframes tg-lamp   { 50% { opacity: .25; } }
 .tool-glyph.is-off { color: var(--fg-faint); }
-.tool-glyph.is-off .tg-beam, .tool-glyph.is-off .tg-dot { opacity: 0; }
+.tool-glyph.is-off .tg-beam, .tool-glyph.is-off .tg-dot, .tool-glyph.is-off .tg-scan, .tool-glyph.is-off .tg-defect,
+.tool-glyph.is-off .tg-measure, .tool-glyph.is-off .tg-face { opacity: 0; }
+.tool-glyph.is-off .tg-lamp { opacity: 1; animation: tg-lamp 1.2s ease-in-out infinite; }
 .tool-glyph.is-maint .tg-beam { stroke: var(--warning); stroke-dasharray: 3 3; }
 .tool-glyph.is-maint .tg-dot { fill: var(--warning); }
+.tool-glyph.is-maint .tg-scan, .tool-glyph.is-maint .tg-measure, .tool-glyph.is-maint .tg-face { stroke: var(--warning); }
 [data-theme="hc"] .tool-glyph .tg-body { fill: var(--surface); }
 
 /* --- Touch and keyboard parity ---------------------------------------- */

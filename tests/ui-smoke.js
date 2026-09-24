@@ -72,6 +72,8 @@ check('heatmap',()=>{put(ui.heatmap({rows:['Mon','Tue'],cols:['07','08','09'],va
 check('glyphs',()=>{expect('six glyphs',ui.GLYPHS.length===6);
   ui.GLYPHS.forEach(g=>['idle','live','maint','off'].forEach(s=>{const n=ui.toolGlyph(g.key,{size:40,state:s,label:g.label});root.appendChild(n);
     expect('glyph '+g.key+' '+s,n.classList.contains('is-'+s)&&n.innerHTML.indexOf('tg-body')!==-1&&n.getAttribute('role')==='img')}));
+  const parts={hrm:['tg-probe','tg-scroll'],aoi:['tg-scan','tg-defect'],prf:['tg-stylus','tg-trace'],qvm:['tg-reticle','tg-measure'],fib:['tg-raster','tg-face'],generic:['tg-spin']};
+  Object.keys(parts).forEach(k=>{const h=ui.toolGlyph(k).innerHTML;expect('P1 working parts + lamp: '+k,parts[k].every(p=>h.indexOf(p)!==-1)&&h.indexOf('tg-lamp')!==-1)});
   const d=ui.toolGlyph('xyz');expect('unknown glyph -> generic',d.dataset.glyph==='generic'&&d.getAttribute('aria-hidden')==='true');
   ui.toolGlyphState(d,'off');expect('state change',d.classList.contains('is-off')&&!d.classList.contains('is-idle'));
   ui.toolGlyphState(d,'bogus');expect('bad state -> idle',d.classList.contains('is-idle'))});

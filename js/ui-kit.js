@@ -230,7 +230,7 @@
   /* --- Tool glyphs ---------------------------------------------------- */
 
   function glyphs() {
-    var states = [['idle', 'Up (idle)'], ['live', 'Working (pulses)'], ['maint', 'Maintenance'], ['off', 'Down']];
+    var states = [['idle', 'Up (idle)'], ['live', 'Working (P1: parts move)'], ['maint', 'Maintenance'], ['off', 'Down (lamp blinks)']];
     return el('div', {}, [
       el('div', { class: 'kit-glyphs' }, [
         el('span'),
@@ -241,7 +241,10 @@
           }));
         })
       ]),
-      note('Sizes: 18 (search), 28 (Settings table), 40 (gate), 56 (Lab status nameplate). The beam is the accent part.'),
+      note('Working (P1): FIB beam rasters and the cross-section face mills open; QVM crosshair locks onto the pad edge and the measuring line snaps; ' +
+           'PRF stylus glides over the step and draws the profile; HRM probe taps while the surface slides; AOI scan frame sweeps, defect boxes blink. ' +
+           'With Reduce motion each shows its last frame. Sizes: 18 (search), 24 (queue), 28 (Settings table), 40 (gate), 56 (Lab status nameplate).'),
+      el('div', { class: 'kit-row', style: { marginTop: '8px' } }, ui.GLYPHS.map(function (g) { return ui.toolGlyph(g.key, { size: 96, state: 'live', label: g.label + ', working' }); })),
       el('div', { class: 'kit-row', style: { marginTop: '8px' } }, [18, 28, 40, 56, 72].map(function (n) { return ui.toolGlyph('fib', { size: n }); }))
     ]);
   }
