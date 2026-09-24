@@ -200,6 +200,47 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   an admin (Settings > People). Shown on Lab status, People and Health (warning when a tool's primary
   and backup are both away). Routing new requests to the backup comes in M3 (Q3).
 
+## M2 planning (2026-09-24)
+- **M2-1** A lot holds: **lot number** (required, unique), **project** (required), **part number**
+  (picked from that project's part numbers - all of them are offered; one is picked for you when
+  the project has only one), **build-up** (required), **panel count** (required, draws the panel
+  map), **lot owner** (the engineer who registers it, filled in), **note** (optional). No panel size.
+  Lot numbers are mostly 5 digits (`18178`); a split lot adds `.01`, `.02` (`18178.01`).
+  Linking lots (a split lot to its parent, related lots for analysis) comes later (OPEN_QUESTIONS #20).
+- **M2-2** Panels are picked on the panel map **or** typed as ranges ("1-5, 12"); both stay in sync (Q6).
+- **M2-3** "Needed by" belongs to each **request**, not the lot (Q10): each tool's request has its own date.
+- **M2-4** "Needed by" is **optional** (changed 2026-09-24, Prince; first agreed as required). Without
+  a date there is no countdown and the request is never "late"; the priority says how urgent it is.
+- **M2-5** Queue order: **Line stop always on top**, then late requests (most overdue first), then
+  by needed-by (earliest first); on the same date Hot before Normal before Low. Requests without a
+  date come after the dated ones, by priority, then the longest waiting first.
+- **M2-6** No date suggested from the priority: the engineer picks the needed-by date themselves.
+- **M2-7** Process step ("panels are after ..."): picked from a **process-step list** in Settings,
+  or "Other" to type it. The list starts empty until Prince gives the real steps.
+- **M2-8** Where the panels are now: a **free-text field** - magazine number, rack/location, "in
+  MES", "with Anna" or anything else that helps the quality engineer find them. **Required.**
+- **M2-9** Optional **Layer** field on the request (e.g. L3, top SR). Project, part number and
+  build-up (BU-01 ...) are picked on the lot and shown on every request of it.
+- **M2-10** No "sites / where on the panel" field: **the BKM says where and what to measure** (Q13 -
+  pick one from the library or paste the path of the engineer's own BKM PowerPoint). Without a BKM
+  the purpose must describe it (Q45).
+- **M2-11** Destructive tools: a per-tool setting "destructive" (Settings > Tools; only **FIB** today).
+  Requests on such a tool need a **required tick** "Panels may be destroyed / scrapped".
+- **M2-12** After measuring, the panels go: **Back to me** (default) / **Back to the line** /
+  **Lab may scrap them** / **Other** (type it). Destructive tools (FIB) are set to scrap.
+- **M2-13** Purpose is **optional** - except when no BKM is given: then it must say what to
+  measure (Q45).
+- **M2-14** No "contact if I'm away" field for now - backups cover it. Look again after the test
+  run (R1).
+- **M2-15** No picture / drawing attachment for now - the BKM covers it.
+- **M2-16** No warning when priority and date do not match - the date is optional.
+- **M2-17** The tool's quality engineers may change a request's priority; a comment is optional.
+  The change shows in the timeline and the audit log; the engineer is notified from M4.
+- **M2 build order** (one branch per step, Prince reviews each): 1 `m2-settings` (process-step
+  list, "destructive" per tool) - 2 `lots` - 3 `panel-map` - 4 `request-form` (drafts, submit
+  warnings Q44, request ID Q29, duplicate) - 5 `request-page` (traveller card, status rail,
+  timeline + comments). Personal templates (Q28) after M2.
+
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
   the app for a few days before M4 starts.
