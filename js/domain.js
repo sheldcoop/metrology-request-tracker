@@ -817,7 +817,7 @@ window.MRT.domain = (function () {
       .map(function (r) { return workingMs(Date.parse(r.submitted_ts), Date.parse(r.started_ts), cal, hs); })
       .sort(function (a, b) { return a - b; });
     var mid = started.length ? (started.length % 2 ? started[(started.length - 1) / 2] : (started[started.length / 2 - 1] + started[started.length / 2]) / 2) : null;
-    return { open: open.length, late: open.filter(function (r) { return isLate(r, nowTs, cal); }).length, oldest: oldest,
+    return { open: open.length, running: open.filter(function (r) { return r.status === 'in_progress'; }).length, late: open.filter(function (r) { return isLate(r, nowTs, cal); }).length, oldest: oldest,
              oldest_lab_ms: oldest ? workingMs(Date.parse(oldest.submitted_ts), nowTs, cal, hs) : 0, wait_ms: mid, wait_n: started.length };
   }
 

@@ -338,6 +338,8 @@ never the only signal - the text/label says the same thing.
   two points; PRF stylus glides over a wavy surface and draws the profile behind it; HRM probe taps
   while a roughness trace scrolls; AOI scan frame sweeps the panel with small defect boxes blinking
   up. Down: glyph greyed, a small warning lamp blinks. (Today: the beam pulses / dashes / is off.)
+  **P1 BUILT** (2026-09-24, Prince: "glyph replacement nice"): the glyphs come alive while their
+  tool has a request In progress (Lab status, board, request page); a Down tool's lamp blinks.
 - **P2 Needed-by gauge** on the traveller card: a needle/scale from green to amber to red as the
   deadline nears; late: past the red mark and pulsing; on hold: needle frozen with a pause symbol.
 - **P3 Traveller card**: a rubber stamp ("ACCEPTED", "COMPLETED") slams on at each status change

@@ -89,7 +89,7 @@ window.MRT.views.lab = (function () {
 
     return ui.el('article', { class: 'tool-plate is-' + t.status, id: 'tool-' + t.id, 'aria-label': t.code + ', ' + s.label }, [
       ui.el('header', { class: 'tool-plate-head' }, [
-        ui.toolGlyph(t.glyph, { size: 56, state: s.glyph, label: t.name }),
+        ui.toolGlyph(t.glyph, { size: 56, state: s.glyph === 'idle' && q.running ? 'live' : s.glyph, label: t.name + (q.running ? ', measuring' : '') }),
         ui.el('div', { class: 'tool-plate-id' }, [
           ui.el('h2', { class: 'tool-code mono', text: t.code }),
           ui.el('div', { class: 'tool-name', text: t.name }),

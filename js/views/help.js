@@ -60,7 +60,8 @@ window.MRT.views.help = (function () {
         'A tool\'s primary or backup quality engineer (or an admin) clicks Set status, picks Up, Maintenance or Down, and optionally an until date and a note.',
         '"sample entries" on a plate: some of its measurement types or BKMs are still made up - see "Admin: setting up the office".'
       ],
-      tips: ['Queue length, the oldest open request and the typical wait appear here from M3.'],
+      tips: ['Each plate also shows its queue: open requests (late ones counted), the oldest open request and the typical wait (median lab time from submit to start).',
+             'While a tool has a request In progress its drawing works: the FIB beam rasters, the QVM crosshair locks on, the PRF stylus glides, the HRM probe taps, the AOI scan sweeps. A Down tool shows a blinking lamp.'],
       link: ['Open Lab status', '#/lab'] },
 
     { id: 'lots', title: 'Lots: register a lot', icon: 'lots',

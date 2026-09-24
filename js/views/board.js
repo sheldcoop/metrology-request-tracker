@@ -72,7 +72,8 @@ window.MRT.views.board = (function () {
       grid.appendChild(ui.el('div', { class: 'board-colhead' }, [ui.el('b', { text: c.label }), ui.el('span', { class: 'num muted', text: String(n) })]));
     });
     lanes.forEach(function (t) {
-      grid.appendChild(ui.el('div', { class: 'board-lane is-' + t.status }, [ui.toolGlyph(t.glyph, { size: 32, state: t.status === 'up' ? 'idle' : t.status === 'down' ? 'off' : 'maint' }),
+      var running = reqs.some(function (r) { return r.tool_id === t.id && r.status === 'in_progress'; });
+      grid.appendChild(ui.el('div', { class: 'board-lane is-' + t.status }, [ui.toolGlyph(t.glyph, { size: 32, state: t.status === 'up' ? (running ? 'live' : 'idle') : t.status === 'down' ? 'off' : 'maint' }),
         ui.el('b', { class: 'mono', text: t.code }), t.status !== 'up' ? ui.el('span', { class: 'chip ' + (t.status === 'down' ? 'expired' : 'warning'), text: D.TOOL_STATUS_LABEL[t.status] }) : null]));
       COLS.forEach(function (c) {
         var cards = D.sortQueue(reqs.filter(function (r) { return r.tool_id === t.id && c.has.indexOf(r.status) !== -1; }), { now_ts: now, cal: cal, levelOf: levelOf });
