@@ -10,7 +10,7 @@
  *   tests/preview.html                    Lab status as Prince (Admin + Engineer)
  *   tests/preview.html#/settings/tools    any page; Settings unlock by themselves (demo PIN 1234)
  *   ?as=quality | engineer | operator     sign in as Olga (Quality engineer), Erik, Mia instead
- *   ?demo=big                             the big made-up file (tests/demo-data.js); ?as=prince|erik|mia|olga|max ...
+ *   ?demo=big                             the big made-up file (js/demo-data.js); ?as=prince|erik|mia|olga|max ...
  *                                         any of its people by first name; a button downloads the file
  *   ?theme=dark | light | hc              ?motion=reduce       ?empty=1  first run on an empty folder
  *   ?click=<css>                          click that element after load (open a dialog), URL-encoded
@@ -120,7 +120,7 @@
   // --- the memory folder the app talks to (it waits until the demo file is ready)
   var files = {};
   var mem = MRT.adapters.storageMemory(files);
-  // ?demo=big: the big made-up file of tests/demo-data.js (people, lots, ~260 requests in every state)
+  // ?demo=big: the big made-up file of js/demo-data.js (people, lots, ~260 requests in every state)
   var big = /[?&]demo=big/.test(q);
   function bigFile() {
     var d = MRT.demoData({ now_ts: Date.now() });

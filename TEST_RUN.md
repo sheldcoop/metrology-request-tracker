@@ -19,6 +19,9 @@ A screenshot helps. Everything else is welcome too: missing fields, confusing wo
 ## 1. Engineer
 - [ ] Opens on **My requests**.
 - [ ] Lots > Register lot: lot number, panels (optional), lot fields - no project or build-up any more.
+- [ ] Your own data folder: Settings > Data & PIN > "Fill with demo data" (reason: testing). You are still
+      admin (top right: Prince Khurana), My requests is full. When done: "Start empty", or restore
+      the "before demo data" copy from the Backups list.
 - [ ] Your own data folder: Settings > Lists > Magazines shows M70345-M70364 after the upgrade (or use
       Settings > Data > "Add the sample magazines"); the form's step 3 then offers them.
 - [ ] New request (guided): tool drawing, type, BKM (or own path) -> Next. Project · Lot · Build-up on one

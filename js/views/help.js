@@ -249,6 +249,7 @@ window.MRT.views.help = (function () {
       steps: [
         'Settings > Data & PIN > Try it out: "Add 3 sample lots" adds made-up lots (tagged Sample) to try the app. Delete them on the Lots page before real use.',
         'Settings > Data & PIN shows the data file, lets you download a copy now, and lists the daily backups.',
+        'Test data (Settings > Data & PIN): "Fill with demo data" puts the made-up demo (17 people, ~260 requests) into this folder - you become its Prince Khurana (admin) with your own Windows ID and keep your PIN. "Start empty" starts again like a first run with only you. Both keep the current file in the backups first; restore it from the Backups list ("before demo data").',
         'Restore puts everything back to that day for everyone. The current file is kept as a safety copy first, and the audit log keeps every entry. A reason is required.',
         'Settings > Audit log: every change - who, when, what, old and new value, reason. Type in Filter to search.',
         'Change the admin PIN under Data & PIN. Tell the other admins.',

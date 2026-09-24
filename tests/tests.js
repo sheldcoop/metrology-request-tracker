@@ -972,8 +972,39 @@
     ok('...after a safety copy of the current file', !!a.files[res.safety_copy]);
     eq('...the audit log is kept and grows', auditCount(), auditN + 1);
 
+    group('Store: fill with demo data, start empty (Settings > Data, for testing)');
+    a = await freshStore();
+    await ST.createFirstAdmin({ name: 'Pat Admin', windows_id: 'padmin', pin: '2468' });
+    await ST.saveLot({ fields: { lot_number: '55555' } });
+    var pinHash = ST.getSetting('admin_pin_hash'), revB = ST.status().revision;
+    ST.setCurrentUser(ST.data().users[0].id);
+    await refused('a reason is required', ST.replaceData('demo', ''));
+    var rd = await ST.replaceData('demo', 'testing');
+    var meD = ST.currentUser();
+    eq('demo: the big file is in; I am its Prince (admin), with my Windows ID; my PIN still works',
+       [ST.data().requests.length > 200, meD.id, meD.windows_id, D.hasRole(meD, 'admin'), ST.getSetting('admin_pin_hash') === pinHash, await ST.verifyPin('2468')],
+       [true, 'usr_demo_prince', 'padmin', true, true, true]);
+    ok('...the old file is kept first, and listed as restorable', !!a.files[rd.safety_copy] && JSON.parse(a.files[rd.safety_copy]).lots.some(function (l) { return l.lot_number === '55555'; }) &&
+       (await ST.listBackups()).some(function (b) { return b.kind === 'before demo data'; }));
+    ok('...saved, the revision goes on (other PCs see it), the swap audited', fileOf(a).requests.length > 200 && ST.status().revision > revB &&
+       ST.data().audit_log.slice(-1)[0].action === 'replace');
+    ok('...no one else has my Windows ID', ST.data().users.filter(function (u) { return u.windows_id === 'padmin'; }).length === 1);
+    var re = await ST.replaceData('empty', 'clean start');
+    eq('empty: no lots, requests or other people - only me, admin; the lists of a first run; my PIN',
+       [ST.data().lots.length, ST.data().requests.length, ST.data().users.map(function (u) { return u.id; }), D.hasRole(ST.currentUser(), 'admin'), ST.list('tools').length, ST.list('magazines').length, await ST.verifyPin('2468')],
+       [0, 0, ['usr_demo_prince'], true, 5, 20, true]);
+    ST.setCurrentUser('usr_demo_prince');
+    await ST.restoreBackup(rd.safety_copy.split('/').pop(), 'back to the real file');
+    ok('the copy made before the demo can be restored - with its own audit log, not the demo\'s', ST.data().lots.some(function (l) { return l.lot_number === '55555'; }) &&
+       !ST.data().audit_log.some(function (x) { return x.new_value === 'demo data'; }) && ST.data().audit_log.slice(-1)[0].action === 'restore');
+    ok('...and the empty one was kept too', !!a.files[re.safety_copy]);
+    ST.setCurrentUser(ST.data().users[0].id);
+    await ST.saveEntry('users', { fields: { name: 'Eve Eng', roles: ['engineer'] } });
+    ST.setCurrentUser(ST.data().users.filter(function (u) { return u.name === 'Eve Eng'; })[0].id);
+    await refused('only admins replace the data', ST.replaceData('empty', 'x'), 'not_admin');
+
     /* =============== store: file checks and upgrades =============== */
-    /* =============== the big demo data file (tests/demo-data.js) =============== */
+    /* =============== the big demo data file (js/demo-data.js) =============== */
     group('Demo data: every record keeps the app\'s rules');
     var DD = window.MRT.demoData({ now_ts: Date.parse('2026-09-24T09:30:00Z') });
     var badUsers = DD.users.filter(function (u) { return D.validateEntry('users', u, DD).length; });

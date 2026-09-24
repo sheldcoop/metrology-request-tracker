@@ -285,5 +285,8 @@ window.MRT.views.settings = (function () {
 
   window.MRT.settingsKit = kit;
 
-  return { render: render };
+  /** The same person got a new user ID (Settings > Data swapped the data file): the PIN they entered still counts. */
+  function keepUnlocked(oldId, newId) { if (unlockedFor === oldId) unlockedFor = newId; }
+
+  return { render: render, keepUnlocked: keepUnlocked };
 })();
