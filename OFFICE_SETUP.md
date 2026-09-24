@@ -70,7 +70,8 @@ lists it until it is edited or deleted.
 
 ## 5. Not built yet (for reference)
 
-- M1 step 4: Settings, Health, audit log, backups screen, "Change data folder".
+- ~~M1 step 4: Settings, Health, audit log, backups screen, "Change data folder".~~ Done:
+  Settings > Health now shows this checklist live.
 - M1 step 5: Help page, ui-kit.html, preview, accessibility audit, CONTRIBUTING.md.
 - Later milestones: requests (M2-M3), notifications (M4), analytics and Excel
   export (M5), import of the old request list (M6), QR code on the traveller

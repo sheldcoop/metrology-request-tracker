@@ -6,9 +6,33 @@ lab operators run them and hand back a results folder.
 Zero install: static files on the shared drive, opened in Microsoft Edge.
 No server, no build step, no internet.
 
-> Work in progress (milestone M1): Lab status works; Settings and Help
-> follow in the next steps. The other menu entries are greyed until their
+> Work in progress (milestone M1): Lab status and Settings work; Help
+> follows in the next step. The other menu entries are greyed until their
 > milestone.
+
+## What the pages do (M1)
+
+**Lab status** - every tool as a nameplate: its glyph, Up / Maintenance /
+Down with an "until" date, operators, measurement types and BKMs. The tool's
+operators and admins set the status here.
+
+**Settings** (admins, PIN once per visit):
+- *Health* - "still to do before real use" (the office checklist, live:
+  sample entries, missing operators and results roots, calendar, closing
+  days, people to review) and "data health" (broken links, odd states).
+  Every line links to where it is fixed.
+- *People* - name, Windows ID, email, roles (ticks), active; review people
+  who added themselves.
+- *Tools* - code, glyph, operators, results root; per tool its measurement
+  types, extra fields (8 kinds) and BKM library (Copy path).
+- *Lists* - projects, build-ups, priorities.
+- *Lab calendar* - lab days and hours, public holidays and closing days.
+- *Audit log* - every change, filterable.
+- *Data & PIN* - the data file, a copy to download, daily backups with
+  restore, the admin PIN.
+
+Entries in use are hidden, not deleted. A "Sample" tag marks made-up
+entries; save one (changed or not) to confirm it as real.
 
 ---
 

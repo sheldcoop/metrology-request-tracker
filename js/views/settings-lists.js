@@ -1,0 +1,103 @@
+/**
+ * Metrology Request Tracker - views/settings-lists.js
+ *
+ * Settings > Lists: projects and build-ups (the lot pickers, Q7/Q8) and
+ * priorities (Q26: Line stop / Hot / Normal / Low - renamable, one is the
+ * default, some need a reason). Lists are referenced by ID, so a rename
+ * shows everywhere; delete only while unused, otherwise hide (Q47).
+ */
+(function () {
+  'use strict';
+
+  var ui = window.MRT.ui;
+  var store = window.MRT.store;
+  var D = window.MRT.domain;
+
+  function K() { return window.MRT.settingsKit; }
+  function oops(e) { if (!K().quiet(e)) ui.toastError(e.message, e); }
+  function activeChip(r) { return K().chip(r.active === false ? 'Hidden' : 'Active', r.active === false ? 'neutral' : 'ok'); }
+
+  function render(body, ctx) {
+    body.appendChild(ui.el('div', { class: 'settings-cols' }, [
+      codeList('projects', 'Projects', 'project', 'e.g. C4F', 'lots'),
+      codeList('buildups', 'Build-ups', 'build-up', 'e.g. BU-06', 'grid')
+    ]));
+    body.appendChild(prioritiesPanel());
+    K().focusRow(body, ctx.focusId);
+  }
+
+  function codeList(collection, title, label, example, icon) {
+    var k = K();
+    var rows = store.list(collection, { all: true });
+    return k.panel(title, icon, [ui.button('Add', { size: 'sm', icon: 'plus', onClick: function () { codeDialog(collection, label, example, null); } })], [
+      k.table(['Code', 'Name', 'Status', { label: '', cls: 'actions' }], rows.map(function (r) {
+        return { id: 'row-' + r.id, cls: r.active === false ? 'is-off' : null, cells: [
+          ui.el('b', { class: 'mono', text: r.code }), r.name || k.muted('-'), activeChip(r),
+          ui.el('span', { class: 'row-actions' }, [k.editButton(r.code, function () { codeDialog(collection, label, example, r); }), k.deleteButton(collection, r, r.code)])
+        ] };
+      }), 'None yet.')
+    ]);
+  }
+
+  function codeDialog(collection, label, example, r) {
+    var edit = !!r;
+    return K().editDialog({
+      title: edit ? 'Edit ' + r.code : 'Add a ' + label, icon: 'edit',
+      values: edit ? { code: r.code, name: r.name || '', active: r.active !== false } : { active: true },
+      fields: [
+        { key: 'code', label: 'Code', kind: 'text', mono: true, cls: 'half', placeholder: example, hint: 'Capitals, digits and dashes.' },
+        { key: 'name', label: 'Long name (optional)', kind: 'text', cls: 'half' },
+        { key: 'active', label: 'Active (untick to hide it from the pickers; lots using it keep it)', kind: 'check' }
+      ],
+      check: function (v) { return D.isCode(v.code.toUpperCase(), 12) ? null : ['code', 'Capitals, digits and dashes, e.g. ' + example]; },
+      save: function (v) { return store.saveEntry(collection, { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },
+      done: edit ? 'Saved.' : 'Added.'
+    }).catch(oops);
+  }
+
+  function prioritiesPanel() {
+    var k = K();
+    var rows = store.list('priorities', { all: true });
+    return k.panel('Priorities', 'alert', [ui.button('Add', { size: 'sm', icon: 'plus', onClick: function () { priorityDialog(null); } })], [
+      ui.el('p', { class: 'muted', text: 'Shown big as the word, small as the code. Level 1 is the most urgent. ' +
+        'Priorities that need a reason ask the engineer why; managers see them in analytics.' }),
+      k.table(['Priority', 'Level', 'Needs a reason', 'Default', 'Status', { label: '', cls: 'actions' }], rows.map(function (p) {
+        return { id: 'row-' + p.id, cls: p.active === false ? 'is-off' : null, cells: [
+          ui.el('span', { class: 'prio-label' }, [ui.el('b', { text: p.name }), ui.el('span', { class: 'mono muted', text: p.code })]),
+          ui.el('span', { class: 'num', text: String(p.level) }),
+          p.needs_reason ? 'Yes' : k.muted('No'),
+          p.is_default ? k.chip('Default', 'ok') : '',
+          activeChip(p),
+          ui.el('span', { class: 'row-actions' }, [k.editButton(p.name, function () { priorityDialog(p); }), k.deleteButton('priorities', p, p.name)])
+        ] };
+      }))
+    ]);
+  }
+
+  function priorityDialog(p) {
+    var edit = !!p;
+    return K().editDialog({
+      title: edit ? 'Edit ' + p.name : 'Add a priority', icon: 'alert',
+      values: edit ? { name: p.name, code: p.code, level: p.level, needs_reason: !!p.needs_reason, is_default: !!p.is_default, active: p.active !== false }
+                   : { level: store.list('priorities', { all: true }).length + 1, active: true },
+      fields: [
+        { key: 'name', label: 'Name', kind: 'text', cls: 'half', placeholder: 'e.g. Line stop' },
+        { key: 'code', label: 'Code', kind: 'text', mono: true, cls: 'half', placeholder: 'e.g. P1' },
+        { key: 'level', label: 'Level (1 = most urgent)', kind: 'number', cls: 'half' },
+        { key: 'needs_reason', label: 'The engineer must give a reason', kind: 'check' },
+        { key: 'is_default', label: 'Default for new requests (only one)', kind: 'check' },
+        { key: 'active', label: 'Active (untick to hide)', kind: 'check' }
+      ],
+      check: function (v) {
+        if (!v.name) return ['name', 'Enter a name'];
+        if (!D.isCode(v.code.toUpperCase(), 4)) return ['code', 'A short code, e.g. P1'];
+        if (!(v.level >= 1) || Math.floor(v.level) !== v.level) return ['level', 'A whole number, 1 or more'];
+        return null;
+      },
+      save: function (v) { return store.saveEntry('priorities', { id: edit ? p.id : undefined, version: edit ? p.version : undefined, fields: v, reason: 'Settings' }); },
+      done: edit ? 'Saved.' : 'Added.'
+    }).catch(oops);
+  }
+
+  window.MRT.settingsTabs.push({ key: 'lists', label: 'Lists', icon: 'lots', order: 40, render: render });
+})();

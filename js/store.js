@@ -92,6 +92,7 @@ window.MRT.store = (function () {
     lab_days: [1, 2, 3, 4, 5],
     lab_start: '07:00',
     lab_end: '18:00',
+    calendar_confirmed: false,        // setup to-do until an admin saves or confirms the calendar
     admin_pin_salt: null,
     admin_pin_hash: null,
     last_backup_date: null
@@ -738,7 +739,8 @@ window.MRT.store = (function () {
         Object.keys(fields).forEach(function (k) {
           if (JSON.stringify(existing[k]) !== JSON.stringify(next[k])) changes.push({ field: k, from: existing[k], to: next[k] });
         });
-        assert(changes.length, 'Nothing was changed', 'no_change');
+        // saving a sample entry unchanged confirms it as real (the engineers said it is right)
+        assert(changes.length || existing.sample, 'Nothing was changed', 'no_change');
         if (existing.sample) { next.sample = false; changes.push({ field: 'sample', from: true, to: false }); }
       }
 
@@ -867,8 +869,26 @@ window.MRT.store = (function () {
       var keys = Object.keys(map).filter(function (k) { return JSON.stringify(old[k]) !== JSON.stringify(map[k]); });
       assert(keys.length, 'Nothing was changed', 'no_change');
       keys.forEach(function (k) { audit('setting', k, 'update', k, old[k], map[k], reason || null); setSettingValue(k, map[k]); });
+      if (!getSetting('calendar_confirmed')) setSettingValue('calendar_confirmed', true);
       return commit().then(calendar);
     });
+  }
+
+  /** "These days and hours are right" - clears the setup to-do without changing them. */
+  function confirmCalendar(reason) {
+    return guard(function () {
+      requireAdmin();
+      assert(!getSetting('calendar_confirmed'), 'The calendar is already confirmed', 'no_change');
+      audit('setting', 'calendar_confirmed', 'update', 'calendar_confirmed', false, true, reason || 'Lab days and hours confirmed');
+      setSettingValue('calendar_confirmed', true);
+      return commit().then(calendar);
+    });
+  }
+
+  /** Health and the setup to-do list (Settings > Health), as of today in Vienna. */
+  function health() {
+    var o = { today_ymd: D.viennaYmd(Date.now()), calendar_confirmed: !!getSetting('calendar_confirmed') };
+    return { todo: D.setupTodo(state.data, o), issues: D.healthIssues(state.data, o) };
   }
 
   /** Add the Austrian public holidays of a year (admin). Dates already listed are skipped. */
@@ -1044,6 +1064,8 @@ window.MRT.store = (function () {
     entryUsage: entryUsage,
     setToolStatus: setToolStatus,
     updateCalendar: updateCalendar,
+    confirmCalendar: confirmCalendar,
+    health: health,
     addPublicHolidays: addPublicHolidays,
 
     // undo

@@ -2,7 +2,7 @@
  * Metrology Request Tracker - ui/components.js  (copied from ABF Tracker v2)
  *
  * Panel, buttons, segmented control, checkbox/switch, instrument field,
- * KPI tile, tabs, empty state, skeleton.
+ * form (field specs -> controls -> values), KPI tile, tabs, empty state, skeleton.
  * Adds to MRT.ui (see ui/core.js for the load order).
  *
  * Rule: user text never reaches innerHTML. Use el()/text() or esc().
@@ -144,6 +144,7 @@
           return el('option', { value: opt.value, text: opt.label,
                                 selected: String(opt.value) === String(o.value) });
         }));
+      if (o.value !== undefined && o.value !== null) control.value = String(o.value);
     } else if (o.multiline) {
       control = el('textarea', { id: id, name: o.name || null, class: 'ifield-input', rows: o.rows || 3,
                                  placeholder: o.placeholder || null });
@@ -335,6 +336,96 @@
     return { node: bar, setActive: setActive };
   }
 
+  /* ------------------------------------------------------------------ *
+   * Form: a list of field specs -> labelled controls, values out
+   * ------------------------------------------------------------------ */
+
+  /**
+   * Build a form from specs. Used by the Settings dialogs and, from M2, the
+   * request form (admin-defined extra fields use the same kinds).
+   *   spec: {key, label, kind, hint, placeholder, unit, mono, required,
+   *          options: [{value, label}], showIf(values) -> bool}
+   *   kind: text | longtext | number | date | email | password | path |
+   *         select | check | checks
+   * Returns {node, values(), setError(key, message), clearErrors(), focus()}.
+   * values(): numbers as numbers (or null), check -> bool, checks -> [values].
+   */
+  function form(specs, initial) {
+    var init = initial || {};
+    var parts = {};
+    var node = el('div', { class: 'form-grid' });
+
+    specs.forEach(function (sp) {
+      var v = init[sp.key];
+      var part;
+      if (sp.kind === 'check') {
+        var t = toggle({ label: sp.label, checked: !!v });
+        part = { node: el('div', { class: 'form-check' }, [t.node, sp.hint ? el('div', { class: 'ifield-msg', text: sp.hint }) : null]),
+                 get: function () { return t.input.checked; }, setState: function () {}, input: t.input };
+      } else if (sp.kind === 'checks') {
+        var boxes = (sp.options || []).map(function (opt) {
+          var tb = toggle({ label: opt.label, checked: (v || []).indexOf(opt.value) !== -1 });
+          tb.value = opt.value;
+          return tb;
+        });
+        var msg = el('div', { class: 'ifield-msg', 'aria-live': 'polite' }, sp.hint || null);
+        var fs = el('fieldset', { class: 'form-checks' }, [
+          el('legend', { class: 'ifield-label', text: sp.label }),
+          el('div', { class: 'form-checks-row' }, boxes.map(function (b) { return b.node; })),
+          msg
+        ]);
+        part = { node: fs, input: boxes.length ? boxes[0].input : fs,
+                 get: function () { return boxes.filter(function (b) { return b.input.checked; }).map(function (b) { return b.value; }); },
+                 setState: function (state, message) {
+                   fs.classList.toggle('is-invalid', state === 'invalid');
+                   clear(msg);
+                   if (message) append(msg, [icon('alert', 14), el('span', { text: message })]);
+                   else if (sp.hint) msg.textContent = sp.hint;
+                 } };
+      } else {
+        var type = { number: 'number', date: 'date', email: 'email', password: 'password' }[sp.kind] || 'text';
+        var f = field({
+          label: sp.label, type: type, unit: sp.unit, hint: sp.hint, placeholder: sp.placeholder,
+          mono: sp.mono !== undefined ? sp.mono : (sp.kind === 'path' || sp.kind === 'number'),
+          multiline: sp.kind === 'longtext', required: !!sp.required, step: sp.kind === 'number' ? 'any' : undefined,
+          options: sp.kind === 'select' ? sp.options : undefined,
+          value: v === null || v === undefined ? (sp.kind === 'select' && sp.options && sp.options[0] ? sp.options[0].value : '') : v
+        });
+        part = { node: f.node, input: f.input, setState: f.setState,
+                 get: function () {
+                   var raw = f.value();
+                   if (sp.kind === 'number') { var n = String(raw).trim() === '' ? null : Number(raw); return n === null || isFinite(n) ? n : NaN; }
+                   return typeof raw === 'string' ? raw.trim() : raw;
+                 } };
+      }
+      if (sp.cls) part.node.classList.add(sp.cls);
+      parts[sp.key] = part;
+      node.appendChild(part.node);
+    });
+
+    function values() {
+      var o = {};
+      specs.forEach(function (sp) { o[sp.key] = parts[sp.key].get(); });
+      return o;
+    }
+    function applyShowIf() {
+      var vals = values();
+      specs.forEach(function (sp) { if (sp.showIf) parts[sp.key].node.hidden = !sp.showIf(vals); });
+    }
+    node.addEventListener('change', applyShowIf);
+    node.addEventListener('input', applyShowIf);
+    applyShowIf();
+
+    return {
+      node: node,
+      values: values,
+      setError: function (key, message) { if (parts[key]) { parts[key].setState('invalid', message); if (parts[key].input.focus) parts[key].input.focus(); } },
+      clearErrors: function () { Object.keys(parts).forEach(function (k) { parts[k].setState(null); }); },
+      focus: function () { var first = specs.filter(function (sp) { return !parts[sp.key].node.hidden; })[0]; if (first && parts[first.key].input.focus) parts[first.key].input.focus(); }
+    };
+  }
+
+  ui.form = form;
   ui.button = button;
   ui.emptyState = emptyState;
   ui.field = field;
