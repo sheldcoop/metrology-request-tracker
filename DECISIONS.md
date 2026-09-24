@@ -228,6 +228,8 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   **Lab may scrap them** / **Other** (type it). Destructive tools (FIB) are set to scrap.
 - **M2-13** Purpose is **optional** - except when no BKM is given: then it must say what to
   measure (Q45).
+- **M2-14** No "contact if I'm away" field for now - backups cover it. Look again after the test
+  run (R1).
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
