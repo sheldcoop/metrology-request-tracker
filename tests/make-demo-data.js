@@ -4,7 +4,7 @@
  * Writes the big made-up demo data file (tests/demo-data.js) to
  * demo-data/mrt_data.json (or the folder given). Open the app, user menu >
  * Change data folder, pick that folder. Admin PIN: 1234. Your real data
- * folder is never touched; demo-data/ is not committed (.gitignore).
+ * folder is never touched. demo-data/mrt_data.json IS committed (Prince, 2026-09-24), so a clone has it.
  */
 const vm = require('vm'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 const ROOT = path.join(__dirname, '..');

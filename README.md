@@ -112,7 +112,10 @@ reopened, cancelled, drafts, @mentions, away routing, scrapped FIB panels).
   `demo-data`. Admin PIN **1234**. No Node? The preview's "Download the demo
   data file" button saves the same file - put it in an empty folder.
 
-Your real `data\` folder is never touched; `demo-data/` is not committed.
+The demo file **is in git** (`demo-data/mrt_data.json`), so every clone has it. Its dates are
+relative to the day it was made - run `node tests/make-demo-data.js` again for fresh ones. Saving in
+the app changes it (git then shows it as modified): `git checkout demo-data` puts it back. Your real
+`data\` folder is never touched.
 
 ## Getting started
 
