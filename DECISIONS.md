@@ -200,6 +200,16 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
   an admin (Settings > People). Shown on Lab status, People and Health (warning when a tool's primary
   and backup are both away). Routing new requests to the backup comes in M3 (Q3).
 
+## M2 planning (2026-09-24)
+- **M2-1** A lot holds: **lot number** (required, unique), **project** (required), **part number**
+  (picked from that project's part numbers - all of them are offered; one is picked for you when
+  the project has only one), **build-up** (required), **panel count** (required, draws the panel
+  map), **lot owner** (the engineer who registers it, filled in), **note** (optional). No panel size.
+  Lot numbers are mostly 5 digits (`18178`); a split lot adds `.01`, `.02` (`18178.01`).
+  Linking lots (a split lot to its parent, related lots for analysis) comes later (OPEN_QUESTIONS #20).
+- **M2-2** Panels are picked on the panel map **or** typed as ranges ("1-5, 12"); both stay in sync (Q6).
+- **M2-3** "Needed by" belongs to each **request**, not the lot (Q10): each tool's request has its own date.
+
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
   the app for a few days before M4 starts.
