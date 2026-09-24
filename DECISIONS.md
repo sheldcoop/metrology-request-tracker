@@ -222,6 +222,8 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 - **M2-10** No "sites / where on the panel" field: **the BKM says where and what to measure** (Q13 -
   pick one from the library or paste the path of the engineer's own BKM PowerPoint). Without a BKM
   the purpose must describe it (Q45).
+- **M2-11** Destructive tools: a per-tool setting "destructive" (Settings > Tools; only **FIB** today).
+  Requests on such a tool need a **required tick** "Panels may be destroyed / scrapped".
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
