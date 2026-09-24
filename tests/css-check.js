@@ -29,6 +29,7 @@ const REQUIRED = {
   shell: ['.topbar', '.nav-item', '.save-led', '.undo-btn', '.alert-banner', '.gate-card', '.nav-item.is-soon', '.gate-error'],
   lab: ['.tool-plate::before', '.tool-plate-facts', '.lab-grid'],
   lots: ['.lots-tools', '.cell-note'],
+  request: ['.req-layout', '.tool-pick-opt.is-on', '.traveller-mini::before', '.req-errors'],
   panelmap: ['.panel-map', '.pm-cell.is-picked::after', '.pm-cell.is-scrapped', '.pm-cell::before'],
   form: ['.form-grid', '.form-checks', '.modal-error'],
   help: ['.help-layout', '.help-steps li::marker', '.help-roles', '@media print'],

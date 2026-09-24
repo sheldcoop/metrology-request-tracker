@@ -22,11 +22,11 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 5;
+  var SCHEMA_VERSION = 6;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
-    'projects', 'part_numbers', 'buildups', 'process_steps', 'priorities', 'holidays', 'lot_fields', 'lots', 'audit_log'
+    'projects', 'part_numbers', 'buildups', 'process_steps', 'priorities', 'holidays', 'lot_fields', 'lots', 'requests', 'request_events', 'audit_log'
   ];
 
   /** In-memory state. `data` is the loaded file; never mutate it from a screen. */
@@ -293,7 +293,12 @@ window.MRT.store = (function () {
     // 3 -> 4: lots (M2-1). Old files have none.
     3: function (d) { if (!Array.isArray(d.lots)) d.lots = []; },
     // 4 -> 5: lot fields (admin-defined, like tool extra fields); the starting ones from seed.js, marked sample.
-    4: function (d) { if (!Array.isArray(d.lot_fields)) d.lot_fields = lotFieldsFromSeed(window.MRT.seed); }
+    4: function (d) { if (!Array.isArray(d.lot_fields)) d.lot_fields = lotFieldsFromSeed(window.MRT.seed); },
+    // 5 -> 6: requests and their timeline (M2 step 4). Old files have none.
+    5: function (d) {
+      if (!Array.isArray(d.requests)) d.requests = [];
+      if (!Array.isArray(d.request_events)) d.request_events = [];
+    }
   };
 
   function migrate(data) {
@@ -860,16 +865,21 @@ window.MRT.store = (function () {
   /**
    * What points at a list entry. An entry can be deleted only while nothing
    * does; otherwise it is hidden instead (Q47). Requests and lots join this
-   * table in M2 (lots will point at projects, part numbers and build-ups).
+   * table in M2: lots point at projects, part numbers and build-ups; requests
+   * at tools, types, BKMs, priorities, process steps and tool fields.
    */
   var USES = {
-    tools: [['measurement_types', 'tool_id', 'measurement type'], ['tool_fields', 'tool_id', 'field'], ['bkms', 'tool_id', 'BKM']],
-    measurement_types: [['bkms', 'type_id', 'BKM'], ['tool_fields', 'type_ids', 'field']],
+    tools: [['measurement_types', 'tool_id', 'measurement type'], ['tool_fields', 'tool_id', 'field'], ['bkms', 'tool_id', 'BKM'], ['requests', 'tool_id', 'request']],
+    measurement_types: [['bkms', 'type_id', 'BKM'], ['tool_fields', 'type_ids', 'field'], ['requests', 'type_id', 'request']],
     projects: [['part_numbers', 'project_ids', 'part number'], ['lots', 'project_id', 'lot']],
     part_numbers: [['lots', 'part_number_id', 'lot']],
     buildups: [['lots', 'buildup_id', 'lot']],
     lot_fields: [['lots', 'extra', 'lot']],
-    tool_fields: [], bkms: [], process_steps: [], priorities: [], holidays: []
+    tool_fields: [['requests', 'extra', 'request']],
+    bkms: [['requests', 'bkm_id', 'request']],
+    process_steps: [['requests', 'process_step_id', 'request']],
+    priorities: [['requests', 'priority_id', 'request']],
+    holidays: []
   };
 
   /** {count, text} - text like "5 measurement types, 1 BKM". */
@@ -905,6 +915,137 @@ window.MRT.store = (function () {
       audit(spec.label.replace(/ /g, '_'), id, 'delete', null, row.code || row.name || row.label || row.date || id, null, reason.trim());
       return commit();
     });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Requests (M2 step 4): drafts (private, Q33), submit with the request ID
+   * (Q29), a timeline of events per request (Q11; shown in step 5).
+   * ------------------------------------------------------------------ */
+
+  var REQUEST_FIELDS = ['tool_id', 'type_id', 'lot_id', 'panels', 'priority_id', 'priority_reason', 'needed_by',
+    'bkm_id', 'bkm_path', 'purpose', 'process_step_id', 'process_step_other', 'layer', 'panel_location',
+    'destructive_ok', 'after', 'after_other', 'extra', 'duplicated_from'];
+
+  function tidyRequest(f) {
+    var o = clone(f || {});
+    Object.keys(o).forEach(function (k) { assert(REQUEST_FIELDS.indexOf(k) !== -1, 'Unknown field: ' + k); });
+    ['priority_reason', 'bkm_path', 'purpose', 'process_step_other', 'layer', 'panel_location', 'after_other'].forEach(function (k) {
+      if (typeof o[k] === 'string') o[k] = o[k].trim();
+    });
+    ['type_id', 'lot_id', 'priority_id', 'needed_by', 'bkm_id', 'process_step_id', 'after'].forEach(function (k) { if (o[k] === '') o[k] = null; });
+    if (Array.isArray(o.panels)) o.panels = o.panels.map(Number).filter(function (n, i, a) { return a.indexOf(n) === i; }).sort(function (a, b) { return a - b; });
+    if ('extra' in o) o.extra = tidyExtra(o.extra);
+    if ('destructive_ok' in o) o.destructive_ok = o.destructive_ok === true;
+    return o;
+  }
+
+  function event(requestId, kind, from, to, text) {
+    state.data.request_events.push({ id: newId('rev'), request_id: requestId, ts: nowIso(), user_id: state.currentUserId,
+                                     kind: kind, from: from || null, to: to || null, text: text || null });
+  }
+
+  /** The draft as it would be after o (create or update); checks rights and version. */
+  function draftFrom(o, me) {
+    var f = tidyRequest(o.fields);
+    var existing = o.id ? need('requests', o.id, 'Request') : null;
+    if (existing) {
+      assert(D.canEditDraft(me, existing), existing.status === 'draft' ? 'Only the author can change a draft' : 'This request is submitted already', 'not_allowed');
+      checkVersion(existing, o.version, 'This draft');
+      return { existing: existing, next: Object.assign(clone(existing), f) };
+    }
+    assert(D.canRequest(me), 'Only engineers can request measurements', 'not_allowed');
+    var blank = { id: newId('req'), request_no: null, status: 'draft', tool_id: null, type_id: null, lot_id: null, panels: [],
+      priority_id: null, priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '', purpose: '', process_step_id: null,
+      process_step_other: '', layer: '', panel_location: '', destructive_ok: false, after: null, after_other: '', extra: {},
+      duplicated_from: null, requester_id: me.id, created_ts: nowIso(), updated_ts: null, submitted_ts: null, version: 0 };
+    return { existing: null, next: Object.assign(blank, f) };
+  }
+
+  function putDraft(x) {
+    var n = x.next;
+    n.updated_ts = nowIso();
+    if (x.existing) {
+      var changed = REQUEST_FIELDS.filter(function (k) { return JSON.stringify(x.existing[k]) !== JSON.stringify(n[k]); });
+      n.version = x.existing.version + 1;
+      Object.keys(x.existing).forEach(function (k) { delete x.existing[k]; });
+      Object.assign(x.existing, n);
+      return { row: x.existing, changed: changed };
+    }
+    n.version = 1;
+    state.data.requests.push(n);
+    event(n.id, 'created', null, 'draft', n.duplicated_from ? 'Copied from ' + ((byId('requests', n.duplicated_from) || {}).request_no || 'another request') : null);
+    return { row: n, changed: null };
+  }
+
+  /**
+   * Save a draft (create or change). Needs only a tool; everything else can
+   * wait for the submit.
+   * @param {Object} o {id?, version?, fields}
+   */
+  function saveDraft(o) {
+    return guard(function () {
+      var me = requireUser();
+      var x = draftFrom(o, me);
+      var problems = D.requestProblems(x.next, state.data, { submit: false });
+      assert(!problems.length, problems.join('. '), 'invalid', problems);
+      if (x.existing) {
+        var same = REQUEST_FIELDS.every(function (k) { return JSON.stringify(x.existing[k]) === JSON.stringify(x.next[k]); });
+        assert(!same, 'Nothing was changed', 'no_change');
+      }
+      var res = putDraft(x);
+      if (!x.existing) audit('request', res.row.id, 'create', 'status', null, 'draft', null);
+      return commit().then(function () { return res.row; });
+    });
+  }
+
+  /**
+   * Submit (create or change the draft, then submit in one save): every
+   * required field checked, the request ID given (Q29), the timeline starts.
+   * Warnings (Q44) are for the screen to show before; they never block.
+   * @param {Object} o {id?, version?, fields}
+   */
+  function submitRequest(o) {
+    return guard(function () {
+      var me = requireUser();
+      var x = draftFrom(o, me);
+      var problems = D.requestProblems(x.next, state.data, { submit: true });
+      assert(!problems.length, problems.join('. '), 'invalid', problems);
+      var tool = byId('tools', x.next.tool_id);
+      var taken = state.data.requests.map(function (r) { return r.request_no; });
+      var res = putDraft(x);
+      var r = res.row;
+      r.request_no = D.nextRequestNo(tool.code, D.viennaYmd(Date.now()), taken);
+      r.status = 'submitted';
+      r.submitted_ts = nowIso();
+      event(r.id, 'status', 'draft', 'submitted', null);
+      audit('request', r.id, 'submit', 'status', 'draft', 'submitted', r.request_no);
+      return commit().then(function () { return r; });
+    });
+  }
+
+  /** A draft can be thrown away by its author; submitted requests never are (Q35: cancel instead). */
+  function deleteDraft(id) {
+    return guard(function () {
+      var me = requireUser();
+      var r = need('requests', id, 'Request');
+      assert(D.canEditDraft(me, r), r.status === 'draft' ? 'Only the author can delete a draft' : 'Submitted requests are never deleted - cancel them instead', 'not_allowed');
+      state.data.requests = state.data.requests.filter(function (x) { return x.id !== id; });
+      state.data.request_events = state.data.request_events.filter(function (e) { return e.request_id !== id; });
+      audit('request', id, 'delete', 'status', 'draft', null, 'Draft deleted');
+      return commit();
+    });
+  }
+
+  /** Requests the signed-in person may see (drafts only their own), newest first. */
+  function visibleRequests(filter) {
+    var me = currentUser();
+    return (state.data.requests || []).filter(function (r) { return D.canSeeRequest(me, r) && (!filter || filter(r)); })
+      .sort(function (a, b) { var x = a.submitted_ts || a.created_ts, y = b.submitted_ts || b.created_ts; return x < y ? 1 : x > y ? -1 : 0; });
+  }
+
+  /** The timeline of one request, oldest first. */
+  function requestEvents(requestId) {
+    return (state.data.request_events || []).filter(function (e) { return e.request_id === requestId; });
   }
 
   /* ------------------------------------------------------------------ *
@@ -1238,6 +1379,11 @@ window.MRT.store = (function () {
     markUserReviewed: markUserReviewed,
     setAway: setAway,
     saveLot: saveLot,
+    saveDraft: saveDraft,
+    submitRequest: submitRequest,
+    deleteDraft: deleteDraft,
+    visibleRequests: visibleRequests,
+    requestEvents: requestEvents,
     addSampleLots: addSampleLots,
     deleteLot: deleteLot,
     lotUsage: lotUsage,

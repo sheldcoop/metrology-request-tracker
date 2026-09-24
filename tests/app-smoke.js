@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/lots.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -87,9 +87,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // --- the side menu (M1-6)
   const items = doc.getElementById('navItems').children;
   check('nine menu entries', items.length === 9, items.length);
-  check('four live: Lab status, Lots, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,lots,settings,help');
-  check('five greyed with their milestone', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M3,M3,M2,M3,M5');
-  check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 5);
+  check('five live: Lab status, New request, Lots, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,new,lots,settings,help');
+  check('four greyed with their milestone', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M3,M3,M3,M5');
+  check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 4);
 
   // --- Lab status
   check('start page is Lab status', win.location.hash === '#/lab', win.location.hash);
@@ -349,6 +349,53 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   await tab('data');
   buttonByText(doc.getElementById('main'), 'Add 3 sample lots').click(); await settle();
   check('Data: "Add 3 sample lots" adds 99901, 99902, 99902.01 tagged Sample', ['99901', '99902', '99902.01'].every(n => MRT.store.data().lots.some(l => l.lot_number === n && l.sample)));
+  // --- New request (M2 step 4)
+  win.setHash('#/new'); await settle();
+  const toolOpt = code => $$('#main .tool-pick-opt').filter(b => b.textContent.indexOf(code) === 0)[0];
+  check('New request shows the five tools as glyph buttons', $$('#main .tool-pick-opt').length === 5 && /Pick the tool first/.test(mainText()));
+  buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
+  check('Submit with nothing picked lists what is missing', !$('#main .req-errors').hidden && /Pick a tool/.test($('#main .req-errors').textContent));
+  toolOpt('FIB').click(); await settle();
+  check('picking FIB: its types, the destructive tick, afterwards fixed to scrap', !!fieldIn(doc.getElementById('main'), 'Measurement type') &&
+        /destroys these panels/.test(mainText()) && fieldIn(doc.getElementById('main'), 'After measuring').value === 'scrap');
+  check('...and its extra field (Cut side)', !!fieldIn(doc.getElementById('main'), 'Cut side'));
+  setVal(fieldIn(doc.getElementById('main'), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id); await settle();
+  setVal(fieldIn(doc.getElementById('main'), 'Lot'), lot1.id); await settle();
+  check('picking the lot draws its panel map (12 panels)', $$('#main .pm-cell').length === 12 && /Project/.test($('#main .lot-info').textContent));
+  $$('#main .pm-cell')[0].click(); $$('#main .pm-cell')[3].dispatch('click', { shiftKey: true }); await settle();
+  check('...panels 1-4 picked, shown on the traveller preview', /1-4/.test($('#main .traveller-mini').textContent) && /FIB-YYMMDD-NN/.test($('#main .traveller-mini').textContent));
+  buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
+  const errs = $('#main .req-errors').textContent;
+  check('...still missing: where the panels are, the destructive tick', /where the panels are now/.test(errs) && /tick that they may be scrapped/.test(errs) && !/Pick a tool/.test(errs));
+  setVal(fieldIn(doc.getElementById('main'), 'Where are the panels now'), 'Magazine 14, rack B2');
+  const dTick = tickIn(doc.getElementById('main'), 'I know FIB'); dTick.checked = true; dTick.dispatch('change');
+  setVal(fieldIn(doc.getElementById('main'), 'Purpose'), 'Check voids after the new plating recipe');
+  buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
+  check('complete, but no BKM: a warning asks first (Q44)', !!openDialog() && /Submit anyway/.test(openDialog().textContent) && /No BKM/.test(openDialog().textContent));
+  buttonByText(openDialog(), 'Submit anyway').click(); await settle();
+  const req1 = MRT.store.data().requests.filter(r => r.status === 'submitted')[0];
+  check('submitted: ID FIB-YYMMDD-01, panels, scrap, destructive ok', !!req1 && /^FIB-\d{6}-01$/.test(req1.request_no) && req1.panels.join() === '1,2,3,4' &&
+        req1.after === 'scrap' && req1.destructive_ok === true && req1.panel_location === 'Magazine 14, rack B2');
+  check('...the summary page shows it', /#\/new\?done=/.test(win.location.hash) && mainText().indexOf(req1.request_no) !== -1 && /Magazine 14/.test(mainText()));
+  check('...and its timeline has "created" and "submitted"', MRT.store.requestEvents(req1.id).map(e => e.kind + ':' + (e.to || '')).join() === 'created:draft,status:submitted');
+  buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
+  check('"Copy this request" prefills tool, lot and panels, not where the panels are', $$('#main .tool-pick-opt.is-on').length === 1 &&
+        fieldIn(doc.getElementById('main'), 'Lot').value === lot1.id && $$('#main .pm-cell.is-picked').length === 4 && fieldIn(doc.getElementById('main'), 'Where are the panels now').value === '');
+  win.setHash('#/new'); await settle();
+  toolOpt('QVM').click(); await settle();
+  buttonByText(doc.getElementById('main'), 'Save draft').click(); await settle();
+  const draft1 = MRT.store.data().requests.filter(r => r.status === 'draft')[0];
+  check('Save draft needs only the tool, and opens the draft', !!draft1 && win.location.hash === '#/new/' + draft1.id && /Draft/.test(mainText()));
+  check('...listed under your drafts', /QVM draft/.test($('#main .req-side').textContent));
+  MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id);
+  win.setHash('#/new/' + draft1.id); await settle();
+  check('someone else\'s draft stays private (Q33)', /not your draft/.test(mainText()) && MRT.store.visibleRequests().every(r => r.status !== 'draft'));
+  MRT.store.setCurrentUser(me0);
+  win.setHash('#/new/' + draft1.id); await settle();
+  buttonByText(doc.getElementById('main'), 'Delete draft').click(); await settle();
+  buttonByText(openDialog(), 'Delete').click(); await settle();
+  check('the author deletes the draft', !MRT.store.data().requests.some(r => r.id === draft1.id));
+
   win.setHash('#/lots'); await settle();
   check('...shown on Lots with the Sample tag', /99902.01/.test(mainText()) && $$('#main .sample-tag').length === 3);
 

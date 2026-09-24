@@ -25,64 +25,14 @@ window.MRT.views.lots = (function () {
   function code(coll, id) { var r = id ? store.byId(coll, id) : null; return r ? r.code : null; }
   function userName(id) { var u = id ? store.byId('users', id) : null; return u ? u.name : null; }
 
-  /* --- Lot fields (admin-defined) -------------------------------------- */
+  /* --- Lot fields (admin-defined, js/views/extra-fields.js) ------------ */
 
-  /** An answer as text: choice labels, Yes/No, the value otherwise. */
-  function answerText(f, v) {
-    if (D.isEmptyAnswer(v)) return '';
-    function label(id) { var c = (f.choices || []).filter(function (x) { return x.id === id; })[0]; return c ? c.label : '?'; }
-    if (f.type === 'choice') return label(v);
-    if (f.type === 'multichoice') return v.map(label).join(', ');
-    if (f.type === 'yesno') return v ? 'Yes' : 'No';
-    if (f.type === 'number') return String(v) + (f.unit ? ' ' + f.unit : '');
-    return String(v);
-  }
-
-  /** Form specs for the lot fields; the key is x_<field id>. Hidden fields show only when the lot has an answer. */
-  function extraSpecs(lot) {
-    var ex = (lot && lot.extra) || {};
-    return store.list('lot_fields', { all: true }).filter(function (f) { return f.active !== false || !D.isEmptyAnswer(ex[f.id]); }).map(function (f) {
-      var cur = ex[f.id];
-      var live = (f.choices || []).filter(function (c) { return c.active !== false || c.id === cur || (Array.isArray(cur) && cur.indexOf(c.id) !== -1); })
-        .map(function (c) { return { value: c.id, label: c.label }; });
-      var sp = { key: 'x_' + f.id, label: f.label + (f.required ? '' : ' (optional)'), hint: f.help || null, cls: f.type === 'longtext' || f.type === 'multichoice' ? null : 'half' };
-      switch (f.type) {
-        case 'longtext': sp.kind = 'longtext'; break;
-        case 'number': sp.kind = 'number'; sp.unit = f.unit || null; break;
-        case 'choice': sp.kind = 'select'; sp.options = [{ value: '', label: '- none -' }].concat(live); break;
-        case 'multichoice': sp.kind = 'checks'; sp.options = live; break;
-        case 'yesno': sp.kind = 'select'; sp.options = [{ value: '', label: '- none -' }, { value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]; break;
-        case 'date': sp.kind = 'date'; break;
-        case 'path': sp.kind = 'path'; sp.placeholder = '\\\\server\\share\\...'; break;
-        default: sp.kind = 'text';
-      }
-      return sp;
-    });
-  }
-
-  function extraValues(lot) {
-    var ex = (lot && lot.extra) || {}, out = {};
-    store.list('lot_fields', { all: true }).forEach(function (f) {
-      var v = ex[f.id];
-      if (f.type === 'yesno') v = v === true ? 'yes' : v === false ? 'no' : '';
-      else if (f.type === 'multichoice') v = v || [];
-      else if (v === undefined || v === null) v = f.type === 'number' ? null : '';
-      out['x_' + f.id] = v;
-    });
-    return out;
-  }
-
-  /** Form values back to answers {field id: value}. */
-  function extraFrom(v) {
-    var out = {};
-    store.list('lot_fields', { all: true }).forEach(function (f) {
-      if (!('x_' + f.id in v)) return;
-      var x = v['x_' + f.id];
-      if (f.type === 'yesno') x = x === 'yes' ? true : x === 'no' ? false : null;
-      out[f.id] = x;
-    });
-    return out;
-  }
+  var X = window.MRT.extraFields;
+  function lotFields() { return store.list('lot_fields', { all: true }); }
+  function answerText(f, v) { return X.answerText(f, v); }
+  function extraSpecs(lot) { return X.specs(lotFields(), lot && lot.extra); }
+  function extraValues(lot) { return X.values(lotFields(), lot && lot.extra); }
+  function extraFrom(v) { return X.answers(lotFields(), v); }
 
   function render(main, ctx) {
     var me = store.currentUser();
@@ -234,10 +184,24 @@ window.MRT.views.lots = (function () {
       return row(f.label, answerText(f, ex[f.id]) || null);
     }));
     var me = store.currentUser();
+    var reqs = store.visibleRequests(function (r) { return r.lot_id === l.id; });
+    var reqList = reqs.length ? ui.el('ul', { class: 'req-list' }, reqs.map(function (r) {
+      var t = store.byId('tools', r.tool_id);
+      return ui.el('li', {}, [
+        ui.el('a', { class: 'mono', href: r.status === 'draft' ? '#/new/' + r.id : '#/new?done=' + r.id, text: r.request_no || ((t ? t.code : '?') + ' draft') }),
+        ui.el('span', { class: 'muted', text: ' · ' + D.REQUEST_STATUS_LABEL[r.status] + ' · panels ' + (D.formatPanels(r.panels) || '-') })
+      ]);
+    })) : ui.el('p', { class: 'muted', text: 'No requests on this lot yet.' });
+    var acts = [{ label: 'Close', value: null }];
+    if (D.canRequest(me)) acts.push({ label: 'New request on this lot', value: 'new' });
+    if (D.canEditLot(me, l)) acts.push({ label: 'Edit', kind: 'primary', value: 'edit' });
     ui.dialog({ title: 'Lot ' + l.lot_number + (l.sample ? ' (sample)' : ''), icon: 'lots', wide: true,
-      body: [ui.el('dl', { class: 'facts' }, [].concat.apply([], rows)), ui.el('p', { class: 'muted', text: 'Requests on this lot appear here from M2 step 4.' })],
-      actions: D.canEditLot(me, l) ? [{ label: 'Close', value: null }, { label: 'Edit', kind: 'primary', value: 'edit' }] : [{ label: 'Close', value: null }]
-    }).then(function (v) { if (v === 'edit') lotDialog(l); });
+      body: [ui.el('dl', { class: 'facts' }, [].concat.apply([], rows)), ui.el('div', { class: 'ifield-label', text: 'Requests' }), reqList],
+      actions: acts
+    }).then(function (v) {
+      if (v === 'edit') lotDialog(l);
+      if (v === 'new') location.hash = '#/new?lot=' + l.id;
+    });
   }
 
   function deleteButton(l) {

@@ -474,7 +474,13 @@ window.MRT.app = (function () {
     var q = '';
     var m = parts[1] && /(?:^|&)q=([^&]*)/.exec(parts[1]);
     if (m) { try { q = decodeURIComponent(m[1]); } catch (e) { q = m[1]; } }
-    return { route: segments[0] || 'lab', subpath: segments.slice(1).join('/'), query: q };
+    var params = {};
+    (parts[1] || '').split('&').forEach(function (kv) {
+      var i = kv.indexOf('=');
+      if (i < 1) return;
+      try { params[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); } catch (e) { params[kv.slice(0, i)] = kv.slice(i + 1); }
+    });
+    return { route: segments[0] || 'lab', subpath: segments.slice(1).join('/'), query: q, params: params };
   }
 
   function route() {
@@ -501,7 +507,7 @@ window.MRT.app = (function () {
                     : 'That address does not exist. Use the menu on the left.' }));
     } else {
       try {
-        view.render(main, { subpath: parsed.subpath, query: parsed.query });
+        view.render(main, { subpath: parsed.subpath, query: parsed.query, params: parsed.params });
         ui.linkLabels(main);
       } catch (e) {
         console.error('MRT: page "' + app.route + '" failed to render', e);
