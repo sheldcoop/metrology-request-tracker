@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -743,6 +743,37 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const codes = fieldIn(doc.getElementById('main'), 'Hirata codes'); setVal(codes, '3407, 0119 161234507, 12x'); await settle();
   check('Find a pattern: one copper panel per good code, the bad one named', $$('.hirata-sheet')[0].querySelectorAll('.cu-panel').length === 3 && /Skipped: "12x"/.test(mainText()));
   check('...and the 0-9 reference', $$('#main .hirata-ref-item').length === 10);
+
+  // --- personal request templates (Q28, T-1..T-3)
+  const tplReq = MRT.store.visibleRequests(r => r.requester_id === MRT.store.currentUser().id && r.status !== 'draft')[0];
+  win.setHash('#/request/' + tplReq.id); await settle();
+  buttonByText(doc.getElementById('main'), 'Save as template').click(); await settle();
+  let tdlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
+  setVal(fieldIn(tdlg, 'Template name'), 'Smoke template'); buttonByText(tdlg, 'Save template').click(); await settle();
+  const tpl = MRT.store.myTemplates(MRT.store.currentUser().id).filter(t => t.name === 'Smoke template')[0];
+  check('request page > Save as template: saved with the request\'s tool and type, no lot or panels', !!tpl && tpl.fields.tool_id === tplReq.tool_id &&
+        tpl.fields.type_id === tplReq.type_id && !('lot_id' in tpl.fields) && !('panels' in tpl.fields));
+  buttonByText(doc.getElementById('main'), 'Save as template').click(); await settle();
+  tdlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
+  setVal(fieldIn(tdlg, 'Template name'), 'smoke TEMPLATE'); buttonByText(tdlg, 'Save template').click(); await settle();
+  check('...the same name again stays in the dialog with the reason', /already/.test(tdlg.textContent) && tdlg.open);
+  buttonByText(tdlg, 'Cancel').click(); await settle();
+  win.setHash('#/new'); await settle();
+  check('New request (empty) offers "Start from a template"', /Start from a template/.test(mainText()) && $$('#main .tpl-pick').some(b => /Smoke template/.test(b.textContent)));
+  $$('#main .tpl-pick').filter(b => /Smoke template/.test(b.textContent))[0].click(); await settle();
+  check('...picking it fills tool and type; lot and panels stay empty', /from "Smoke template"/.test(mainText()) &&
+        /Pick the lot|Lot/.test(mainText()) && win.location.hash.indexOf('template=' + tpl.id) !== -1);
+  // T-3: a part hidden since is left empty, with a note
+  const tType = MRT.store.byId('measurement_types', tpl.fields.type_id);
+  if (tType) { tType.active = false; win.setHash('#/lab'); await settle(); win.setHash('#/new?template=' + tpl.id); await settle(); }
+  check('...its measurement type hidden since: left empty, with a note (T-3)', !tType || /measurement type of this template is hidden/.test(mainText()));
+  if (tType) tType.active = true;
+  win.setHash('#/requests/templates'); await settle();
+  check('My requests > My templates lists it with Use, Rename, Delete', /Smoke template/.test(mainText()) && !!buttonByText(doc.getElementById('main'), 'Use'));
+  doc.getElementById('main').querySelectorAll('button').filter(b => b.getAttribute('aria-label') === 'Delete Smoke template')[0].click(); await settle();
+  buttonByText(doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0], 'Delete').click(); await settle();
+  check('...Delete removes it (audited)', !MRT.store.myTemplates(MRT.store.currentUser().id).some(t => t.name === 'Smoke template') &&
+        MRT.store.data().audit_log.slice(-1)[0].entity === 'template');
 
   // --- Analytics (M5): tabs by role, click-through, filters
   const meA = MRT.store.currentUser();
