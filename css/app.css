@@ -155,6 +155,12 @@
 
 /* Theme-independent tokens */
 :root {
+  /* Hirata: copper stays copper in every theme (DECISIONS H-3), like the real panel */
+  --cu-1: #c9784a; --cu-2: #b0603a; --cu-3: #8f4a2c; --cu-edge: #6d3620; --cu-ink: #3d1b0c;
+  --cu-hole: #141110; --cu-hole-rim: rgba(255, 220, 190, .30);
+  /* Hirata field colours, as in Prince's tool (used as bars and edges, never behind text) */
+  --hf-sup: #c62828; --hf-yr: #e08c1a; --hf-wk: #5d9c33; --hf-day: #1f8fd0; --hf-lot: #3a6fb0; --hf-pan: #7b4bb8;
+
   --font-ui: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
 
@@ -1659,10 +1665,96 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
   .slip::before { background: #000 !important; }
   .slip.prio-3::before, .slip.prio-4::before { background: transparent !important; border-right: 1px dashed #000; }
   .topbar, .nav, .alert-banner, .conflict-banner, .help-toc, .head-actions, .help-open, .toasts, .skip-link { display: none !important; }
-  /* paper is white in every theme: dark text, no fills or glows (print is the one place for plain black) */
-  body, .main, .main * { color: #000 !important; background: transparent !important; box-shadow: none !important; }
+  /* paper is white in every theme: dark text, no fills or glows (print is the one place for plain black);
+     the copper panels keep their copper, so the slip matches the real panel */
+  body, .main, .main *:not(.cu-panel):not(.cu-hole) { color: #000 !important; background: transparent !important; box-shadow: none !important; }
+  .cu-panel, .cu-hole { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cu-num { color: var(--cu-ink) !important; }
   .panel { border-color: #999 !important; }
   .main { overflow: visible; padding: 0; }
   .help-layout { display: block; }
   .help-guide { break-inside: avoid; box-shadow: none; }
 }
+
+/* --- Hirata code (js/ui/hirata.js, DECISIONS H-1..H-3) ------------------ */
+/* the copper panel: as it looks in the hand */
+.cu-panel {
+  position: relative; display: inline-flex; flex-direction: column; align-items: center;
+  padding: 14px 16px 10px; border-radius: 12px; border: 1px solid var(--cu-edge);
+  background: radial-gradient(120% 90% at 22% 12%, var(--cu-1) 0%, var(--cu-2) 48%, var(--cu-3) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 215, 180, .32), 0 3px 10px rgba(0, 0, 0, .28);
+}
+.cu-panel::before {           /* the brushed-copper grain */
+  content: ""; position: absolute; inset: 0; border-radius: 11px; pointer-events: none;
+  background: repeating-linear-gradient(96deg, rgba(255, 255, 255, .045) 0 1px, rgba(0, 0, 0, .035) 1px 2px, transparent 2px 5px);
+}
+.cu-holes { position: relative; display: flex; gap: 12px; }
+.cu-col { display: flex; flex-direction: column; gap: 7px; }
+.cu-hole { width: 15px; height: 15px; border-radius: 50%; background: var(--cu-hole);
+  box-shadow: inset 0 1.5px 2.5px rgba(0, 0, 0, .85), 0 0 0 1px var(--cu-hole-rim); }
+.cu-hole.is-empty { background: transparent; box-shadow: none; }
+.cu-num { position: relative; margin-top: 8px; font-size: 13px; font-weight: 700; letter-spacing: .18em;
+  color: var(--cu-ink); text-shadow: 0 1px 0 rgba(255, 210, 175, .30); }
+.cu-panel.cu-sm { padding: 6px 8px 4px; border-radius: 6px; }
+.cu-panel.cu-sm::before { border-radius: 5px; }
+.cu-sm .cu-holes { gap: 4px; }
+.cu-sm .cu-col { gap: 3px; }
+.cu-sm .cu-hole { width: 6px; height: 6px; }
+.cu-sm .cu-num { display: none; }
+.cu-panel.cu-lg { padding: 20px 22px 15px; border-radius: 14px; }
+.cu-lg .cu-holes { gap: 15px; }
+.cu-lg .cu-col { gap: 9px; }
+.cu-lg .cu-hole { width: 19px; height: 19px; }
+.cu-lg .cu-num { font-size: 15px; margin-top: 12px; }
+[data-theme="hc"] .cu-panel { outline: 2px solid var(--fg); outline-offset: 1px; }
+
+/* the decoded fields, each with its colour bar */
+.hf-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0; }
+.hf-item { display: grid; gap: 1px; padding: 6px 10px 6px 12px; border: 1px solid var(--line); border-left: 4px solid var(--hf-c, var(--line-strong));
+  border-radius: var(--radius); background: var(--surface-2); }
+.hf-item dt { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
+.hf-item dd { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .06em; }
+.hf-item dd.is-partial { color: var(--fg-muted); }
+.hf-list.is-compact { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.hf-list.is-compact .hf-item { padding: 1px 6px 1px 7px; border-left-width: 3px; grid-auto-flow: column; gap: 5px; align-items: baseline; }
+.hf-list.is-compact .hf-item dt { font-size: 10px; }
+.hf-list.is-compact .hf-item dd { font-size: 12px; }
+.hf-sup { --hf-c: var(--hf-sup); } .hf-yr { --hf-c: var(--hf-yr); } .hf-wk { --hf-c: var(--hf-wk); }
+.hf-day { --hf-c: var(--hf-day); } .hf-lot { --hf-c: var(--hf-lot); } .hf-pan { --hf-c: var(--hf-pan); }
+
+/* the decoder grid */
+.hg-wrap { overflow-x: auto; padding-bottom: 4px; }
+.hg-grid { border-collapse: separate; border-spacing: 0; margin: 0 auto; }
+.hg-field { padding: 5px 6px 4px; border-top: 4px solid var(--hf-c, var(--line-strong)); font-size: 11px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--fg-muted); text-align: center; white-space: nowrap; }
+.hg-start-h { font-size: 10px; font-weight: 600; color: var(--fg-faint); text-transform: uppercase; padding: 0 4px; }
+.hg-rail { padding-right: 10px; text-align: right; font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--fg-muted); white-space: nowrap; }
+.hg-cell { width: 40px; height: 40px; text-align: center; vertical-align: middle; cursor: pointer;
+  background: var(--inset); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.hg-cell:hover { background: var(--accent-soft); }
+.hg-cell:focus-visible { outline: var(--focus-w) solid var(--accent); outline-offset: -3px; }
+.hg-cell.is-start, .hg-cell.is-base { cursor: default; background: var(--surface-2); }
+.hg-cell.is-locked { cursor: not-allowed; }
+.hg-dot { display: block; width: 22px; height: 22px; margin: 0 auto; border-radius: 50%;
+  background: transparent; border: 1.5px solid var(--line-strong); transition: transform var(--t-fast) var(--ease); }
+.hg-cell.is-on .hg-dot { background: var(--fg); border-color: var(--fg); transform: scale(1.06); }
+.hg-cell.is-start .hg-dot, .hg-cell.is-base .hg-dot { opacity: .6; }
+.hg-cell.is-locked .hg-dot { opacity: .3; border-style: dashed; }
+.hg-cell.is-shake .hg-dot { animation: hg-shake 220ms ease; }
+@keyframes hg-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.hg-digit { height: 38px; text-align: center; font-size: 22px; font-weight: 700; border-top: 2px solid var(--line-strong); }
+.hg-digit.is-off { color: var(--fg-faint); font-size: 16px; font-weight: 400; }
+
+/* the Hirata tools page, and panels in requests */
+.hirata-serial { font-family: var(--font-mono); font-size: 26px; font-weight: 700; letter-spacing: .16em; margin: 0 0 12px; word-break: break-all; }
+.hirata-sheet { display: flex; flex-wrap: wrap; gap: 18px; justify-content: flex-start; }
+.hirata-item { display: grid; gap: 8px; justify-items: center; }
+.hirata-ref { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 8px; }
+.hirata-ref-item { display: grid; gap: 4px; justify-items: center; font-family: var(--font-mono); }
+.hirata-ref-item b { font-size: 15px; }
+.hirata-ref-item span { font-size: 10px; color: var(--fg-muted); }
+.panel-hirata { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 8px; }
+.panel-hirata-item { display: inline-flex; align-items: center; gap: 8px; }
+.panel-hirata-item .mono { font-weight: 700; }
+@media (max-width: 760px) { .hirata-ref { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+

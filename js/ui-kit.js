@@ -278,6 +278,32 @@
     ]);
   }
 
+  function hirataDemo() {
+    // plain dots here (the kit has no domain): 8, 4, 2, 1, baseline
+    function dots(d) { return [8, 4, 2, 1].map(function (w) { return (d & w) !== 0; }).concat([true]); }
+    function cols(code) { return code.split('').map(function (ch) { return dots(+ch); }); }
+    var fields = [{ id: 'sup', name: 'Supplier', width: 1 }, { id: 'yr', name: 'Year', width: 1 }, { id: 'wk', name: 'Week', width: 2 },
+                  { id: 'day', name: 'Day', width: 1 }, { id: 'lot', name: 'Lot per day', width: 2 }, { id: 'pan', name: 'Panel', width: 2 }];
+    var decoded = [['sup', 'Supplier', '1'], ['yr', 'Year', '6'], ['wk', 'Week', '12'], ['day', 'Day', '3'], ['lot', 'Lot per day', '45'], ['pan', 'Panel', '07']]
+      .map(function (f) { return { id: f[0], name: f[1], value: f[2] }; });
+    var grid = ui.hirataGrid({ fields: fields, weights: [8, 4, 2, 1], digits: '161234507',
+      canSet: function (d, row) { var v = [8, 4, 2, 1].reduce(function (s, w, i) { return s + (d[i] ? w : 0); }, 0); return row < 4 && (d[row] || v + [8, 4, 2, 1][row] <= 9); },
+      digitOf: function (d) { return [8, 4, 2, 1].reduce(function (s, w, i) { return s + (d[i] ? w : 0); }, 0); } });
+    return el('div', { class: 'kit-grid', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))' } }, [
+      labelled('Copper panel: sm (form, next to an ID), md (request page, slip), lg (Hirata tools)', el('div', { class: 'kit-row' }, [
+        ui.copperPanel({ columns: cols('3407'), text: '3407', size: 'sm' }), ui.copperPanel({ columns: cols('3407'), text: '3407', size: 'md' }),
+        ui.copperPanel({ columns: cols('3407'), text: '3407', size: 'lg' })])),
+      labelled('Full code (9 digits), and one digit (0 / 9)', el('div', { class: 'kit-row' }, [
+        ui.copperPanel({ columns: cols('161234507'), text: '161234507', size: 'md' }),
+        ui.copperPanel({ columns: cols('0'), size: 'sm', label: 'Digit 0' }), ui.copperPanel({ columns: cols('9'), size: 'sm', label: 'Digit 9' })])),
+      labelled('Decoded fields: full and compact; a field only partly known', el('div', {}, [
+        ui.hirataFields(decoded), el('div', { style: { height: '10px' } }),
+        ui.hirataFields(decoded.slice(4), { compact: true }), el('div', { style: { height: '10px' } }),
+        ui.hirataFields([{ id: 'lot', name: 'Lot per day', value: '4', partial: true }, { id: 'pan', name: 'Panel', value: '07' }], { compact: true })])),
+      labelled('Decoder grid (showing 1 6 1 2 3 4 5 0 7)', grid.node)
+    ]);
+  }
+
   function travellerDemo() {
     var PRIOS = [null, { name: 'Line stop', code: 'P1' }, { name: 'Hot', code: 'P2' }, { name: 'Normal', code: 'P3' }, { name: 'Low', code: 'P4' }];
     var STAMPS = [['Submitted', 'neutral'], ['Accepted', 'accent'], ['In progress', 'ok'], ['On hold', 'warning'], ['Completed', 'ok'], ['Cancelled', 'neutral']];
@@ -441,6 +467,7 @@
       section('Tool glyphs', glyphs(), 'One drawing per tool: probe (HRM), camera (AOI), stylus (PRF), optics (QVM), ion column (FIB), reticle (any other).'),
       section('Charts (Chart.js, shared theme)', charts(), 'One theme config in js/ui/charts.js: token colours, gradients, draw-in, panel-style tooltip, full screen.'),
       section('Panel map (unused - kept for OPEN_QUESTIONS #22)', panelMapDemo(), 'No screen uses it since form v2 (Hirata IDs). Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
+      section('Hirata code (ui.copperPanel, ui.hirataFields, ui.hirataGrid)', hirataDemo(), 'Copper stays copper in every theme. The grid blocks any dot that would take a column above 9; the bottom row is the baseline.'),
       section('Traveller card (ui.traveller)', travellerDemo(), 'One drawing, four sizes: full (request page), mini (form preview), card (board), slip (print). Priority stripe per level; Line stop pulses while open.'),
       section('Magazine slots', el('div', { class: 'kit-grid' }, [
           labelled('Pick: press and drag over slots; slots 9-10 taken by another request', ui.magazineSlots({ magazine: { code: 'M70345', slots: 24 }, picked: [3, 4],
