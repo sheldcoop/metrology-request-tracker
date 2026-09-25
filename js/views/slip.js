@@ -41,6 +41,7 @@ window.MRT.views.slip = (function () {
         f('Lot', lot ? lot.lot_number + '  ' + [(byId('projects', r.project_id) || {}).code, r.part_number_id ? (byId('part_numbers', r.part_number_id) || {}).code : null,
           (byId('buildups', r.buildup_id) || {}).code].filter(Boolean).join(' · ') : null),
         f('Panels', D.panelsText(r) + ((r.panels || []).length ? '  (' + r.panels.length + ')' : ''), 'wide'),
+        (r.panels || []).length ? { label: 'On the panels', value: window.MRT.views.hirata.panelsView(r.panels, 'md'), cls: 'wide' } : null,
         f('Layers', (r.layers || []).join(', ') || null),
         f('Panels are', window.MRT.requestActions.whereOf(r) || null, 'wide'),
         f('Needed by', r.needed_by || 'no date'),

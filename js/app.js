@@ -36,6 +36,7 @@ window.MRT.app = (function () {
     { key: 'new',       label: 'New request', icon: 'request_new', g: 'n', ms: 'M2' },
     { key: 'lots',      label: 'Lots',        icon: 'lots',        g: 'o', ms: 'M2' },
     { key: 'board',     label: 'Board',       icon: 'board',       g: 'b', ms: 'M3' },
+    { key: 'hirata',    label: 'Hirata tools', icon: 'hirata',     g: 't', ms: 'M2' },
     { key: 'analytics', label: 'Analytics',   icon: 'analytics',   g: 'a', ms: 'M5' },
     { key: 'settings',  label: 'Settings',    icon: 'settings',    g: 's', ms: 'M1' },
     { key: 'help',      label: 'Help',        icon: 'help',        g: 'h', ms: 'M1' }
