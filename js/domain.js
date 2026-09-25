@@ -1200,6 +1200,71 @@ window.MRT.domain = (function () {
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * Personal request templates (Q28, DECISIONS T-1..T-3): what stays the
+   * same between similar requests - never the lot, panels, place, dates or
+   * the priority reason. A template whose parts were hidden since still
+   * works: the missing parts are left empty with a note (T-3).
+   * ------------------------------------------------------------------ */
+
+  var TEMPLATE_FIELDS = ['tool_id', 'type_id', 'bkm_id', 'bkm_path', 'project_id', 'part_number_id', 'buildup_id', 'layers',
+                         'after', 'after_other', 'priority_id', 'purpose', 'extra'];
+  var TEMPLATE_NAME_MAX = 60;
+
+  /** The template part of a request or draft: TEMPLATE_FIELDS only, copied. */
+  function templateFieldsOf(r) {
+    var out = {};
+    TEMPLATE_FIELDS.forEach(function (k) {
+      var v = r ? r[k] : undefined;
+      out[k] = v === undefined ? (k === 'layers' ? [] : k === 'extra' ? {} : null) : JSON.parse(JSON.stringify(v));
+    });
+    return out;
+  }
+
+  /** A template name: 1-60 characters, unique among one person's templates. */
+  function templateNameProblems(name, others) {
+    var n = trim(name);
+    if (!n) return ['Give the template a name'];
+    if (n.length > TEMPLATE_NAME_MAX) return ['Keep the name under ' + TEMPLATE_NAME_MAX + ' characters'];
+    if ((others || []).some(function (t) { return normalizeName(t.name) === normalizeName(n); })) return ['You have a template called "' + n + '" already'];
+    return [];
+  }
+
+  /**
+   * Can this template be started today, and with what (T-3)?
+   * @returns {{usable, reason, fields, notes: string[]}} - fields with every
+   *   part that is no longer available left empty; notes say what was dropped
+   */
+  function templateCheck(t, d) {
+    var f = templateFieldsOf(t && t.fields), notes = [];
+    function row(coll, id) { return id ? (d[coll] || []).filter(function (x) { return x.id === id; })[0] || null : null; }
+    function live(x) { return !!x && x.active !== false; }
+    var tool = row('tools', f.tool_id);
+    if (!live(tool)) return { usable: false, reason: 'Its tool is no longer in use', fields: f, notes: [] };
+    function drop(key, text) { if (f[key]) { f[key] = key === 'layers' ? [] : null; notes.push(text); } }
+    var type = row('measurement_types', f.type_id);
+    if (f.type_id && (!live(type) || type.tool_id !== tool.id)) drop('type_id', 'The measurement type of this template is hidden - pick another');
+    var bkm = row('bkms', f.bkm_id);
+    if (f.bkm_id && (!live(bkm) || bkm.tool_id !== tool.id)) drop('bkm_id', 'The BKM of this template is hidden - pick another');
+    if (f.project_id && !live(row('projects', f.project_id))) { drop('project_id', 'The project of this template is hidden - pick another'); f.part_number_id = null; }
+    var pn = row('part_numbers', f.part_number_id);
+    if (f.part_number_id && (!live(pn) || (f.project_id && (pn.project_ids || []).indexOf(f.project_id) === -1))) drop('part_number_id', 'The part number of this template is hidden - pick another');
+    var bu = row('buildups', f.buildup_id);
+    if (f.buildup_id && !live(bu)) drop('buildup_id', 'The build-up of this template is hidden - pick another');
+    var allowed = layersFor(f.buildup_id ? bu : null);
+    var keptLayers = (f.layers || []).filter(function (x) { return allowed.indexOf(x) !== -1; });
+    if (keptLayers.length !== (f.layers || []).length) { f.layers = keptLayers; notes.push('Some layers of this template do not exist in its build-up any more'); }
+    if (f.priority_id && !live(row('priorities', f.priority_id))) drop('priority_id', 'The priority of this template is hidden - the default is used');
+    var extra = {};
+    Object.keys(f.extra || {}).forEach(function (fid) {
+      var fld = row('tool_fields', fid);
+      if (live(fld) && fld.tool_id === tool.id) extra[fid] = f.extra[fid];
+      else notes.push('An extra field of this template is hidden');
+    });
+    f.extra = extra;
+    return { usable: true, reason: null, fields: f, notes: notes.filter(function (x, i, a) { return a.indexOf(x) === i; }) };
+  }
+
   /** A draft untouched for 30+ days - flagged for cleanup (Q33). */
   var OLD_DRAFT_DAYS = 30;
   function isOldDraft(r, nowTs) {
@@ -1623,6 +1688,10 @@ window.MRT.domain = (function () {
     findMentions: findMentions,
     TRANSITIONS: TRANSITIONS,
     isLate: isLate,
+    TEMPLATE_FIELDS: TEMPLATE_FIELDS,
+    templateFieldsOf: templateFieldsOf,
+    templateNameProblems: templateNameProblems,
+    templateCheck: templateCheck,
     median: median,
     percentile: percentile,
     statusChanges: statusChanges,

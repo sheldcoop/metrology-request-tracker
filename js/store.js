@@ -22,11 +22,11 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 10;
+  var SCHEMA_VERSION = 11;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
-    'projects', 'part_numbers', 'buildups', 'process_steps', 'hold_reasons', 'priorities', 'holidays', 'lot_fields', 'magazines', 'lots', 'requests', 'request_events', 'audit_log'
+    'projects', 'part_numbers', 'buildups', 'process_steps', 'hold_reasons', 'priorities', 'holidays', 'lot_fields', 'magazines', 'lots', 'requests', 'request_events', 'templates', 'audit_log'
   ];
 
   /** In-memory state. `data` is the loaded file; never mutate it from a screen. */
@@ -362,7 +362,9 @@ window.MRT.store = (function () {
       (d.lots || []).forEach(function (l) { delete l.project_id; delete l.part_number_id; delete l.buildup_id; });
       // a file whose magazine list stayed empty (made before magazines, or never filled) gets the sample ones
       if (!Array.isArray(d.magazines) || !d.magazines.length) d.magazines = magazinesFromSeed(window.MRT.seed);
-    }
+    },
+    // 10 -> 11: personal request templates (Q28, DECISIONS T-1). Old files have none.
+    10: function (d) { if (!Array.isArray(d.templates)) d.templates = []; }
   };
 
   function magazinesFromSeed(S) {
@@ -782,6 +784,63 @@ window.MRT.store = (function () {
   }
 
   /** An admin has looked at a self-added user: the New mark goes. */
+  /* ------------------------------------------------------------------ *
+   * Personal request templates (Q28, DECISIONS T-1..T-3): only their owner
+   * sees, starts, renames and deletes them. Audited like any change.
+   * ------------------------------------------------------------------ */
+
+  function myTemplates(userId) {
+    return (state.data.templates || []).filter(function (t) { return t.owner_id === userId; })
+      .sort(function (a, b) { return D.normalizeName(a.name) < D.normalizeName(b.name) ? -1 : 1; });
+  }
+
+  /** Save a request or draft (or plain fields) as a template. o: {name, request_id} or {name, fields}. */
+  function saveTemplate(o) {
+    return guard(function () {
+      var me = requireUser();
+      assert(D.canRequest(me), 'Only engineers keep request templates', 'not_allowed');
+      var src = o.request_id ? need('requests', o.request_id, 'Request') : null;
+      assert(!src || src.requester_id === me.id || D.hasRole(me, 'admin'), 'Save templates from your own requests', 'not_allowed');
+      var fields = D.templateFieldsOf(src || o.fields || {});
+      assert(fields.tool_id && byId('tools', fields.tool_id), 'A template needs a tool', 'invalid');
+      var problems = D.templateNameProblems(o.name, myTemplates(me.id));
+      assert(!problems.length, problems.join('. '), 'invalid', problems);
+      var t = { id: newId('tpl'), owner_id: me.id, name: String(o.name).trim(), fields: fields, from_request_id: src ? src.id : null,
+                created_ts: nowIso(), updated_ts: null, version: 1 };
+      state.data.templates.push(t);
+      audit('template', t.id, 'create', 'name', null, t.name, src ? 'From ' + (src.request_no || 'a draft') : null);
+      return commit().then(function () { return t; });
+    });
+  }
+
+  function ownTemplate(id) {
+    var me = requireUser();
+    var t = need('templates', id, 'Template');
+    assert(t.owner_id === me.id, 'This is not your template', 'not_allowed');
+    return t;
+  }
+
+  function renameTemplate(id, name) {
+    return guard(function () {
+      var t = ownTemplate(id);
+      var problems = D.templateNameProblems(name, myTemplates(t.owner_id).filter(function (x) { return x.id !== id; }));
+      assert(!problems.length, problems.join('. '), 'invalid', problems);
+      assert(String(name).trim() !== t.name, 'Nothing was changed', 'no_change');
+      audit('template', t.id, 'update', 'name', t.name, String(name).trim(), null);
+      t.name = String(name).trim(); t.updated_ts = nowIso(); t.version += 1;
+      return commit().then(function () { return t; });
+    });
+  }
+
+  function deleteTemplate(id) {
+    return guard(function () {
+      var t = ownTemplate(id);
+      state.data.templates = state.data.templates.filter(function (x) { return x.id !== id; });
+      audit('template', id, 'delete', 'name', t.name, null, null);
+      return commit();
+    });
+  }
+
   /**
    * Away (DECISIONS M1-14): the person themselves, or an admin, records one
    * period - dates and an optional note, never a reason. period null = back / clear.
@@ -1836,6 +1895,10 @@ window.MRT.store = (function () {
     deleteEntry: deleteEntry,
     entryUsage: entryUsage,
     setToolStatus: setToolStatus,
+    myTemplates: myTemplates,
+    saveTemplate: saveTemplate,
+    renameTemplate: renameTemplate,
+    deleteTemplate: deleteTemplate,
     updateCalendar: updateCalendar,
     confirmCalendar: confirmCalendar,
     health: health,

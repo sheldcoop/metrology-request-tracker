@@ -475,7 +475,7 @@
 
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 10, revision 0', [seed.schema_version, seed.revision], [10, 0]);
+    eq('schema 11, revision 0', [seed.schema_version, seed.revision], [11, 0]);
     eq('20 sample magazines M70345-M70364, 24 slots each (M2-23)', [seed.magazines.length, seed.magazines[0].code, seed.magazines[19].code, seed.magazines.every(function (m) { return m.slots === 24 && m.sample; })],
        [20, 'M70345', 'M70364', true]);
     eq('on-hold reasons (M3-4)', seed.hold_reasons.map(function (h) { return h.name; }), ['Waiting for panels', 'Tool down', 'Waiting for engineer info', 'Higher priority first', 'Other']);
@@ -811,6 +811,40 @@
     ST.setCurrentUser(adminL);
     await ST.deleteDraft(d2.id);
     eq('the author deletes the draft, and its timeline', [ST.byId('requests', d2.id), ST.requestEvents(d2.id).length], [null, 0]);
+
+    group('Personal request templates (Q28, T-1..T-3)');
+    var tf = D.templateFieldsOf(s1);
+    eq('a template keeps what stays the same', Object.keys(tf).sort(), D.TEMPLATE_FIELDS.slice().sort());
+    ok('...never the lot, panels, place, dates or priority reason', ['lot_id', 'panels', 'panel_location', 'magazine_id', 'slots', 'needed_by', 'priority_reason', 'request_no']
+       .every(function (k) { return !(k in tf); }));
+    eq('names: required, not twice (any case)', [D.templateNameProblems('  ', []).length, D.templateNameProblems('QVM pads', [{ name: 'qvm  PADS' }]).length, D.templateNameProblems('QVM pads', []).length], [1, 1, 0]);
+    await refused('a quality engineer alone keeps no templates', (ST.setCurrentUser(qeL.id), ST.saveTemplate({ name: 'x', request_id: s1.id })), 'not_allowed');
+    ST.setCurrentUser(adminL);
+    var tp1 = await ST.saveTemplate({ name: 'QVM pads', request_id: s1.id });
+    eq('save a request as a template: its fields, audited', [tp1.fields.tool_id, tp1.fields.type_id, tp1.fields.bkm_path, tp1.owner_id, ST.data().audit_log.slice(-1)[0].entity],
+       [qvm.id, qType.id, 'Z:\\bkm\\my.pptx', adminL, 'template']);
+    await refused('the same name twice is refused', ST.saveTemplate({ name: 'qvm pads', request_id: s2.id }), 'invalid');
+    var tp2 = await ST.saveTemplate({ name: 'From the form', fields: { tool_id: qvm.id, purpose: 'x', lot_id: lx.id, panels: ['1'] } });
+    ok('...from the form\'s fields too (and the lot is dropped)', !('lot_id' in tp2.fields) && tp2.fields.purpose === 'x');
+    ST.setCurrentUser(tomL.id);
+    eq('templates are personal: someone else sees none of them', ST.myTemplates(tomL.id).length, 0);
+    await refused('...and cannot rename or delete one', ST.deleteTemplate(tp1.id), 'not_allowed');
+    ST.setCurrentUser(adminL);
+    await ST.renameTemplate(tp2.id, 'Pads, quick');
+    eq('rename, then my templates in name order', ST.myTemplates(adminL).map(function (t) { return t.name; }), ['Pads, quick', 'QVM pads']);
+    var ck = D.templateCheck(tp1, ST.data());
+    eq('a template with everything still there: usable, no notes', [ck.usable, ck.notes], [true, []]);
+    var hid = JSON.parse(JSON.stringify(ST.data()));
+    hid.measurement_types.forEach(function (m) { if (m.id === qType.id) m.active = false; });
+    var ck2 = D.templateCheck(tp1, hid);
+    eq('a hidden type is left empty, with a note (T-3)', [ck2.usable, ck2.fields.type_id, ck2.notes], [true, null, ['The measurement type of this template is hidden - pick another']]);
+    hid.tools.forEach(function (t) { if (t.id === qvm.id) t.active = false; });
+    eq('its tool out of use: cannot be started, only deleted', [D.templateCheck(tp1, hid).usable, D.templateCheck(tp1, hid).reason], [false, 'Its tool is no longer in use']);
+    await ST.deleteTemplate(tp2.id);
+    eq('delete, audited', [ST.myTemplates(adminL).length, ST.data().audit_log.slice(-1)[0].action], [1, 'delete']);
+    var v10 = ST._pure.seedData(); v10.schema_version = 10; delete v10.templates;
+    ST._pure.migrate(v10);
+    eq('schema 10 -> 11: templates start empty', [v10.schema_version, v10.templates], [11, []]);
 
     group('Store: comments and cancel (M2 step 5)');
     await ST.saveEntry('users', { id: tomL.id, fields: { windows_id: 'tlot' } });
@@ -1189,7 +1223,7 @@
     P.migrate(v1);
     eq('schema 1 -> 3: part numbers and process steps start empty', [v1.part_numbers, v1.process_steps], [[], []]);
     eq('...FIB becomes destructive, the others not', v1.tools.map(function (t) { return t.code + ':' + t.destructive; }), ['HRM:false', 'AOI:false', 'PRF:false', 'QVM:false', 'FIB:true']);
-    eq('...and the file says schema 10, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [10, [], [], []]);
+    eq('...and the file says schema 11, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [11, [], [], []]);
     eq('...schema 7 -> 8 brings the magazines', v1.magazines.length, 20);
     eq('...schema 6 -> 7 brings the on-hold reasons', v1.hold_reasons.length, 5);
     eq('...schema 4 -> 5 brings the sample lot fields', v1.lot_fields.map(function (f) { return f.label; }).length, 7);
@@ -1202,10 +1236,10 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v10_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v11_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [10, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [11, true]);
     // 8 -> 9 (form v2): panel numbers become IDs; the lot's old loading map gives the request its slots
     var v8 = ST._pure.seedData(); v8.schema_version = 8;
     v8.lots = [{ id: 'L', lot_number: '1', project_id: v8.projects[0].id, buildup_id: v8.buildups[0].id, panel_count: 4, owner_id: 'u', scrapped: [2],
