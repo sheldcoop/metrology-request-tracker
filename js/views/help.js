@@ -285,9 +285,8 @@ window.MRT.views.help = (function () {
 
     { id: 'coming', title: 'What comes next', icon: 'activity',
       steps: [
-        'Done: M1 (shell, Settings, Help), M2 (lots, the request form, the request page) and M3 (the workflow, My queue, My requests, the board).',
-        'Next: a few days of testing by one quality engineer and one engineer (rollout R1), then M4: notifications (the bell, pop-ups, Outlook drafts).',
-        'Then M5: analytics and exports. M6: import of the old request list. Later: the Hirata code decoder on lots.'
+        'Done: M1 (shell, Settings, Help), M2 (lots, the request form, the request page), M3 (the workflow, My queue, My requests, the board) and M4 (notifications: the bell, pop-ups, Outlook drafts).',
+        'Next: M5 - analytics and exports. Then M6: import of the old request list. Later: the Hirata code decoder on lots.'
       ] }
   ];
 

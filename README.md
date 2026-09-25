@@ -6,10 +6,9 @@ lab operators run them and hand back a results folder.
 Zero install: static files on the shared drive, opened in Microsoft Edge.
 No server, no build step, no internet.
 
-> M1 (the shell), M2 (lots, request form, request page) and M3 (workflow,
-> My queue, My requests, board) are built. Next: a short test run with one
-> quality engineer and one engineer (R1), then M4 (notifications). Analytics
-> is greyed until M5.
+> M1 (the shell), M2 (lots, request form, request page), M3 (workflow,
+> My queue, My requests, board) and M4 (notifications) are built and being
+> audited. Next: M5 (analytics and exports) - Analytics is greyed until then.
 
 ## What the pages do (M1)
 

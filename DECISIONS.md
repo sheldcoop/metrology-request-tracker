@@ -387,6 +387,14 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
 - **M4-5** Browser pop-ups while the app is open, once the person turns them on in the bell;
   otherwise a toast. Not verified: whether Edge allows pop-ups for a page opened from `file://`.
 
+## M1 audit (2026-09-25, Prince)
+- **A-1** Away: the "until" date stays **optional** ("until further notice", e.g. sick leave with no
+  known end); the person or an admin clicks "I'm back". Confirms how M1-14 was built.
+- **A-2** Three merge commits carry "Claude" as author (42d2de4, a2e051c, 7686e02). History is **left
+  as it is** (no rewrite, no force push); every new commit uses the repo's author (Prince Khurana),
+  checked before each push.
+- **A-3** Demo note "Mia covers FIB" (Mia is an Operator) stays - demo text only.
+
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
   the app for a few days before M4 starts.
