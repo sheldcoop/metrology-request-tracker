@@ -57,3 +57,5 @@ Development | After R1: fixes, then M5 analytics + exports | -
 | Part number required? format? lot number rule | OQ #17, #21 | Prince confirms; today: optional, provisional formats |
 | Capacity per tool, result values | OQ #3, #4 | later, if wanted |
 | Measured in a browser: speed, a11y audit, looks, real drag | CLAUDE.md quality targets | Prince checks in the browser; code-level checks are all green |
+
+- Board later (2026-09-25): wall-screen mode for a lab TV; column limits per tool (after capacity); "stuck" tag after 2 lab days in one column.

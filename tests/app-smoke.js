@@ -593,6 +593,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Board search: the match stays, the rest dims (P5-6)', !$$('#main .bcard').filter(c => c.dataset.id === qL.id)[0].classList.contains('is-miss') &&
         $$('#main .bcard.is-miss').length === $$('#main .bcard').length - 1);
   bs.value = ''; bs.dispatch('input');
+  const doneSw = $$('#main input').filter(i => i.getAttribute('role') === 'switch')[0];
+  doneSw.checked = false; doneSw.dispatch('change'); await settle();
+  check('Board: the Completed column can be hidden (P5-7)', $$('#main .board-colhead').length === 4 && !$$('#main .board-cell').some(c => c.dataset.col === 'completed'));
+  const doneSw2 = $$('#main input').filter(i => i.getAttribute('role') === 'switch')[0];
+  doneSw2.checked = true; doneSw2.dispatch('change'); await settle();
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
   win.setHash('#/lab'); await settle();
   const fibPlateQ = $$('#main .tool-plate').filter(p => /FIB/.test(p.textContent))[0];

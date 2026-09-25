@@ -29,7 +29,7 @@ window.MRT.views.board = (function () {
     { key: 'completed', label: 'Completed (7 days)', has: ['completed'] }
   ];
   var WEEK = 7 * 86400000;
-  var view = { pick: null, only: 'all', q: '' };   // q: search text - other cards dim   // pick: 'all' | 'mine' | a tool id (remembered); only: 'all' | 'linestop' | 'late' | 'me'   // 'all' | 'mine' | a tool id - remembered per person on this PC
+  var view = { pick: null, only: 'all', q: '', done: null };   // done: show the Completed column (remembered)   // q: search text - other cards dim   // pick: 'all' | 'mine' | a tool id (remembered); only: 'all' | 'linestop' | 'late' | 'me'   // 'all' | 'mine' | a tool id - remembered per person on this PC
   var clocks = [];
   var open = null;       // the side panel, when one is open
 
@@ -52,6 +52,8 @@ window.MRT.views.board = (function () {
     });
     main.appendChild(ui.pageHead('Board', 'Every open request by tool. Click a card to see it and act on it here.'));
     main.appendChild(toolPicker(tools, mineTools, reqs));
+    if (view.done === null) view.done = !(app.readPref && app.readPref('board_done') === 'hide');
+    var cols = view.done ? COLS : COLS.filter(function (c) { return c.key !== 'completed'; });
     var shown = reqs.filter(function (r) { return passes(r, me, now, cal); });
     main.appendChild(onlyPicker(reqs, me, now, cal));
     reqs = shown;
@@ -60,15 +62,15 @@ window.MRT.views.board = (function () {
       main.appendChild(ui.emptyState({ icon: 'wrench', title: 'No tools yet', text: 'Add the lab\'s tools under Settings > Tools; each gets its own lane here.' }));
       return;
     }
-    var grid = ui.el('div', { class: 'board', style: { gridTemplateColumns: '150px repeat(' + COLS.length + ', minmax(170px, 1fr))' } });
+    var grid = ui.el('div', { class: 'board', style: { gridTemplateColumns: '150px repeat(' + cols.length + ', minmax(170px, 1fr))' } });
     grid.appendChild(ui.el('div', { class: 'board-corner' }, ui.el('span', { class: 'muted', text: 'Tool' })));
-    COLS.forEach(function (c, i) {
+    cols.forEach(function (c, i) {
       var n = reqs.filter(function (r) { return c.has.indexOf(r.status) !== -1 && lanes.some(function (t) { return t.id === r.tool_id; }); }).length;
       grid.appendChild(ui.el('div', { class: 'board-colhead is-' + c.key }, [ui.el('span', { class: 'board-step mono', text: String(i + 1) }),
         ui.el('b', { text: c.label }), ui.el('span', { class: 'board-count num' + (n ? '' : ' is-zero'), text: String(n) })]));
     });
     lanes.forEach(function (t) {
-      var mine = reqs.filter(function (r) { return r.tool_id === t.id; });
+      var mine = reqs.filter(function (r) { return r.tool_id === t.id && (view.done || r.status !== 'completed'); });
       var open = mine.filter(function (r) { return D.isOpen(r); }).length;
       var running = mine.some(function (r) { return r.status === 'in_progress'; });
       var lane = ui.el('div', { class: 'board-lane is-' + t.status + (mine.length ? '' : ' is-empty') }, [
@@ -79,10 +81,10 @@ window.MRT.views.board = (function () {
       ]);
       grid.appendChild(lane);
       if (!mine.length) {
-        grid.appendChild(ui.el('div', { class: 'board-fold', style: { gridColumn: 'span ' + COLS.length }, text: 'Nothing on this tool' }));
+        grid.appendChild(ui.el('div', { class: 'board-fold', style: { gridColumn: 'span ' + cols.length }, text: 'Nothing on this tool' }));
         return;
       }
-      COLS.forEach(function (c) {
+      cols.forEach(function (c) {
         var cards = D.sortQueue(mine.filter(function (r) { return c.has.indexOf(r.status) !== -1; }), { now_ts: now, cal: cal, levelOf: levelOf });
         grid.appendChild(ui.el('div', { class: 'board-cell', dataset: { col: c.key, tool: t.id }, 'aria-label': t.code + ' - ' + c.label }, cards.map(card)));
       });
@@ -115,7 +117,8 @@ window.MRT.views.board = (function () {
       return ui.el('button', { type: 'button', class: 'tool-pick' + (on ? ' is-on' : '') + (o.key === 'linestop' && n ? ' is-alarm' : ''), 'aria-pressed': on ? 'true' : 'false',
         dataset: { only: o.key }, onclick: function () { view.only = o.key; window.MRT.app.route(); } },
         [ui.el('span', { text: o.label }), ui.el('span', { class: 'tool-pick-n num', text: String(n) })]);
-    })).concat([search, ui.el('span', { class: 'muted board-search-n', 'aria-live': 'polite' })]));
+    })).concat([ui.toggle({ kind: 'switch', label: 'Completed column', checked: view.done, onChange: function (v) {
+      view.done = v; if (window.MRT.app.writePref) window.MRT.app.writePref('board_done', v ? 'show' : 'hide'); window.MRT.app.route(); } }).node, search, ui.el('span', { class: 'muted board-search-n', 'aria-live': 'polite' })]));
   }
 
   /** Search (P5-6): matching cards stay, the others dim; nothing is re-drawn, so typing keeps focus. */
