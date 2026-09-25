@@ -29,7 +29,7 @@ window.MRT.views.board = (function () {
     { key: 'completed', label: 'Completed (7 days)', has: ['completed'] }
   ];
   var WEEK = 7 * 86400000;
-  var view = { pick: null, only: 'all' };   // pick: 'all' | 'mine' | a tool id (remembered); only: 'all' | 'linestop' | 'late' | 'me'   // 'all' | 'mine' | a tool id - remembered per person on this PC
+  var view = { pick: null, only: 'all', q: '' };   // q: search text - other cards dim   // pick: 'all' | 'mine' | a tool id (remembered); only: 'all' | 'linestop' | 'late' | 'me'   // 'all' | 'mine' | a tool id - remembered per person on this PC
   var clocks = [];
   var open = null;       // the side panel, when one is open
 
@@ -89,6 +89,7 @@ window.MRT.views.board = (function () {
     });
     main.appendChild(ui.el('div', { class: 'board-wrap' }, grid));
     tick();
+    if (view.q) applySearch();
   }
 
   var ONLY = [{ key: 'all', label: 'Everything' }, { key: 'linestop', label: 'Line stop' }, { key: 'late', label: 'Late' }, { key: 'me', label: 'Assigned to me' }];
@@ -104,6 +105,8 @@ window.MRT.views.board = (function () {
   }
   function onlyPicker(reqs, me, now, cal) {
     var keep = view.only;
+    var search = ui.el('input', { type: 'search', class: 'board-search mono', value: view.q, placeholder: 'Find: request, lot or Hirata ID', 'aria-label': 'Find on the board' });
+    search.addEventListener('input', function () { view.q = search.value; applySearch(); });
     return ui.el('div', { class: 'tool-picks is-filters', role: 'group', 'aria-label': 'Show only' }, [ui.el('span', { class: 'muted tool-picks-label', text: 'Show' })].concat(ONLY.map(function (o) {
       view.only = o.key;
       var n = reqs.filter(function (r) { return D.isOpen(r) && passes(r, me, now, cal); }).length;
@@ -112,7 +115,21 @@ window.MRT.views.board = (function () {
       return ui.el('button', { type: 'button', class: 'tool-pick' + (on ? ' is-on' : '') + (o.key === 'linestop' && n ? ' is-alarm' : ''), 'aria-pressed': on ? 'true' : 'false',
         dataset: { only: o.key }, onclick: function () { view.only = o.key; window.MRT.app.route(); } },
         [ui.el('span', { text: o.label }), ui.el('span', { class: 'tool-pick-n num', text: String(n) })]);
-    })));
+    })).concat([search, ui.el('span', { class: 'muted board-search-n', 'aria-live': 'polite' })]));
+  }
+
+  /** Search (P5-6): matching cards stay, the others dim; nothing is re-drawn, so typing keeps focus. */
+  function applySearch() {
+    var q = (view.q || '').trim().toLowerCase().replace(/\s+/g, '');
+    var cards = document.querySelectorAll('#main .bcard'), hits = 0;
+    Array.prototype.forEach.call(cards, function (c) {
+      var hit = !q || (c.dataset.find || '').indexOf(q) !== -1;
+      if (q && hit) hits++;
+      c.classList.toggle('is-miss', !hit);
+      c.classList.toggle('is-hit', !!q && hit);
+    });
+    var n = document.querySelector('#main .board-search-n');
+    if (n) n.textContent = q ? hits + ' found' : '';
   }
 
   /** The tool picker on top: All, My tools, or one tool (with its open count). */
@@ -151,6 +168,7 @@ window.MRT.views.board = (function () {
       ]
     }, { size: 'card' });
     node.dataset.id = r.id;
+    node.dataset.find = [r.request_no, lot ? lot.lot_number : '', (r.panels || []).join(' ')].join(' ').toLowerCase().replace(/\s+/g, '|');
     node.addEventListener('click', function (ev) {
       if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) return;   // a new tab still opens the page
       ev.preventDefault();

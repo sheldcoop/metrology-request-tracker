@@ -1902,3 +1902,7 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .tool-picks-label { font-size: 12px; margin-right: 2px; }
 .tool-pick.is-alarm:not(.is-on) { border-color: var(--critical); }
 .tool-pick.is-alarm:not(.is-on) .tool-pick-n { background: var(--critical); color: var(--on-danger); }
+.board-search { margin-left: auto; width: 240px; padding: 5px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--inset); color: var(--fg); font-size: 13px; }
+.board-search-n { font-size: 12px; min-width: 56px; }
+.bcard.is-miss { opacity: .25; }
+.bcard.is-hit { outline: 2px solid var(--accent); outline-offset: 1px; }
