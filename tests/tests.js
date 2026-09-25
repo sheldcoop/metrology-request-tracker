@@ -357,6 +357,34 @@
     ok('a hidden default is refused', D.validatePriorities([{ is_default: true, active: false }, { active: true }]).length === 1);
 
     /* =============== store: first run and seed =============== */
+    /* =============== Hirata code (H-1..H-3) =============== */
+    group('Hirata code: dots, digits, fields (H-1..H-3)');
+    eq('digit 0: only the baseline dot', D.hirataDots(0), [false, false, false, false, true]);
+    eq('digit 9 = 8 + 1', D.hirataDots(9), [true, false, false, true, true]);
+    eq('digit 7 = 4 + 2 + 1', D.hirataDots('7'), [false, true, true, true, true]);
+    eq('no digit above 9, no letters, no blanks', [D.hirataDots(10), D.hirataDots('x'), D.hirataDots(''), D.hirataDots(1.5)], [null, null, null, null]);
+    ok('every digit 0-9 turns into dots and back', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].every(function (d) { return D.hirataDigit(D.hirataDots(d)) === d; }));
+    ok('the baseline carries no value', D.hirataDigit([false, false, false, false, true]) === 0);
+    ok('8 + 1 may be set (9)', D.hirataCanSet([true, false, false, false, true], 3));
+    ok('8 + 2 may not (10 is above 9)', !D.hirataCanSet([true, false, false, false, true], 2));
+    ok('8 + 4 may not (12)', !D.hirataCanSet([true, false, false, false, true], 1));
+    ok('on an empty column any single dot may be set', [0, 1, 2, 3].every(function (row) { return D.hirataCanSet([false, false, false, false, true], row); }));
+    ok('a dot that is on may always be switched off', D.hirataCanSet([true, false, false, true, true], 0));
+    ok('the baseline row cannot be switched', !D.hirataCanSet([false, false, false, false, true], 4));
+    eq('fields: 9 digits = Supplier 1, Year 1, Week 2, Day 1, Lot 2, Panel 2', D.HIRATA_FIELDS.reduce(function (n, f) { return n + f.width; }, 0), 9);
+    eq('a full code reads every field', D.hirataFields('161234507').map(function (f) { return f.name + '=' + f.value; }),
+       ['Supplier=1', 'Year=6', 'Week=12', 'Day=3', 'Lot per day=45', 'Panel=07']);
+    eq('4 digits read as Lot per day + Panel (from the right)', D.hirataFields('3407').map(function (f) { return f.name + '=' + f.value; }), ['Lot per day=34', 'Panel=07']);
+    eq('3 digits: Panel and part of the lot', D.hirataFields('407').map(function (f) { return f.name + '=' + f.value + (f.partial ? '*' : ''); }), ['Lot per day=4*', 'Panel=07']);
+    eq('check: 9 digits is a full code', D.hirataCheck(' 161234507 ').kind, 'full');
+    eq('check: 4 digits is the tail (lot + panel)', D.hirataCheck('3407').kind, 'tail');
+    eq('check: other lengths are drawn as typed', D.hirataCheck('23').kind, 'short');
+    eq('check: letters are refused', D.hirataCheck('34a7').problem, 'Digits only');
+    ok('check: more than 9 digits is refused', !!D.hirataCheck('1234567890').problem);
+    eq('several codes at once', D.hirataList('3407, 0119 1827').map(function (x) { return x.digits; }), ['3407', '0119', '1827']);
+    eq('a panel ID may now be the full 9-digit code (H-1)', D.parsePanelIds('161234507, 3252').ids, ['161234507', '3252']);
+    ok('...but not 10 digits', D.parsePanelIds('1612345070').errors.length === 1);
+
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
     eq('schema 10, revision 0', [seed.schema_version, seed.revision], [10, 0]);

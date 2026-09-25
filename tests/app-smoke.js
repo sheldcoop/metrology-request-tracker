@@ -39,10 +39,10 @@ console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
 ['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js',
- 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js',
+ 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -86,8 +86,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   // --- the side menu (M1-6)
   const items = doc.getElementById('navItems').children;
-  check('nine menu entries', items.length === 9, items.length);
-  check('eight live: Lab status, My queue, My requests, New request, Lots, Board, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,requests,new,lots,board,settings,help');
+  check('ten menu entries', items.length === 10, items.length);
+  check('nine live: Lab status, My queue, My requests, New request, Lots, Board, Hirata tools, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,requests,new,lots,board,hirata,settings,help');
   check('one greyed with its milestone (Analytics, M5)', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M5');
   check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 1);
 
@@ -379,6 +379,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   setVal(fieldIn(M(), 'Hirata IDs'), '3252, abc'); await settle();
   check('...a typo is named at the field', /"abc" is not a Hirata ID/.test(mainText()));
   setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
+  check('each typed Hirata ID shows its copper panel to the right (H-3)', $$('#main .panel-chips .panel-hirata-item').length === 4 &&
+        $$('#main .panel-chips .panel-hirata-item')[0].children[1].classList.contains('cu-panel'));
   const lyNames = $$('#main .layer-chip').map(b => b.textContent);
   check('layers come from the build-up: 1FCO / 1BCO core, then F and B per layer', lyNames[0] === '1FCO' && lyNames[1] === '1BCO' && lyNames.indexOf('2F') !== -1);
   $$('#main .layer-chip').filter(b => b.textContent === '2F')[0].click(); await settle();
@@ -407,6 +409,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...its request page opens (M2 step 5)', win.location.hash === '#/request/' + req1.id && mainText().indexOf(req1.request_no) !== -1 && /M70345 · slots 3-6/.test(mainText()));
   check('the traveller card: ID, stamp "Submitted", priority stripe, the magazine with 4 slots', !!$('#main .traveller.prio-3') &&
         $('#main .tr-stamp').textContent === 'Submitted' && $$('#main .traveller .mz-slot.is-picked').length === 4 && /3252, 3253/.test($('#main .traveller').textContent));
+  check('the request page shows each panel as copper with its decoded fields (H-3)', $$('#main .traveller .cu-panel').length === req1.panels.length &&
+        /Lot per day/.test($('#main .traveller .hf-list').textContent));
   check('...no date: "the priority says how urgent it is"', /priority says how urgent/.test($('#main .tr-clock').textContent));
   check('the status rail: Submitted now, by whom and when', $$('#main .rail-step').length === 4 && $('#main .rail-step.is-now').textContent.indexOf('Submitted') === 0 && /Prince Khurana/.test($('#main .rail-step.is-now').textContent));
   check('the results folder is proposed from the tool root (Q30)', mainText().indexOf('\\\\srv\\lab\\FIB\\') !== -1 && mainText().indexOf(req1.request_no + '\\') !== -1);
@@ -506,6 +510,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.getElementById('main'), 'Print slip').click(); await settle();
   check('Print slip: the A6 traveller slip with the ID, its barcode and the panels (Q38)', !!$('#main .slip') && $('#main .slip-id').textContent === req2.request_no &&
         $('#main .barcode').querySelectorAll('rect').length > 30 && /DESTROYS THESE PANELS/.test($('#main .slip').textContent));
+  check('...each panel drawn as its copper panel, with its decoded fields (H-3)', (req2.panels || []).length > 0 &&
+        $$('#main .slip .cu-panel').length === req2.panels.length && /Panel/.test($('#main .slip .hf-list').textContent));
   win.setHash('#/lab'); await settle();
   req2.request_no.split('').concat(['Enter']).forEach(k => doc.dispatch('keydown', { key: k, target: doc.body })); await settle();
   check('a scanner typing the ID + Enter anywhere opens the request (Q38)', win.location.hash === '#/request/' + req2.id);
@@ -679,6 +685,26 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   win.setHash('#/help/admin-setup'); await settle();
   check('#/help/admin-setup opens that guide', $$('.help-guide').filter(g => g.classList.contains('is-selected')).map(g => g.id).join() === 'help-admin-setup');
   check('every guide link goes to a live page', $$('.help-open').every(a => !!MRT.views[(a.getAttribute('href') || '').replace(/^#\//, '').split('/')[0]]));
+
+  // --- Hirata tools (H-1..H-3): read a panel, find a pattern
+  win.setHash('#/hirata'); await settle();
+  check('Hirata tools opens on "Read a panel" with the dot grid', /Read a panel/.test(mainText()) && $$('#main .hg-cell').length === 5 * 10);   // 5 rows x (start column + 9 digits)
+  const cellAt = (c, r) => $$('#main td.hg-cell').filter(t => t.dataset.c === String(c) && t.dataset.r === String(r))[0];
+  cellAt(8, 3).click(); await settle(); cellAt(8, 2).click(); await settle(); cellAt(8, 1).click(); await settle();
+  check('tapping 4 + 2 + 1 in the last column reads 7', /0 0 0 0 0 0 0 0 7/.test($('#main .hirata-serial').textContent));
+  cellAt(8, 0).click(); await settle();
+  check('...8 on top of 7 is blocked (above 9) and said so', /cannot go above 9/.test(mainText()) && /0 0 0 0 0 0 0 0 7/.test($('#main .hirata-serial').textContent));
+  const typedBox = fieldIn(doc.getElementById('main'), 'Or type the digits');
+  setVal(typedBox, '161234507'); await settle();
+  check('typing the full code decodes every field', $('#main .hirata-serial').textContent === '1 6 1 2 3 4 5 0 7' &&
+        /Supplier1Year6Week12Day3Lot per day45Panel07/.test($$('#main .hf-list')[0].textContent));
+  check('...and draws the last 4 as the copper panel', $$('#main .cu-panel').some(p => /4 5 0 7/.test(p.getAttribute('aria-label'))));
+  setVal(typedBox, '34a7'); await settle();
+  check('...letters are refused at the field', /Digits only/.test(mainText()));
+  win.setHash('#/hirata/find'); await settle();
+  const codes = fieldIn(doc.getElementById('main'), 'Hirata codes'); setVal(codes, '3407, 0119 161234507, 12x'); await settle();
+  check('Find a pattern: one copper panel per good code, the bad one named', $$('.hirata-sheet')[0].querySelectorAll('.cu-panel').length === 3 && /Skipped: "12x"/.test(mainText()));
+  check('...and the 0-9 reference', $$('#main .hirata-ref-item').length === 10);
 
   // --- a failed save: the lamp and a toast with Retry
   folder.failWrites = true;

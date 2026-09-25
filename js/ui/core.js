@@ -125,6 +125,7 @@ window.MRT.ui = (function () {
     users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     tag: '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+    hirata: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8" cy="8.5" r="1.3"/><circle cx="8" cy="12" r="1.3"/><circle cx="8" cy="15.5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="16" cy="8.5" r="1.3"/><circle cx="16" cy="15.5" r="1.3"/>',
     keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>'
   };
 

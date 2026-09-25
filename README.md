@@ -100,6 +100,10 @@ optional note, never a reason. Shown on Lab status, People and Health.
 Entries in use are hidden, not deleted. A "Sample" tag marks made-up
 entries; save one (changed or not) to confirm it as real.
 
+**Hirata tools** - read a panel's dot code (tap the dots, get every field) or
+type codes to see the copper panel they are drilled into; nothing is saved.
+Requests show each panel's copper pattern too, on the page and the slip.
+
 **Help** (the ? button) - step-by-step guides for every task, searchable and
 printable, including "Admin: setting up the office".
 

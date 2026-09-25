@@ -418,6 +418,16 @@ weighted 8/4/2/1 plus a baseline dot, never above 9, with a start column for ori
   the dot grid, in the ui-kit); request form Panels step "Decode a panel"; copper patterns on the
   request page and the slip; a "Hirata tools" page (decoder + pattern finder + print); attach
   decoded panels to a lot (#22). Open before building: listed in OPEN_QUESTIONS #22.
+- **H-3** (2026-09-25, Prince; **built**) A sidebar page **"Hirata tools"** (#/hirata) for anyone,
+  nothing saved: *Read a panel* (tap the dots or type the digits -> the full code field by field
+  and the copper panel) and *Find a pattern* (the last 4 digits or the full 9, several at once ->
+  copper panels; print; 0-9 reference). In the request form each typed Hirata ID shows its small
+  copper panel **to the right** of it; the request page and the printed slip show every panel as
+  copper with its decoded fields. The field widths are **fixed in the code** (Supplier 1, Year 1,
+  Week 2, Day 1, Lot per day 2, Panel 2), like Prince's tool. Copper colours fixed in every theme
+  and kept when printing. Panel IDs now take 1-9 digits (the full code fits); the minimum of 4 is
+  not enforced yet so existing panels (e.g. "23") stay valid - open question. Not built yet:
+  attaching decoded panels to a lot, a PNG download.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test

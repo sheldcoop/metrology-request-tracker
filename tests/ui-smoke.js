@@ -22,7 +22,7 @@ if(process.argv[2]==='chart'){win.Chart=function(canvas,cfg){charts++;this.cfg=c
   if(cfg.options.onHover)cfg.options.onHover({},[]);
   const a=cfg.options.animations;if(a){a.y.from({index:1,chart:chartObj,datasetIndex:0});a.x.delay({type:'data',index:2})}
   this.destroy=()=>destroyed++;};}const ctx=vm.createContext(win);
-['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
+['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller','hirata'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
 let errs=0;
 function check(name,fn){try{fn();flush()}catch(e){errs++;console.log('ERR',name,e.stack.split('\n').slice(0,3).join(' | '))}}
 function expect(name,cond){if(!cond){errs++;console.log('FAIL',name)}}
@@ -80,6 +80,21 @@ check('traveller',()=>{const m={id:'FIB-260925-01',subtitle:'FIB',glyph:{key:'fi
   const sl=put(ui.traveller(m,{size:'slip'}));expect('traveller slip: warning line',sl.classList.contains('slip')&&/W/.test(sl.textContent));
   const u=put(ui.traveller({id:'<b>x</b>'},{size:'full'}));expect('traveller: text never becomes markup',u.textContent.indexOf('<b>x</b>')!==-1);
   expect('four sizes',ui.TRAVELLER_SIZES.join()==='full,mini,card,slip')});
+check('hirata',()=>{const dots=d=>[8,4,2,1].map(w=>(d&w)!==0).concat([true]);
+  const cp=put(ui.copperPanel({columns:'3407'.split('').map(c=>dots(+c)),text:'3407',size:'md'}));
+  expect('copper panel: 4 columns x 5 holes, role img with the digits',cp.querySelectorAll('span').filter(x=>x.classList.contains('cu-hole')).length===20&&cp.getAttribute('role')==='img'&&/3407/.test(cp.getAttribute('aria-label')));
+  expect('...holes follow the dots (digit 0 = baseline only)',cp.querySelectorAll('span').filter(x=>x.classList.contains('cu-hole')&&!x.classList.contains('is-empty')).length===[3,4,0,7].reduce((n,d)=>n+dots(d).filter(Boolean).length,0));
+  const hf=put(ui.hirataFields([{id:'lot',name:'Lot per day',value:'4',partial:true},{id:'pan',name:'Panel',value:'<b>'}],{compact:true}));
+  expect('fields: partial marked, text never markup',/4…/.test(hf.textContent)&&/<b>/.test(hf.textContent));
+  let got=null,blocked=null;const W=[8,4,2,1];const val=d=>W.reduce((s,w,i)=>s+(d[i]?w:0),0);
+  const g=ui.hirataGrid({fields:[{id:'lot',name:'Lot per day',width:2},{id:'pan',name:'Panel',width:2}],weights:W,canSet:(d,r)=>r<4&&(d[r]||val(d)+W[r]<=9),digitOf:val,onChange:x=>got=x,onBlocked:c=>blocked=c});
+  put(g);const cell=(c,r)=>g.node.querySelectorAll('td').filter(t=>t.dataset.c===String(c)&&t.dataset.r===String(r))[0];
+  cell(3,0).dispatch('click');expect('grid: tap 8 -> 0008',got==='0008');
+  cell(3,1).dispatch('click');expect('grid: 8 + 4 blocked, column named',got==='0008'&&blocked===4);
+  cell(3,3).dispatch('click');expect('grid: 8 + 1 = 9',got==='0009');
+  g.set('3407');expect('grid.set shows typed digits',g.digits()==='3407');
+  cell(0,4).dispatch('click');expect('baseline cannot be toggled',g.digits()==='3407');
+  cell(0,0).dispatch('keydown',{key:'ArrowRight'});g.clear();expect('clear',g.digits()==='0000')});
 check('magazine slots',()=>{let got=null;
   const mm=put(ui.magazineSlots({magazine:{code:'M70345',slots:24},picked:[1],labels:{1:'3252'},taken:{9:'FIB-260924-01'},onChange:l=>{got=l}}));
   const slots=()=>mm.node.querySelectorAll('.mz-slot');
@@ -141,7 +156,7 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
-  expect('the kit builds every section (22)',secs.length===22);
+  expect('the kit builds every section (23)',secs.length===23);
   expect('the kit shows 6 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===24);
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
   for(const i of doc.getElementById('kitBar').querySelectorAll('input')){i.checked=true;i.dispatch('change');flush()}

@@ -174,6 +174,17 @@ window.MRT.views.help = (function () {
       ],
       link: ['New request', '#/new'] },
 
+    { id: 'hirata', title: 'Hirata tools (panel codes)', icon: 'hirata',
+      intro: 'Every panel carries a Hirata code: a pattern of drilled dots. Hirata tools reads it and draws it - nothing is saved.',
+      steps: [
+        'Menu > Hirata tools > Read a panel: tap the dots you see on the panel (or type the digits). You get the 9 digits and each field: Supplier, Year, Week, Day, Lot per day, Panel.',
+        'Each column is one digit: add the weights of its dots, 8 + 4 + 2 + 1. No digit is above 9 - such a dot is locked. The bottom dot is always there; the first column (all five dots) shows which way round the code is.',
+        'Find a pattern: type the last 4 digits (lot per day + panel) or the full 9 - several at once - and see each as the copper panel it is drilled into. Print them to hold against the real panels.',
+        'In a request, each Hirata ID you type shows its copper panel right next to it; the request page and the printed slip show every panel with its decoded fields.'
+      ],
+      tips: ['A panel ID is the full 9-digit code when you know it, usually its last 4 digits.', 'The code layout is fixed: Supplier 1, Year 1, Week 2, Day 1, Lot per day 2, Panel 2.'],
+      link: ['Open Hirata tools', '#/hirata'] },
+
     { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
       intro: 'Tell the lab when you are not there, so people know who covers your tools.',
       steps: [
