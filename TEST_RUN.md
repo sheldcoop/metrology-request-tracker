@@ -95,6 +95,8 @@ kept first). The steps below work on the demo or on a fresh folder.
 - [ ] **T3.12** Print slip: A6 (or A4). Expect: big ID, barcode, the panels **as copper patterns** (copper colour kept on paper),
       "FIB DESTROYS THESE PANELS". Hold it next to a real panel: does the pattern match?
 - [ ] **T3.13** With a hand scanner: scan the slip's barcode on any page (click the page first, not a text field). Expect: the request opens.
+- [ ] **T3.15** Templates: on one of your requests "Save as template" (a name). New request: "Start from a template" fills tool,
+      type, BKM, project ... but not lot, panels, place, date. My requests > filter "My templates": rename, delete.
 - [ ] **T3.14** Cancel a request with a reason. Expect: stays visible as Cancelled; never deleted.
 
 ## T4. Quality engineer: the queue

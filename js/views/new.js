@@ -97,6 +97,13 @@ window.MRT.views['new'] = (function () {
     var src = draft ? JSON.parse(JSON.stringify(draft)) : null;
     var from = q.from ? byId('requests', q.from) : null;
     if (!src && from && D.canSeeRequest(me, from)) src = copyOf(from);
+    // start from a personal template (Q28): what is no longer available is left empty, with a note (T-3)
+    var tpl = !src && q.template ? byId('templates', q.template) : null, tplNotes = [];
+    if (tpl && tpl.owner_id === me.id) {
+      var ck = D.templateCheck(tpl, store.data());
+      if (ck.usable) { src = ck.fields; tplNotes = ck.notes; if (!src.priority_id) delete src.priority_id; }   // the default priority then
+      else tplNotes = [ck.reason + ' - this template cannot be started.'];
+    } else tpl = null;
     var st = Object.assign({ tool_id: null, type_id: null, project_id: null, part_number_id: null, buildup_id: null, lot_id: null, new_lot: null, panels: [], panel_count: null, layers: [],
       priority_id: defaultPriority(), priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '', purpose: '',
       process_step_id: null, process_step_other: '', panel_location: '', magazine_id: null, slots: [], destructive_ok: false,
@@ -112,10 +119,14 @@ window.MRT.views['new'] = (function () {
     var lotNumber = lotNow ? lotNow.lot_number : st.new_lot ? st.new_lot.lot_number : '';
     var panelMode = st.panels.length || !st.panel_count ? 'ids' : 'count';
 
-    var title = editing ? 'Edit ' + draft.request_no : draft ? 'Draft' : from ? 'Copy of ' + (from.request_no || 'a draft') : 'New request';
+    var title = editing ? 'Edit ' + draft.request_no : draft ? 'Draft' : from ? 'Copy of ' + (from.request_no || 'a draft') : tpl ? 'New request from "' + tpl.name + '"' : 'New request';
     main.appendChild(ui.pageHead(title, editing ? 'Change what is needed and save with a reason; the quality engineer sees each change in the timeline. The tool stays.'
       : 'Tool first, then step by step. Save a draft any time; Submit sends it to the tool\'s quality engineers.'));
 
+    if (tplNotes.length) main.appendChild(ui.el('div', { class: 'setup-note', role: 'status' }, [ui.icon('info', 14),
+      ui.el('span', { text: tplNotes.join(' · ') })]));
+    // a new, empty form: offer the person's templates first (Q28)
+    if (!src && !draft && !q.lot && !q.tool) { var chooserNode = window.MRT.templates.chooser(me); if (chooserNode) main.appendChild(chooserNode); }
     var errorBox = ui.el('div', { class: 'req-errors', role: 'alert', hidden: true });
     var progress = ui.el('ol', { class: 'wz-progress', 'aria-label': 'Steps' });
     var formCol = ui.el('div', { class: 'wz-steps' });
@@ -676,6 +687,12 @@ window.MRT.views['new'] = (function () {
     ]) : ui.el('div', { class: 'req-actions' }, [
       draft ? ui.button('Delete draft', { kind: 'ghost', icon: 'trash', onClick: deleteDraft }) : null,
       ui.el('span', { class: 'spacer' }),
+      ui.button('Save as template', { kind: 'ghost', icon: 'requests', title: 'Keep what stays the same for next time (not the lot, panels, place or dates)',
+        onClick: function () {
+          if (!st.tool_id) return ui.toast({ kind: 'warning', message: 'Pick the tool first - a template needs one.' });
+          var t = byId('tools', st.tool_id), ty = byId('measurement_types', st.type_id);
+          window.MRT.templates.save([t ? t.code : '', ty ? ty.name : ''].filter(Boolean).join(' '), { fields: fields() });
+        } }),
       ui.button('Save draft', { icon: 'save', onClick: saveDraft }),
       ui.button('Submit', { kind: 'primary', icon: 'check', onClick: submit })
     ]));

@@ -51,6 +51,10 @@ window.MRT.views.request = (function () {
       D.canEditSubmitted(me, r) ? ui.button('Edit request', { icon: 'edit', onClick: function () { location.hash = '#/new/' + r.id; } }) : null,
       ui.button('Print slip', { icon: 'download', onClick: function () { location.hash = '#/slip/' + r.id; } }),
       ui.button('Copy this request', { icon: 'copy', onClick: function () { location.hash = '#/new?from=' + r.id; } }),
+      D.canRequest(me) && (r.requester_id === me.id || D.hasRole(me, 'admin')) ? ui.button('Save as template', { icon: 'requests',
+        title: 'Keep what stays the same for next time (not the lot, panels, place or dates)',
+        onClick: function () { var ty = store.byId('measurement_types', r.type_id);
+          window.MRT.templates.save([(store.byId('tools', r.tool_id) || {}).code, ty ? ty.name : ''].filter(Boolean).join(' '), { request_id: r.id }); } }) : null,
       lot && D.canRequest(me) ? ui.button('New request on this lot', { icon: 'plus', onClick: function () { location.hash = '#/new?lot=' + r.lot_id; } }) : null,
       D.canCancel(me, r, tool) ? ui.button('Cancel request', { kind: 'danger', icon: 'close', onClick: function () { cancel(r); } }) : null
     ];

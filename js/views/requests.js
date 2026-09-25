@@ -25,7 +25,8 @@ window.MRT.views.requests = (function () {
 
   var STATUS_FILTER = [
     { value: 'active', label: 'Waiting on me + open' }, { value: 'mine', label: 'Waiting on me' }, { value: 'open', label: 'Open' },
-    { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' }, { value: 'drafts', label: 'Drafts' }, { value: 'all', label: 'All' }
+    { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' }, { value: 'drafts', label: 'Drafts' }, { value: 'all', label: 'All' },
+    { value: 'templates', label: 'My templates' }
   ];
 
   function byId(coll, id) { return id ? store.byId(coll, id) : null; }
@@ -64,6 +65,7 @@ window.MRT.views.requests = (function () {
 
     function draw() {
       clocks = [];
+      if (view.status === 'templates') { shownRows = []; ui.mount(holder, window.MRT.templates.list(me)); return; }
       var now = Date.now();
       var q = D.normalizeName(view.text || '');
       var list = mineAll.filter(function (r) {

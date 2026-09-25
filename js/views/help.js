@@ -175,6 +175,17 @@ window.MRT.views.help = (function () {
       ],
       link: ['New request', '#/new'] },
 
+    { id: 'templates', title: 'Request templates', icon: 'requests',
+      intro: 'For requests you make again and again: keep what stays the same, add only the lot, panels, place and date.',
+      steps: [
+        'On one of your requests (or the form\'s last step), click "Save as template" and give it a name.',
+        'New request: pick it under "Start from a template". Tool, type, BKM, project, part number, build-up, layers, afterwards, priority, purpose and extra fields are filled in.',
+        'My requests > filter "My templates": use, rename or delete your templates. Only you see them.'
+      ],
+      tips: ['If something a template uses was hidden since (a BKM, a type ...), that part stays empty with a note - pick it again.',
+             'A template whose tool is out of use cannot be started, only deleted.'],
+      link: ['New request', '#/new'] },
+
     { id: 'analytics', title: 'Analytics', icon: 'analytics',
       intro: 'Numbers about the lab, in lab time (lab days and hours, holidays out). Click any number, bar or row to see the requests behind it - with Download.',
       steps: [

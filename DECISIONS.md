@@ -440,6 +440,18 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
   Analytics chart and table, the monthly management pack (Analytics > Management, pick a month).
   Not verified: real Excel on the office PCs, Chart.js looks in the three themes (Prince, R1 T8).
 
+## Personal request templates (2026-09-25, Prince; Q28) - built
+- **T-1** A template keeps what stays the same: tool, measurement type, BKM (or own path), project,
+  part number, build-up, layers, afterwards, priority, purpose, extra fields; **never** the lot,
+  panels, magazine slots, place, needed-by date or priority reason. **Personal**: only the owner
+  sees, uses, renames and deletes it (audited). Data: `templates` collection, schema 11.
+- **T-2** Save: "Save as template" on the request page (own requests; admins any) and on the form's
+  last step. Start: a new empty form offers "Start from a template"; picking one fills the form
+  (`#/new?template=<id>`). Manage: My requests > "My templates".
+- **T-3** Parts hidden since (type, BKM, project, part number, build-up, layers, priority, extra
+  fields) are left empty with a note; a template whose tool is out of use cannot be started, only
+  deleted. Rules: `domain.templateFieldsOf / templateNameProblems / templateCheck`, with tests.
+
 ## Hirata code (2026-09-25, Prince) - PLANNED, ask before building
 Prince's Hirata tool (decoder + pattern finder) is built into the app, rebuilt to our rules
 (no `innerHTML` with typed text, our themes and components). The code has **9 digits**: supplier
