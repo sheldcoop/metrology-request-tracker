@@ -61,15 +61,18 @@ window.MRT.views.request = (function () {
     ];
     main.appendChild(ui.pageHead(r.request_no, (tool ? tool.name : '') + ' - requested by ' + userName(r.requester_id), actions));
 
-    var changed = seen[r.id] !== undefined && seen[r.id] !== r.status;
-    seen[r.id] = r.status;
+    var prev = seen[r.id], nowKey = r.status + '|' + !!r.received_ts;
+    var changed = prev !== undefined && prev !== nowKey;
+    var statusChanged = changed && prev.split('|')[0] !== r.status;
+    seen[r.id] = nowKey;
+    live.changed = changed;
     var card = traveller(r, tool, lot);
     main.appendChild(card);
     var acts = window.MRT.requestActions.buttons(r);
     if (acts.length) main.appendChild(ui.el('div', { class: 'req-actbar', role: 'group', 'aria-label': 'What you can do now' }, acts));
     var railNode = rail(r);
     main.appendChild(railNode);
-    if (changed) {   // P3: the new stamp presses on, the rail fills to the new step
+    if (statusChanged) {   // P3: the new stamp presses on, the rail fills to the new step
       var st = card.querySelector('.tr-stamp');
       if (st) st.classList.add('is-stamping');
       railNode.classList.add('is-filling');
@@ -105,7 +108,7 @@ window.MRT.views.request = (function () {
           gauge ? ui.el('div', { class: 'tr-dial' }, [gauge.node, clock]) : clock),
         cell('Panels', ui.el('b', { class: 'mono', text: D.panelsText(r) + ((r.panels || []).length ? '  (' + r.panels.length + ')' : '') }),
           [(r.layers || []).length ? 'layer ' + r.layers.join(', ') : null, window.MRT.requestActions.whereOf(r) || null].filter(Boolean).join(' · ') || null,
-          window.MRT.views.hirata.panelsView(r.panels, 'md')),
+          window.MRT.views.hirata.panelsView(r.panels, 'md', { state: panelState(r), animate: live.changed })),
         cell('Submitted', ui.el('span', { class: 'num', text: ui.formatTs(r.submitted_ts) })),
         r.expected_done ? cell('Expected done', ui.el('b', { class: 'num', text: ui.formatDate(r.expected_done + 'T12:00:00Z') }),
           r.needed_by && r.expected_done > r.needed_by ? 'later than needed' : null) : null,
@@ -147,6 +150,13 @@ window.MRT.views.request = (function () {
     var state = c.late ? 'late' : c.lab_ms < 8 * 3600000 ? 'soon' : 'ok';
     node.className = 'tr-clock is-' + state + (c.paused ? ' is-paused' : '');
     if (g) g.set(dialUsed(r, c), c.paused && !c.late ? 'paused' : state);
+  }
+
+  /** The panels' state on the card (P4): scrapped / measured after completion, in the lab tray once received. */
+  function panelState(r) {
+    if (r.status === 'completed') return r.panels_outcome === 'scrapped' ? 'scrapped' : 'measured';
+    if (D.isOpen(r) && r.received_ts) return 'received';
+    return null;
   }
 
   /** How far the needle is: the share of lab time used from submitted to needed by (late = all of it). */

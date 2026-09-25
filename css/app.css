@@ -1819,6 +1819,27 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .hirata-ref-item span { font-size: 10px; color: var(--fg-muted); }
 .panel-hirata { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 8px; }
 .panel-hirata-item { display: inline-flex; align-items: center; gap: 8px; }
+/* P4: panels light up as typed, slide into the lab tray, get their mark */
+.panel-hirata-item.is-new .cu-panel { animation: cu-light 700ms var(--ease-out) both; }
+@keyframes cu-light { 0% { opacity: 0; transform: translateY(-6px) scale(.9); } 60% { opacity: 1; transform: scale(1.06); } 100% { transform: none; } }
+.panel-cu { position: relative; display: inline-flex; }
+.panel-mark { position: absolute; right: -6px; top: -6px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  color: #fff; border: 2px solid var(--surface); }
+.is-measured .panel-mark { background: var(--ok); }
+.is-scrapped .panel-mark { background: var(--danger); }
+.panel-hirata-item.is-scrapped .panel-cu::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top right, transparent calc(50% - 1.5px), var(--danger) calc(50% - 1.5px), var(--danger) calc(50% + 1.5px), transparent calc(50% + 1.5px)); }
+.panel-hirata-item.is-scrapped .cu-panel { opacity: .6; }
+.panel-hirata.is-animating .panel-mark { animation: pop 320ms 200ms var(--ease-out) both; }
+.panel-tray { position: relative; margin-top: 8px; padding: 18px 10px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--inset); box-shadow: inset 0 2px 6px rgba(0,0,0,.12); }
+.panel-tray-label { position: absolute; top: 3px; left: 10px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+.panel-tray > .panel-hirata { margin-top: 0; }
+.panel-tray.is-animating .panel-hirata-item { animation: tray-in 480ms var(--ease-out) both; }
+.panel-tray.is-animating .panel-hirata-item:nth-child(2) { animation-delay: 70ms; }
+.panel-tray.is-animating .panel-hirata-item:nth-child(3) { animation-delay: 140ms; }
+.panel-tray.is-animating .panel-hirata-item:nth-child(n+4) { animation-delay: 200ms; }
+@keyframes tray-in { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
 .panel-hirata-item .mono { font-weight: 700; }
 @media (max-width: 760px) { .hirata-ref { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 

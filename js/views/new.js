@@ -369,8 +369,9 @@ window.MRT.views['new'] = (function () {
     }
 
     /** One typed Hirata ID: the chip, and to its right the copper panel it is drilled into (H-3). */
-    function panelChip(id, dead) {
-      return ui.el('span', { class: 'panel-hirata-item' }, [
+    var shownPanels = [];   // P4: a panel typed just now lights up once
+    function panelChip(id, dead, fresh) {
+      return ui.el('span', { class: 'panel-hirata-item' + (fresh ? ' is-new' : '') }, [
         ui.el('span', { class: 'panel-chip mono' + (dead ? ' is-scrapped' : ''), title: dead ? 'Scrapped' : null, text: id }),
         window.MRT.views.hirata.copper(id, 'sm')
       ]);
@@ -406,8 +407,9 @@ window.MRT.views['new'] = (function () {
           var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
           ui.mount(chips, p.ids.map(function (id) {
             var dead = gone.indexOf(id) !== -1;
-            return panelChip(id, dead);
+            return panelChip(id, dead, shownPanels.indexOf(id) === -1);
           }).concat(p.ids.length ? [ui.el('span', { class: 'muted', text: p.ids.length + ' panel' + (p.ids.length === 1 ? '' : 's') })] : []));
+          shownPanels = p.ids.slice();
           idsF.setState(p.errors.length ? 'invalid' : null, p.errors[0] || null);
         } else {
           var n = Number(countF.value());
@@ -421,6 +423,7 @@ window.MRT.views['new'] = (function () {
       if (panelMode === 'ids' && st.panels.length) readPanelsQuiet();
       function readPanelsQuiet() {
         var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
+        shownPanels = st.panels.slice();
         ui.mount(chips, st.panels.map(function (id) { return panelChip(id, gone.indexOf(id) !== -1); }));
       }
       ui.mount(host, [ui.el('div', { class: 'dlg-row' }, [ui.el('span', { class: 'ifield-label', text: 'Panels', 'aria-hidden': 'true' }), modeSeg.node]), inner]);

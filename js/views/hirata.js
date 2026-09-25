@@ -139,13 +139,24 @@ window.MRT.views.hirata = (function () {
    * The panels of a request as copper panels with their decoded fields
    * (request page, slip - H-3). ids: Hirata IDs; size 'md' or 'sm'.
    */
-  function panelsView(ids, size) {
+  /**
+   * The request's panels as copper panels with their decoded fields.
+   * o.state (P4): 'received' (in the lab tray), 'measured' (a check),
+   * 'scrapped' (crossed out); o.animate: it just changed (slide / mark).
+   */
+  function panelsView(ids, size, o) {
+    o = o || {};
     var list = (ids || []).filter(function (id) { return !D.hirataCheck(id).problem; });
     if (!list.length) return null;
-    return ui.el('div', { class: 'panel-hirata' }, list.map(function (id) {
-      return ui.el('div', { class: 'panel-hirata-item' }, [copper(id, size || 'md'), ui.el('div', {}, [
-        ui.el('div', { class: 'mono', text: id }), ui.hirataFields(D.hirataFields(id), { compact: true })])]);
-    }));
+    var MARK = { measured: { icon: 'check', text: 'Measured' }, scrapped: { icon: 'close', text: 'Scrapped' } }[o.state];
+    var items = list.map(function (id) {
+      return ui.el('div', { class: 'panel-hirata-item' + (o.state ? ' is-' + o.state : '') }, [
+        ui.el('span', { class: 'panel-cu' }, [copper(id, size || 'md'), MARK ? ui.el('span', { class: 'panel-mark', title: MARK.text }, ui.icon(MARK.icon, 14)) : null]),
+        ui.el('div', {}, [ui.el('div', { class: 'mono', text: id + (MARK ? '  ·  ' + MARK.text.toLowerCase() : '') }), ui.hirataFields(D.hirataFields(id), { compact: true })])]);
+    });
+    var node = ui.el('div', { class: 'panel-hirata' + (o.animate ? ' is-animating' : '') }, items);
+    if (o.state !== 'received') return node;
+    return ui.el('div', { class: 'panel-tray' + (o.animate ? ' is-animating' : '') }, [ui.el('span', { class: 'panel-tray-label', text: 'In the lab tray' }), node]);
   }
 
   return { render: render, copper: copper, panelsView: panelsView };
