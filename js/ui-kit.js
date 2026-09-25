@@ -500,9 +500,11 @@
       TH.setOn(document.documentElement, PROPOSAL[0][0]);
       ui.mount(root, [el('div', { class: 'kit-proposal', style: { gridColumn: '1 / -1' } }, [
         el('h2', { text: 'Proposal: ' + PROPOSAL.map(function (t) { return t[1]; }).join('  ·  ') }),
-        el('p', { class: 'muted', text: 'Not in the app yet. Colours taken from the official token sources: IBM Carbon (@carbon/themes, themes g100 and white) ' +
-          'and GitHub Primer (primer/primitives, dark high contrast). Status colours mean the same in all three; every text colour below passes WCAG AA. ' +
-          'Carbon is square (no rounded corners) and flat - the status lamps keep their glow. Primer High Contrast: strong borders, no transparency, no glow.' }),
+        el('p', { class: 'muted', text: 'Not in the app yet. Main: Carbon Gray 100 (office default), Carbon White, Primer High Contrast - from the official ' +
+          'token sources (IBM Carbon @carbon/themes; GitHub Primer primer/primitives). Personal: Catppuccin Mocha (catppuccin/palette) and Gruvbox Light ' +
+          '(morhetz/gruvbox). Only status colours were adjusted where needed, so OK / Warning / Line stop / Late stay clearly apart (tests/contrast.js, ' +
+          'CIEDE2000) and readable (WCAG AA, table below). Every status shows an icon with its word: tick OK, triangle Warning, stop octagon Line stop / ' +
+          'critical, clock Late, lock Blocked, flame Hot.' }),
         contrastTable(PROPOSAL)
       ])].concat(PROPOSAL.map(function (t) {
         var scope = el('div', { class: 'theme-scope' }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));

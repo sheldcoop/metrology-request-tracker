@@ -161,8 +161,8 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const cand=win.MRT.themes.list.filter(t=>t.candidate),live=win.MRT.themes.list.filter(t=>!t.candidate);
-  expect('the kit opens on the proposal: the 3 candidate themes side by side, with their contrast table',root.querySelectorAll('.theme-scope').length===3&&
-    root.querySelectorAll('.theme-scope').map(x=>x.getAttribute('data-theme')).join()===cand.map(t=>t.key).join()&&root.querySelector('.kit-contrast').querySelectorAll('th').length===2+3);
+  expect('the kit opens on the proposal: the 5 candidate themes side by side, with their contrast table',cand.length===5&&root.querySelectorAll('.theme-scope').length===5&&
+    root.querySelectorAll('.theme-scope').map(x=>x.getAttribute('data-theme')).join()===cand.map(t=>t.key).join()&&root.querySelector('.kit-contrast').querySelectorAll('th').length===2+5);
   const sel=doc.getElementById('kitBar').querySelector('select');sel.value='dark';sel.dispatch('change');flush();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
   expect('the kit builds every section (24, with the theme gallery)',secs.length===24);

@@ -576,3 +576,20 @@ never the only signal - the text/label says the same thing.
   and #78a9ff for links. Shown in ui-kit.html (opens on "Proposal"), not yet in the app. After the
   OK: these three become the app's themes, the theme-factory ones go; Nord / Catppuccin Mocha later
   as optional personal themes.
+- **T-6** (2026-09-25, Prince: Catppuccin Mocha + Gruvbox Light as **personal** themes, not office
+  default) Official palettes: catppuccin/palette (mocha) and morhetz/gruvbox (light: light0..4 /
+  dark1..4 / faded accents). Only status tokens (and one chart colour) leave the palettes:
+  Gruvbox status text darkened for AA and its orange text moved away from red; Catppuccin's third chart
+  colour is mauve, not pink (never taken for the pinkish red). In the proposal themes: Carbon White
+  critical text = orange 60 (70 was too close to red); Primer HC warning = yellow 2 (Primer's
+  attention and severe are nearly the same orange).
+- **T-7** Status colours must stay **clearly apart**: tests/contrast.js measures CIEDE2000 between
+  OK / Warning / Critical / Late - fills (lamps, stripes, card edges) >= 15, text colours >= 12
+  (text always comes with its word and icon; on Gruvbox's cream readable amber / orange / red text
+  can't be pushed further than ~14). Checked for the new themes; the older ones are listed only.
+  Note: in the app Line stop and Late share the critical orange (the top strip uses red for Late),
+  Hot and Warning share amber - open question to Prince.
+- **T-8** **Status = icon + text, never colour alone.** One shape per meaning, inline SVG masks in
+  css/app.css (--ic-*): tick OK, triangle Warning, stop octagon Critical / Line stop, clock Late,
+  lock Blocked, flame Hot. Applied centrally: every status chip, every lamp (the glow follows the
+  shape), priority names (Line stop, Hot), "late" clocks, the tool lamps on the board.
