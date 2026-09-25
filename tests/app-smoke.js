@@ -138,7 +138,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const thDlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   const tcard = k => thDlg.querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
   check('Theme... opens the gallery: every theme of js/themes.js as a live sample, plus "Office default"',
-        !!thDlg && thDlg.querySelectorAll('.tg-card').length === MRT.themes.list.length + 1 && thDlg.querySelectorAll('.tg-sample[data-theme="ocean"]').length === 1);
+        !!thDlg && thDlg.querySelectorAll('.tg-card').length === MRT.themes.list.filter(t => !t.candidate).length + 1 && thDlg.querySelectorAll('.tg-sample[data-theme="ocean"]').length === 1);
   tcard('ocean').click();
   check('...a click switches at once (theme, scheme) and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'ocean' &&
         doc.documentElement.getAttribute('data-scheme') === 'dark' && storage['mrt.theme.' + MRT.store.currentUser().id] === 'ocean' && storage['mrt.theme.last'] === 'ocean');
@@ -311,7 +311,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   await tab('look');
   const lookCard = k => doc.getElementById('main').querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
-  check('Settings > Look: every theme as a live sample, the office default marked', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.length && lookCard('dark').classList.contains('is-on'));
+  check('Settings > Look: every theme as a live sample, the office default marked', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.filter(t => !t.candidate).length && lookCard('dark').classList.contains('is-on'));
   lookCard('arctic').click(); await settle();
   check('...a click makes Arctic Frost the office default (audited)', MRT.store.getSetting('default_theme') === 'arctic' && MRT.store.data().audit_log.slice(-1)[0].field === 'default_theme');
   doc.getElementById('userBtn').click(); await settle();

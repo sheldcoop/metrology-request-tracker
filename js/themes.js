@@ -21,7 +21,8 @@
  *
  * Loaded in <head>, before anything is drawn: install() writes the tokens
  * as a <style> and puts the last used theme on <html> (no flash of the
- * wrong theme). Fonts stay the system stacks (Segoe UI, Cascadia Mono) in
+ * wrong theme). Themes marked candidate: true are a proposal: ui-kit.html
+ * shows them (Proposal), the app's gallery does not yet. Fonts stay the system stacks (Segoe UI, Cascadia Mono) in
  * every theme - no downloads from file://.
  */
 window.MRT = window.MRT || {};
@@ -119,6 +120,62 @@ window.MRT.themes = (function () {
            fg: '#2A1520', 'fg-muted': '#553846', 'fg-faint': '#634755', line: '#E6D1C3', 'line-strong': '#CFAE9E', bracket: '#B87D6D',
            accent: '#5D2E46', 'accent-fg': '#FFFFFF', 'accent-soft': 'rgba(212, 165, 165, .22)', 'line-hi': '#B87D6D' } },
 
+    /* --- PROPOSAL (2026-09-25, Prince): three themes from full app design systems, values checked
+       against the official token sources - IBM Carbon (@carbon/themes: themes.json + colors.json,
+       themes g100 and white) and GitHub Primer (primer/primitives, dark-high-contrast). Marked
+       candidate: shown side by side in ui-kit.html (Proposal), not yet in the app's gallery.
+       Carbon's own font (IBM Plex) is not installed on office PCs - the system fonts stay. */
+    { key: 'carbon-g100', name: 'Carbon Gray 100', scheme: 'dark', group: 'Candidates', candidate: true, grid: false,
+      mood: 'IBM Carbon g100: industrial, calm greys for data-heavy tools; lamps keep their glow.',
+      swatches: ['#161616', '#262626', '#78A9FF', '#F4F4F4'],
+      p: { bg: '#161616', surface: '#262626', 'surface-2': '#393939', 'surface-3': '#474747', inset: '#161616',     // background, layer-01, layer-02, layer-hover-02
+           fg: '#F4F4F4', 'fg-muted': '#C6C6C6', 'fg-faint': '#A8A8A8',                                         // text-primary, -secondary, -helper
+           line: '#393939', 'line-strong': '#6F6F6F', 'line-hi': '#4589FF', bracket: '#6F6F6F',                    // border-subtle-00, border-strong-01, border-interactive
+           accent: '#78A9FF', 'accent-fill': '#0F62FE', 'accent-fg': '#FFFFFF', 'accent-soft': '#001D6C',           // link-primary, button-primary, highlight
+           'accent-glow': '0 0 0 1px #4589FF', 'glow-ring': '100%', 'glow-blur': '0%',                           // crisp: glow only on the status lamps
+           ok: '#42BE65', 'ok-fg': '#42BE65', 'ok-bg': '#022D0D',                                                // support-success, green 90
+           warning: '#F1C21B', 'warning-fg': '#F1C21B', 'warning-bg': '#302400',                                 // support-warning, yellow 90
+           critical: '#FF832B', 'critical-fg': '#FF832B', 'critical-bg': '#3E1A00',                              // support-caution-major, orange 90
+           expired: '#FA4D56', 'expired-fg': '#FF8389', 'expired-bg': '#520408',                                 // support-error, text-error, red 90
+           danger: '#DA1E28', 'danger-fg': '#FF8389', 'danger-bg': '#520408', 'on-danger': '#FFFFFF',            // button-danger (red 60)
+           blocked: '#6F6F6F', 'blocked-fg': '#C6C6C6', 'blocked-bg': '#393939',
+           'c-blue': '#78A9FF', 'c-teal': '#08BDBA', 'c-pink': '#FF7EB6',                                        // blue 40, teal 40, magenta 40
+           radius: '0px', 'radius-panel': '0px',                                                                 // Carbon is square
+           shadow: '0 2px 6px rgba(0, 0, 0, .3)', 'shadow-pop': '0 2px 6px rgba(0, 0, 0, .3)', scrim: 'rgba(0, 0, 0, .6)' } },
+    { key: 'carbon-white', name: 'Carbon White', scheme: 'light', group: 'Candidates', candidate: true,
+      mood: 'IBM Carbon White: the same tool in daylight - white, cool greys, Carbon blue.',
+      swatches: ['#FFFFFF', '#F4F4F4', '#0F62FE', '#161616'],
+      p: { bg: '#FFFFFF', surface: '#F4F4F4', 'surface-2': '#FFFFFF', 'surface-3': '#E8E8E8', inset: '#FFFFFF',     // background, layer-01, layer-02, layer-hover-01, field-02
+           fg: '#161616', 'fg-muted': '#525252', 'fg-faint': '#5E5E5E',                                          // text-primary, -secondary, gray 60 hover (helper #6F6F6F is under AA on layer-01)
+           line: '#C6C6C6', 'line-strong': '#8D8D8D', 'line-hi': '#0F62FE', bracket: '#8D8D8D',                  // border-subtle-01, border-strong-01, border-interactive
+           accent: '#0F62FE', 'accent-fill': '#0F62FE', 'accent-fg': '#FFFFFF', 'accent-soft': '#D0E2FF',          // interactive, button-primary, highlight
+           'accent-glow': '0 0 0 1px #0F62FE',
+           ok: '#24A148', 'ok-fg': '#0E6027', 'ok-bg': '#DEFBE6',                                                // support-success; text green 70 on green 10
+           warning: '#F1C21B', 'warning-fg': '#684E00', 'warning-bg': '#FCF4D6',                                 // yellow fill with dark text, as Carbon does
+           critical: '#FF832B', 'critical-fg': '#8A3800', 'critical-bg': '#FFF2E8',
+           expired: '#DA1E28', 'expired-fg': '#A2191F', 'expired-bg': '#FFF1F1',
+           danger: '#DA1E28', 'danger-fg': '#A2191F', 'danger-bg': '#FFF1F1', 'on-danger': '#FFFFFF',
+           blocked: '#8D8D8D', 'blocked-fg': '#525252', 'blocked-bg': '#E0E0E0',
+           'c-blue': '#0043CE', 'c-teal': '#007D79', 'c-pink': '#D02670',                                        // blue 70, teal 60, magenta 60
+           radius: '0px', 'radius-panel': '0px',
+           shadow: '0 2px 6px rgba(0, 0, 0, .1)', 'shadow-pop': '0 2px 6px rgba(0, 0, 0, .3)', scrim: 'rgba(22, 22, 22, .5)' } },
+    { key: 'primer-hc', name: 'Primer High Contrast', scheme: 'dark', group: 'Candidates', candidate: true, contrast: 'high',
+      mood: 'GitHub Primer dark high contrast: built with accessibility experts - strong borders, no transparency, no glow.',
+      swatches: ['#010409', '#FFFFFF', '#74B9FF', '#2BD853'],
+      p: { bg: '#010409', surface: '#151B23', 'surface-2': '#262C36', 'surface-3': '#3D444D', inset: '#010409',     // bgColor default, muted, control, emphasis, inset
+           fg: '#FFFFFF', 'fg-muted': '#B7BDC8', 'fg-faint': '#B7BDC8',                                          // fgColor default, muted
+           line: '#B7BDC8', 'line-strong': '#B7BDC8', 'line-hi': '#409EFF', bracket: '#B7BDC8',                   // borderColor default / emphasis, accent emphasis
+           accent: '#74B9FF', 'accent-fill': '#194FB1', 'accent-fg': '#FFFFFF', 'accent-soft': '#1C2A39',          // fgColor accent, bgColor accent emphasis; muted accent made solid over bgColor muted
+           'accent-glow': '0 0 0 2px #409EFF', 'glow-ring': '100%', 'glow-blur': '0%',
+           ok: '#09B43A', 'ok-fg': '#2BD853', 'ok-bg': '#133527',                                                // borderColor success emphasis, fgColor success; 15% muted made solid
+           warning: '#E09B13', 'warning-fg': '#F0B72F', 'warning-bg': '#353024',
+           critical: '#FE9A2D', 'critical-fg': '#FE9A2D', 'critical-bg': '#2B2623',                              // severe
+           expired: '#FF6A69', 'expired-fg': '#FF9492', 'expired-bg': '#2C252C',                                 // danger
+           danger: '#FF6A69', 'danger-fg': '#FF9492', 'danger-bg': '#2C252C', 'on-danger': '#010409',
+           blocked: '#9198A1', 'blocked-fg': '#B7BDC8', 'blocked-bg': '#262C36',
+           'c-blue': '#4DA0FF', 'c-teal': '#1CB0AB', 'c-pink': '#E57BB2',                                        // Primer display blue / teal / pink 6
+           shadow: 'none', 'shadow-pop': '0 0 0 1px #B7BDC8', scrim: 'rgba(1, 4, 9, .8)' } },
+
     { key: 'hc', name: 'High contrast', scheme: 'dark', group: 'Accessibility', contrast: 'high',
       mood: 'Black, white and signal yellow - the strongest contrast, big focus ring.',
       swatches: ['#000000', '#FFFFFF', '#FFD400', '#3DDC84'],
@@ -169,6 +226,7 @@ window.MRT.themes = (function () {
       o['shadow-pop'] = '0 12px 32px rgba(' + f + ', .18)';
       o.scrim = 'rgba(' + f + ', .35)';
     }
+    o['accent-fill'] = p.accent;           // buttons and other filled accents; a theme can set its own (Carbon dark)
     Object.keys(p).forEach(function (k) { if (k !== 'ink') o[k] = p[k]; });    // the theme's own values win
     return o;
   }

@@ -14,7 +14,8 @@
   var ui = window.MRT.ui;
   var el = ui.el;
   var TH = window.MRT.themes;         // every theme: js/themes.js
-  var THEMES = TH.list.map(function (t) { return [t.key, t.name]; });
+  var THEMES = TH.list.filter(function (t) { return !t.candidate; }).map(function (t) { return [t.key, t.name]; });
+  var PROPOSAL = TH.list.filter(function (t) { return t.candidate; }).map(function (t) { return [t.key, t.name]; });   // not yet in the app
   var STATUSES = ['ok', 'warning', 'critical', 'expired', 'blocked'];
   var KEY = 'mrt.kit.';
 
@@ -48,7 +49,8 @@
   function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
 
   /** Reads the real computed tokens of each theme, so the table cannot drift from the CSS. */
-  function contrastTable() {
+  function contrastTable(themes) {
+    var THEMES_T = themes || THEMES;
     var pairs = [
       ['fg', 'surface', 'Body text'], ['fg-muted', 'surface', 'Muted text'], ['fg-faint', 'surface-2', 'Faint text'],
       ['fg', 'inset', 'Field text'], ['accent', 'surface', 'Accent / link'], ['accent-fg', 'accent', 'Primary button'],
@@ -58,7 +60,7 @@
       ['blocked-fg', 'blocked-bg', 'Blocked chip'],
       ['c-blue', 'surface', 'Chart blue'], ['c-teal', 'surface', 'Chart teal'], ['c-pink', 'surface', 'Chart pink']
     ];
-    var probes = THEMES.map(function (t) {
+    var probes = THEMES_T.map(function (t) {
       var host = el('div', { style: { position: 'absolute', visibility: 'hidden' } });
       TH.setOn(host, t[0]);
       document.body.appendChild(host);
@@ -84,7 +86,7 @@
     probes.forEach(function (h) { h.parentNode.removeChild(h); });
     return el('div', { class: 'table-wrap' }, el('table', { class: 'grid kit-contrast' }, [
       el('thead', {}, el('tr', {}, [el('th', { text: 'Use' }), el('th', { text: 'Tokens' })]
-        .concat(THEMES.map(function (t) { return el('th', { class: 'num', text: t[1] }); })))),
+        .concat(THEMES_T.map(function (t) { return el('th', { class: 'num', text: t[1] }); })))),
       el('tbody', {}, rows)
     ]));
   }
@@ -493,8 +495,21 @@
   var mode = 'dark';
 
   function render() {
-    root.className = 'kit-root' + (mode === 'all' ? ' all' : '');
-    if (mode === 'all') {
+    root.className = 'kit-root' + (mode === 'all' || mode === 'proposal' ? ' all' : '');
+    if (mode === 'proposal') {
+      TH.setOn(document.documentElement, PROPOSAL[0][0]);
+      ui.mount(root, [el('div', { class: 'kit-proposal', style: { gridColumn: '1 / -1' } }, [
+        el('h2', { text: 'Proposal: ' + PROPOSAL.map(function (t) { return t[1]; }).join('  ·  ') }),
+        el('p', { class: 'muted', text: 'Not in the app yet. Colours taken from the official token sources: IBM Carbon (@carbon/themes, themes g100 and white) ' +
+          'and GitHub Primer (primer/primitives, dark high contrast). Status colours mean the same in all three; every text colour below passes WCAG AA. ' +
+          'Carbon is square (no rounded corners) and flat - the status lamps keep their glow. Primer High Contrast: strong borders, no transparency, no glow.' }),
+        contrastTable(PROPOSAL)
+      ])].concat(PROPOSAL.map(function (t) {
+        var scope = el('div', { class: 'theme-scope' }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));
+        TH.setOn(scope, t[0]);
+        return scope;
+      })));
+    } else if (mode === 'all') {
       ui.mount(root, THEMES.map(function (t) {
         var scope = el('div', { class: 'theme-scope' }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));
         TH.setOn(scope, t[0]);
@@ -517,7 +532,8 @@
   function bar() {
     var themeSeg = { node: ui.el('select', { class: 'input menu-select', 'aria-label': 'Theme' },
       THEMES.map(function (t) { return ui.el('option', { value: t[0], text: t[1], selected: t[0] === mode }); })
-        .concat([ui.el('option', { value: 'all', text: 'All themes side by side', selected: mode === 'all' })])) };
+        .concat([ui.el('option', { value: 'all', text: 'All themes side by side', selected: mode === 'all' }),
+                 ui.el('option', { value: 'proposal', text: 'Proposal: Carbon + Primer, side by side', selected: mode === 'proposal' })])) };
     themeSeg.node.addEventListener('change', function () { mode = themeSeg.node.value; try { localStorage.setItem(KEY + 'mode', mode); } catch (e) { /* */ } render(); });
     var reduce = document.documentElement.getAttribute('data-motion') === 'reduce';
     ui.mount(document.getElementById('kitBar'), [
@@ -530,10 +546,10 @@
   }
 
   try {
-    mode = localStorage.getItem(KEY + 'mode') || 'dark';
-    var qm = (location.search.match(/[?&]mode=(\w+)/) || [])[1];
+    mode = 'proposal';                  // while the Carbon + Primer proposal is open, the kit opens on it (?mode= to pick another)
+    var qm = (location.search.match(/[?&]mode=([\w-]+)/) || [])[1];
     if (qm) mode = qm;
-    if (mode !== 'all' && !TH.byKey(mode)) mode = TH.DEFAULT;
+    if (mode !== 'all' && mode !== 'proposal' && !TH.byKey(mode)) mode = TH.DEFAULT;
     if (/[?&]motion=reduce/.test(location.search) || localStorage.getItem(KEY + 'motion') === 'reduce') {
       document.documentElement.setAttribute('data-motion', 'reduce');
     }
