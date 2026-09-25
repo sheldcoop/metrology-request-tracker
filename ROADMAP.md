@@ -20,6 +20,10 @@ Updated 2026-09-24. Decisions: `DECISIONS.md`; parked questions: `OPEN_QUESTIONS
   magazine slots picked on a front view (drag). The old lot loading map and racks are gone. The
   panel map component stays in the UI kit, unused for now.
 
+- **M5** analytics and exports (2026-09-25): Analytics page (My work, My requests, Lab, Management),
+  lab-time metrics with hold apart, click-through, downloads (.xlsx via SheetJS), request history,
+  monthly management pack. Alert strip with queue counts (M3 audit). Hirata tools.
+
 ## Being built now (no outside input needed)
 Nothing - everything that needs no outside input is built. Next: the R1 test run.
 

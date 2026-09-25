@@ -47,6 +47,8 @@ re-render a panel or rebuild data in a tick.
 | a grid of counts | `ui.heatmap({rows, cols, values, label, unit})` |
 | tabs / dialog / toast / tooltip / menu | `ui.tabs`, `ui.dialog` (with `submit` to keep it open on an error), `ui.confirm`, `ui.promptReason`, `ui.toast`, `ui.bindTips`, `ui.menu` |
 | copy a share path | `ui.copyText(text, label)` |
+| a Download for a table | `MRT.exporter.rowsButton(label, name, getRows)`; request rows: `MRT.exporter.requestRows(list)` (.xlsx with SheetJS, else CSV) |
+| numbers for Analytics | `MRT.analytics.get(filter)` (cached `domain.analytics`) - never count in a screen |
 | nothing to show | `ui.emptyState({icon, title, text})` |
 | Settings tables and dialogs | `MRT.settingsKit` (`table`, `editDialog`, `deleteButton`, `copyButton`, `sampleTag`) |
 

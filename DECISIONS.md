@@ -435,6 +435,10 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
 - **M5-3** From now on a hold's timeline event also stores its reason ID (older holds are matched
   by the reason's name).
 - **M5 build order**: 1 `m5-rules` - 2 `m5-exports` - 3 `m5-analytics` - 4 `m5-pack`.
+- **M5 built** (2026-09-25): all four steps merged into main. Exports: My queue / My requests
+  "Download" (the list as filtered), Settings > Data "Download the request history", every
+  Analytics chart and table, the monthly management pack (Analytics > Management, pick a month).
+  Not verified: real Excel on the office PCs, Chart.js looks in the three themes (Prince, R1 T8).
 
 ## Hirata code (2026-09-25, Prince) - PLANNED, ask before building
 Prince's Hirata tool (decoder + pattern finder) is built into the app, rebuilt to our rules

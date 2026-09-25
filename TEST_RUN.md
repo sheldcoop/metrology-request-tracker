@@ -1,4 +1,4 @@
-# Test run R1 - everything built so far (M1-M4, Hirata tools, audit fixes)
+# Test run R1 - everything built so far (M1-M5, Hirata tools, audit fixes)
 
 Rewritten 2026-09-25 (DECISIONS A-10). One quality engineer (QE) and one engineer - or Prince
 alone with two browsers - go through it on the real share, in Edge.
@@ -136,6 +136,23 @@ kept first). The steps below work on the demo or on a fresh folder.
 - [ ] **T6.4** **Find a pattern**: `3407, 0119, 161234507, 12x`. Expect: three copper panels with their fields, "Skipped: 12x", the 0-9 reference.
 - [ ] **T6.5** Print. Expect: the copper panels print in copper. Hold them against real panels: do they match?
 - [ ] **T6.6** Keyboard only: Tab into the grid, arrows move, Space sets a dot.
+
+## T8. Analytics and exports (M5)
+
+- [ ] **T8.1** Menu > Analytics. Expect: tabs My work and My requests; with the **Manager** role also Lab and Management
+      (Settings > People: tick Manager for yourself to see them).
+- [ ] **T8.2** Filters: From / To / Tool / Project change every number; "Last 90 days" resets.
+- [ ] **T8.3** My work (as QE): open, late, due today, on hold, waiting on me; "Done by me, last 14 days".
+- [ ] **T8.4** My requests: open with expected finish; **Where is my lot** - pick a lot, see all its requests on every tool.
+- [ ] **T8.5** Click any tile, bar or table row. Expect: a list of exactly those requests (links work) with "Download these".
+- [ ] **T8.6** Lab: backlog per week, turnaround median / p90 with hold apart, on time, load per QE, clarification per tool / BKM,
+      on-hold reasons. Do the numbers look right for requests you know?
+- [ ] **T8.7** Management: requests per month by project, on time, Line stop response, demand per tool.
+- [ ] **T8.8** Charts: the full-screen button (top right of a chart); hover shows values; readable in all three themes.
+- [ ] **T8.9** Downloads open in **Excel** as .xlsx: a chart's Download, My queue / My requests Download (the filtered list),
+      Settings > Data "Download the request history" (sheets Requests + Timeline).
+- [ ] **T8.10** Management > Monthly management pack: pick last month, Download the pack. Expect: one workbook, seven sheets
+      (Summary, Per tool, Per project, Line stop, On-hold reasons, Clarification, Requests); Summary matches the page for that month.
 
 ## T7. Help and looks (Prince)
 

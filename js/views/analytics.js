@@ -319,6 +319,17 @@ window.MRT.views.analytics = (function () {
 
   function mgmtTab(body) {
     var a = A.get(state.filter), t = a.turnaround, ls = a.line_stop;
+    // the monthly management pack (Q48): pick a month, one workbook
+    var thisMonth = D.viennaYmd(Date.now()).slice(0, 7);
+    var lastMonth = D.addDaysYmd(thisMonth + '-01', -1).slice(0, 7);
+    var monthOpts = [];
+    for (var i = 0, m = thisMonth; i < 13; i++) { monthOpts.push({ value: m, label: m + (m === thisMonth ? ' (so far)' : '') }); m = D.addDaysYmd(m + '-01', -1).slice(0, 7); }
+    var monthF = ui.field({ label: 'Month', value: lastMonth, options: monthOpts, cls: 'an-f' });
+    body.appendChild(ui.panel({ title: 'Monthly management pack', icon: 'download', body: ui.el('div', { class: 'an-filters' }, [monthF.node,
+      ui.button('Download the pack', { kind: 'primary', icon: 'download', onClick: function () {
+        X.run('management_pack_' + monthF.value(), function () { return X.managementPack(monthF.value()); });
+      } }),
+      ui.el('p', { class: 'muted', text: 'One workbook: Summary, Per tool, Per project, Line stop, On-hold reasons, Clarification, Requests.' })]) }).node);
     body.appendChild(ui.el('div', { class: 'an-kpis' }, [
       tile('Requests (submitted)', a.counts.submitted, 'neutral', 'requests', a.ids.submitted),
       tile('On time', pct(t.on_time_pct), t.on_time_pct === null ? 'neutral' : t.on_time_pct >= 80 ? 'ok' : 'warning', 'calendar', t.ids, t.on_time + ' of ' + t.dated + ' with a date'),
