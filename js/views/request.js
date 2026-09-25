@@ -24,7 +24,8 @@ window.MRT.views.request = (function () {
   var RAIL = ['submitted', 'accepted', 'in_progress', 'completed'];
   var STAMP = { draft: 'neutral', submitted: 'accent', accepted: 'ok', in_progress: 'ok', completed: 'ok',
                 clarification: 'warning', on_hold: 'warning', cancelled: 'expired' };
-  var live = { r: null, node: null, gauge: null };          // what tick() updates
+  var live = { r: null, node: null, gauge: null };
+  var seen = {};                                // request id -> the status last drawn (P3: stamp on change)          // what tick() updates
 
   function byId(coll, id) { return id ? store.byId(coll, id) : null; }
   function userName(id) { var u = byId('users', id); return u ? u.name : '?'; }
@@ -60,10 +61,19 @@ window.MRT.views.request = (function () {
     ];
     main.appendChild(ui.pageHead(r.request_no, (tool ? tool.name : '') + ' - requested by ' + userName(r.requester_id), actions));
 
-    main.appendChild(traveller(r, tool, lot));
+    var changed = seen[r.id] !== undefined && seen[r.id] !== r.status;
+    seen[r.id] = r.status;
+    var card = traveller(r, tool, lot);
+    main.appendChild(card);
     var acts = window.MRT.requestActions.buttons(r);
     if (acts.length) main.appendChild(ui.el('div', { class: 'req-actbar', role: 'group', 'aria-label': 'What you can do now' }, acts));
-    main.appendChild(rail(r));
+    var railNode = rail(r);
+    main.appendChild(railNode);
+    if (changed) {   // P3: the new stamp presses on, the rail fills to the new step
+      var st = card.querySelector('.tr-stamp');
+      if (st) st.classList.add('is-stamping');
+      railNode.classList.add('is-filling');
+    }
     main.appendChild(ui.el('div', { class: 'req-layout' }, [
       ui.el('div', { class: 'req-form' }, [timeline(r, me)]),
       ui.el('aside', { class: 'req-side' }, [pathsPanel(r, tool), detailsPanel(r), peoplePanel(r, tool)])
