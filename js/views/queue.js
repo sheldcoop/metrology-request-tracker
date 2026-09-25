@@ -25,21 +25,22 @@ window.MRT.views.queue = (function () {
 
   var STATUS_FILTER = [
     { value: 'open', label: 'All open' }, { value: 'submitted', label: 'Submitted' }, { value: 'accepted', label: 'Accepted' },
-    { value: 'in_progress', label: 'In progress' }, { value: 'waiting', label: 'Waiting (hold, clarification)' }
+    { value: 'in_progress', label: 'In progress' }, { value: 'waiting', label: 'Waiting (hold, clarification)' },
+    { value: 'linestop', label: 'Line stop' }, { value: 'late', label: 'Late' }, { value: 'on_hold', label: 'On hold' },
+    { value: 'clarification', label: 'Needs clarification' }
   ];
 
   function byId(coll, id) { return id ? store.byId(coll, id) : null; }
   function levelOf(r) { var p = byId('priorities', r.priority_id); return p ? p.level : 99; }
 
-  /** The tools this person works: primary/backup; admins without a tool of their own see all. */
-  function myTools(me) {
-    var tools = store.list('tools');
-    var mine = tools.filter(function (t) { return D.isToolMeasurer(me, t); });
-    return mine.length || !D.hasRole(me, 'admin') ? mine : tools;
-  }
+  /** The tools this person works (the rule is domain.measuredTools, shared with the alert strip). */
+  function myTools(me) { return D.measuredTools(me, store.list('tools')); }
 
-  function render(main) {
+  function render(main, ctx) {
     var me = store.currentUser();
+    // #/queue/late (the alert strip's links): open on that filter
+    var want = ctx && ctx.subpath;
+    if (want && STATUS_FILTER.some(function (f) { return f.value === want; })) { view.status = want; view.shown = PAGE; }
     clocks = [];
     var tools = myTools(me);
     main.appendChild(ui.pageHead('My queue', tools.length ? 'Open requests of ' + tools.map(function (t) { return t.code; }).join(', ') +
@@ -69,6 +70,8 @@ window.MRT.views.queue = (function () {
         if (!D.isOpen(r) || ids.indexOf(r.tool_id) === -1) return false;
         if (view.tool !== 'all' && r.tool_id !== view.tool) return false;
         if (view.status === 'waiting') return r.status === 'on_hold' || r.status === 'clarification';
+        if (view.status === 'linestop') return levelOf(r) === 1;
+        if (view.status === 'late') return D.isLate(r, now, cal);
         return view.status === 'open' || r.status === view.status;
       });
       var sorted = D.sortQueue(rows, { now_ts: now, cal: cal, levelOf: levelOf });
