@@ -180,7 +180,8 @@ window.MRT.views.queue = (function () {
       var cd = r.needed_by ? D.countdown(now, r.needed_by, cal, hs) : null;
       if (!cd) { c.node.textContent = ''; return; }
       var h = ui.formatDurationH(cd.lab_ms / 3600000);
-      c.node.textContent = cd.late ? 'late ' + h : h + ' left';
+      c.node.textContent = (cd.late ? 'late ' + h : h + ' left') + (cd.paused ? ' ⏸' : '');
+      c.node.title = cd.paused ? 'Clock paused - outside lab hours' : '';
       c.node.className = 'q-clock ' + (cd.late ? 'is-late' : cd.lab_ms < 8 * 3600000 ? 'is-soon' : '');
     });
   }

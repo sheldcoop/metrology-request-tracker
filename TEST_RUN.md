@@ -116,6 +116,10 @@ kept first). The steps below work on the demo or on a fresh folder.
       Click a card: a side panel opens from the right with the traveller and the action buttons; Start / Complete
       ask the same questions as on the request page; the panel closes and the card moves. Esc or a click on the dim
       area closes it. Ctrl+click opens the full request page in a new tab. Nothing can be dragged.
+- [ ] **T4.10b** Small touches (P6/P7): Complete -> toast with a folder icon that closes and "Copy results path";
+      a new notification makes the bell swing once; the save lamp pulses once after a save; Undo makes the page slide back once;
+      outside lab hours countdowns end with ⏸; a primary QE away shows "⇄ backup name" on the request's People panel;
+      fix a Health line and reopen Health -> "Fixed since you last looked". All still with Reduce motion on.
 - [ ] **T4.11** Away: set yourself away (user menu > I'm away). Expect: new requests of your tool go to the backup with a note;
       "Take it" lets either QE take a request.
 - [ ] **T4.12** Lab status: per tool queue numbers (open, late, oldest, typical wait); set a tool Down / Maintenance (until date, note);

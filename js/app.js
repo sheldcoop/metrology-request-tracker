@@ -565,7 +565,9 @@ window.MRT.app = (function () {
     var when = s.savedTs ? ui.formatTs(s.savedTs).slice(11) : '';
     var who = s.savedBy ? (store.byId('users', s.savedBy) || {}).name : null;
     var text = st === 'failed' ? 'Not saved · retry' : st === 'saving' ? 'Saving…' : 'Saved' + (when ? ' ' + when : '');
-    btn.className = 'save-led ' + st;
+    var pulse = st === 'saved' && !!seen.lastSaved && s.savedTs !== seen.lastSaved;   // P7: one pulse per save
+    if (st === 'saved') seen.lastSaved = s.savedTs || seen.lastSaved;
+    btn.className = 'save-led ' + st + (pulse ? ' is-pulse' : '');
     btn.title = st === 'failed' ? 'The last change is only in memory. Click to retry or download it.'
       : 'Last saved ' + (s.savedTs ? ui.formatTs(s.savedTs) : '-') + (who ? ' by ' + who : '');
     ui.mount(btn, [ui.led(st === 'failed' ? 'expired' : st === 'saving' ? 'warning' : 'ok'), ui.el('span', { class: 'num', text: text })]);
@@ -590,6 +592,8 @@ window.MRT.app = (function () {
     store.undoLast().then(function (label) {
       paintUndo();
       route();
+      var m = document.getElementById('main');   // P7: the page "rewinds" once
+      if (m) { m.classList.remove('is-rewind'); void m.offsetWidth; m.classList.add('is-rewind'); setTimeout(function () { m.classList.remove('is-rewind'); }, 500); }
       ui.toast({ kind: 'success', message: 'Undone: ' + label + '.', timeout_ms: 3000 });
     }).catch(function (e) { paintUndo(); ui.toastError('Could not undo: ' + e.message, e); });
   }
@@ -836,7 +840,13 @@ window.MRT.app = (function () {
     count.textContent = n > 9 ? '9+' : String(n);
     btn.setAttribute('aria-label', n ? 'Notifications, ' + n + ' new' : 'Notifications');
     btn.classList.toggle('has-new', !!n);
+    if (n > bellLast && bellLast !== null) {   // P6: swings once when something new arrives
+      btn.classList.remove('is-ringing'); void btn.offsetWidth; btn.classList.add('is-ringing');
+      setTimeout(function () { btn.classList.remove('is-ringing'); }, 900);
+    }
+    bellLast = n;
   }
+  var bellLast = null;
 
   function openBell(anchor) {
     var list = notifications(), since = readTs();

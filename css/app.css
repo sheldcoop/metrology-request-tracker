@@ -1867,3 +1867,22 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .tpl-pick:disabled { opacity: .55; cursor: not-allowed; transform: none; }
 .tpl-name { font-weight: 700; }
 
+
+/* Small touches (P6/P7) */
+.toast.is-filed .toast-icon svg { transform-origin: 50% 80%; animation: folder-close 520ms var(--ease-out) both; }
+@keyframes folder-close { 0% { transform: scaleY(1.25) rotate(-6deg); } 55% { transform: scaleY(.8); } 100% { transform: none; } }
+.toast-icon { display: inline-flex; }
+.bell-btn.is-ringing svg { transform-origin: 50% 10%; animation: bell-swing 800ms ease-in-out; }
+@keyframes bell-swing { 15% { transform: rotate(16deg); } 35% { transform: rotate(-12deg); } 55% { transform: rotate(7deg); } 75% { transform: rotate(-3deg); } 100% { transform: none; } }
+.board-lamp.is-up i { box-shadow: 0 0 6px 1px color-mix(in srgb, var(--ok) 60%, transparent); }
+.board-lamp.is-maintenance i { animation: pulse 2.4s ease-in-out infinite; box-shadow: 0 0 6px 1px color-mix(in srgb, var(--warning) 55%, transparent); }
+.board-lamp.is-down i { box-shadow: 0 0 8px 2px color-mix(in srgb, var(--critical) 60%, transparent); }
+[data-theme="hc"] .board-lamp i { box-shadow: 0 0 0 1px #000; }
+.health-fixed { text-decoration: line-through; color: var(--fg-muted); }
+.away-swap { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 12px; color: var(--fg-muted); }
+.away-arrow { display: inline-block; color: var(--accent); font-weight: 700; animation: away-swap 1.2s var(--ease-out) 1 both; }
+@keyframes away-swap { 0% { transform: translateX(-4px); opacity: 0; } 60% { transform: translateX(2px); opacity: 1; } 100% { transform: none; } }
+#main.is-rewind { animation: rewind 420ms var(--ease-out); }
+@keyframes rewind { 0% { transform: translateX(10px); opacity: .55; } 100% { transform: none; opacity: 1; } }
+.save-led.is-pulse .led { animation: save-pulse 700ms var(--ease-out) 1; }
+@keyframes save-pulse { 0% { transform: scale(1); } 35% { transform: scale(1.6); } 100% { transform: scale(1); } }

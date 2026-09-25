@@ -228,15 +228,17 @@ window.MRT.views.request = (function () {
 
   function peoplePanel(r, tool) {
     var today = D.viennaYmd(Date.now());
-    function person(id, role) {
+    function person(id, role, backupId) {
       var u = byId('users', id);
       if (!u) return [ui.el('dt', { text: role }), ui.el('dd', {}, muted('not set'))];
       var a = D.awayState(u, today);
-      return [ui.el('dt', { text: role }), ui.el('dd', {}, [u.name, a && a.state === 'now' ? ui.el('span', { class: 'chip warning', text: 'Away' + (a.until ? ' until ' + a.until : '') }) : null])];
+      var away = a && a.state === 'now', bk = away && backupId ? byId('users', backupId) : null;
+      return [ui.el('dt', { text: role }), ui.el('dd', {}, [u.name, away ? ui.el('span', { class: 'chip warning', text: 'Away' + (a.until ? ' until ' + a.until : '') }) : null,
+        bk ? ui.el('span', { class: 'away-swap', title: 'Away - ' + bk.name + ' covers' }, [ui.el('span', { class: 'away-arrow', 'aria-hidden': 'true', text: '⇄' }), bk.name]) : null])];
     }
     return ui.panel({ title: 'People', icon: 'users', body: ui.el('dl', { class: 'facts' }, [].concat(
       person(r.requester_id, 'Requested by'),
-      person(tool && tool.primary_operator_id, 'Primary QE'),
+      person(tool && tool.primary_operator_id, 'Primary QE', tool && tool.backup_operator_id),
       person(tool && tool.backup_operator_id, 'Backup QE')
     )) }).node;
   }

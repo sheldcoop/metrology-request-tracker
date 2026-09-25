@@ -33,8 +33,8 @@
     var timeout = (opts.timeout_ms !== undefined) ? opts.timeout_ms
                 : (kind === 'error' ? 0 : 5000); // errors stay until dismissed
 
-    var node = el('div', { class: 'toast ' + kind, role: kind === 'error' ? 'alert' : null }, [
-      icon(kind === 'error' ? 'alert' : kind === 'success' ? 'check' : kind === 'warning' ? 'alert' : 'info', 18),
+    var node = el('div', { class: 'toast ' + kind + (opts.cls ? ' ' + opts.cls : ''), role: kind === 'error' ? 'alert' : null }, [
+      el('span', { class: 'toast-icon' }, icon(opts.icon || (kind === 'error' ? 'alert' : kind === 'success' ? 'check' : kind === 'warning' ? 'alert' : 'info'), 18)),
       el('div', { class: 'toast-text' }, [
         el('div', { text: opts.message || '' }),
         opts.actions && opts.actions.length

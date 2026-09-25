@@ -128,7 +128,8 @@ window.MRT.views.board = (function () {
       if (!D.isOpen(r) || r.status === 'on_hold' || !r.needed_by) { c.node.textContent = r.status === 'on_hold' ? 'paused' : ''; c.bar.style.transform = 'scaleX(' + (r.status === 'on_hold' ? 1 : 0) + ')'; return; }
       var cd = D.countdown(now, r.needed_by, cal, hs);
       var h = ui.formatDurationH(cd.lab_ms / 3600000);
-      c.node.textContent = cd.late ? 'late ' + h : h + ' left';
+      c.node.textContent = (cd.late ? 'late ' + h : h + ' left') + (cd.paused ? ' ⏸' : '');
+      c.node.title = cd.paused ? 'Clock paused - outside lab hours' : '';
       var cls = cd.late ? 'is-late' : cd.lab_ms < 8 * 3600000 ? 'is-soon' : '';
       c.node.className = 'q-clock ' + cls;
       c.gauge.className = 'bgauge ' + cls;
