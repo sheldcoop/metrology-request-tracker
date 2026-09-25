@@ -395,6 +395,30 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
   checked before each push.
 - **A-3** Demo note "Mia covers FIB" (Mia is an Operator) stays - demo text only.
 
+## M2 audit (2026-09-25, Prince)
+- **A-4** M2-20 (request form details) and M2-21 (request page: countdown to the end of the lab day
+  in lab time, "clock paused", comments and @mentions, who may cancel) were built without asking -
+  **confirmed as built**.
+- **A-5** The traveller card was built four times (request page, form preview, board card, print
+  slip). Now **one component**, `ui.traveller(model, {size: full | mini | card | slip})` in
+  `js/ui/traveller.js`, drawn from plain values (it reads no data), in the ui-kit in every size.
+- **A-6** The panel map (`js/ui/panelmap.js`) is unused since form v2 - **kept** for the Hirata
+  decoder / panels by position (#22), marked "unused" in its file and the ui-kit.
+
+## Hirata code (2026-09-25, Prince) - PLANNED, ask before building
+Prince's Hirata tool (decoder + pattern finder) is built into the app, rebuilt to our rules
+(no `innerHTML` with typed text, our themes and components). The code has **9 digits**: supplier
+(1), year (1), week (2), day (1), lot per day (2), panel (2); each digit is a column of dots
+weighted 8/4/2/1 plus a baseline dot, never above 9, with a start column for orientation.
+- **H-1** A panel stores the **full 9-digit code when known, and at least the last 4 digits**
+  (lot per day + panel) - enough to draw the pattern and match the panel. Replaces "1-8 digits"
+  of F-1 once built.
+- **H-2** Planned places: `domain.js` (encode/decode, field split, max 9 - with tests);
+  `js/ui/hirata.js` (the **copper panel** drawing - copper colours **fixed in every theme** - and
+  the dot grid, in the ui-kit); request form Panels step "Decode a panel"; copper patterns on the
+  request page and the slip; a "Hirata tools" page (decoder + pattern finder + print); attach
+  decoded panels to a lot (#22). Open before building: listed in OPEN_QUESTIONS #22.
+
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
   the app for a few days before M4 starts.
