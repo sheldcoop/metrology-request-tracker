@@ -940,6 +940,41 @@ window.MRT.domain = (function () {
   }
 
   /**
+   * The tools a person works (My queue, the alert strip): those where they are
+   * primary or backup quality engineer; an admin without a tool of their own
+   * sees all tools (M3-10).
+   */
+  function measuredTools(user, tools) {
+    var mine = (tools || []).filter(function (t) { return t.active !== false && isToolMeasurer(user, t); });
+    return mine.length || !hasRole(user, 'admin') ? mine : (tools || []).filter(function (t) { return t.active !== false; });
+  }
+
+  /**
+   * The alert strip under the top bar (M1-2, M3 audit): whose requests it
+   * counts - a quality engineer's (or admin's) tools, otherwise the person's
+   * own requests - and the four counts. Each count is a filter of My queue
+   * (tools) or My requests (own).
+   * @param {Object} o {user, tools, requests, now_ts, cal, levelOf(r)}
+   * @returns {{scope: 'tools'|'own', open, line_stop, late, on_hold, clarification}}
+   */
+  function stripCounts(o) {
+    var tools = measuredTools(o.user, o.tools);
+    var ids = tools.map(function (t) { return t.id; });
+    var scope = ids.length ? 'tools' : 'own';
+    var rows = (o.requests || []).filter(function (r) {
+      return isOpen(r) && (scope === 'tools' ? ids.indexOf(r.tool_id) !== -1 : r.requester_id === (o.user && o.user.id));
+    });
+    return {
+      scope: scope,
+      open: rows.length,
+      line_stop: rows.filter(function (r) { return o.levelOf(r) === 1; }).length,
+      late: rows.filter(function (r) { return isLate(r, o.now_ts, o.cal); }).length,
+      on_hold: rows.filter(function (r) { return r.status === 'on_hold'; }).length,
+      clarification: rows.filter(function (r) { return r.status === 'clarification'; }).length
+    };
+  }
+
+  /**
    * The queue order (DECISIONS M2-5): Line stop (level 1) always on top, then
    * late requests (most overdue first), then by needed-by (earliest first; on
    * the same date the more urgent priority first), then requests without a
@@ -1403,6 +1438,8 @@ window.MRT.domain = (function () {
     findMentions: findMentions,
     TRANSITIONS: TRANSITIONS,
     isLate: isLate,
+    measuredTools: measuredTools,
+    stripCounts: stripCounts,
     sortQueue: sortQueue,
     toolQueueStats: toolQueueStats,
     isOldDraft: isOldDraft,

@@ -595,14 +595,69 @@ window.MRT.app = (function () {
   }
 
   /* ------------------------------------------------------------------ *
-   * Alert strip - a stub in M1 (M1-2). From M3 it shows queue counts:
-   * Line stop, late, on hold, each a link into the queue, like ABF's
-   * status strip. The markup and styles (.strip-*) are already in place.
+   * Alert strip (M1-2, built in the M3 audit): on every page, the counts
+   * that need attention - Line stop, Late, On hold, Needs clarification -
+   * for a quality engineer's tools (admins: all tools), otherwise the
+   * person's own requests. Each count opens My queue / My requests on that
+   * filter. Rules: domain.stripCounts. Repainted only when a count changes;
+   * the clock is text only (the 1 s tick rule).
    * ------------------------------------------------------------------ */
 
-  function paintAlertBanner() {
-    document.getElementById('alertBanner').hidden = true;
+  var stripKey = '';
+  var clockFmt = new Intl.DateTimeFormat('en-GB', { timeZone: cfg.time_zone, hour: '2-digit', minute: '2-digit', hour12: false });
+
+  var stripCache = { key: null, value: null };
+
+  /** The counts, recomputed only when the data changed or a minute passed ("late" moves with time). */
+  function stripCounts() {
+    var me = store.currentUser();
+    if (!me || !store.data()) return null;
+    var key = me.id + '|' + store.status().changeSeq + '|' + store.status().revision + '|' + Math.floor(Date.now() / 60000);
+    if (stripCache.key === key) return stripCache.value;
+    stripCache.key = key;
+    return (stripCache.value = D.stripCounts({ user: me, tools: store.list('tools'), requests: store.data().requests || [], now_ts: Date.now(),
+      cal: store.calendar(), levelOf: function (r) { var p = store.byId('priorities', r.priority_id); return p ? p.level : 99; } }));
   }
+
+  function paintAlertBanner() {
+    var banner = document.getElementById('alertBanner');
+    var c = stripCounts();
+    stripKey = JSON.stringify(c);
+    if (!c || !c.open) { banner.hidden = true; return; }
+    var tools = c.scope === 'tools';
+    var base = tools ? '#/queue/' : '#/requests/';
+    function seg(status, n, label, filter) {
+      return ui.el('a', { class: 'strip-seg ' + status + (n ? '' : ' zero'), href: base + filter,
+                          'aria-label': n + ' ' + label + (tools ? ' in your queue' : ' of your requests') }, [
+        ui.led(n ? status : 'neutral'), ui.el('b', { class: 'num', text: String(n) }), ui.el('span', { text: label })
+      ]);
+    }
+    var urgent = c.line_stop + c.late;
+    banner.hidden = false;
+    ui.mount(banner, [
+      ui.el('span', { class: 'strip-state ' + (urgent || c.clarification || c.on_hold ? 'alert' : 'ok') }, [
+        ui.led(c.line_stop ? 'critical' : c.late ? 'expired' : c.clarification || c.on_hold ? 'warning' : 'ok'),
+        tools ? 'Your queue' : 'Your requests'
+      ]),
+      ui.el('div', { class: 'strip-segs' }, [
+        seg('critical', c.line_stop, 'Line stop', tools ? 'linestop' : 'open'),
+        seg('expired', c.late, 'Late', tools ? 'late' : 'open'),
+        seg('warning', c.on_hold, 'On hold', tools ? 'on_hold' : 'open'),
+        seg('warning', c.clarification, tools ? 'Needs clarification' : 'Needs your answer', tools ? 'clarification' : 'mine')
+      ]),
+      ui.el('div', { class: 'spacer' }),
+      ui.el('span', { class: 'strip-active' }, [ui.el('b', { class: 'num', text: String(c.open) }), ' open']),
+      ui.el('span', { class: 'strip-clock num', id: 'stripClock', 'aria-hidden': 'true', text: clockFmt.format(new Date()) })
+    ]);
+  }
+
+  /** Every second: the clock text, and a repaint only when a count changed. */
+  function tickAlertBanner() {
+    var clock = document.getElementById('stripClock');
+    if (clock) clock.textContent = clockFmt.format(new Date());
+    if (JSON.stringify(stripCounts()) !== stripKey) paintAlertBanner();
+  }
+
 
   /* ------------------------------------------------------------------ *
    * Search (Q41): tools, measurement types, BKMs, requests (ID, purpose,
@@ -695,7 +750,7 @@ window.MRT.app = (function () {
     stopTimers();
     app.tickTimer = setInterval(function () {
       if (document.hidden) return;
-      try { paintSaveLed(); } catch (e) { console.error('MRT: top bar tick failed', e); }
+      try { paintSaveLed(); tickAlertBanner(); } catch (e) { console.error('MRT: top bar tick failed', e); }
       if (app.currentView && typeof app.currentView.tick === 'function') {
         try { app.currentView.tick(); } catch (e) { console.error('MRT: ticker failed', e); }
       }

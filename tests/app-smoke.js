@@ -686,6 +686,19 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('#/help/admin-setup opens that guide', $$('.help-guide').filter(g => g.classList.contains('is-selected')).map(g => g.id).join() === 'help-admin-setup');
   check('every guide link goes to a live page', $$('.help-open').every(a => !!MRT.views[(a.getAttribute('href') || '').replace(/^#\//, '').split('/')[0]]));
 
+  // --- the alert strip (M1-2, built in the M3 audit)
+  win.setHash('#/lab'); await settle(); tick(); await settle();
+  const strip = doc.getElementById('alertBanner');
+  const cStrip = MRT.domain.stripCounts({ user: MRT.store.currentUser(), tools: MRT.store.list('tools'), requests: MRT.store.data().requests, now_ts: Date.now(),
+    cal: MRT.store.calendar(), levelOf: r => (MRT.store.byId('priorities', r.priority_id) || {}).level });
+  check('the strip shows on every page when something is open, with the same counts as the rule', !strip.hidden &&
+        new RegExp(cStrip.open + ' open').test(strip.textContent) && /Line stop/.test(strip.textContent) && /Late/.test(strip.textContent));
+  const segs = strip.querySelectorAll('a').filter(a => a.classList.contains('strip-seg'));
+  check('...four counts, each a link into My queue or My requests', segs.length === 4 && segs.every(a => /^#\/(queue|requests)\//.test(a.getAttribute('href'))));
+  win.setHash(segs[1].getAttribute('href')); await settle();
+  check('..."Late" opens the list on that filter', /My queue|My requests/.test(mainText()) &&
+        (fieldIn(doc.getElementById('main'), 'Status') || { value: '' }).value === (cStrip.scope === 'tools' ? 'late' : 'open'));
+
   // --- Hirata tools (H-1..H-3): read a panel, find a pattern
   win.setHash('#/hirata'); await settle();
   check('Hirata tools opens on "Read a panel" with the dot grid', /Read a panel/.test(mainText()) && $$('#main .hg-cell').length === 5 * 10);   // 5 rows x (start column + 9 digits)

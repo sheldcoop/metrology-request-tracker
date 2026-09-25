@@ -35,7 +35,10 @@ window.MRT.views.requests = (function () {
     return r.status === 'clarification' || (r.status === 'completed' && !D.isClosed(r, now));
   }
 
-  function render(main) {
+  function render(main, ctx) {
+    // #/requests/open (the alert strip's links): open on that filter
+    var want = ctx && ctx.subpath;
+    if (want && STATUS_FILTER.some(function (f) { return f.value === want; })) { view.status = want; view.shown = PAGE; }
     var me = store.currentUser();
     clocks = [];
     main.appendChild(ui.pageHead('My requests', 'Everything you asked the lab for. Waiting on you comes first.',

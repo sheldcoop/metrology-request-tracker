@@ -357,6 +357,33 @@
     ok('a hidden default is refused', D.validatePriorities([{ is_default: true, active: false }, { active: true }]).length === 1);
 
     /* =============== store: first run and seed =============== */
+    /* =============== the alert strip (M1-2, M3 audit) =============== */
+    group('Alert strip: whose requests, the counts (M1-2)');
+    var sCal = { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' };
+    var sNow = Date.parse('2026-09-25T10:00:00Z');                       // Friday 12:00 in Vienna
+    var sTools = [{ id: 'tF', code: 'FIB', primary_operator_id: 'uQ', backup_operator_id: null }, { id: 'tQ', code: 'QVM', primary_operator_id: 'uX' },
+                  { id: 'tOld', code: 'OLD', primary_operator_id: 'uQ', active: false }];
+    var sReq = [
+      { id: 'a', tool_id: 'tF', requester_id: 'uE', status: 'submitted', prio: 1 },
+      { id: 'b', tool_id: 'tF', requester_id: 'uE', status: 'accepted', prio: 3, needed_by: '2026-09-24' },       // late
+      { id: 'c', tool_id: 'tF', requester_id: 'uO', status: 'on_hold', prio: 3, needed_by: '2026-09-20' },         // on hold: not late
+      { id: 'd', tool_id: 'tQ', requester_id: 'uE', status: 'clarification', prio: 2 },
+      { id: 'e', tool_id: 'tF', requester_id: 'uE', status: 'completed', prio: 1 },                                // closed: not counted
+      { id: 'f', tool_id: 'tOld', requester_id: 'uE', status: 'submitted', prio: 1 }                               // hidden tool
+    ];
+    function sCounts(user) { return D.stripCounts({ user: user, tools: sTools, requests: sReq, now_ts: sNow, cal: sCal, levelOf: function (r) { return r.prio; } }); }
+    var qeU = { id: 'uQ', roles: ['quality'], active: true }, engU = { id: 'uE', roles: ['engineer'], active: true }, admU = { id: 'uA', roles: ['admin'], active: true };
+    eq('a quality engineer counts their tools only (not a hidden one)', D.measuredTools(qeU, sTools).map(function (t) { return t.code; }), ['FIB']);
+    eq('an admin without a tool of their own sees every active tool', D.measuredTools(admU, sTools).map(function (t) { return t.code; }), ['FIB', 'QVM']);
+    eq('an engineer works no tool', D.measuredTools(engU, sTools), []);
+    var cq = sCounts(qeU);
+    eq('quality engineer: scope = their tools; Line stop, late, on hold', [cq.scope, cq.open, cq.line_stop, cq.late, cq.on_hold, cq.clarification], ['tools', 3, 1, 1, 1, 0]);
+    ok('...on hold is never late, closed ones do not count', cq.late === 1 && cq.open === 3);
+    var ce = sCounts(engU);
+    eq('engineer: scope = their own requests, every tool', [ce.scope, ce.open, ce.line_stop, ce.late, ce.clarification], ['own', 4, 2, 1, 1]);
+    eq('admin: every active tool', sCounts(admU).open, 4);
+    eq('an Operator (no rights) sees only their own', sCounts({ id: 'uO', roles: ['operator'], active: true }).open, 1);
+
     /* =============== Hirata code (H-1..H-3) =============== */
     group('Hirata code: dots, digits, fields (H-1..H-3)');
     eq('digit 0: only the baseline dot', D.hirataDots(0), [false, false, false, false, true]);
