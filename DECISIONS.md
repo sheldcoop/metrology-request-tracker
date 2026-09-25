@@ -517,6 +517,9 @@ never the only signal - the text/label says the same thing.
   People panel shows ⇄ backup when the primary QE is away; Undo gives the page a short rewind; the save lamp pulses once per save.
 - **P5-4 Board tool picker (Prince, 2026-09-25):** chips on top - All tools, My tools (QEs), then one chip per tool
   (glyph, code, open count); picking one shows only that lane. Remembered per person on this PC. Replaces "Only my tools".
+- **P5-5..P5-7 (Prince, 2026-09-25):** a "Show" row under the tool picker: Everything / Line stop / Late / Assigned to me
+  (with counts; Line stop red when any); a Find box (request, lot or Hirata ID - others dim, focus kept); a
+  "Completed column" switch (remembered). Later (listed): wall-screen mode, column limits (needs capacity), "stuck" age tag.
 - **Quality pass (2026-09-25, code only):** board empty state when there are no tools; empty settings tables framed with an
   icon; high contrast board cells without ruling; panel marks readable in every theme; pause sign forced to text style (no emoji on Windows).
 - **P8 Themes, built (2026-09-25):** Prince found light and high-contrast "not like an expert engineer" and chose

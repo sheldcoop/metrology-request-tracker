@@ -29,7 +29,7 @@ window.MRT.views.board = (function () {
     { key: 'completed', label: 'Completed (7 days)', has: ['completed'] }
   ];
   var WEEK = 7 * 86400000;
-  var view = { pick: null };   // 'all' | 'mine' | a tool id - remembered per person on this PC
+  var view = { pick: null, only: 'all', q: '', done: null };   // done: show the Completed column (remembered)   // q: search text - other cards dim   // pick: 'all' | 'mine' | a tool id (remembered); only: 'all' | 'linestop' | 'late' | 'me'   // 'all' | 'mine' | a tool id - remembered per person on this PC
   var clocks = [];
   var open = null;       // the side panel, when one is open
 
@@ -52,20 +52,25 @@ window.MRT.views.board = (function () {
     });
     main.appendChild(ui.pageHead('Board', 'Every open request by tool. Click a card to see it and act on it here.'));
     main.appendChild(toolPicker(tools, mineTools, reqs));
+    if (view.done === null) view.done = !(app.readPref && app.readPref('board_done') === 'hide');
+    var cols = view.done ? COLS : COLS.filter(function (c) { return c.key !== 'completed'; });
+    var shown = reqs.filter(function (r) { return passes(r, me, now, cal); });
+    main.appendChild(onlyPicker(reqs, me, now, cal));
+    reqs = shown;
 
     if (!lanes.length) {
       main.appendChild(ui.emptyState({ icon: 'wrench', title: 'No tools yet', text: 'Add the lab\'s tools under Settings > Tools; each gets its own lane here.' }));
       return;
     }
-    var grid = ui.el('div', { class: 'board', style: { gridTemplateColumns: '150px repeat(' + COLS.length + ', minmax(170px, 1fr))' } });
+    var grid = ui.el('div', { class: 'board', style: { gridTemplateColumns: '150px repeat(' + cols.length + ', minmax(170px, 1fr))' } });
     grid.appendChild(ui.el('div', { class: 'board-corner' }, ui.el('span', { class: 'muted', text: 'Tool' })));
-    COLS.forEach(function (c, i) {
+    cols.forEach(function (c, i) {
       var n = reqs.filter(function (r) { return c.has.indexOf(r.status) !== -1 && lanes.some(function (t) { return t.id === r.tool_id; }); }).length;
       grid.appendChild(ui.el('div', { class: 'board-colhead is-' + c.key }, [ui.el('span', { class: 'board-step mono', text: String(i + 1) }),
         ui.el('b', { text: c.label }), ui.el('span', { class: 'board-count num' + (n ? '' : ' is-zero'), text: String(n) })]));
     });
     lanes.forEach(function (t) {
-      var mine = reqs.filter(function (r) { return r.tool_id === t.id; });
+      var mine = reqs.filter(function (r) { return r.tool_id === t.id && (view.done || r.status !== 'completed'); });
       var open = mine.filter(function (r) { return D.isOpen(r); }).length;
       var running = mine.some(function (r) { return r.status === 'in_progress'; });
       var lane = ui.el('div', { class: 'board-lane is-' + t.status + (mine.length ? '' : ' is-empty') }, [
@@ -76,16 +81,58 @@ window.MRT.views.board = (function () {
       ]);
       grid.appendChild(lane);
       if (!mine.length) {
-        grid.appendChild(ui.el('div', { class: 'board-fold', style: { gridColumn: 'span ' + COLS.length }, text: 'Nothing on this tool' }));
+        grid.appendChild(ui.el('div', { class: 'board-fold', style: { gridColumn: 'span ' + cols.length }, text: 'Nothing on this tool' }));
         return;
       }
-      COLS.forEach(function (c) {
+      cols.forEach(function (c) {
         var cards = D.sortQueue(mine.filter(function (r) { return c.has.indexOf(r.status) !== -1; }), { now_ts: now, cal: cal, levelOf: levelOf });
         grid.appendChild(ui.el('div', { class: 'board-cell', dataset: { col: c.key, tool: t.id }, 'aria-label': t.code + ' - ' + c.label }, cards.map(card)));
       });
     });
     main.appendChild(ui.el('div', { class: 'board-wrap' }, grid));
     tick();
+    if (view.q) applySearch();
+  }
+
+  var ONLY = [{ key: 'all', label: 'Everything' }, { key: 'linestop', label: 'Line stop' }, { key: 'late', label: 'Late' }, { key: 'me', label: 'Assigned to me' }];
+
+  /** The second filter row: priority / lateness / person (P5-5). */
+  function passes(r, me, now, cal) {
+    switch (view.only) {
+      case 'linestop': return D.isOpen(r) && levelOf(r) === 1;
+      case 'late': return D.isOpen(r) && D.isLate(r, now, cal);
+      case 'me': return r.assigned_to === me.id;
+      default: return true;
+    }
+  }
+  function onlyPicker(reqs, me, now, cal) {
+    var keep = view.only;
+    var search = ui.el('input', { type: 'search', class: 'board-search mono', value: view.q, placeholder: 'Find: request, lot or Hirata ID', 'aria-label': 'Find on the board' });
+    search.addEventListener('input', function () { view.q = search.value; applySearch(); });
+    return ui.el('div', { class: 'tool-picks is-filters', role: 'group', 'aria-label': 'Show only' }, [ui.el('span', { class: 'muted tool-picks-label', text: 'Show' })].concat(ONLY.map(function (o) {
+      view.only = o.key;
+      var n = reqs.filter(function (r) { return D.isOpen(r) && passes(r, me, now, cal); }).length;
+      view.only = keep;
+      var on = keep === o.key;
+      return ui.el('button', { type: 'button', class: 'tool-pick' + (on ? ' is-on' : '') + (o.key === 'linestop' && n ? ' is-alarm' : ''), 'aria-pressed': on ? 'true' : 'false',
+        dataset: { only: o.key }, onclick: function () { view.only = o.key; window.MRT.app.route(); } },
+        [ui.el('span', { text: o.label }), ui.el('span', { class: 'tool-pick-n num', text: String(n) })]);
+    })).concat([ui.toggle({ kind: 'switch', label: 'Completed column', checked: view.done, onChange: function (v) {
+      view.done = v; if (window.MRT.app.writePref) window.MRT.app.writePref('board_done', v ? 'show' : 'hide'); window.MRT.app.route(); } }).node, search, ui.el('span', { class: 'muted board-search-n', 'aria-live': 'polite' })]));
+  }
+
+  /** Search (P5-6): matching cards stay, the others dim; nothing is re-drawn, so typing keeps focus. */
+  function applySearch() {
+    var q = (view.q || '').trim().toLowerCase().replace(/\s+/g, '');
+    var cards = document.querySelectorAll('#main .bcard'), hits = 0;
+    Array.prototype.forEach.call(cards, function (c) {
+      var hit = !q || (c.dataset.find || '').indexOf(q) !== -1;
+      if (q && hit) hits++;
+      c.classList.toggle('is-miss', !hit);
+      c.classList.toggle('is-hit', !!q && hit);
+    });
+    var n = document.querySelector('#main .board-search-n');
+    if (n) n.textContent = q ? hits + ' found' : '';
   }
 
   /** The tool picker on top: All, My tools, or one tool (with its open count). */
@@ -124,6 +171,7 @@ window.MRT.views.board = (function () {
       ]
     }, { size: 'card' });
     node.dataset.id = r.id;
+    node.dataset.find = [r.request_no, lot ? lot.lot_number : '', (r.panels || []).join(' ')].join(' ').toLowerCase().replace(/\s+/g, '|');
     node.addEventListener('click', function (ev) {
       if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) return;   // a new tab still opens the page
       ev.preventDefault();
