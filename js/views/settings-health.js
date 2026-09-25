@@ -36,9 +36,18 @@
     ];
   }
 
+  var before = null;   // P7: lines seen last time; the ones gone now show once, struck through
+  function fixedRows(now) {
+    var keys = now.map(function (x) { return x.text; });
+    var gone = before ? before.filter(function (x) { return keys.indexOf(x.text) === -1; }) : [];
+    before = now.slice();
+    return gone.map(function (x) { return [ui.el('span', { class: 'chip ok', text: 'Fixed' }), ui.el('span', { class: 'health-fixed', text: x.text }), '']; });
+  }
+
   function render(body) {
     var k = K();
     var h = store.health();
+    var fixed = fixedRows(h.todo.concat(h.issues));
     var order = { problem: 0, warning: 1, note: 2 };
     var issues = h.issues.slice().sort(function (a, b) { return order[a.severity] - order[b.severity]; });
 
@@ -60,6 +69,7 @@
       ui.el('p', { class: 'muted', text: 'Checked each time this page opens. Nothing is changed here - open the entry and fix it.' }),
       k.table(['', 'What', { label: '', cls: 'actions' }], issues.map(itemRow))
     ] : ui.emptyState({ icon: 'check', title: 'Everything checks out', text: 'No broken links, no odd states.' })));
+    if (fixed.length) body.appendChild(k.panel('Fixed since you last looked', 'check', [], k.table(['', 'What', { label: '', cls: 'actions' }], fixed)));
   }
 
   window.MRT.settingsTabs.push({ key: 'health', label: 'Health', icon: 'activity', order: 10, render: render });

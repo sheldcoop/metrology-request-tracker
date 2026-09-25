@@ -511,6 +511,10 @@ never the only signal - the text/label says the same thing.
   pause sign when on hold or outside lab hours; board cards keep the small bar.
 - **P3 built (2026-09-25):** on a status change the new stamp presses onto the traveller and the rail fills to the new step (only when the status changed since the page was last drawn; still with Reduce motion).
 - **P4 built (2026-09-25):** panels light up as their Hirata ID is typed; once received (open request) they sit in an "In the lab tray" well and slide in when that just happened; after Complete: a check (measured) or a red cross-out (panels outcome Scrapped).
+- **P6/P7 built (2026-09-25), all eight:** Complete toast with a folder that closes + "Copy results path" (✓ on copy);
+  the bell swings once when the count goes up; board tool lamps glow (steady up, slow blink maintenance, red down);
+  countdowns show ⏸ outside lab hours (queue, board); Health lists "Fixed since you last looked" struck through;
+  People panel shows ⇄ backup when the primary QE is away; Undo gives the page a short rewind; the save lamp pulses once per save.
 - **P8 Themes, built (2026-09-25):** Prince found light and high-contrast "not like an expert engineer" and chose
   **"instrument panel"**: light = calm neutral greys, crisp 1px lines, no grid, no glows, flat surfaces, smaller
   radii, one engineering blue (#0B5CAD). High contrast = a technical drawing: white paper, black ink, 2px lines,

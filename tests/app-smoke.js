@@ -500,12 +500,17 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...In progress, panels received with the place', r2.status === 'in_progress' && r2.received_where === 'FIB cabinet' && /FIB cabinet/.test($('#main .traveller').textContent));
   const hasCu = !!$('#main .panel-hirata');
   check('...the panels slide into the lab tray (P4)' + (hasCu ? '' : ' [no Hirata IDs here]'), !hasCu || (!!$('#main .panel-tray.is-animating') && /lab tray/i.test($('#main .panel-tray').textContent)));
+  let filedToast = null; const realToast = MRT.ui.toast;
+  MRT.ui.toast = o => { if (o && o.cls === 'is-filed') filedToast = o; return realToast(o); };
   buttonByText($('#main .req-actbar'), 'Complete').click(); await settle();
   check('Complete: results folder proposed, panels Scrapped for FIB (M3-6)', /\\\\srv\\lab\\FIB\\/.test(fieldIn(openDialog(), 'Results folder').value) && fieldIn(openDialog(), 'The panels').value === 'scrapped');
   buttonByText(openDialog(), 'Save').click(); await settle();
   check('...Completed, the results path shown with Copy', MRT.store.byId('requests', req2.id).status === 'completed' && $('#main .tr-stamp').textContent === 'Completed' &&
         !!$$('#main button').filter(b => b.getAttribute('aria-label') === 'Copy Results path')[0]);
+  MRT.ui.toast = realToast;
   check('...scrapped panels are crossed out (P4)' + (hasCu ? '' : ' [no Hirata IDs here]'), !hasCu || (!$('#main .panel-tray') && !!$('#main .panel-hirata-item.is-scrapped .panel-mark')));
+  check('Complete: the toast files the folder and offers Copy results path (P6)', !!filedToast && filedToast.cls === 'is-filed' && filedToast.icon === 'folder' &&
+        filedToast.actions.some(a => a.label === 'Copy results path'));
   MRT.store.setCurrentUser(meP); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
   check('the requester now sees Results OK and Reopen (Q34)', !!buttonByText($('#main .req-actbar'), 'Results OK') && !!buttonByText($('#main .req-actbar'), 'Reopen'));
   buttonByText($('#main .req-actbar'), 'Results OK').click(); await settle();

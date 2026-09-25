@@ -93,7 +93,11 @@ window.MRT.requestActions = (function () {
 
   function done(r, text, event) {
     var offer = event ? emailOffer(r, event) : null;
-    ui.toast({ kind: 'success', message: r.request_no + ': ' + text, actions: offer ? [offer] : null, timeout_ms: offer ? 8000 : undefined });
+    var acts = offer ? [offer] : [];
+    var filed = event === 'complete' && r.results_path;   // P6: the folder closes, the path is one click away
+    if (filed) acts.unshift({ label: 'Copy results path', onClick: function () { ui.copyText(r.results_path, '✓ Results path copied'); } });
+    ui.toast({ kind: 'success', message: r.request_no + ': ' + text, actions: acts.length ? acts : null, timeout_ms: acts.length ? 8000 : undefined,
+               icon: filed ? 'folder' : null, cls: filed ? 'is-filed' : null });
     window.MRT.app.route();
     return r;
   }
