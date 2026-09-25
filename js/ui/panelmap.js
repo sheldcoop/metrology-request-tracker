@@ -1,6 +1,10 @@
 /**
  * Metrology Request Tracker - ui/panelmap.js
  *
+ * UNUSED since request form v2 (panels are Hirata IDs, F-1) - kept on purpose
+ * for the Hirata decoder / panels by position (OPEN_QUESTIONS #22, M2 audit
+ * 2026-09-25). No screen loads it; it stays in the ui-kit and its tests.
+ *
  * The panel map (Q6, DECISIONS M2-2): the panels of a lot drawn as small
  * boards with corner fiducials, numbered 1..n. Click a panel to pick it,
  * Shift+click picks the run from the last one; arrow keys move, Space picks.

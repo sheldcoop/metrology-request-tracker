@@ -22,7 +22,7 @@ if(process.argv[2]==='chart'){win.Chart=function(canvas,cfg){charts++;this.cfg=c
   if(cfg.options.onHover)cfg.options.onHover({},[]);
   const a=cfg.options.animations;if(a){a.y.from({index:1,chart:chartObj,datasetIndex:0});a.x.delay({type:'data',index:2})}
   this.destroy=()=>destroyed++;};}const ctx=vm.createContext(win);
-['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
+['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
 let errs=0;
 function check(name,fn){try{fn();flush()}catch(e){errs++;console.log('ERR',name,e.stack.split('\n').slice(0,3).join(' | '))}}
 function expect(name,cond){if(!cond){errs++;console.log('FAIL',name)}}
@@ -72,6 +72,14 @@ check('barcode',()=>{const b=put(ui.code128('FIB-260924-03',{height:40}));const 
   const v=ui.code128Values('FIB-260924-03');expect('code 128: start B, 13 characters, checksum, stop',v.length===16&&v[0]===104&&v[15]===106);
   expect('...3 bars per symbol, 2 more for stop',bars.length===15*3+4);expect('...labelled for screen readers',/FIB-260924-03/.test(b.getAttribute('aria-label')));
   let bad=false;try{ui.code128Values('é')}catch(e){bad=true}expect('...refuses what set B cannot encode',bad)});
+check('traveller',()=>{const m={id:'FIB-260925-01',subtitle:'FIB',glyph:{key:'fib',state:'live',label:'FIB'},level:1,urgent:true,prio:{name:'Line stop',code:'P1'},
+    stamp:{label:'Submitted',kind:'neutral'},fields:[{label:'Lot',value:'18178',sub:'C4F',cls:'wide'},null],lines:[['18178'],['x']],href:'#',warn:'W'};
+  const f=put(ui.traveller(m,{size:'full'}));expect('traveller full: article, stripe, pulse, stamp, 1 field',f.tagName==='ARTICLE'&&f.classList.contains('prio-1')&&f.classList.contains('is-urgent')&&f.querySelectorAll('div').filter(d=>d.classList.contains('tr-cell')).length===1&&/Submitted/.test(f.textContent));
+  const mi=put(ui.traveller(m,{size:'mini'}));expect('traveller mini',mi.classList.contains('traveller-mini')&&/Line stop/.test(mi.textContent));
+  const c=put(ui.traveller(m,{size:'card'}));expect('traveller card: a link',c.tagName==='A'&&c.getAttribute('href')==='#'&&c.classList.contains('bcard'));
+  const sl=put(ui.traveller(m,{size:'slip'}));expect('traveller slip: warning line',sl.classList.contains('slip')&&/W/.test(sl.textContent));
+  const u=put(ui.traveller({id:'<b>x</b>'},{size:'full'}));expect('traveller: text never becomes markup',u.textContent.indexOf('<b>x</b>')!==-1);
+  expect('four sizes',ui.TRAVELLER_SIZES.join()==='full,mini,card,slip')});
 check('magazine slots',()=>{let got=null;
   const mm=put(ui.magazineSlots({magazine:{code:'M70345',slots:24},picked:[1],labels:{1:'3252'},taken:{9:'FIB-260924-01'},onChange:l=>{got=l}}));
   const slots=()=>mm.node.querySelectorAll('.mz-slot');
@@ -133,7 +141,7 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
-  expect('the kit builds every section (21)',secs.length===21);
+  expect('the kit builds every section (22)',secs.length===22);
   expect('the kit shows 6 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===24);
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
   for(const i of doc.getElementById('kitBar').querySelectorAll('input')){i.checked=true;i.dispatch('change');flush()}
