@@ -506,6 +506,9 @@ never the only signal - the text/label says the same thing.
   P5-2 compact cards: ID, priority stripe, lot, panels, needed-by bar, QE initials.
   P5-3 **click only, no dragging**: a click opens a side panel (ui.drawer) with the full traveller and the
   usual action buttons; Ctrl+click opens the page. (Replaces the drag of Q39.)
+- **P2 built (2026-09-25):** Prince chose a **needle dial** on the request page (ui.needleGauge): half circle,
+  green/amber/red zones, needle = share of lab time used from submitted to needed by (all of it when late),
+  pause sign when on hold or outside lab hours; board cards keep the small bar.
 - **P8 Themes, built (2026-09-25):** Prince found light and high-contrast "not like an expert engineer" and chose
   **"instrument panel"**: light = calm neutral greys, crisp 1px lines, no grid, no glows, flat surfaces, smaller
   radii, one engineering blue (#0B5CAD). High contrast = a technical drawing: white paper, black ink, 2px lines,

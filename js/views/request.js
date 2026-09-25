@@ -24,7 +24,7 @@ window.MRT.views.request = (function () {
   var RAIL = ['submitted', 'accepted', 'in_progress', 'completed'];
   var STAMP = { draft: 'neutral', submitted: 'accent', accepted: 'ok', in_progress: 'ok', completed: 'ok',
                 clarification: 'warning', on_hold: 'warning', cancelled: 'expired' };
-  var live = { r: null, node: null };          // what tick() updates
+  var live = { r: null, node: null, gauge: null };          // what tick() updates
 
   function byId(coll, id) { return id ? store.byId(coll, id) : null; }
   function userName(id) { var u = byId('users', id); return u ? u.name : '?'; }
@@ -76,7 +76,8 @@ window.MRT.views.request = (function () {
     var prio = byId('priorities', r.priority_id), type = byId('measurement_types', r.type_id);
     var level = prio ? prio.level : 3;
     var clock = ui.el('div', { class: 'tr-clock' });
-    live.r = r; live.node = clock;
+    var gauge = r.needed_by && D.isOpen(r) ? ui.needleGauge() : null;
+    live.r = r; live.node = clock; live.gauge = gauge;
     paintClock();
     var glyphState = r.status === 'in_progress' ? 'live' : tool && tool.status === 'down' ? 'off' : tool && tool.status === 'maintenance' ? 'maint' : 'idle';
     return ui.traveller({
@@ -90,7 +91,8 @@ window.MRT.views.request = (function () {
            (byId('buildups', r.buildup_id) || {}).code].filter(Boolean).join(' · ') })] : muted('?')),
         cell('Priority', prio ? ui.el('span', { class: 'tr-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono muted', text: prio.code })]) : muted('-'),
              r.priority_reason ? r.priority_reason : null),
-        cell('Needed by', r.needed_by ? ui.el('b', { class: 'num', text: ui.formatDate(r.needed_by + 'T12:00:00Z') }) : muted('no date'), null, clock),
+        cell('Needed by', r.needed_by ? ui.el('b', { class: 'num', text: ui.formatDate(r.needed_by + 'T12:00:00Z') }) : muted('no date'), null,
+          gauge ? ui.el('div', { class: 'tr-dial' }, [gauge.node, clock]) : clock),
         cell('Panels', ui.el('b', { class: 'mono', text: D.panelsText(r) + ((r.panels || []).length ? '  (' + r.panels.length + ')' : '') }),
           [(r.layers || []).length ? 'layer ' + r.layers.join(', ') : null, window.MRT.requestActions.whereOf(r) || null].filter(Boolean).join(' · ') || null,
           window.MRT.views.hirata.panelsView(r.panels, 'md')),
@@ -124,14 +126,27 @@ window.MRT.views.request = (function () {
     if (!r || !node) return;
     if (!r.needed_by) { node.textContent = 'The priority says how urgent it is.'; node.className = 'tr-clock'; return; }
     if (!D.isOpen(r)) { node.textContent = ''; node.className = 'tr-clock'; return; }
-    if (r.status === 'on_hold') { node.textContent = 'On hold - the clock is paused'; node.className = 'tr-clock is-paused'; return; }
+    var g = live.gauge;
+    if (r.status === 'on_hold') { node.textContent = 'On hold - the clock is paused'; node.className = 'tr-clock is-paused'; if (g) g.set(dialUsed(r, null), 'paused'); return; }
     var hs = D.holidaySet(store.data().holidays);
     var c = D.countdown(Date.now(), r.needed_by, store.calendar(), hs);
     var h = ui.formatDurationH(c.lab_ms / 3600000);
     var days = c.late ? (c.days < 0 ? ' (' + -c.days + ' day' + (c.days === -1 ? '' : 's') + ')' : '')
                       : (c.days > 0 ? ' (' + c.days + ' day' + (c.days === 1 ? '' : 's') + ')' : ' (today)');
     node.textContent = (c.late ? 'Late by ' + h + ' lab time' : h + ' lab time left') + days + (c.paused ? '  ·  clock paused (outside lab hours)' : '');
-    node.className = 'tr-clock ' + (c.late ? 'is-late' : c.lab_ms < 8 * 3600000 ? 'is-soon' : 'is-ok') + (c.paused ? ' is-paused' : '');
+    var state = c.late ? 'late' : c.lab_ms < 8 * 3600000 ? 'soon' : 'ok';
+    node.className = 'tr-clock is-' + state + (c.paused ? ' is-paused' : '');
+    if (g) g.set(dialUsed(r, c), c.paused && !c.late ? 'paused' : state);
+  }
+
+  /** How far the needle is: the share of lab time used from submitted to needed by (late = all of it). */
+  function dialUsed(r, c) {
+    var hs = D.holidaySet(store.data().holidays), cal = store.calendar();
+    if (!c) c = D.countdown(Date.now(), r.needed_by, cal, hs);
+    if (c.late) return 1;
+    var total = r.submitted_ts ? D.countdown(Date.parse(r.submitted_ts), r.needed_by, cal, hs).lab_ms : 0;
+    if (!(total > 0)) return c.lab_ms < 8 * 3600000 ? 0.85 : 0.2;
+    return 1 - c.lab_ms / total;
   }
 
   /* --- status rail -------------------------------------------------------- */

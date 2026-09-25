@@ -144,6 +144,10 @@ async function dialogSubmitChecks(){
   expect('a good save closes it with the value',submitted==='v'&&!saveDlg());
   await ui.copyText('\\\\srv\\lab\\FIB','Path copied');
   expect('copyText puts the text on the clipboard',win.navigator.clipboard.text==='\\\\srv\\lab\\FIB');
+  const ng=ui.needleGauge(); ng.set(0.5,'soon');
+  expect('needleGauge: the needle turns (transform only) and the state shows',/rotate\(90/.test(ng.node.querySelector('.ng-needle').style.transform)&&/is-soon/.test(ng.node.getAttribute('class')));
+  ng.set(2,'late');
+  expect('...never past the end',/rotate\(180/.test(ng.node.querySelector('.ng-needle').style.transform));
 }
 
 // click every button, change every input

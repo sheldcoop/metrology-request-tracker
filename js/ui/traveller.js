@@ -91,6 +91,45 @@
     return draw(model || {});
   }
 
+  /**
+   * The needed-by dial (P2): a half-circle meter, green / amber / red zones,
+   * the needle moves right as lab time runs out. Plain values in:
+   *   var g = ui.needleGauge(); g.set(fraction 0..1 used, 'ok'|'soon'|'late'|'paused'|'none')
+   * Only the needle turns (transform). The text beside it says the same.
+   */
+  function needleGauge() {
+    var NS = 'http://www.w3.org/2000/svg';
+    function s(tag, attrs) { var n = document.createElementNS(NS, tag); Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); }); return n; }
+    function arc(a0, a1) {   // angles in degrees, 180 = left, 0 = right, radius 40 around (50, 50)
+      var p = function (a) { var r = a * Math.PI / 180; return (50 + 40 * Math.cos(r)).toFixed(2) + ' ' + (50 - 40 * Math.sin(r)).toFixed(2); };
+      return 'M ' + p(a0) + ' A 40 40 0 0 1 ' + p(a1);
+    }
+    var svg = s('svg', { viewBox: '0 0 100 58', class: 'ngauge', 'aria-hidden': 'true' });
+    svg.appendChild(s('path', { d: arc(180, 36), class: 'ng-zone ng-ok' }));
+    svg.appendChild(s('path', { d: arc(36, 8), class: 'ng-zone ng-soon' }));
+    svg.appendChild(s('path', { d: arc(8, 0), class: 'ng-zone ng-late' }));
+    for (var i = 0; i <= 10; i++) {
+      var a = (180 - i * 18) * Math.PI / 180, r1 = i % 5 ? 33 : 30;
+      svg.appendChild(s('line', { x1: 50 + 36 * Math.cos(a), y1: 50 - 36 * Math.sin(a), x2: 50 + r1 * Math.cos(a), y2: 50 - r1 * Math.sin(a), class: 'ng-tick' }));
+    }
+    var needle = s('g', { class: 'ng-needle' });
+    needle.appendChild(s('line', { x1: 50, y1: 50, x2: 16, y2: 50 }));
+    svg.appendChild(needle);
+    svg.appendChild(s('circle', { cx: 50, cy: 50, r: 3.5, class: 'ng-hub' }));
+    var pause = s('g', { class: 'ng-pause' });
+    pause.appendChild(s('rect', { x: 45, y: 30, width: 3, height: 10 }));
+    pause.appendChild(s('rect', { x: 52, y: 30, width: 3, height: 10 }));
+    svg.appendChild(pause);
+    function set(used, state) {
+      var f = Math.max(0, Math.min(1, used || 0));
+      needle.style.transform = 'rotate(' + (f * 180).toFixed(1) + 'deg)';
+      svg.setAttribute('class', 'ngauge is-' + (state || 'ok'));
+    }
+    set(0, 'none');
+    return { node: svg, set: set };
+  }
+
   ui.traveller = traveller;
+  ui.needleGauge = needleGauge;
   ui.TRAVELLER_SIZES = Object.keys(SIZES);
 })(window.MRT.ui);
