@@ -226,13 +226,13 @@ window.MRT.views['new'] = (function () {
     var toolTypeHost = ui.el('div', { class: 'req-part' });
     function paintTool() {
       var tools = store.list('tools');
-      var pick = ui.el('div', { class: 'tool-pick', role: 'radiogroup', 'aria-label': 'Tool' }, tools.map(function (t) {
+      var pick = ui.el('div', { class: 'tool-bank', role: 'radiogroup', 'aria-label': 'Tool' }, tools.map(function (t) {
         var on = t.id === st.tool_id;
         var b = ui.el('button', { type: 'button', class: 'tool-pick-opt is-' + t.status + (on ? ' is-on' : ''), role: 'radio',
           'aria-checked': on ? 'true' : 'false', title: t.name + (t.status !== 'up' ? ' - ' + D.TOOL_STATUS_LABEL[t.status] : '') }, [
           ui.toolGlyph(t.glyph, { size: 40, state: t.status === 'up' ? 'idle' : t.status === 'down' ? 'off' : 'maint' }),
           ui.el('b', { class: 'mono', text: t.code }),
-          ui.el('span', { class: 'tool-pick-name', text: t.name }),
+          t.name && t.name !== t.code ? ui.el('span', { class: 'tool-pick-name', text: t.name, title: t.name }) : null,   // no "AOI / AOI"
           t.status !== 'up' ? ui.statusBadge(t.status === 'down' ? 'expired' : 'warning', D.TOOL_STATUS_LABEL[t.status]) : null
         ]);
         if (editing && !on) b.disabled = true;

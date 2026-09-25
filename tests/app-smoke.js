@@ -375,7 +375,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const isOpenStep = k => !stepOf(k).querySelector('.wz-body').hidden;
   const segPick = (label, v) => { const i = M().querySelectorAll('.seg').filter(x => x.getAttribute('aria-label') === label)[0].querySelectorAll('input').filter(x => x.value === v)[0]; i.checked = true; i.dispatch('change'); };
   const mag1 = MRT.store.list('magazines')[0];
-  check('New request, tool first: five tool drawings, five steps + Review, only the tool step open', $$('#main .tool-pick-opt').length === 5 && $$('#main .wz-step').length === 6 &&
+  check('New request, tool first: five tool drawings in their own bank (not the board pills), equal cards, no repeated names (AOI / AOI), five steps + Review, only the tool step open', $$('#main .tool-pick-opt').length === 5 && !!$('#main .tool-bank') && !$('#main .tool-pick') && $$('#main .tool-pick-opt').every(b => { const n = b.querySelector('.tool-pick-name'); return !n || n.textContent !== b.querySelector('b').textContent; }) && $$('#main .wz-step').length === 6 &&
         isOpenStep('tool') && !isOpenStep('lot') && /Pick the tool first/.test(mainText()));
   buttonByText(M(), 'Submit').click(); await settle();
   check('Submit with nothing picked lists what is missing', !$('#main .req-errors').hidden && /Pick a tool/.test($('#main .req-errors').textContent));

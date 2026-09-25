@@ -1248,15 +1248,17 @@ table.grid tbody tr { scroll-margin: 80px; }
 .req-next { display: grid; gap: 8px; }
 .lot-info { font-size: 13px; margin: 0; }
 /* the tool picker: each tool as its glyph on a small nameplate */
-.tool-pick { display: flex; flex-wrap: wrap; gap: 10px; }
-.tool-pick-opt { display: grid; justify-items: center; gap: 4px; min-width: 88px; padding: 10px 12px; cursor: pointer;
+/* the new request's tool bank: equal cards in a row (own class - the board's .tool-pick filter pills are something else) */
+.tool-bank { display: grid; grid-template-columns: repeat(auto-fill, 150px); gap: 10px; }
+.tool-pick-opt { display: grid; grid-template-rows: 44px auto auto auto; justify-items: center; align-content: start; gap: 4px; min-height: 128px; padding: 12px 10px; cursor: pointer; text-align: center;
   border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface-2); color: var(--fg);
   transition: transform var(--t-fast) var(--ease); }
 .tool-pick-opt:hover { transform: translateY(-1px); }
 .tool-pick-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tool-pick-opt.is-on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent), 0 0 var(--glow-blur, 10px) var(--accent-glow); }
 .tool-pick-opt .chip { font-size: 10px; }
-.tool-pick-name { font-size: 11px; color: var(--fg-muted); max-width: 110px; text-align: center; line-height: 1.2; }
+.tool-pick-name { font-size: 11px; color: var(--fg-muted); max-width: 100%; text-align: center; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* The guided form (F-4): a progress strip, then steps that fold to one line when done */
 .req-wizard { grid-template-columns: minmax(0, 1fr) 360px; }
