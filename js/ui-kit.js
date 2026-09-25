@@ -14,8 +14,7 @@
   var ui = window.MRT.ui;
   var el = ui.el;
   var TH = window.MRT.themes;         // every theme: js/themes.js
-  var THEMES = TH.list.filter(function (t) { return !t.candidate; }).map(function (t) { return [t.key, t.name]; });
-  var PROPOSAL = TH.list.filter(function (t) { return t.candidate; }).map(function (t) { return [t.key, t.name]; });   // not yet in the app
+  var THEMES = TH.list.map(function (t) { return [t.key, t.name]; });
   var STATUSES = ['ok', 'warning', 'critical', 'expired', 'blocked'];
   var KEY = 'mrt.kit.';
 
@@ -495,28 +494,18 @@
   var mode = 'dark';
 
   function render() {
-    root.className = 'kit-root' + (mode === 'all' || mode === 'proposal' ? ' all' : '');
-    if (mode === 'proposal') {
-      TH.setOn(document.documentElement, PROPOSAL[0][0]);
-      ui.mount(root, [el('div', { class: 'kit-proposal', style: { gridColumn: '1 / -1' } }, [
-        el('h2', { text: 'Proposal: ' + PROPOSAL.map(function (t) { return t[1]; }).join('  ·  ') }),
-        el('p', { class: 'muted', text: 'Not in the app yet. Main: Carbon Gray 100 (office default), Carbon White, Primer High Contrast - from the official ' +
-          'token sources (IBM Carbon @carbon/themes; GitHub Primer primer/primitives). Personal: Catppuccin Mocha (catppuccin/palette) and Gruvbox Light ' +
-          '(morhetz/gruvbox). Only status colours were adjusted where needed, so OK / Warning / Line stop / Late stay clearly apart (tests/contrast.js, ' +
-          'CIEDE2000) and readable (WCAG AA, table below). Every status shows an icon with its word: tick OK, triangle Warning, stop octagon Line stop / ' +
-          'critical, clock Late, lock Blocked, flame Hot.' }),
-        contrastTable(PROPOSAL)
-      ])].concat(PROPOSAL.map(function (t) {
+    root.className = 'kit-root' + (mode === 'all' ? ' all' : '');
+    if (mode === 'all') {
+      TH.setOn(document.documentElement, TH.DEFAULT);
+      ui.mount(root, [el('div', { style: { gridColumn: '1 / -1', padding: '20px 20px 0' } }, [
+        el('p', { class: 'muted', text: 'Every theme of js/themes.js side by side. Main: Carbon Gray 100 (default), Carbon White, Primer High Contrast; ' +
+          'personal: Catppuccin Mocha, Gruvbox Light. Status = icon + word in every theme.' }),
+        contrastTable()
+      ])].concat(THEMES.map(function (t) {
         var scope = el('div', { class: 'theme-scope' }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));
         TH.setOn(scope, t[0]);
         return scope;
       })));
-    } else if (mode === 'all') {
-      ui.mount(root, THEMES.map(function (t) {
-        var scope = el('div', { class: 'theme-scope' }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));
-        TH.setOn(scope, t[0]);
-        return scope;
-      }));
     } else {
       TH.setOn(document.documentElement, mode);
       ui.mount(root, (sectionRange.length ? [] : [section('Contrast (WCAG AA, computed from the live tokens)', contrastTable())]).concat(gallery()));
@@ -534,8 +523,7 @@
   function bar() {
     var themeSeg = { node: ui.el('select', { class: 'input menu-select', 'aria-label': 'Theme' },
       THEMES.map(function (t) { return ui.el('option', { value: t[0], text: t[1], selected: t[0] === mode }); })
-        .concat([ui.el('option', { value: 'all', text: 'All themes side by side', selected: mode === 'all' }),
-                 ui.el('option', { value: 'proposal', text: 'Proposal: Carbon + Primer, side by side', selected: mode === 'proposal' })])) };
+        .concat([ui.el('option', { value: 'all', text: 'All themes side by side', selected: mode === 'all' })])) };
     themeSeg.node.addEventListener('change', function () { mode = themeSeg.node.value; try { localStorage.setItem(KEY + 'mode', mode); } catch (e) { /* */ } render(); });
     var reduce = document.documentElement.getAttribute('data-motion') === 'reduce';
     ui.mount(document.getElementById('kitBar'), [
@@ -548,10 +536,10 @@
   }
 
   try {
-    mode = 'proposal';                  // while the Carbon + Primer proposal is open, the kit opens on it (?mode= to pick another)
+    mode = localStorage.getItem(KEY + 'mode') || 'all';
     var qm = (location.search.match(/[?&]mode=([\w-]+)/) || [])[1];
     if (qm) mode = qm;
-    if (mode !== 'all' && mode !== 'proposal' && !TH.byKey(mode)) mode = TH.DEFAULT;
+    if (mode !== 'all' && !TH.byKey(mode)) mode = 'all';
     if (/[?&]motion=reduce/.test(location.search) || localStorage.getItem(KEY + 'motion') === 'reduce') {
       document.documentElement.setAttribute('data-motion', 'reduce');
     }

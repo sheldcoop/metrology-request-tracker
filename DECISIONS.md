@@ -596,3 +596,7 @@ never the only signal - the text/label says the same thing.
 - **T-9** (2026-09-25, Prince: "do it") **Late is red everywhere** (the expired colour + clock icon):
   queue rows, clocks, board cards and gauges, the needed-by dial, Lab status. Line stop stays orange
   with the stop octagon; Hot and Warning stay amber, told apart by flame vs triangle and their words.
+- **T-10** (2026-09-25, Prince: "do all") **Applied:** the app's themes are now Main - Carbon Gray 100
+  (default), Carbon White, Primer High Contrast - and Personal - Catppuccin Mocha, Gruvbox Light. The
+  eleven older themes are gone; their keys map onto the new ones (dark-looking -> Carbon Gray 100,
+  light-looking -> Carbon White, hc -> Primer HC), so saved choices and an office default keep working.

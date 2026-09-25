@@ -1126,10 +1126,10 @@
     group('Store: the office theme (Settings > Look)');
     a = await adminStore();
     eq('no office theme at first (the app default)', ST.getSetting('default_theme'), null);
-    await ST.setDefaultTheme('arctic', 'calmer for the lab');
-    eq('an admin sets one, audited', [ST.getSetting('default_theme'), ST.data().audit_log.slice(-1)[0].new_value], ['arctic', 'arctic']);
+    await ST.setDefaultTheme('gruvbox-light', 'calmer for the lab');
+    eq('an admin sets one, audited', [ST.getSetting('default_theme'), ST.data().audit_log.slice(-1)[0].new_value], ['gruvbox-light', 'gruvbox-light']);
     await refused('...not a theme that does not exist', ST.setDefaultTheme('neon-pink', 'x'), 'invalid');
-    await refused('...the same again is "nothing changed"', ST.setDefaultTheme('arctic', 'x'), 'no_change');
+    await refused('...the same again is "nothing changed"', ST.setDefaultTheme('gruvbox-light', 'x'), 'no_change');
     await ST.saveEntry('users', { fields: { name: 'Tia Theme', roles: ['engineer'] } });
     ST.setCurrentUser(ST.data().users.filter(function (u) { return u.name === 'Tia Theme'; })[0].id);
     await refused('...only admins', ST.setDefaultTheme(null, 'x'), 'not_admin');
