@@ -2,22 +2,17 @@
  * Metrology Request Tracker - views/new.js
  *
  * New request (#/new), the guided form (DECISIONS F-1..F-5). One request =
- * one tool (Q4). Tool first, then five steps that open one after the other;
+ * one tool (Q4). Tool first, then four steps that open one after the other;
  * a finished step folds into one line that says what was given:
  *
  *   1 Tool           the tool (its glyph), measurement type, BKM (Q13, Q51, M2-10)
- *   2 Lot & panels   Project · Lot · Build-up on one line, three separate
- *                    choices (F-6): a lot runs through every build-up. Pick a
- *                    lot or type a new one (registered on Submit, F-5); the
- *                    build-up is optional; part number (optional, of the
- *                    project); the panels by Hirata ID or just how many (F-1);
- *                    layers from the build-up (F-2); process step (M2-8)
- *   3 Where          the magazine and its slots on a front view, or a note
- *                    (F-3); where they go afterwards (M2-12, FIB always scrap
- *                    + a required tick, M2-11)
- *   4 Urgency        priority with a reason when it needs one (Q26), an
+ *   2 Lot & panels   Project · Part number · Lot · Build-up on one line
+ *                    (F-6), then panels (Hirata IDs or count), process step,
+ *                    layers, magazine slots / panel location, and where they
+ *                    go afterwards (F-1..F-3, M2-8, M2-11, M2-12)
+ *   3 Urgency        priority with a reason when it needs one (Q26), an
  *                    optional needed-by date (M2-4)
- *   5 Details        purpose (M2-13) and the tool's own fields (Q5)
+ *   4 Details        purpose (M2-13) and the tool's own fields (Q5)
  *   Review           what is still missing, step by step; then Submit
  *
  * Save as a private draft any time (Q33) or submit: warnings first (Q44),
@@ -44,7 +39,6 @@ window.MRT.views['new'] = (function () {
   var STEPS = [
     { key: 'tool', title: 'Tool' },
     { key: 'lot', title: 'Lot and panels' },
-    { key: 'where', title: 'Where the panels are' },
     { key: 'urgency', title: 'Priority and date' },
     { key: 'details', title: 'Purpose and tool fields' },
     { key: 'review', title: 'Review and send' }
@@ -66,13 +60,26 @@ window.MRT.views['new'] = (function () {
     return p ? p.id : null;
   }
 
-  /** Which step a problem from D.requestProblems belongs to (to show it there). */
-  function stepOfProblem(t) {
-    if (/where the panels|[Ss]lot|[Mm]agazine|destroys|afterwards/.test(t)) return 'where';
+  /** Text fallback for older string-only problem lists. */
+  function stepOfText(t) {
+    if (/where the panels|[Ss]lot|[Mm]agazine|destroys|afterwards/.test(t)) return STEPS.some(function (s) { return s.key === 'where'; }) ? 'where' : 'lot';
     if (/tool|[Mm]easurement type|BKM|offered/.test(t) && !/purpose/.test(t)) return 'tool';
     if (/[Ll]ot|[Pp]anel|[Ll]ayer|[Bb]uild-up|[Pp]roject|[Pp]art number|[Pp]rocess step|Hirata/.test(t)) return 'lot';
     if (/[Pp]riority|needs a reason|[Nn]eeded by/.test(t)) return 'urgency';
     return 'details';
+  }
+
+  function problemText(p) {
+    if (typeof p === 'string') return p;
+    if (p && typeof p.text === 'string') return p.text;
+    return String(p || '');
+  }
+
+  /** Which step a problem belongs to (prefer stable metadata, fallback to text). */
+  function stepOfProblem(p) {
+    if (p && typeof p === 'object' && p.step && STEPS.some(function (s) { return s.key === p.step; })) return p.step;
+    if (p && typeof p === 'object' && p.step === 'where' && !STEPS.some(function (s) { return s.key === 'where'; })) return 'lot';
+    return stepOfText(problemText(p));
   }
 
   function render(main, ctx) {
@@ -104,9 +111,11 @@ window.MRT.views['new'] = (function () {
       if (ck.usable) { src = ck.fields; tplNotes = ck.notes; if (!src.priority_id) delete src.priority_id; }   // the default priority then
       else tplNotes = [ck.reason + ' - this template cannot be started.'];
     } else tpl = null;
-    var st = Object.assign({ tool_id: null, type_id: null, project_id: null, part_number_id: null, buildup_id: null, lot_id: null, new_lot: null, panels: [], panel_count: null, layers: [],
+    var st = Object.assign({ tool_id: null, type_id: null, new_type: null, project_id: null, new_project: null, part_number_id: null, new_part_number: null,
+      buildup_id: null, new_buildup: null, lot_id: null, new_lot: null, panels: [], panel_count: null, layers: [],
       priority_id: defaultPriority(), priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '', purpose: '',
-      process_step_id: null, process_step_other: '', panel_location: '', magazine_id: null, slots: [], destructive_ok: false,
+      process_step_id: null, process_step_other: '', panel_location: '', magazine_id: null, new_magazine: null, slots: [], destructive_ok: false,
+      new_priority: null,
       after: 'back_to_me', after_other: '', extra: {}, duplicated_from: null }, src || {});
     if (!src && q.lot && byId('lots', q.lot)) st.lot_id = q.lot;
     if (!src && q.tool && byId('tools', q.tool)) st.tool_id = q.tool;
@@ -121,7 +130,7 @@ window.MRT.views['new'] = (function () {
 
     var title = editing ? 'Edit ' + draft.request_no : draft ? 'Draft' : from ? 'Copy of ' + (from.request_no || 'a draft') : tpl ? 'New request from "' + tpl.name + '"' : 'New request';
     main.appendChild(ui.pageHead(title, editing ? 'Change what is needed and save with a reason; the quality engineer sees each change in the timeline. The tool stays.'
-      : 'Tool first, then step by step. Save a draft any time; Submit sends it to the tool\'s quality engineers.'));
+      : 'Tool first, then step by step. Save a draft any time; entered values still need to be valid. Submit sends it to the tool\'s quality engineers.'));
 
     if (tplNotes.length) main.appendChild(ui.el('div', { class: 'setup-note', role: 'status' }, [ui.icon('info', 14),
       ui.el('span', { text: tplNotes.join(' · ') })]));
@@ -129,6 +138,7 @@ window.MRT.views['new'] = (function () {
     if (!src && !draft && !q.lot && !q.tool) { var chooserNode = window.MRT.templates.chooser(me); if (chooserNode) main.appendChild(chooserNode); }
     var errorBox = ui.el('div', { class: 'req-errors', role: 'alert', hidden: true });
     var progress = ui.el('ol', { class: 'wz-progress', 'aria-label': 'Steps' });
+    progress.style.gridTemplateColumns = 'repeat(' + STEPS.length + ', minmax(0, 1fr))';
     var formCol = ui.el('div', { class: 'wz-steps' });
     var side = ui.el('aside', { class: 'req-side' });
     main.appendChild(ui.el('div', { class: 'req-layout req-wizard' }, [ui.el('div', { class: 'wz-main' }, [progress, errorBox, formCol]), side]));
@@ -175,9 +185,14 @@ window.MRT.views['new'] = (function () {
 
     /** Problems for a submit, by step. */
     function problemsByStep() {
-      var list = D.requestProblems(probe(), store.data(), { submit: true });
-      var out = { tool: [], lot: [], where: [], urgency: [], details: [], review: [] };
-      list.forEach(function (t) { out[stepOfProblem(t)].push(t); });
+      var list = D.requestProblemDetails ? D.requestProblemDetails(probe(), store.data(), { submit: true }) : D.requestProblems(probe(), store.data(), { submit: true });
+      var out = { review: [] };
+      STEPS.forEach(function (s) { out[s.key] = []; });
+      list.forEach(function (p) {
+        var k = stepOfProblem(p);
+        if (!out[k]) k = 'lot';
+        out[k].push(p);
+      });
       return out;
     }
 
@@ -187,7 +202,7 @@ window.MRT.views['new'] = (function () {
       var sums = summaries();
       STEPS.forEach(function (s) {
         var x = steps[s.key], miss = pb[s.key] || [];
-        var all = s.key === 'review' ? [].concat(pb.tool, pb.lot, pb.where, pb.urgency, pb.details) : miss;
+        var all = s.key === 'review' ? STEPS.filter(function (z) { return z.key !== 'review'; }).reduce(function (a, z) { return a.concat(pb[z.key] || []); }, []) : miss;
         x.summary.textContent = s.key === 'review' ? (all.length ? all.length + ' thing' + (all.length === 1 ? '' : 's') + ' still missing' : 'Ready to submit') : sums[s.key] || '';
         var ok = !all.length, seen = shown[s.key] || s.key === 'review';
         x.node.classList.toggle('is-done', ok && seen);
@@ -199,15 +214,19 @@ window.MRT.views['new'] = (function () {
 
     function summaries() {
       var tool = byId('tools', st.tool_id), type = byId('measurement_types', st.type_id), bkm = byId('bkms', st.bkm_id);
-      var prio = byId('priorities', st.priority_id), bu = byId('buildups', st.buildup_id), proj = byId('projects', st.project_id);
+      var prio = byId('priorities', st.priority_id), bu = byId('buildups', st.buildup_id), proj = byId('projects', st.project_id), pn = byId('part_numbers', st.part_number_id);
       var mags = magsById();
       var n = D.panelCountOf(st);
+      var typeName = type ? type.name : (st.new_type ? st.new_type.name + ' (new)' : null);
+      var projCode = proj ? proj.code : (st.new_project ? st.new_project.code + ' (new)' : null);
+      var buCode = bu ? bu.code : (st.new_buildup ? st.new_buildup.code + ' (new)' : null);
+      var prioName = prio ? prio.name : (st.new_priority ? st.new_priority.name + ' (new)' : null);
       return {
-        tool: tool ? [tool.code, type ? type.name : null, bkm ? 'BKM ' + bkm.name : st.bkm_path ? 'own BKM' : null].filter(Boolean).join('  ·  ') : 'Pick the tool',
-        lot: lotNumber || proj ? [proj ? proj.code : null, lotNumber ? 'lot ' + lotNumber + (st.new_lot ? ' (new)' : '') : null, bu ? bu.code : null,
+        tool: tool ? [tool.code, typeName, bkm ? 'BKM ' + bkm.name : st.bkm_path ? 'own BKM' : null].filter(Boolean).join('  ·  ') : 'Pick the tool',
+        lot: lotNumber || projCode ? [projCode, pn ? pn.code : (st.new_part_number ? st.new_part_number.code + ' (new)' : null), lotNumber ? 'lot ' + lotNumber + (st.new_lot ? ' (new)' : '') : null, buCode,
           n ? (st.panels.length ? st.panels.join(', ') : n + ' panel' + (n === 1 ? '' : 's')) : null, st.layers.length ? st.layers.join(' ') : null].filter(Boolean).join('  ·  ') : '',
         where: [D.placeText(st, mags) || null, D.AFTER_LABEL[st.after] ? 'then ' + D.AFTER_LABEL[st.after].toLowerCase() : null].filter(Boolean).join('  ·  '),
-        urgency: prio ? prio.name + (st.needed_by ? '  ·  by ' + st.needed_by : '') : '',
+        urgency: prioName ? prioName + (st.needed_by ? '  ·  by ' + st.needed_by : '') : '',
         details: [st.purpose ? (st.purpose.length > 60 ? st.purpose.slice(0, 60) + '...' : st.purpose) : null,
           Object.keys(st.extra || {}).length ? Object.keys(st.extra).length + ' tool field' + (Object.keys(st.extra).length === 1 ? '' : 's') : null].filter(Boolean).join('  ·  ')
       };
@@ -239,9 +258,9 @@ window.MRT.views['new'] = (function () {
         if (editing && !on) b.disabled = true;
         b.addEventListener('click', function () {
           if (st.tool_id === t.id || editing) return;
-          st.tool_id = t.id; st.type_id = null; st.bkm_id = null; st.extra = {}; st.destructive_ok = false;
+          st.tool_id = t.id; st.type_id = null; st.new_type = null; st.bkm_id = null; st.extra = {}; st.destructive_ok = false;
           st.after = t.destructive ? 'scrap' : (st.after === 'scrap' ? 'back_to_me' : st.after);
-          paintTool(); paintWhere(); paintDetails(); changed();
+          paintTool(); paintLot(); paintDetails(); changed();
         });
         return b;
       }));
@@ -254,15 +273,36 @@ window.MRT.views['new'] = (function () {
       var tool = byId('tools', st.tool_id);
       if (!tool) { ui.mount(toolTypeHost, ui.el('p', { class: 'muted', text: 'Pick the tool first - the rest of the form follows it.' })); return; }
       var types = store.list('measurement_types').filter(function (m) { return m.tool_id === tool.id || m.id === st.type_id; });
-      if (types.length === 1 && !st.type_id) st.type_id = types[0].id;
-      var typeF = ui.field({ label: 'Measurement type', cls: 'half', value: st.type_id || '',
-        options: [{ value: '', label: '- pick -' }].concat(types.map(function (m) { return { value: m.id, label: m.name }; })) });
-      typeF.input.addEventListener('change', function () {
-        st.type_id = typeF.value() || null;
+      if (types.length === 1 && !st.type_id && !st.new_type) st.type_id = types[0].id;
+      var typeNow = byId('measurement_types', st.type_id);
+      var typeF = ui.field({ label: 'Measurement type', cls: 'half', value: typeNow ? typeNow.name : (st.new_type ? st.new_type.name : ''),
+        placeholder: 'Type or pick a measurement type', list: types.map(function (m) { return { value: m.name }; }) });
+      function readType() {
+        var typed = typeF.value().trim();
+        var before = st.type_id;
+        if (!typed) {
+          st.type_id = null;
+          st.new_type = null;
+          typeF.setState(null);
+        } else {
+          var hit = pickByText(types, typed, 'name');
+          if (hit) {
+            st.type_id = hit.id;
+            st.new_type = null;
+            typeF.setState('valid');
+          } else {
+            st.type_id = null;
+            st.new_type = { name: typed };
+            typeF.setState('valid', 'New measurement type. It will be added when you submit.');
+          }
+        }
         var b = byId('bkms', st.bkm_id);
-        if (b && st.type_id && b.type_id && b.type_id !== st.type_id) st.bkm_id = null;
-        paintType(); paintDetails(); changed();
-      });
+        if (b && (!st.type_id || (b.type_id && b.type_id !== st.type_id))) st.bkm_id = null;
+        if (before !== st.type_id) { paintType(); paintDetails(); }
+        changed();
+      }
+      typeF.input.addEventListener('input', readType);
+      typeF.input.addEventListener('change', readType);
       var bkms = store.list('bkms').filter(function (b) { return b.tool_id === tool.id && (!st.type_id || !b.type_id || b.type_id === st.type_id); });
       var bkmF = ui.field({ label: 'BKM from the library', cls: 'half', value: st.bkm_id || '',
         options: [{ value: '', label: bkms.length ? '- none / my own path -' : '- no BKMs for this type -' }].concat(bkms.map(function (b) {
@@ -274,104 +314,13 @@ window.MRT.views['new'] = (function () {
       ui.mount(toolTypeHost, [ui.el('div', { class: 'form-grid' }, [typeF.node, bkmF.node]), pathF.node]);
     }
 
-    /* 2. Lot and panels -------------------------------------------------- */
-    // Project, lot and build-up are three separate choices (F-6): one lot runs through every
-    // build-up, so the request - not the lot - says which project, part number and build-up.
-    var layersHost = ui.el('div', { class: 'req-part' });
+    /* 2. Lot, panels and panel locations -------------------------------- */
+    // Project, part number, lot and build-up stay request-level choices (F-6).
+    var layersHost = ui.el('div', { class: 'req-part wz-layers' });
     var lotNote = ui.el('p', { class: 'muted lot-info', 'aria-live': 'polite' });
-    var lotF, pnHost = ui.el('div');
-    function paintLot() {
-      var projects = store.list('projects', { all: true }).filter(function (p) { return p.active !== false || p.id === st.project_id; });
-      var bus = store.list('buildups', { all: true }).filter(function (b) { return b.active !== false || b.id === st.buildup_id; });
-      var lots = (store.data().lots || []).slice().sort(function (a, b) { return a.created_ts < b.created_ts ? 1 : -1; }).slice(0, 300);
-      if (!st.project_id && projects.length === 1 && !editing) st.project_id = projects[0].id;
-      var projF = ui.field({ label: 'Project', value: st.project_id || '',
-        options: [{ value: '', label: '- pick -' }].concat(projects.map(function (p) { return { value: p.id, label: p.code + (p.name ? '  ·  ' + p.name : '') }; })) });
-      lotF = ui.field({ label: 'Lot', mono: true, value: lotNumber || '', placeholder: 'e.g. 18178 or 18178.01', inputmode: 'decimal',
-        list: lots.map(function (l) { return { value: l.lot_number, label: l.note || null }; }) });
-      var buF = ui.field({ label: 'Build-up (optional)', value: st.buildup_id || '',
-        options: [{ value: '', label: '- none -' }].concat(bus.map(function (b) { return { value: b.id, label: b.code + (b.name ? '  ·  ' + b.name : '') }; })) });
-      projF.input.addEventListener('change', function () {
-        st.project_id = projF.value() || null;
-        var pn = byId('part_numbers', st.part_number_id);
-        if (pn && (pn.project_ids || []).indexOf(st.project_id) === -1) st.part_number_id = null;
-        paintPartNumber(); changed();
-      });
-      buF.input.addEventListener('change', function () { st.buildup_id = buF.value() || null; paintLayers(); changed(); });
-      lotF.input.addEventListener('input', function () { lotTyped(lotF.value().trim()); });
-      lotF.input.addEventListener('change', function () { lotTyped(lotF.value().trim()); });
-
-      var stepsL = store.list('process_steps');
-      var stepVal = st.process_step_other ? '__other' : (st.process_step_id || '');
-      var stepF = ui.field({ label: 'The panels are after (process step, optional)', cls: 'half', value: stepVal,
-        options: [{ value: '', label: stepsL.length ? '- pick -' : '- no list yet, use Other -' }].concat(stepsL.map(function (s) { return { value: s.id, label: s.name }; }))
-          .concat([{ value: '__other', label: 'Other (type it)' }]) });
-      var stepOtherF = ui.field({ label: 'Process step', cls: 'half', value: st.process_step_other || '', placeholder: 'e.g. after desmear' });
-      stepOtherF.node.hidden = stepVal !== '__other';
-      function readStep() {
-        var sv = stepF.value();
-        stepOtherF.node.hidden = sv !== '__other';
-        st.process_step_id = sv && sv !== '__other' ? sv : null;
-        st.process_step_other = sv === '__other' ? stepOtherF.value().trim() : '';
-        changed();
-      }
-      stepF.input.addEventListener('change', readStep);
-      stepOtherF.input.addEventListener('input', readStep);
-
-      ui.mount(steps.lot.body, [
-        ui.el('div', { class: 'lot-line' }, [projF.node, ui.el('span', { class: 'lot-line-dot', 'aria-hidden': 'true', text: '·' }), lotF.node,
-          ui.el('span', { class: 'lot-line-dot', 'aria-hidden': 'true', text: '·' }), buF.node]),
-        lotNote, pnHost,
-        panelsPart(),
-        layersHost,
-        ui.el('div', { class: 'form-grid' }, [stepF.node, stepOtherF.node]),
-        next('lot')
-      ]);
-      paintLotNote(); paintPartNumber(); paintLayers();
-    }
-
-    /** The lot number typed: a registered lot, a new one (registered on Submit), or not a lot number yet. */
-    function lotTyped(num) {
-      var hit = (store.data().lots || []).filter(function (l) { return l.lot_number === num; })[0];
-      lotNumber = num;
-      st.lot_id = hit ? hit.id : null;
-      st.new_lot = !hit && num && D.isLotNumber(num) ? { lot_number: num } : null;
-      paintLotNote(); changed();
-    }
-
-    function paintLotNote() {
-      var lot = byId('lots', st.lot_id);
-      if (lot) {
-        var owner = byId('users', lot.owner_id);
-        ui.mount(lotNote, [ui.statusBadge('ok', 'Lot found'), '  ',
-          lot.panel_count ? lot.panel_count + ' panels  ·  ' : null,
-          (lot.scrapped || []).length ? ['Scrapped: ', ui.el('span', { class: 'mono', text: lot.scrapped.join(', ') }), '  ·  '] : null,
-          owner ? 'Registered by ' + owner.name : null]);
-        lotF.setState('valid');
-      } else if (lotNumber && !D.isLotNumber(lotNumber)) {
-        ui.mount(lotNote, null);
-        lotF.setState('invalid', 'Lot numbers are digits; a split lot adds .01, e.g. 18178.01');
-      } else if (lotNumber) {
-        ui.mount(lotNote, [ui.statusBadge('warning', 'New lot'), '  ',
-          'Lot ' + lotNumber + ' is not registered yet - it is registered when you submit.']);
-        lotF.setState(null);
-      } else {
-        ui.mount(lotNote, 'Type the lot number, or pick it from the list.');
-        lotF.setState(null);
-      }
-    }
-
-    function paintPartNumber() {
-      var pns = store.list('part_numbers').filter(function (p) { return st.project_id && (p.project_ids || []).indexOf(st.project_id) !== -1 || p.id === st.part_number_id; });
-      if (!pns.length) { ui.mount(pnHost, null); return; }
-      var pnF = ui.field({ label: 'Part number (optional)', cls: 'half', value: st.part_number_id || '',
-        options: [{ value: '', label: '- none -' }].concat(pns.map(function (p) { return { value: p.id, label: p.code + (p.description ? '  ·  ' + p.description : '') }; })) });
-      pnF.input.addEventListener('change', function () { st.part_number_id = pnF.value() || null; changed(); });
-      ui.mount(pnHost, ui.el('div', { class: 'form-grid' }, pnF.node));
-    }
-
-    /** One typed Hirata ID: the chip, and to its right the copper panel it is drilled into (H-3). */
+    var slotPicker = null;
     var shownPanels = [];   // P4: a panel typed just now lights up once
+
     function panelChip(id, dead, fresh) {
       return ui.el('span', { class: 'panel-hirata-item' + (fresh ? ' is-new' : '') }, [
         ui.el('span', { class: 'panel-chip mono' + (dead ? ' is-scrapped' : ''), title: dead ? 'Scrapped' : null, text: id }),
@@ -379,63 +328,96 @@ window.MRT.views['new'] = (function () {
       ]);
     }
 
-    /** The panels: their Hirata IDs (chips as you type), or just how many (F-1). */
-    function panelsPart() {
-      var host = ui.el('div', { class: 'req-part' });
-      var modeSeg = ui.segmented({ label: 'Panels', value: panelMode, options: [{ value: 'ids', label: 'Hirata IDs' }, { value: 'count', label: 'Just how many' }],
-        onChange: function (v) { panelMode = v; paintInner(); readPanels(); } });
-      var inner = ui.el('div', { class: 'req-part' });
-      var idsF, countF, chips;
-      function paintInner() {
-        if (panelMode === 'ids') {
-          idsF = ui.field({ label: 'Hirata IDs of the panels', mono: true, value: st.panels.join(', '), placeholder: 'e.g. 3252, 3253  or  3252-3255',
-            hint: 'Commas or spaces between them; a dash for a run.' });
-          chips = ui.el('div', { class: 'panel-chips', 'aria-live': 'polite' });
-          idsF.input.addEventListener('input', readPanels);
-          ui.mount(inner, [idsF.node, chips]);
-          countF = null;
-        } else {
-          countF = ui.field({ label: 'How many panels', type: 'number', cls: 'half', min: 1, max: 99, step: 1, value: st.panel_count || 2,
-            hint: 'Usually 2. The quality engineer notes the IDs.' });
-          countF.input.addEventListener('input', readPanels);
-          ui.mount(inner, countF.node);
-          idsF = null; chips = null;
-        }
+    function pickByText(rows, text, key) {
+      var t = String(text || '').trim();
+      if (!t) return null;
+      var k = D.normalizeName(t);
+      return (rows || []).filter(function (r) {
+        var main = String(r[key] || '').trim();
+        return main.toLowerCase() === t.toLowerCase() || D.normalizeName(main) === k || (r.name && D.normalizeName(r.name) === k);
+      })[0] || null;
+    }
+
+    function distinctValues(values) {
+      var seen = {}, out = [];
+      (values || []).forEach(function (v) {
+        var t = String(v || '').trim();
+        if (!t) return;
+        var k = t.toLowerCase();
+        if (seen[k]) return;
+        seen[k] = true;
+        out.push(t);
+      });
+      return out;
+    }
+
+    function knownLocations() {
+      var rows = [];
+      (store.data().requests || []).forEach(function (r) {
+        rows.push(r.panel_location || '');
+        if (r.after === 'other') rows.push(r.after_other || '');
+        else if (r.after && D.AFTER_LABEL[r.after]) rows.push(D.AFTER_LABEL[r.after]);
+      });
+      return distinctValues(rows);
+    }
+
+    function afterTextValue() {
+      if (st.after === 'other') return st.after_other || '';
+      return st.after && D.AFTER_LABEL[st.after] ? D.AFTER_LABEL[st.after] : '';
+    }
+
+    function setAfterFromText(text, tool) {
+      var t = String(text || '').trim();
+      if (tool && tool.destructive) { st.after = 'scrap'; st.after_other = ''; return; }
+      if (!t) { st.after = null; st.after_other = ''; return; }
+      var exact = D.AFTER_OPTIONS.filter(function (a) { return a !== 'other' && D.AFTER_LABEL[a].toLowerCase() === t.toLowerCase(); })[0] || null;
+      if (exact) { st.after = exact; st.after_other = ''; return; }
+      st.after = 'other';
+      st.after_other = t;
+    }
+
+    function layersForBuildup(bu) {
+      if (!bu) return D.layersFor(null);
+      var code = String(bu.code || '').trim().toUpperCase();
+      if (code === 'CORE') return ['1FCO', '1BCO'];
+      var m = /^BU-(\d+)$/.exec(code);
+      if (m) {
+        var n = parseInt(m[1], 10) + 1;
+        return [n + 'F', n + 'B'];
       }
-      function readPanels() {
-        if (panelMode === 'ids') {
-          var p = D.parsePanelIds(idsF.value());
-          st.panels = p.ids; st.panel_count = p.ids.length || null;
-          var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
-          ui.mount(chips, p.ids.map(function (id) {
-            var dead = gone.indexOf(id) !== -1;
-            return panelChip(id, dead, shownPanels.indexOf(id) === -1);
-          }).concat(p.ids.length ? [ui.el('span', { class: 'muted', text: p.ids.length + ' panel' + (p.ids.length === 1 ? '' : 's') })] : []));
-          shownPanels = p.ids.slice();
-          idsF.setState(p.errors.length ? 'invalid' : null, p.errors[0] || null);
-        } else {
-          var n = Number(countF.value());
-          st.panels = []; st.panel_count = n >= 1 && n <= 99 && Math.floor(n) === n ? n : null;
-          countF.setState(st.panel_count ? null : 'invalid', st.panel_count ? null : 'A whole number, 1-99');
-        }
-        if (slotPicker) slotPicker.setLabels(window.MRT.requestActions.slotLabels(st.panels, st.slots));
-        changed();
+      return D.layersFor(null);
+    }
+
+    function lotTyped(num, lotField) {
+      var hit = (store.data().lots || []).filter(function (l) { return l.lot_number === num; })[0];
+      lotNumber = num;
+      st.lot_id = hit ? hit.id : null;
+      st.new_lot = !hit && num && D.isLotNumber(num) ? { lot_number: num } : null;
+      var lot = byId('lots', st.lot_id);
+      if (lot) {
+        var owner = byId('users', lot.owner_id);
+        ui.mount(lotNote, [ui.statusBadge('ok', 'Lot found'), '  ',
+          lot.panel_count ? lot.panel_count + ' panels  ·  ' : null,
+          (lot.scrapped || []).length ? ['Scrapped: ', ui.el('span', { class: 'mono', text: lot.scrapped.join(', ') }), '  ·  '] : null,
+          owner ? 'Registered by ' + owner.name : null]);
+        lotField.setState('valid');
+      } else if (lotNumber && !D.isLotNumber(lotNumber)) {
+        ui.mount(lotNote, null);
+        lotField.setState('invalid', 'Lot numbers are digits; a split lot adds .01, e.g. 18178.01');
+      } else if (lotNumber) {
+        ui.mount(lotNote, [ui.statusBadge('warning', 'New lot'), '  ',
+          'Lot ' + lotNumber + ' is not registered yet - it is registered when you submit.']);
+        lotField.setState('valid', 'New lot. It will be added when you submit.');
+      } else {
+        ui.mount(lotNote, 'Type the lot number, or pick it from suggestions.');
+        lotField.setState(null);
       }
-      paintInner();
-      if (panelMode === 'ids' && st.panels.length) readPanelsQuiet();
-      function readPanelsQuiet() {
-        var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
-        shownPanels = st.panels.slice();
-        ui.mount(chips, st.panels.map(function (id) { return panelChip(id, gone.indexOf(id) !== -1); }));
-      }
-      ui.mount(host, [ui.el('div', { class: 'dlg-row' }, [ui.el('span', { class: 'ifield-label', text: 'Panels', 'aria-hidden': 'true' }), modeSeg.node]), inner]);
-      return host;
     }
 
     /** The layers of the build-up as chips to tick (F-2, optional). */
     function paintLayers() {
       var bu = byId('buildups', st.buildup_id);
-      var all = D.layersFor(bu);
+      var all = layersForBuildup(bu);
       st.layers = st.layers.filter(function (x) { return all.indexOf(x) !== -1; });
       var chips = all.map(function (ly) {
         var on = st.layers.indexOf(ly) !== -1;
@@ -452,24 +434,62 @@ window.MRT.views['new'] = (function () {
       ui.mount(layersHost, [
         ui.el('div', { class: 'ifield-label', text: 'Layers (optional)' + (bu ? ' - ' + bu.code : '') }),
         ui.el('div', { class: 'layer-chips', role: 'group', 'aria-label': 'Layers' }, chips),
-        ui.el('p', { class: 'muted', text: bu ? '1FCO / 1BCO is the core, front and back; each build-up layer adds F and B.' : 'Pick the build-up to see its layers; until then up to 5F / 5B.' })
+        ui.el('p', { class: 'muted', text: bu ? 'For Core and BU-xx values, only their relevant layers are shown.' : 'No build-up selected: all layer options stay available.' })
       ]);
     }
 
-    /* 3. Where the panels are, and afterwards ---------------------------- */
-    var slotPicker = null;
-    function paintWhere() {
-      var tool = byId('tools', st.tool_id);
+    function paintLot() {
+      var projects = store.list('projects', { all: true }).filter(function (p) { return p.active !== false || p.id === st.project_id; });
+      var bus = store.list('buildups', { all: true }).filter(function (b) { return b.active !== false || b.id === st.buildup_id; });
+      var lots = (store.data().lots || []).slice().sort(function (a, b) { return a.created_ts < b.created_ts ? 1 : -1; }).slice(0, 300);
+      var partNumbers = store.list('part_numbers', { all: true }).filter(function (p) { return p.active !== false || p.id === st.part_number_id; });
+      var stepRows = store.list('process_steps', { all: true }).filter(function (s) { return s.active !== false || s.id === st.process_step_id; });
       var mags = store.list('magazines', { all: true }).filter(function (m) { return m.active !== false || m.id === st.magazine_id; });
-      var magF = ui.field({ label: 'Magazine', cls: 'half', value: st.magazine_id || '',
-        options: [{ value: '', label: '- not in a magazine -' }].concat(mags.map(function (m) { return { value: m.id, label: m.code + '  (' + (m.slots || 24) + ' slots)' }; })) });
+      var locs = knownLocations();
+      var tool = byId('tools', st.tool_id);
+
+      if (!st.project_id && projects.length === 1 && !editing) st.project_id = projects[0].id;
+      var projNow = byId('projects', st.project_id);
+      var pnNow = byId('part_numbers', st.part_number_id);
+      var stepNow = byId('process_steps', st.process_step_id);
+
+      var projF = ui.field({ label: 'Project', cls: 'lot-proj', value: projNow ? projNow.code : (st.new_project ? st.new_project.code : ''), placeholder: 'Type or pick project',
+        list: projects.map(function (p) { return { value: p.code, label: p.name || '' }; }) });
+      var pnF = ui.field({ label: 'Part number', cls: 'lot-pn', mono: true, value: pnNow ? pnNow.code : (st.new_part_number ? st.new_part_number.code : ''),
+        placeholder: 'e.g. PN-10234-A', list: partNumbers.map(function (p) { return { value: p.code, label: p.description || '' }; }) });
+      var lotF = ui.field({ label: 'Lot', cls: 'lot-lot', mono: true, value: lotNumber || '', placeholder: 'e.g. 18178.01', inputmode: 'decimal',
+        list: lots.map(function (l) { return { value: l.lot_number, label: l.note || null }; }) });
+      var buNow = byId('buildups', st.buildup_id);
+      var buF = ui.field({ label: 'Build-up', cls: 'lot-bu', value: buNow ? buNow.code : (st.new_buildup ? st.new_buildup.code : ''), placeholder: 'Type or pick build-up',
+        list: bus.map(function (b) { return { value: b.code, label: b.name || '' }; }) });
+
+      var modeSeg = ui.segmented({ label: 'Hirata IDs / How many', value: panelMode, options: [{ value: 'ids', label: 'Hirata IDs' }, { value: 'count', label: 'How many' }],
+        onChange: function (v) { panelMode = v; paintPanelEntry(); readPanels(); } });
+      var entryHost = ui.el('div', { class: 'panels-entry' });
+      var chipsHost = ui.el('div', { class: 'panel-chips', 'aria-live': 'polite' });
+      var idsF, countF;
+      var stepF = ui.field({ label: 'Panels are after', cls: 'panels-step', value: stepNow ? stepNow.name : (st.process_step_other || ''),
+        placeholder: 'e.g. after desmear', list: stepRows.map(function (s) { return { value: s.name }; }) });
+
+      var whereNowF = ui.field({ label: 'Where the panels are now', cls: 'half', value: st.panel_location || '',
+        placeholder: 'e.g. with Anna / in MES / top shelf', list: locs.map(function (x) { return { value: x }; }) });
+      var afterChoices = distinctValues(D.AFTER_OPTIONS.filter(function (a) { return a !== 'other'; }).map(function (a) { return D.AFTER_LABEL[a]; }).concat(locs));
+      var afterF = ui.field({ label: 'Where the panels go after measuring', cls: 'half', value: afterTextValue(),
+        placeholder: 'e.g. Back to me / Back to the line / with Anna', list: afterChoices.map(function (x) { return { value: x }; }),
+        disabled: !!(tool && tool.destructive), hint: tool && tool.destructive ? tool.code + ' destroys the panels: always scrap.' : null });
+
+      var magNow = byId('magazines', st.magazine_id);
+      var magF = ui.field({ label: 'Magazine', cls: 'half', value: magNow ? magNow.code : (st.new_magazine ? st.new_magazine.code : ''),
+        placeholder: 'Type or pick magazine', list: mags.map(function (m) { return { value: m.code, label: (m.slots || 24) + ' slots' }; }) });
       var slotsHost = ui.el('div', { class: 'wz-mag' });
       var fit = ui.el('p', { class: 'muted', 'aria-live': 'polite' });
+
       function fitText() {
         var n = D.panelCountOf(st), k = st.slots.length;
         fit.textContent = !st.magazine_id ? '' : !k ? 'Click the slots the panels sit in - or press and drag over several.'
           : n && k !== n ? k + ' slot' + (k === 1 ? '' : 's') + ' picked for ' + n + ' panel' + (n === 1 ? '' : 's') + ' - one panel per slot.' : 'Slot order = panel order.';
       }
+
       function paintSlots() {
         var m = byId('magazines', st.magazine_id);
         if (!m) { slotPicker = null; ui.mount(slotsHost, null); fitText(); return; }
@@ -479,41 +499,233 @@ window.MRT.views['new'] = (function () {
         ui.mount(slotsHost, slotPicker.node);
         fitText();
       }
-      magF.input.addEventListener('change', function () { st.magazine_id = magF.value() || null; st.slots = []; paintSlots(); changed(); });
-      var noteF = ui.field({ label: 'Or a note (where they are, who has them)', value: st.panel_location || '',
-        placeholder: 'e.g. in MES  /  with Anna  /  top shelf', hint: 'The magazine slots, or this note - the quality engineer picks the panels up there.' });
-      noteF.input.addEventListener('input', function () { st.panel_location = noteF.value().trim(); changed(); });
 
-      var destructive = tool && tool.destructive;
-      var afterF = ui.field({ label: 'After measuring, the panels go', cls: 'half', value: destructive ? 'scrap' : (st.after || 'back_to_me'),
-        options: D.AFTER_OPTIONS.map(function (a) { return { value: a, label: D.AFTER_LABEL[a] }; }), disabled: !!destructive,
-        hint: destructive ? tool.code + ' destroys the panels: always scrap.' : null });
-      var afterOtherF = ui.field({ label: 'Where then?', cls: 'half', value: st.after_other || '', placeholder: 'e.g. to Anna for SEM' });
-      afterOtherF.node.hidden = (destructive ? 'scrap' : st.after) !== 'other';
-      if (destructive) st.after = 'scrap';
-      afterF.input.addEventListener('change', function () { st.after = afterF.value(); afterOtherF.node.hidden = st.after !== 'other'; if (st.after !== 'other') st.after_other = ''; changed(); });
-      afterOtherF.input.addEventListener('input', function () { st.after_other = afterOtherF.value().trim(); changed(); });
-      var destructiveT = destructive ? ui.toggle({ label: 'I know ' + tool.code + ' destroys these panels - they may be scrapped', checked: !!st.destructive_ok,
+      function readProject() {
+        var typed = projF.value().trim().toUpperCase();
+        var hit = pickByText(projects, typed, 'code');
+        st.project_id = hit ? hit.id : null;
+        st.new_project = null;
+        if (hit) projF.setState('valid');
+        else if (!typed) projF.setState(null);
+        else if (!D.isCode(typed, 12)) projF.setState('invalid', 'Project code: capitals, digits and dashes, e.g. C4F');
+        else {
+          st.new_project = { code: typed };
+          projF.setState('valid', 'New project. It will be added when you submit.');
+        }
+        var pn = byId('part_numbers', st.part_number_id);
+        if (pn && st.project_id && (pn.project_ids || []).indexOf(st.project_id) === -1) st.part_number_id = null;
+        changed();
+      }
+
+      function readBuildup() {
+        var typed = buF.value().trim().toUpperCase();
+        var hit = pickByText(bus, typed, 'code');
+        st.buildup_id = hit ? hit.id : null;
+        st.new_buildup = null;
+        if (hit) buF.setState('valid');
+        else if (!typed) buF.setState(null);
+        else if (!D.isCode(typed, 12)) buF.setState('invalid', 'Build-up code: capitals, digits and dashes, e.g. BU-01');
+        else {
+          st.new_buildup = { code: typed };
+          buF.setState('valid', 'New build-up. It will be added when you submit.');
+        }
+        paintLayers();
+        changed();
+      }
+
+      function readPartNumber() {
+        var typed = pnF.value().trim().toUpperCase();
+        if (!typed) { st.part_number_id = null; st.new_part_number = null; pnF.setState(null); changed(); return; }
+        var hit = (partNumbers || []).filter(function (p) { return String(p.code || '').toUpperCase() === typed; })[0] || null;
+        if (hit) {
+          st.part_number_id = hit.id;
+          st.new_part_number = null;
+          if (st.project_id && (hit.project_ids || []).indexOf(st.project_id) === -1) pnF.setState('invalid', 'Part number exists, but not under this project.');
+          else pnF.setState('valid');
+          changed();
+          return;
+        }
+        st.part_number_id = null;
+        st.new_part_number = D.isPartNumber(typed) ? { code: typed } : null;
+        if (!D.isPartNumber(typed)) pnF.setState('invalid', 'Part number: capitals, digits and - . _ / only.');
+        else if (!st.project_id && !st.new_project) pnF.setState('invalid', 'Pick the project before adding a new part number.');
+        else pnF.setState('valid', 'New part number. It will be added when you submit.');
+        changed();
+      }
+
+      function readProcessStep() {
+        var typed = stepF.value().trim();
+        var hit = (stepRows || []).filter(function (s) { return D.normalizeName(s.name) === D.normalizeName(typed); })[0] || null;
+        if (!typed) { st.process_step_id = null; st.process_step_other = ''; stepF.setState(null); changed(); return; }
+        if (hit) {
+          st.process_step_id = hit.id;
+          st.process_step_other = '';
+          stepF.setState('valid');
+        } else {
+          st.process_step_id = null;
+          st.process_step_other = typed;
+          stepF.setState('valid', 'New process step. It will be added when you submit.');
+        }
+        changed();
+      }
+
+      function paintPanelEntry() {
+        if (panelMode === 'ids') {
+          idsF = ui.field({ label: 'Panel entry', mono: true, value: st.panels.join(', '), placeholder: 'e.g. 3252, 3253 or 3252-3255',
+            hint: 'Commas or spaces between them; a dash for a run.' });
+          idsF.input.addEventListener('input', readPanels);
+          ui.mount(entryHost, [idsF.node, chipsHost]);
+          countF = null;
+        } else {
+          countF = ui.field({ label: 'Panel entry', type: 'number', min: 1, max: 99, step: 1, value: st.panel_count || 2,
+            hint: 'Usually 2. The quality engineer notes the IDs.' });
+          countF.input.addEventListener('input', readPanels);
+          ui.mount(entryHost, countF.node);
+          idsF = null;
+          ui.mount(chipsHost, null);
+        }
+      }
+
+      function readPanels() {
+        if (panelMode === 'ids') {
+          var p = D.parsePanelIds(idsF.value());
+          st.panels = p.ids;
+          st.panel_count = p.ids.length || null;
+          var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
+          ui.mount(chipsHost, p.ids.map(function (id) {
+            var dead = gone.indexOf(id) !== -1;
+            return panelChip(id, dead, shownPanels.indexOf(id) === -1);
+          }).concat(p.ids.length ? [ui.el('span', { class: 'muted', text: p.ids.length + ' panel' + (p.ids.length === 1 ? '' : 's') })] : []));
+          shownPanels = p.ids.slice();
+          idsF.setState(p.errors.length ? 'invalid' : null, p.errors[0] || null);
+        } else {
+          var n = Number(countF.value());
+          st.panels = [];
+          st.panel_count = n >= 1 && n <= 99 && Math.floor(n) === n ? n : null;
+          countF.setState(st.panel_count ? null : 'invalid', st.panel_count ? null : 'A whole number, 1-99');
+        }
+        if (slotPicker) slotPicker.setLabels(window.MRT.requestActions.slotLabels(st.panels, st.slots));
+        changed();
+      }
+
+      function readAfterField() {
+        setAfterFromText(afterF.value(), tool);
+        if (tool && tool.destructive) afterF.setState('valid');
+        else if (afterF.value().trim() && st.after === 'other') afterF.setState('valid', 'New location. It will be saved with this request.');
+        else afterF.setState(null);
+        changed();
+      }
+
+      function readMagazine() {
+        var before = st.magazine_id;
+        var typed = magF.value().trim().toUpperCase();
+        var hit = pickByText(mags, typed, 'code');
+        st.magazine_id = hit ? hit.id : null;
+        st.new_magazine = null;
+        if (before !== st.magazine_id) st.slots = [];
+        if (hit) {
+          magF.setState('valid');
+        } else if (!typed) {
+          magF.setState(null);
+        } else if (!D.isMagazineCode(typed)) {
+          magF.setState('invalid', 'Magazine: M and digits, e.g. M70345');
+        } else {
+          st.new_magazine = { code: typed };
+          st.slots = [];
+          magF.setState('valid', 'New magazine. It will be added when you submit.');
+        }
+        paintSlots();
+        changed();
+      }
+
+      projF.input.addEventListener('input', readProject);
+      projF.input.addEventListener('change', readProject);
+      pnF.input.addEventListener('input', readPartNumber);
+      pnF.input.addEventListener('change', readPartNumber);
+      lotF.input.addEventListener('input', function () { lotTyped(lotF.value().trim(), lotF); changed(); });
+      lotF.input.addEventListener('change', function () { lotTyped(lotF.value().trim(), lotF); changed(); });
+      buF.input.addEventListener('input', readBuildup);
+      buF.input.addEventListener('change', readBuildup);
+      stepF.input.addEventListener('input', readProcessStep);
+      stepF.input.addEventListener('change', readProcessStep);
+      whereNowF.input.addEventListener('input', function () { st.panel_location = whereNowF.value().trim(); changed(); });
+      whereNowF.input.addEventListener('change', function () { st.panel_location = whereNowF.value().trim(); changed(); });
+      afterF.input.addEventListener('input', readAfterField);
+      afterF.input.addEventListener('change', readAfterField);
+      magF.input.addEventListener('input', readMagazine);
+      magF.input.addEventListener('change', readMagazine);
+
+      var destructiveT = tool && tool.destructive ? ui.toggle({ label: 'I know ' + tool.code + ' destroys these panels - they may be scrapped', checked: !!st.destructive_ok,
         onChange: function (v) { st.destructive_ok = v; changed(); } }) : null;
-      if (!destructive) st.destructive_ok = false;
+      if (!(tool && tool.destructive)) st.destructive_ok = false;
 
-      ui.mount(steps.where.body, [
-        ui.el('div', { class: 'wz-where' }, [
-          ui.el('div', { class: 'req-part' }, [ui.el('div', { class: 'form-grid' }, magF.node), fit, noteF.node]),
-          slotsHost
+      ui.mount(steps.lot.body, [
+        ui.el('div', { class: 'lot-main-row' }, [projF.node, pnF.node, lotF.node, buF.node]),
+        lotNote,
+        ui.el('div', { class: 'panels-row' }, [
+          ui.el('div', { class: 'panels-mode' }, [ui.el('div', { class: 'ifield-label', text: 'Hirata IDs / How many' }), modeSeg.node]),
+          entryHost,
+          stepF.node
         ]),
-        ui.el('div', { class: 'form-grid' }, [afterF.node, afterOtherF.node]),
+        ui.el('div', { class: 'form-grid' }, [whereNowF.node, afterF.node]),
+        ui.el('div', { class: 'wz-where' }, [
+          ui.el('div', { class: 'req-part' }, [ui.el('div', { class: 'form-grid' }, magF.node), fit, slotsHost]),
+          layersHost
+        ]),
         destructiveT ? ui.el('div', { class: 'req-destructive' }, [ui.icon('alert', 16), destructiveT.node]) : null,
-        next('where')
+        next('lot')
       ]);
-      paintSlots();
+
+      paintPanelEntry();
+      if (panelMode === 'ids' && st.panels.length) {
+        shownPanels = st.panels.slice();
+        ui.mount(chipsHost, st.panels.map(function (id) {
+          var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
+          return panelChip(id, gone.indexOf(id) !== -1);
+        }));
+      }
+      lotTyped(lotNumber, lotF);
+      readProject();
+      readPartNumber();
+      readBuildup();
+      readProcessStep();
+      readAfterField();
+      readMagazine();
     }
 
     /* 4. Priority and date ----------------------------------------------- */
     function paintUrgency() {
       var prios = store.list('priorities');
-      var prioSeg = ui.segmented({ label: 'Priority', value: st.priority_id, options: prios.map(function (p) { return { value: p.id, label: p.name }; }),
-        onChange: function (v) { st.priority_id = v; paintUrgency(); changed(); } });
+      var prioF = ui.field({ label: 'Priority', value: (byId('priorities', st.priority_id) || {}).name || (st.new_priority ? st.new_priority.name : ''),
+        placeholder: 'Type or pick priority', list: prios.map(function (p) { return { value: p.name, label: p.code }; }) });
+      function readPriority() {
+        var typed = prioF.value().trim();
+        var before = st.priority_id;
+        var hit = null;
+        if (typed) {
+          var key = D.normalizeName(typed);
+          hit = (prios || []).filter(function (p) {
+            return D.normalizeName(p.name) === key || String(p.code || '').toUpperCase() === typed.toUpperCase();
+          })[0] || null;
+        }
+        if (!typed) {
+          st.priority_id = null;
+          st.new_priority = null;
+          prioF.setState(null);
+        } else if (hit) {
+          st.priority_id = hit.id;
+          st.new_priority = null;
+          prioF.setState('valid');
+        } else {
+          st.priority_id = null;
+          st.new_priority = { name: typed };
+          prioF.setState('valid', 'New priority. It will be added when you submit.');
+        }
+        if (before !== st.priority_id) paintUrgency();
+        changed();
+      }
+      prioF.input.addEventListener('input', readPriority);
+      prioF.input.addEventListener('change', readPriority);
       var prio = byId('priorities', st.priority_id);
       var reasonF = prio && prio.needs_reason ? ui.field({ label: 'Why ' + prio.name + '?', value: st.priority_reason || '',
         placeholder: 'e.g. line 2 stopped, customer audit on Friday', hint: 'Required for ' + prio.name + '; managers see it.' }) : null;
@@ -522,7 +734,7 @@ window.MRT.views['new'] = (function () {
       var neededF = ui.field({ label: 'Needed by (optional)', type: 'date', cls: 'half', value: st.needed_by || '',
         hint: 'With a date there is a countdown; without one the priority says how urgent it is.' });
       neededF.input.addEventListener('change', function () { st.needed_by = neededF.value() || null; changed(); });
-      ui.mount(steps.urgency.body, [ui.el('div', { class: 'dlg-row' }, [ui.el('span', { class: 'ifield-label', text: 'Priority', 'aria-hidden': 'true' }), prioSeg.node]),
+      ui.mount(steps.urgency.body, [prioF.node,
         prio && prio.description ? ui.el('p', { class: 'muted', text: prio.description }) : null,
         reasonF ? reasonF.node : null, neededF.node, next('urgency')]);
     }
@@ -557,12 +769,12 @@ window.MRT.views['new'] = (function () {
         return ui.el('li', { class: 'wz-rev' + (miss.length ? ' is-missing' : ' is-done') }, [
           ui.icon(miss.length ? 'alert' : 'check', 16),
           ui.el('div', {}, [ui.el('b', { text: s.title }),
-            miss.length ? ui.el('ul', {}, miss.map(function (t) { return ui.el('li', { text: t }); })) : ui.el('div', { class: 'muted', text: summaries()[s.key] || 'Nothing needed.' })]),
+            miss.length ? ui.el('ul', {}, miss.map(function (p) { return ui.el('li', { text: problemText(p) }); })) : ui.el('div', { class: 'muted', text: summaries()[s.key] || 'Nothing needed.' })]),
           jump]);
       });
-      var total = [].concat(pb.tool, pb.lot, pb.where, pb.urgency, pb.details).length;
+      var total = STEPS.filter(function (s) { return s.key !== 'review'; }).reduce(function (n, s) { return n + (pb[s.key] || []).length; }, 0);
       ui.mount(steps.review.body, [
-        ui.el('p', { class: total ? 'muted' : 'wz-ready', text: total ? 'Still missing before you can submit - a draft can be saved any time:'
+        ui.el('p', { class: total ? 'muted' : 'wz-ready', text: total ? 'Still missing before you can submit - a draft can be saved early, but entered values must be valid:'
           : editing ? 'All there. Save the changes with a reason.' : 'All there. Submit sends it to the ' + ((byId('tools', st.tool_id) || {}).code || '') + ' quality engineers.' }),
         ui.el('ul', { class: 'wz-review' }, rows)
       ]);
@@ -571,7 +783,14 @@ window.MRT.views['new'] = (function () {
     /* --- what goes to the store ---------------------------------------- */
     function fields() {
       var nl = !st.lot_id && lotNumber ? { lot_number: lotNumber } : null;
+      var np = !st.part_number_id && st.new_part_number && st.new_part_number.code ? { code: st.new_part_number.code } : null;
+      var nprj = !st.project_id && st.new_project && st.new_project.code ? { code: st.new_project.code } : null;
+      var nbu = !st.buildup_id && st.new_buildup && st.new_buildup.code ? { code: st.new_buildup.code } : null;
+      var nmg = !st.magazine_id && st.new_magazine && st.new_magazine.code ? { code: st.new_magazine.code } : null;
+      var nty = !st.type_id && st.new_type && st.new_type.name ? { name: st.new_type.name } : null;
+      var npri = !st.priority_id && st.new_priority && st.new_priority.name ? { name: st.new_priority.name } : null;
       return { tool_id: st.tool_id, type_id: st.type_id, project_id: st.project_id, part_number_id: st.part_number_id, buildup_id: st.buildup_id,
+        new_project: nprj, new_part_number: np, new_buildup: nbu, new_magazine: nmg, new_type: nty, new_priority: npri,
         lot_id: st.lot_id, new_lot: nl, panels: st.panels.slice(), panel_count: st.panel_count,
         layers: st.layers.slice(), priority_id: st.priority_id, priority_reason: st.priority_reason, needed_by: st.needed_by,
         bkm_id: st.bkm_id, bkm_path: st.bkm_path, purpose: st.purpose, process_step_id: st.process_step_id, process_step_other: st.process_step_other,
@@ -585,17 +804,22 @@ window.MRT.views['new'] = (function () {
     function paintPreview() {
       var tool = byId('tools', st.tool_id), prio = byId('priorities', st.priority_id), type = byId('measurement_types', st.type_id);
       var bu = byId('buildups', st.buildup_id), proj = byId('projects', st.project_id), pn = byId('part_numbers', st.part_number_id);
+      var typeName = type ? type.name : (st.new_type ? st.new_type.name : null);
+      var projCode = proj ? proj.code : (st.new_project ? st.new_project.code : null);
+      var buCode = bu ? bu.code : (st.new_buildup ? st.new_buildup.code : null);
+      var prioName = prio ? prio.name : (st.new_priority ? st.new_priority.name : null);
+      var prioCode = prio ? prio.code : null;
       var where = D.placeText(st, magsById());
       function fact(label, value, cls) { return { label: label, value: value, cls: cls || null }; }
       ui.mount(preview, ui.traveller({
         id: editing ? draft.request_no : tool ? tool.code + '-YYMMDD-NN' : 'Pick a tool',
-        subtitle: type ? type.name : 'measurement type',
+        subtitle: typeName || 'measurement type',
         glyph: tool ? { key: tool.glyph } : null, icon: 'request_new',
-        level: prio ? prio.level : 3, prio: prio ? { name: prio.name, code: prio.code } : null,
+        level: prio ? prio.level : 3, prio: prioName ? { name: prioName, code: prioCode || 'NEW' } : null,
         fields: [
-          fact('Project', [proj ? proj.code : null, pn ? pn.code : null].filter(Boolean).join('  ·  ') || '-', 'mono'),
+          fact('Project', [projCode, pn ? pn.code : (st.new_part_number ? st.new_part_number.code : null)].filter(Boolean).join('  ·  ') || '-', 'mono'),
           fact('Lot', [lotNumber || '-', st.new_lot && lotNumber ? ui.statusBadge('warning', 'new') : null], 'mono'),
-          fact('Build-up', bu ? bu.code : '-', 'mono'),
+          fact('Build-up', buCode || '-', 'mono'),
           fact('Panels', D.panelsText(st), 'mono'),
           fact('Layers', st.layers.length ? st.layers.join(' ') : '-', 'mono'),
           fact('Where', where || '-'),
@@ -609,22 +833,24 @@ window.MRT.views['new'] = (function () {
     }
 
     /* --- actions ------------------------------------------------------- */
-    function showProblems(list) {
-      errorBox.hidden = !list.length;
-      ui.mount(errorBox, list.length ? [ui.el('b', { text: 'Not ready to submit yet:' }), ui.el('ul', {}, list.map(function (t) { return ui.el('li', { text: t }); }))] : null);
-      if (list.length && errorBox.scrollIntoView) errorBox.scrollIntoView({ block: 'nearest' });
+    function showProblems(list, title) {
+      var rows = (list || []).map(problemText).filter(Boolean);
+      errorBox.hidden = !rows.length;
+      ui.mount(errorBox, rows.length ? [ui.el('b', { text: title || 'Not ready to submit yet:' }), ui.el('ul', {}, rows.map(function (t) { return ui.el('li', { text: t }); }))] : null);
+      if (rows.length && errorBox.scrollIntoView) errorBox.scrollIntoView({ block: 'nearest' });
     }
     /** Show what is missing and open the first step that needs something. */
-    function blockSubmit(problems) {
-      showProblems(problems);
+    function blockSubmit(problems, title) {
+      showProblems(problems, title || 'Not ready to submit yet:');
       STEPS.forEach(function (s) { shown[s.key] = true; });
-      var keys = problems.map(stepOfProblem);
-      go(STEPS.filter(function (s) { return keys.indexOf(s.key) !== -1; })[0].key);     // the earliest step that needs something
+      var keys = (problems || []).map(stepOfProblem);
+      var first = STEPS.filter(function (s) { return keys.indexOf(s.key) !== -1; })[0];
+      go((first && first.key) || 'tool');     // the earliest step that needs something
     }
 
     function saveDraft() {
       var f = fields();
-      if (!f.tool_id) { showProblems(['Pick a tool - a draft needs at least that']); go('tool'); return; }
+      if (!f.tool_id) { showProblems(['Pick a tool - a draft needs at least that'], 'Draft has issues to fix:'); go('tool'); return; }
       showProblems([]);
       store.saveDraft({ id: draft ? draft.id : undefined, version: draft ? draft.version : undefined, fields: f }).then(function (r) {
         ui.toast({ kind: 'success', message: 'Draft saved. Only you see it.' });
@@ -632,7 +858,7 @@ window.MRT.views['new'] = (function () {
         if (draft) window.MRT.app.route();
       }).catch(function (e) {
         if (e && e.code === 'no_change') return ui.toast({ message: 'Nothing was changed.', timeout_ms: 2000 });
-        if (e && e.problems) return blockSubmit(e.problems);
+        if (e && e.problems) return blockSubmit(e.problems, 'Draft has issues to fix:');
         ui.toastError(e.message, e);
       });
     }
@@ -640,7 +866,7 @@ window.MRT.views['new'] = (function () {
     function submit() {
       var f = fields();
       var pr = Object.assign({ id: draft ? draft.id : null }, f);
-      var problems = D.requestProblems(pr, store.data(), { submit: true });
+      var problems = D.requestProblemDetails ? D.requestProblemDetails(pr, store.data(), { submit: true }) : D.requestProblems(pr, store.data(), { submit: true });
       if (problems.length) { blockSubmit(problems); return; }
       showProblems([]);
       var warnings = D.submitWarnings(pr, store.data());
@@ -659,8 +885,8 @@ window.MRT.views['new'] = (function () {
 
     function saveChanges() {
       var f = fields();
-      var problems = D.requestProblems(Object.assign({}, draft, f), store.data(), { submit: true });
-      if (problems.length) { blockSubmit(problems); return; }
+      var problems = D.requestProblemDetails ? D.requestProblemDetails(Object.assign({}, draft, f), store.data(), { submit: true }) : D.requestProblems(Object.assign({}, draft, f), store.data(), { submit: true });
+      if (problems.length) { blockSubmit(problems, 'Not ready to save changes yet:'); return; }
       showProblems([]);
       ui.promptReason({ title: 'Save changes to ' + draft.request_no, confirmLabel: 'Save changes',
         message: 'Each change shows in the timeline with your reason. Why the change?' })
@@ -702,7 +928,7 @@ window.MRT.views['new'] = (function () {
       ui.button('Submit', { kind: 'primary', icon: 'check', onClick: submit })
     ]));
 
-    paintTool(); paintLot(); paintWhere(); paintUrgency(); paintDetails(); paintPreview();
+    paintTool(); paintLot(); paintUrgency(); paintDetails(); paintPreview();
     // where to start: the tool when there is none yet, a draft or copy opens at the first step that needs something
     if (src) {
       STEPS.forEach(function (s) { shown[s.key] = true; });

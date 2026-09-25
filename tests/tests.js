@@ -297,8 +297,25 @@
     ok('...but a panel ID that is not digits is refused even in a draft', D.requestProblems({ tool_id: 't1', lot_id: 'l1', panels: ['32a'] }, rq, {}).length === 1);
     ok('only a count, no IDs, is fine (F-1)', !D.requestProblems(Object.assign({}, full, { panels: [], panel_count: 2 }), rq, { submit: true }).length);
     function sub(ch) { return D.requestProblems(Object.assign({}, full, ch), rq, { submit: true }); }
+    var pd = D.requestProblemDetails(Object.assign({}, full, { priority_id: null, panel_location: ' ' }), rq, { submit: true });
+    eq('structured problems carry stable step metadata', pd.map(function (x) { return [x.text, x.step]; }),
+       [['Pick a priority', 'urgency'], ['Say where the panels are now: the magazine slots, or a note', 'where']]);
+    eq('...and legacy requestProblems keeps the same text list', D.requestProblems(Object.assign({}, full, { priority_id: null, panel_location: ' ' }), rq, { submit: true }),
+       pd.map(function (x) { return x.text; }));
     ok('a new lot typed in the form is fine; a number already registered is not (F-5)', !sub({ lot_id: null, new_lot: { lot_number: '19000' } }).length &&
        sub({ lot_id: null, new_lot: { lot_number: '18178' } }).some(function (x) { return /exists already/.test(x); }));
+    ok('a typed new part number is allowed; it needs a project and format',
+       !sub({ part_number_id: null, new_part_number: { code: 'PN-NEW' } }).length &&
+       sub({ project_id: null, part_number_id: null, new_part_number: { code: 'PN-NEW' } }).some(function (x) { return /project/.test(x); }) &&
+       sub({ part_number_id: null, new_part_number: { code: 'pn new' } }).some(function (x) { return /Part number/.test(x); }));
+    ok('typed new project / build-up / magazine / type / priority are allowed; duplicates are refused',
+       !sub({ project_id: null, new_project: { code: 'NEW-PRJ' } }).length &&
+       sub({ project_id: null, new_project: { code: 'C4F' } }).some(function (x) { return /exists already/.test(x); }) &&
+       !sub({ buildup_id: null, new_buildup: { code: 'BU-07' } }).length &&
+       sub({ buildup_id: null, new_buildup: { code: 'BU-02' } }).some(function (x) { return /exists already/.test(x); }) &&
+       !sub({ magazine_id: null, new_magazine: { code: 'M70099' }, slots: [] }).length &&
+       !sub({ type_id: null, new_type: { name: 'New QVM Type' } }).length &&
+       !sub({ priority_id: null, new_priority: { name: 'Planning' } }).length);
     ok('the project is on the request and required; the part number must be one of its (F-6)', sub({ project_id: null }).length === 1 &&
        !sub({ part_number_id: 'pn1' }).length && sub({ project_id: 'pr2', part_number_id: 'pn1' }).length === 1);
     ok('the build-up is optional; picked, it decides the layers (F-2, F-6)', !sub({ layers: ['5B'] }).length && sub({ buildup_id: 'bu2', layers: ['5B'] }).length === 1 &&
@@ -887,6 +904,10 @@
     eq('On hold: reason, note, remembers where it was', [w.status, w.hold_reason_id, w.return_to], ['on_hold', holdR.id, 'accepted']);
     w = await ST.requestAction(w.id, 'resume', {});
     eq('Resume goes back to Accepted', [w.status, w.hold_reason_id], ['accepted', null]);
+   w = await ST.requestAction(w.id, 'hold', { hold_reason: 'Sample prep delay', note: 'new reason typed' });
+   var holdTyped = ST.list('hold_reasons').filter(function (x) { return x.name === 'Sample prep delay'; })[0];
+   eq('typed hold reason is created and linked', [!!holdTyped, w.hold_reason_id], [true, (holdTyped || {}).id]);
+   w = await ST.requestAction(w.id, 'resume', {});
     w = await ST.requestAction(w.id, 'clarify', { text: 'Which pads?' });
     ST.setCurrentUser(adminL);
     w = await ST.requestAction(w.id, 'answer', { text: 'Corner pads' });
@@ -914,6 +935,18 @@
       panels: ['3252', '3253'], layers: ['1fco', '2F'], priority_id: normal.id, magazine_id: m1.id, slots: [4, 3], after: 'back_to_me', purpose: 'pads' } });
     var newLot = ST.data().lots.filter(function (x) { return x.lot_number === '40002'; })[0];
     eq('a lot typed in the form is registered at submit, owned by the requester', [!!newLot, mq.lot_id === (newLot || {}).id, (newLot || {}).owner_id, mq.new_lot], [true, true, adminL, null]);
+      var mqNew = await ST.submitRequest({ fields: { tool_id: qvm.id, new_type: { name: 'Pad check' }, new_project: { code: 'NPRJ' }, new_part_number: { code: 'PN-NPRJ-01' },
+         new_lot: { lot_number: '40009' }, new_buildup: { code: 'BU-09' }, panels: ['3321'], new_priority: { name: 'Planning' },
+         panel_location: 'Rack D1', new_magazine: { code: 'M70999' }, after: 'back_to_me', purpose: 'new values test' } });
+      var prjNew = ST.data().projects.filter(function (x) { return x.code === 'NPRJ'; })[0];
+      var buNew = ST.data().buildups.filter(function (x) { return x.code === 'BU-09'; })[0];
+      var magNew = ST.data().magazines.filter(function (x) { return x.code === 'M70999'; })[0];
+      var typeNew = ST.data().measurement_types.filter(function (x) { return x.tool_id === qvm.id && x.name === 'Pad check'; })[0];
+      var prioNew = ST.data().priorities.filter(function (x) { return x.name === 'Planning'; })[0];
+      eq('typed new project/build-up/magazine/type/priority are created on submit and linked on the request',
+          [!!prjNew && mqNew.project_id === prjNew.id, !!buNew && mqNew.buildup_id === buNew.id, !!magNew && mqNew.magazine_id === magNew.id,
+            !!typeNew && mqNew.type_id === typeNew.id, !!prioNew && mqNew.priority_id === prioNew.id],
+          [true, true, true, true, true]);
     eq('...magazine slots sorted, layers tidied, no note needed', [mq.slots, mq.layers, D.placeText(mq, (function () { var o = {}; o[m1.id] = m1; return o; })())], [[3, 4], ['1FCO', '2F'], m1.code + ' · slots 3, 4']);
     await refused('a slot taken by another open request is refused', ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: mq.lot_id, panel_count: 1,
       priority_id: normal.id, magazine_id: m1.id, slots: [4], after: 'back_to_me', purpose: 'x' } }), 'invalid');

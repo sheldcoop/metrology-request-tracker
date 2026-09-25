@@ -146,10 +146,12 @@ window.MRT.requestActions = (function () {
           .then(function (res) { return res ? done(res, 'started.') : null; });
         break;
       case 'hold':
+        var holdRows = store.list('hold_reasons');
         p = ask('Hold ' + r.request_no, 'clock', [
-          { key: 'hold_reason_id', label: 'Why on hold', kind: 'select', options: [{ value: '', label: '- pick -' }].concat(store.list('hold_reasons').map(function (h) { return { value: h.id, label: h.name }; })) },
+          { key: 'hold_reason', label: 'Why on hold', kind: 'text', placeholder: 'Type or pick a reason',
+            list: holdRows.map(function (h) { return { value: h.name }; }) },
           { key: 'note', label: 'Note (optional)', kind: 'text' }
-        ], {}, function (v) { return store.requestAction(r.id, 'hold', v); }, function (v) { return v.hold_reason_id ? null : ['hold_reason_id', 'Pick why']; },
+        ], {}, function (v) { return store.requestAction(r.id, 'hold', v); }, function (v) { return v.hold_reason ? null : ['hold_reason', 'Pick or type why']; },
         'The turnaround clock pauses while on hold.')
           .then(function (res) { return res ? done(res, 'on hold.') : null; });
         break;

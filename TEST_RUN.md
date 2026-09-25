@@ -77,18 +77,21 @@ kept first). The steps below work on the demo or on a fresh folder.
 - [ ] **T3.1** Lots > Register lot: number (5 digits or `18178.01`), optional panel count, lot fields.
       Expect: saved; a duplicate number is refused.
 - [ ] **T3.2** New request: step 1 **Tool & method** - pick FIB (drawing), a measurement type, a BKM or paste an own path.
-      Expect: the traveller card on the right fills in live; Next opens step 2.
+      Expect: measurement type is searchable (type to filter/select), typing a new one shows it will be created on submit; switching to another tool resets type/tool fields and destructive controls; Next opens step 2.
 - [ ] **T3.3** Step 2: Project (part numbers of that project appear), Lot (type a registered one: nothing is filled in or locked;
-      type a new number: "new"), Build-up (optional; the layer chips change), layers.
+      type a new number: "new"), Build-up (optional; the layer chips change), layers, and "Panels are after".
+      Expect: Project, Build-up and Magazine are searchable; typing a new valid value shows it will be created on submit.
 - [ ] **T3.4** Step 2: Hirata IDs `3252-3255`. Expect: four chips, **each with a small copper panel to its right** showing its drilled pattern.
       Type `3252, abc`. Expect: "abc is not a Hirata ID" at the field. Try "Just how many" = 2.
-- [ ] **T3.5** Step 3: pick a magazine, **press and drag** over slots (real mouse). Expect: the IDs appear in the slots in order;
-      slots of other open requests are grey. Or write a note instead.
+- [ ] **T3.5** Step 2 (merged): pick a magazine, **press and drag** over slots (real mouse). Expect: the IDs appear in the slots in order;
+      slots of other open requests are grey. "Where the panels are now" and "Where the panels go after measuring" are searchable.
 - [ ] **T3.6** FIB (destructive): the tick "Panels may be destroyed" is required; "afterwards" is set to scrap.
 - [ ] **T3.7** Step 4: priority Line stop -> a reason is required; needed-by date optional.
+      Expect: Priority is searchable; a typed new priority is accepted and created on submit.
 - [ ] **T3.8** Review: every step green; warnings make sense (no BKM, tool down/maintenance, the same panels already open). Submit.
       Expect: an ID like `FIB-260926-01`; a new lot appears on Lots.
 - [ ] **T3.9** Save a draft, close, carry on later (My requests > Drafts), delete a draft. Copy a past request: everything but date, reason, place.
+      Expect: a draft can be saved early, but entered values still need to be valid.
 - [ ] **T3.10** The request page: traveller card (priority stripe, stamp, glyph), panels: copper panels light up as you type IDs in the form; after Panels received they sit in an "In the lab tray"; after Complete a check or a red cross (scrapped) - P4; a needle dial under Needed by (green / amber / red zones; the needle moves right as lab time runs out; a pause sign when on hold - P2), countdown "x h lab time left" or
       "clock paused (outside lab hours)", status rail, timeline, BKM path with Copy.
       Expect: under Panels **each panel as a copper panel with its decoded fields**.
@@ -105,7 +108,8 @@ kept first). The steps below work on the demo or on a fresh folder.
 - [ ] **T4.1** My queue: Line stop on top, then late (red), then by date; "assigned to me" first. Filters: tool, status (incl. Line stop, Late).
 - [ ] **T4.2** Accept (with and without an expected-done date). Expect: the engineer sees the expected date.
 - [ ] **T4.3** Panels received (who, when, where kept). Start: if not received yet it asks once, already ticked.
-- [ ] **T4.4** Hold with a reason from the list + note; Resume. Expect: back where it was; the countdown paused meanwhile.
+- [ ] **T4.4** Hold with a reason from the list + note; then type a brand-new hold reason + note; Resume.
+      Expect: back where it was; the countdown paused meanwhile; typed hold reason is saved and appears in suggestions next time.
 - [ ] **T4.5** Needs clarification (comment required). Engineer: answers in the timeline, clicks **Answered**. Expect: back in the queue.
 - [ ] **T4.6** Change the priority as QE. Expect: in the timeline and the audit log.
 - [ ] **T4.7** Complete: the results folder is proposed as `<root>\2026\<ID>\` (Copy; does the folder open?);

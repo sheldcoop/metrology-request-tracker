@@ -1377,82 +1377,152 @@ window.MRT.domain = (function () {
   }
 
   /**
-   * Problems of a request. A draft needs only its tool; a submit needs
-   * everything (o.submit). Warnings (Q44) are separate - see submitWarnings.
+   * Problems of a request with stable metadata for the New Request screen.
+   * Each item: {code, text, step} where step is one of:
+   * tool | lot | where | urgency | details.
+   *
+   * A draft needs only its tool; a submit needs everything (o.submit).
+   * Warnings (Q44) are separate - see submitWarnings.
    * @param {Object} r     the request as it would be saved
    * @param {Object} d     the data (tools, types, lots, ...)
    * @param {Object} o     {submit: bool}
    */
-  function requestProblems(r, d, o) {
-    var p = [];
+  function requestProblemDetails(r, d, o) {
+    var out = [];
     function byId(coll, id) { return id ? (d[coll] || []).filter(function (x) { return x.id === id; })[0] || null : null; }
+    function add(code, text, step) { out.push({ code: code, text: text, step: step }); }
+    function stepOfTextField(k) {
+      var m = { purpose: 'details', panel_location: 'where', priority_reason: 'urgency', after_other: 'where', process_step_other: 'lot' };
+      return m[k] || 'details';
+    }
+
     var tool = byId('tools', r.tool_id);
-    if (!tool) { p.push('Pick a tool'); return p; }
+    if (!tool) { add('tool_required', 'Pick a tool', 'tool'); return out; }
     var submit = !!(o && o.submit);
     var type = byId('measurement_types', r.type_id);
-    if (r.type_id && (!type || type.tool_id !== tool.id)) p.push('The measurement type belongs to another tool');
+    if (r.type_id && (!type || type.tool_id !== tool.id)) add('type_other_tool', 'The measurement type belongs to another tool', 'tool');
     var lot = byId('lots', r.lot_id);
-    if (r.lot_id && !lot) p.push('Lot not found');
+    if (r.lot_id && !lot) add('lot_not_found', 'Lot not found', 'lot');
     var nl = r.new_lot;
     if (nl) {
-      if (!isLotNumber(nl.lot_number)) p.push('Lot number: digits, a split lot adds .01 - e.g. 18178 or 18178.01');
-      else if ((d.lots || []).some(function (x) { return x.lot_number === nl.lot_number; })) p.push('Lot ' + nl.lot_number + ' exists already - pick it');
+      if (!isLotNumber(nl.lot_number)) add('lot_number_invalid', 'Lot number: digits, a split lot adds .01 - e.g. 18178 or 18178.01', 'lot');
+      else if ((d.lots || []).some(function (x) { return x.lot_number === nl.lot_number; })) add('lot_exists', 'Lot ' + nl.lot_number + ' exists already - pick it', 'lot');
     }
     // project, part number and build-up belong to the request, not the lot (F-6): a lot runs through every build-up
-    if (r.project_id && !byId('projects', r.project_id)) p.push('Project not found');
+    if (r.project_id && !byId('projects', r.project_id)) add('project_not_found', 'Project not found', 'lot');
+    var npj = r.new_project;
+    if (npj) {
+      var npjCode = trim(npj.code || '').toUpperCase();
+      if (!isCode(npjCode, 12)) add('project_new_invalid', 'Project code: capitals, digits and dashes, e.g. C4F', 'lot');
+      else if ((d.projects || []).some(function (x) { return String(x.code || '').toUpperCase() === npjCode; })) add('project_exists', 'Project ' + npjCode + ' exists already - pick it from suggestions', 'lot');
+    }
+    if (r.project_id && r.new_project) add('project_conflict', 'Pick an existing project or type a new one, not both', 'lot');
     var pnR = byId('part_numbers', r.part_number_id);
-    if (r.part_number_id && !pnR) p.push('Part number not found');
-    else if (pnR && r.project_id && (pnR.project_ids || []).indexOf(r.project_id) === -1) p.push('Part number ' + pnR.code + ' does not belong to this project');
-    if (r.buildup_id && !byId('buildups', r.buildup_id)) p.push('Build-up not found');
-    if (r.panels && !Array.isArray(r.panels)) p.push('Panels must be a list');
-    if ((r.panels || []).some(function (x) { return !isPanelId(x); })) p.push('Panels: Hirata IDs are digits, e.g. 3252');
-    if ((r.panels || []).some(function (x, i, a) { return a.indexOf(x) !== i; })) p.push('A panel is listed twice');
-    if (r.panel_count !== null && r.panel_count !== undefined && (!isNum(r.panel_count) || r.panel_count < 1 || r.panel_count > 99 || Math.floor(r.panel_count) !== r.panel_count)) p.push('How many panels: 1-99');
+    if (r.part_number_id && !pnR) add('part_number_not_found', 'Part number not found', 'lot');
+    else if (pnR && r.project_id && (pnR.project_ids || []).indexOf(r.project_id) === -1) add('part_number_wrong_project', 'Part number ' + pnR.code + ' does not belong to this project', 'lot');
+    var np = r.new_part_number;
+    if (np) {
+      var npCode = trim(np.code || '').toUpperCase();
+      if (!isPartNumber(npCode)) add('part_number_new_invalid', 'Part number: capitals, digits and - . _ / (up to 30), e.g. PN-10234-A', 'lot');
+      else if ((d.part_numbers || []).some(function (x) { return String(x.code || '').toUpperCase() === npCode; })) {
+        add('part_number_exists', 'Part number ' + npCode + ' exists already - pick it from suggestions', 'lot');
+      }
+      if (!r.project_id && !r.new_project) add('part_number_new_needs_project', 'Pick the project before adding a new part number', 'lot');
+    }
+    if (r.part_number_id && r.new_part_number) add('part_number_conflict', 'Pick an existing part number or type a new one, not both', 'lot');
+    if (r.buildup_id && !byId('buildups', r.buildup_id)) add('buildup_not_found', 'Build-up not found', 'lot');
+    var nbu = r.new_buildup;
+    if (nbu) {
+      var nbuCode = trim(nbu.code || '').toUpperCase();
+      if (!isCode(nbuCode, 12)) add('buildup_new_invalid', 'Build-up code: capitals, digits and dashes, e.g. BU-01', 'lot');
+      else if ((d.buildups || []).some(function (x) { return String(x.code || '').toUpperCase() === nbuCode; })) add('buildup_exists', 'Build-up ' + nbuCode + ' exists already - pick it from suggestions', 'lot');
+    }
+    if (r.buildup_id && r.new_buildup) add('buildup_conflict', 'Pick an existing build-up or type a new one, not both', 'lot');
+    if (r.panels && !Array.isArray(r.panels)) add('panels_not_list', 'Panels must be a list', 'lot');
+    if ((r.panels || []).some(function (x) { return !isPanelId(x); })) add('panel_id_invalid', 'Panels: Hirata IDs are digits, e.g. 3252', 'lot');
+    if ((r.panels || []).some(function (x, i, a) { return a.indexOf(x) !== i; })) add('panel_duplicate', 'A panel is listed twice', 'lot');
+    if (r.panel_count !== null && r.panel_count !== undefined && (!isNum(r.panel_count) || r.panel_count < 1 || r.panel_count > 99 || Math.floor(r.panel_count) !== r.panel_count)) add('panel_count_invalid', 'How many panels: 1-99', 'lot');
     var buLayers = layersFor(byId('buildups', r.buildup_id));
-    if ((r.layers || []).some(function (x) { return buLayers.indexOf(x) === -1; })) p.push('A layer does not belong to this build-up');
+    if ((r.layers || []).some(function (x) { return buLayers.indexOf(x) === -1; })) add('layer_invalid', 'A layer does not belong to this build-up', 'lot');
     var magR = byId('magazines', r.magazine_id);
-    if (r.magazine_id && !magR) p.push('Magazine not found');
-    if ((r.slots || []).some(function (x) { return !isNum(x) || x < 1 || x > (magR ? magR.slots : 24) || Math.floor(x) !== x; })) p.push('Slots: 1-' + (magR ? magR.slots : 24));
-    if ((r.slots || []).length && !r.magazine_id) p.push('Pick the magazine of the slots');
+    if (r.magazine_id && !magR) add('magazine_not_found', 'Magazine not found', 'where');
+    var nmag = r.new_magazine;
+    if (nmag) {
+      var nmagCode = trim(nmag.code || '').toUpperCase();
+      if (!isMagazineCode(nmagCode)) add('magazine_new_invalid', 'Magazine: M and digits, e.g. M70345', 'where');
+      else if ((d.magazines || []).some(function (x) { return String(x.code || '').toUpperCase() === nmagCode; })) add('magazine_exists', 'Magazine ' + nmagCode + ' exists already - pick it from suggestions', 'where');
+    }
+    if (r.magazine_id && r.new_magazine) add('magazine_conflict', 'Pick an existing magazine or type a new one, not both', 'where');
+    var slotMax = magR ? magR.slots : (nmag ? 24 : 24);
+    if ((r.slots || []).some(function (x) { return !isNum(x) || x < 1 || x > slotMax || Math.floor(x) !== x; })) add('slots_invalid', 'Slots: 1-' + slotMax, 'where');
+    if ((r.slots || []).length && !r.magazine_id && !r.new_magazine) add('slots_need_magazine', 'Pick the magazine of the slots', 'where');
     var prio = byId('priorities', r.priority_id);
-    if (r.priority_id && !prio) p.push('Priority not found');
-    if (r.needed_by && !isYmd(r.needed_by)) p.push('"Needed by" must be a date');
+    if (r.priority_id && !prio) add('priority_not_found', 'Priority not found', 'urgency');
+    var nprio = r.new_priority;
+    if (nprio) {
+      var nprioName = trim(nprio.name || '');
+      if (!isStr(nprioName)) add('priority_new_invalid', 'Priority: enter a name', 'urgency');
+      else if ((d.priorities || []).some(function (x) { return normalizeName(x.name) === normalizeName(nprioName); })) add('priority_exists', 'Priority ' + nprioName + ' exists already - pick it from suggestions', 'urgency');
+    }
+    if (r.priority_id && r.new_priority) add('priority_conflict', 'Pick an existing priority or type a new one, not both', 'urgency');
+    if (r.needed_by && !isYmd(r.needed_by)) add('needed_by_invalid', '"Needed by" must be a date', 'urgency');
     var bkm = byId('bkms', r.bkm_id);
-    if (r.bkm_id && (!bkm || bkm.tool_id !== tool.id)) p.push('The BKM belongs to another tool');
-    if (r.bkm_path && !isSharePath(r.bkm_path)) p.push('BKM path: a share path like \\\\server\\share\\... or Z:\\...');
-    if (r.process_step_id && !byId('process_steps', r.process_step_id)) p.push('Process step not found');
-    if (r.after && AFTER_OPTIONS.indexOf(r.after) === -1) p.push('Pick where the panels go afterwards');
+    if (r.bkm_id && (!bkm || bkm.tool_id !== tool.id)) add('bkm_other_tool', 'The BKM belongs to another tool', 'tool');
+    if (r.bkm_path && !isSharePath(r.bkm_path)) add('bkm_path_invalid', 'BKM path: a share path like \\\\server\\share\\... or Z:\\...', 'tool');
+    var nt = r.new_type;
+    if (nt) {
+      var ntName = trim(nt.name || '');
+      if (!isStr(ntName)) add('type_new_invalid', 'Measurement type: enter a name', 'tool');
+      else if ((d.measurement_types || []).some(function (x) { return x.tool_id === tool.id && normalizeName(x.name) === normalizeName(ntName); })) {
+        add('type_exists', 'Measurement type ' + ntName + ' exists already - pick it from suggestions', 'tool');
+      }
+    }
+    if (r.type_id && r.new_type) add('type_conflict', 'Pick an existing measurement type or type a new one, not both', 'tool');
+    if (r.process_step_id && !byId('process_steps', r.process_step_id)) add('process_step_not_found', 'Process step not found', 'lot');
+    if (r.after && AFTER_OPTIONS.indexOf(r.after) === -1) add('after_invalid', 'Pick where the panels go afterwards', 'where');
     ['purpose', 'panel_location', 'priority_reason', 'after_other', 'process_step_other'].forEach(function (k) {
-      if (r[k] && String(r[k]).length > REQUEST_TEXT_MAX) p.push('Text too long: ' + k);
+      if (r[k] && String(r[k]).length > REQUEST_TEXT_MAX) add('text_too_long_' + k, 'Text too long: ' + k, stepOfTextField(k));
     });
     var ex = r.extra || {};
-    Object.keys(ex).forEach(function (k) { if (!(d.tool_fields || []).some(function (f) { return f.id === k && f.tool_id === tool.id; })) p.push('Unknown field ' + k); });
-    if (!submit) return p;
+    Object.keys(ex).forEach(function (k) {
+      if (!(d.tool_fields || []).some(function (f) { return f.id === k && f.tool_id === tool.id; })) add('unknown_field_' + k, 'Unknown field ' + k, 'details');
+    });
+    if (!submit) return out;
 
-    if (tool.active === false) p.push(tool.code + ' is no longer offered');
-    if (!type) p.push('Pick the measurement type');
-    if (!r.project_id) p.push('Pick the project');
-    if (!lot && !nl) p.push('Pick or type the lot');
-    if (!panelCountOf(r)) p.push('Give the panels: their Hirata IDs, or how many');
+    if (tool.active === false) add('tool_not_offered', tool.code + ' is no longer offered', 'tool');
+    if (!type && !nt) add('type_required', 'Pick the measurement type', 'tool');
+    if (!r.project_id && !npj) add('project_required', 'Pick the project', 'lot');
+    if (!lot && !nl) add('lot_required', 'Pick or type the lot', 'lot');
+    if (!panelCountOf(r)) add('panels_required', 'Give the panels: their Hirata IDs, or how many', 'lot');
     var taken = r.magazine_id ? takenSlots(d.requests, r.magazine_id, r.id) : {};
     var clash = (r.slots || []).filter(function (x) { return taken[x]; });
-    if (clash.length) p.push('Slot ' + clash.join(', ') + ' of this magazine ' + (clash.length > 1 ? 'are' : 'is') + ' taken by ' + taken[clash[0]]);
+    if (clash.length) add('slot_taken', 'Slot ' + clash.join(', ') + ' of this magazine ' + (clash.length > 1 ? 'are' : 'is') + ' taken by ' + taken[clash[0]], 'where');
     var gone = lot ? (r.panels || []).filter(function (n) { return (lot.scrapped || []).indexOf(n) !== -1; }) : [];
-    if (gone.length && !(o && o.allowScrapped)) p.push('Panel ' + gone.join(', ') + (gone.length > 1 ? ' are' : ' is') + ' scrapped');
-    if (!prio) p.push('Pick a priority');
-    else if (prio.needs_reason && !isStr(r.priority_reason)) p.push(prio.name + ' needs a reason');
-    if (!bkm && !r.bkm_path && !isStr(r.purpose)) p.push('Without a BKM, the purpose must say what to measure');
-    if (!(r.magazine_id && (r.slots || []).length) && !isStr(r.panel_location)) p.push('Say where the panels are now: the magazine slots, or a note');
-    if (tool.destructive && r.destructive_ok !== true) p.push(tool.code + ' destroys the panels - tick that they may be scrapped');
-    if (!r.after) p.push('Say where the panels go afterwards');
-    else if (r.after === 'other' && !isStr(r.after_other)) p.push('Say where the panels go afterwards (Other)');
-    if (tool.destructive && r.after && r.after !== 'scrap') p.push(tool.code + ' destroys the panels - they cannot come back');
-    if (r.process_step_other && r.process_step_id) p.push('Pick a process step or type one, not both');
+    if (gone.length && !(o && o.allowScrapped)) add('panel_scrapped', 'Panel ' + gone.join(', ') + (gone.length > 1 ? ' are' : ' is') + ' scrapped', 'lot');
+    if (!prio && !nprio) add('priority_required', 'Pick a priority', 'urgency');
+    else if (prio.needs_reason && !isStr(r.priority_reason)) add('priority_reason_required', prio.name + ' needs a reason', 'urgency');
+    if (!bkm && !r.bkm_path && !isStr(r.purpose)) add('purpose_required_without_bkm', 'Without a BKM, the purpose must say what to measure', 'details');
+    if (!(r.magazine_id && (r.slots || []).length) && !isStr(r.panel_location)) add('panel_location_required', 'Say where the panels are now: the magazine slots, or a note', 'where');
+    if (tool.destructive && r.destructive_ok !== true) add('destructive_ack_required', tool.code + ' destroys the panels - tick that they may be scrapped', 'where');
+    if (!r.after) add('after_required', 'Say where the panels go afterwards', 'where');
+    else if (r.after === 'other' && !isStr(r.after_other)) add('after_other_required', 'Say where the panels go afterwards (Other)', 'where');
+    if (tool.destructive && r.after && r.after !== 'scrap') add('destructive_after_must_scrap', tool.code + ' destroys the panels - they cannot come back', 'where');
+    if (r.process_step_other && r.process_step_id) add('process_step_conflict', 'Pick a process step or type one, not both', 'lot');
     fieldsForType(d.tool_fields, tool.id, r.type_id).forEach(function (f) {
       if (f.active === false && isEmptyAnswer(ex[f.id])) return;
-      p.push.apply(p, extraValueProblems(f, ex[f.id]));
+      extraValueProblems(f, ex[f.id]).forEach(function (text, i) {
+        add('extra_' + f.id + '_' + i, text, 'details');
+      });
     });
-    return p;
+    return out;
+  }
+
+  /**
+   * Problems of a request as plain text strings (legacy API used by store and tests).
+   * @returns {string[]}
+   */
+  function requestProblems(r, d, o) {
+    return requestProblemDetails(r, d, o).map(function (x) { return x.text; });
   }
 
   /**
@@ -1731,6 +1801,7 @@ window.MRT.domain = (function () {
     COMMENT_MAX: COMMENT_MAX,
     nextRequestNo: nextRequestNo,
     fieldsForType: fieldsForType,
+    requestProblemDetails: requestProblemDetails,
     requestProblems: requestProblems,
     submitWarnings: submitWarnings,
     parsePanels: parsePanels,

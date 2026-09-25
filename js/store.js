@@ -1143,7 +1143,7 @@ window.MRT.store = (function () {
   var REQUEST_FIELDS = ['tool_id', 'type_id', 'lot_id', 'panels', 'priority_id', 'priority_reason', 'needed_by',
     'bkm_id', 'bkm_path', 'purpose', 'process_step_id', 'process_step_other', 'panel_location',
     'destructive_ok', 'after', 'after_other', 'extra', 'duplicated_from', 'magazine_id', 'slots', 'layers', 'panel_count', 'new_lot',
-    'project_id', 'part_number_id', 'buildup_id'];
+    'project_id', 'part_number_id', 'new_part_number', 'buildup_id', 'new_project', 'new_buildup', 'new_magazine', 'new_type', 'new_priority'];
 
   function tidyRequest(f) {
     var o = clone(f || {});
@@ -1156,7 +1156,19 @@ window.MRT.store = (function () {
     if (Array.isArray(o.layers)) o.layers = o.layers.map(function (x) { return String(x).trim().toUpperCase(); }).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
     if (o.panel_count !== null && o.panel_count !== undefined) o.panel_count = Number(o.panel_count);
     if (o.new_lot) o.new_lot = { lot_number: String(o.new_lot.lot_number || '').trim() };
+    if (o.new_part_number) o.new_part_number = { code: String(o.new_part_number.code || '').trim().toUpperCase() };
+    if (o.new_project) o.new_project = { code: String(o.new_project.code || '').trim().toUpperCase() };
+    if (o.new_buildup) o.new_buildup = { code: String(o.new_buildup.code || '').trim().toUpperCase() };
+    if (o.new_magazine) o.new_magazine = { code: String(o.new_magazine.code || '').trim().toUpperCase() };
+    if (o.new_type) o.new_type = { name: String(o.new_type.name || '').trim() };
+    if (o.new_priority) o.new_priority = { name: String(o.new_priority.name || '').trim() };
     if ('new_lot' in o && o.new_lot && o.lot_id) o.new_lot = null;
+    if ('new_part_number' in o && o.new_part_number && o.part_number_id) o.new_part_number = null;
+    if ('new_project' in o && o.new_project && o.project_id) o.new_project = null;
+    if ('new_buildup' in o && o.new_buildup && o.buildup_id) o.new_buildup = null;
+    if ('new_magazine' in o && o.new_magazine && o.magazine_id) o.new_magazine = null;
+    if ('new_type' in o && o.new_type && o.type_id) o.new_type = null;
+    if ('new_priority' in o && o.new_priority && o.priority_id) o.new_priority = null;
     if (Array.isArray(o.panels)) {
       o.panels = o.panels.map(function (x) { return String(x).trim(); }).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
       if (o.panels.length) o.panel_count = o.panels.length;       // with IDs, the count is theirs
@@ -1183,7 +1195,9 @@ window.MRT.store = (function () {
     assert(D.canRequest(me), 'Only engineers can request measurements', 'not_allowed');
     var blank = { id: newId('req'), request_no: null, status: 'draft', tool_id: null, type_id: null, lot_id: null, panels: [],
       priority_id: null, priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '', purpose: '', process_step_id: null,
-      process_step_other: '', layers: [], panel_count: null, new_lot: null, project_id: null, part_number_id: null, buildup_id: null, panel_location: '', magazine_id: null, slots: [], destructive_ok: false, after: null, after_other: '', extra: {},
+      process_step_other: '', layers: [], panel_count: null, new_lot: null, project_id: null, part_number_id: null, new_part_number: null, buildup_id: null,
+      new_project: null, new_buildup: null, new_magazine: null, new_type: null, new_priority: null,
+      panel_location: '', magazine_id: null, slots: [], destructive_ok: false, after: null, after_other: '', extra: {},
       duplicated_from: null, requester_id: me.id, created_ts: nowIso(), updated_ts: null, submitted_ts: null, version: 0 };
     return { existing: null, next: Object.assign(blank, f) };
   }
@@ -1244,6 +1258,135 @@ window.MRT.store = (function () {
     r.lot_id = lot.id; r.new_lot = null;
   }
 
+  function registerNewProject(r) {
+    var np = r.new_project;
+    if (!np) return;
+    var code = String(np.code || '').trim().toUpperCase();
+    if (!code) { r.new_project = null; return; }
+    var hit = (state.data.projects || []).filter(function (x) { return String(x.code || '').toUpperCase() === code; })[0];
+    if (hit) { r.project_id = hit.id; r.new_project = null; return; }
+    var row = { id: newId('prj'), code: code, name: '', active: true, version: 1 };
+    var pp = D.validateEntry('projects', row, state.data);
+    assert(!pp.length, pp.join('. '), 'invalid', pp);
+    state.data.projects.push(row);
+    audit('project', row.id, 'create', null, null, row.code, 'Registered with a request');
+    r.project_id = row.id;
+    r.new_project = null;
+  }
+
+  function registerNewBuildup(r) {
+    var nb = r.new_buildup;
+    if (!nb) return;
+    var code = String(nb.code || '').trim().toUpperCase();
+    if (!code) { r.new_buildup = null; return; }
+    var hit = (state.data.buildups || []).filter(function (x) { return String(x.code || '').toUpperCase() === code; })[0];
+    if (hit) { r.buildup_id = hit.id; r.new_buildup = null; return; }
+    var row = { id: newId('bu'), code: code, name: '', layers: null, active: true, version: 1 };
+    var bp = D.validateEntry('buildups', row, state.data);
+    assert(!bp.length, bp.join('. '), 'invalid', bp);
+    state.data.buildups.push(row);
+    audit('buildup', row.id, 'create', null, null, row.code, 'Registered with a request');
+    r.buildup_id = row.id;
+    r.new_buildup = null;
+  }
+
+  function registerNewMagazine(r) {
+    var nm = r.new_magazine;
+    if (!nm) return;
+    var code = String(nm.code || '').trim().toUpperCase();
+    if (!code) { r.new_magazine = null; return; }
+    var hit = (state.data.magazines || []).filter(function (x) { return String(x.code || '').toUpperCase() === code; })[0];
+    if (hit) { r.magazine_id = hit.id; r.new_magazine = null; return; }
+    var row = { id: newId('mag'), code: code, slots: 24, active: true, version: 1 };
+    var mp = D.validateEntry('magazines', row, state.data);
+    assert(!mp.length, mp.join('. '), 'invalid', mp);
+    state.data.magazines.push(row);
+    audit('magazine', row.id, 'create', null, null, row.code, 'Registered with a request');
+    r.magazine_id = row.id;
+    r.new_magazine = null;
+  }
+
+  function registerNewType(r) {
+    var nt = r.new_type;
+    if (!nt) return;
+    var name = String(nt.name || '').trim();
+    if (!name) { r.new_type = null; return; }
+    var hit = (state.data.measurement_types || []).filter(function (x) {
+      return x.tool_id === r.tool_id && D.normalizeName(x.name) === D.normalizeName(name);
+    })[0];
+    if (hit) { r.type_id = hit.id; r.new_type = null; return; }
+    var row = { id: newId('mtype'), tool_id: r.tool_id, name: name, active: true, version: 1 };
+    var tp = D.validateEntry('measurement_types', row, state.data);
+    assert(!tp.length, tp.join('. '), 'invalid', tp);
+    state.data.measurement_types.push(row);
+    audit('measurement_type', row.id, 'create', null, null, row.name, 'Registered with a request');
+    r.type_id = row.id;
+    r.new_type = null;
+  }
+
+  function nextPriorityCode() {
+    var used = {};
+    (state.data.priorities || []).forEach(function (p) { used[String(p.code || '').toUpperCase()] = true; });
+    var level = (state.data.priorities || []).reduce(function (m, p) { return isNum(p.level) && p.level > m ? p.level : m; }, 0) + 1;
+    var code = 'P' + level;
+    while (used[code]) { level += 1; code = 'P' + level; }
+    return { code: code, level: level };
+  }
+
+  function registerNewPriority(r) {
+    var np = r.new_priority;
+    if (!np) return;
+    var name = String(np.name || '').trim();
+    if (!name) { r.new_priority = null; return; }
+    var hit = (state.data.priorities || []).filter(function (x) { return D.normalizeName(x.name) === D.normalizeName(name); })[0];
+    if (hit) { r.priority_id = hit.id; r.new_priority = null; return; }
+    var meta = nextPriorityCode();
+    var row = { id: newId('prio'), code: meta.code, name: name, description: '', level: meta.level, is_default: false, needs_reason: false, active: true, version: 1 };
+    var pp = D.validateEntry('priorities', row, state.data);
+    assert(!pp.length, pp.join('. '), 'invalid', pp);
+    state.data.priorities.push(row);
+    audit('priority', row.id, 'create', null, null, row.name, 'Registered with a request');
+    r.priority_id = row.id;
+    r.new_priority = null;
+  }
+
+  /** A part number typed in the request is registered when the request is sent. */
+  function registerNewPartNumber(r) {
+    var np = r.new_part_number;
+    if (!np) return;
+    var code = String(np.code || '').trim().toUpperCase();
+    if (!code) { r.new_part_number = null; return; }
+    var hit = (state.data.part_numbers || []).filter(function (x) { return String(x.code || '').toUpperCase() === code; })[0];
+    if (hit) { r.part_number_id = hit.id; r.new_part_number = null; return; }
+    assert(r.project_id, 'Pick the project before adding a new part number', 'invalid');
+    var pn = { id: newId('pn'), code: code, description: '', project_ids: [r.project_id], active: true, version: 1 };
+    var pp = D.validateEntry('part_numbers', pn, state.data);
+    assert(!pp.length, pp.join('. '), 'invalid', pp);
+    state.data.part_numbers.push(pn);
+    audit('part_number', pn.id, 'create', null, null, pn.code, 'Registered with a request');
+    r.part_number_id = pn.id;
+    r.new_part_number = null;
+  }
+
+  /** A process step typed in the request is registered when the request is sent. */
+  function registerNewProcessStep(r) {
+    var name = String(r.process_step_other || '').trim();
+    if (!name) return;
+    var key = D.normalizeName(name);
+    var hit = (state.data.process_steps || []).filter(function (x) { return D.normalizeName(x.name) === key; })[0];
+    if (hit) { r.process_step_id = hit.id; r.process_step_other = ''; return; }
+    var maxSort = (state.data.process_steps || []).reduce(function (m, x) {
+      return isNum(x.sort) && x.sort > m ? x.sort : m;
+    }, 0);
+    var step = { id: newId('pstep'), name: name, active: true, sort: maxSort + 1, version: 1 };
+    var sp = D.validateEntry('process_steps', step, state.data);
+    assert(!sp.length, sp.join('. '), 'invalid', sp);
+    state.data.process_steps.push(step);
+    audit('process_step', step.id, 'create', null, null, step.name, 'Registered with a request');
+    r.process_step_id = step.id;
+    r.process_step_other = '';
+  }
+
   function submitRequest(o) {
     return guard(function () {
       var me = requireUser();
@@ -1252,7 +1395,14 @@ window.MRT.store = (function () {
       assert(!problems.length, problems.join('. '), 'invalid', problems);
       var tool = byId('tools', x.next.tool_id);
       var taken = state.data.requests.map(function (r) { return r.request_no; });
+      registerNewProject(x.next);
+      registerNewType(x.next);
+      registerNewPriority(x.next);
+      registerNewBuildup(x.next);
+      registerNewMagazine(x.next);
       registerNewLot(x.next, me);
+      registerNewPartNumber(x.next);
+      registerNewProcessStep(x.next);
       var res = putDraft(x);
       var r = res.row;
       r.request_no = D.nextRequestNo(tool.code, D.viennaYmd(Date.now()), taken);
@@ -1337,6 +1487,24 @@ window.MRT.store = (function () {
         ? t.label + ' is not possible while the request is ' + D.REQUEST_STATUS_LABEL[r.status]
         : 'Only ' + (t.who === 'measurer' ? 'the tool\'s quality engineers or an admin' : 'the requester or an admin') + ' can do this', 'not_allowed');
       x = x || {};
+      if (action === 'hold') {
+        var typedReason = String(x.hold_reason || '').trim();
+        if (!x.hold_reason_id && typedReason) {
+          var hit = (state.data.hold_reasons || []).filter(function (h) { return D.normalizeName(h.name) === D.normalizeName(typedReason); })[0];
+          if (hit) x.hold_reason_id = hit.id;
+          else {
+            var maxSort = (state.data.hold_reasons || []).reduce(function (m, h) {
+              return isNum(h.sort) && h.sort > m ? h.sort : m;
+            }, 0);
+            var row = { id: newId('hold'), name: typedReason, active: true, sort: maxSort + 1, version: 1 };
+            var hp = D.validateEntry('hold_reasons', row, state.data);
+            assert(!hp.length, hp.join('. '), 'invalid', hp);
+            state.data.hold_reasons.push(row);
+            audit('hold_reason', row.id, 'create', null, null, row.name, 'Registered from request action');
+            x.hold_reason_id = row.id;
+          }
+        }
+      }
       var problems = D.actionProblems(action, x, state.data);
       assert(!problems.length, problems.join('. '), 'invalid', problems);
       var from = r.status;
@@ -1469,10 +1637,19 @@ window.MRT.store = (function () {
       var next = Object.assign(clone(r), f);
       var problems = D.requestProblems(next, state.data, { submit: true });
       assert(!problems.length, problems.join('. '), 'invalid', problems);
+      registerNewProject(next);
+      registerNewType(next);
+      registerNewPriority(next);
+      registerNewBuildup(next);
+      registerNewMagazine(next);
+      registerNewLot(next, me);
+      registerNewPartNumber(next);
+      registerNewProcessStep(next);
       var changed = REQUEST_FIELDS.filter(function (k) { return k !== 'tool_id' && k !== 'duplicated_from' && JSON.stringify(r[k]) !== JSON.stringify(next[k]); });
       assert(changed.length, 'Nothing was changed', 'no_change');
-      registerNewLot(next, me);
-      changed = changed.filter(function (k) { return k !== 'new_lot'; });
+      changed = changed.filter(function (k) {
+        return ['new_lot', 'new_part_number', 'new_project', 'new_buildup', 'new_magazine', 'new_type', 'new_priority'].indexOf(k) === -1;
+      });
       if (changed.indexOf('lot_id') === -1 && next.lot_id !== r.lot_id) changed.push('lot_id');
       var lines = changed.map(function (k) { return describeChange(k, r[k], next[k]); });
       changed.forEach(function (k) { audit('request', r.id, 'update', k, r[k], next[k], o.reason.trim()); r[k] = next[k]; });

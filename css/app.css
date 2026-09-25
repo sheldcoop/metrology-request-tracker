@@ -1289,7 +1289,9 @@ table.grid tbody tr { scroll-margin: 80px; }
 .wz-step.is-open .wz-sum { display: none; }
 .wz-body { display: grid; gap: 14px; padding: 4px 14px 14px 52px; }
 .wz-next { display: flex; justify-content: flex-end; }
-.wz-where { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: start; }
+.wz-where { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .9fr); gap: 20px; align-items: start; }
+.wz-where > .req-part { min-width: 0; }
+.wz-layers { align-content: start; }
 @media (max-width: 1100px) { .wz-where { grid-template-columns: minmax(0, 1fr); } }
 .wz-review { list-style: none; display: grid; gap: 8px; margin: 0; padding: 0; }
 .wz-rev { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 10px;
@@ -1299,10 +1301,16 @@ table.grid tbody tr { scroll-margin: 80px; }
 .wz-rev.is-missing { border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
 .wz-rev.is-missing > svg { color: var(--warning); }
 .wz-ready { margin: 0; color: var(--ok-fg); font-weight: 600; }
-/* Project · Lot · Build-up on one line (F-5) */
-.lot-line { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: start; }
-.lot-line-dot { padding-top: 30px; color: var(--fg-faint); font-weight: 700; }
-@media (max-width: 900px) { .lot-line { grid-template-columns: minmax(0, 1fr); } .lot-line-dot { display: none; } }
+/* Project | Part Number | Lot | Build-up in one row */
+.lot-main-row { display: grid; grid-template-columns: minmax(220px, 2.2fr) minmax(180px, 1.5fr) minmax(120px, .9fr) minmax(100px, .7fr); gap: 10px; align-items: start; }
+@media (max-width: 1100px) { .lot-main-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .lot-main-row { grid-template-columns: minmax(0, 1fr); } }
+
+/* Panels section row: mode | entry | process step */
+.panels-row { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(220px, 1fr); gap: 10px; align-items: start; }
+.panels-mode { display: grid; gap: 6px; align-content: start; min-width: 170px; }
+.panels-entry { min-width: 0; }
+@media (max-width: 1100px) { .panels-row { grid-template-columns: minmax(0, 1fr); } .panels-mode { min-width: 0; } }
 /* Hirata IDs as chips, layers as chips to tick (F-1, F-2) */
 .panel-chips, .layer-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 24px; }
 .panel-chip { padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-2); font-size: 12px; }

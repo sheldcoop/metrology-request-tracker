@@ -375,27 +375,35 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const isOpenStep = k => !stepOf(k).querySelector('.wz-body').hidden;
   const segPick = (label, v) => { const i = M().querySelectorAll('.seg').filter(x => x.getAttribute('aria-label') === label)[0].querySelectorAll('input').filter(x => x.value === v)[0]; i.checked = true; i.dispatch('change'); };
   const mag1 = MRT.store.list('magazines')[0];
-  check('New request, tool first: five tool drawings in their own bank (not the board pills), equal cards, no repeated names (AOI / AOI), five steps + Review, only the tool step open', $$('#main .tool-pick-opt').length === 5 && !!$('#main .tool-bench .tool-bank') && !$('#main .tool-pick') && $$('#main .tool-pick-opt').every(b => !!b.querySelector('.led')) && $$('#main .tool-pick-opt').every(b => { const n = b.querySelector('.tool-pick-name'); return !n || n.textContent !== b.querySelector('b').textContent; }) && $$('#main .wz-step').length === 6 &&
+      check('New request, tool first: five tool drawings in their own bank (not the board pills), equal cards, no repeated names (AOI / AOI), four steps + Review, only the tool step open', $$('#main .tool-pick-opt').length === 5 && !!$('#main .tool-bench .tool-bank') && !$('#main .tool-pick') && $$('#main .tool-pick-opt').every(b => !!b.querySelector('.led')) && $$('#main .tool-pick-opt').every(b => { const n = b.querySelector('.tool-pick-name'); return !n || n.textContent !== b.querySelector('b').textContent; }) && $$('#main .wz-step').length === 5 &&
         isOpenStep('tool') && !isOpenStep('lot') && /Pick the tool first/.test(mainText()));
   buttonByText(M(), 'Submit').click(); await settle();
   check('Submit with nothing picked lists what is missing', !$('#main .req-errors').hidden && /Pick a tool/.test($('#main .req-errors').textContent));
   toolOpt('FIB').click(); await settle();
   check('picking FIB: its types, the destructive tick, afterwards fixed to scrap', !!fieldIn(M(), 'Measurement type') &&
-        /destroys these panels/.test(mainText()) && fieldIn(M(), 'After measuring').value === 'scrap');
+        /destroys these panels/.test(mainText()) && fieldIn(M(), 'Where the panels go after measuring').value === 'Lab may scrap them');
   check('...and its extra field (Cut side)', !!fieldIn(M(), 'Cut side'));
-  setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id); await settle();
+      setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].name); await settle();
+  setVal(fieldIn(M(), 'Cut side'), fieldIn(M(), 'Cut side').querySelectorAll('option')[1].value); await settle();
+  toolOpt('QVM').click(); await settle();
+  check('switching tool resets tool-specific type/extras and destructive state', fieldIn(M(), 'Measurement type').value === '' && !fieldIn(M(), 'Cut side') &&
+        !/destroys these panels/.test(mainText()) && fieldIn(M(), 'Where the panels go after measuring').value === 'Back to me');
+  toolOpt('FIB').click(); await settle();
+  check('...switching back to FIB starts its type/extras clean', fieldIn(M(), 'Measurement type').value === '' && !!fieldIn(M(), 'Cut side') &&
+        /destroys these panels/.test(mainText()) && fieldIn(M(), 'Where the panels go after measuring').value === 'Lab may scrap them');
+      setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].name); await settle();
   buttonByText(M(), 'Next: Lot and panels').click(); await settle();
   check('Next opens step 2; step 1 folds into one line with the tool and type, ticked', isOpenStep('lot') && !isOpenStep('tool') &&
         /^FIB/.test(stepOf('tool').querySelector('.wz-sum').textContent) && stepOf('tool').classList.contains('is-done'));
   setVal(fieldIn(M(), 'Lot'), '18178'); await settle();
   check('typing a registered lot finds it - and fills in nothing: project, lot, build-up are separate (F-6)', /Lot found/.test(mainText()) &&
         !fieldIn(M(), 'Project').disabled && fieldIn(M(), 'Build-up').value === '');
-  setVal(fieldIn(M(), 'Project'), c4f.id); await settle();
-  check('...the project offers its part numbers', !!fieldIn(M(), 'Part number') && fieldIn(M(), 'Part number').querySelectorAll('option').some(o => o.value === pn77.id));
-  setVal(fieldIn(M(), 'Part number'), pn77.id); await settle();
+  setVal(fieldIn(M(), 'Project'), c4f.code); await settle();
+  setVal(fieldIn(M(), 'Part number'), pn77.code); await settle();
+  check('...part number is searchable and accepted', fieldIn(M(), 'Part number').value === pn77.code);
   const lyAll = $$('#main .layer-chip').length;
   setVal(fieldIn(M(), 'Build-up'), bu1.id); await settle();
-  check('...no build-up: layers up to 5F / 5B; BU-01 picked: up to 2F / 2B', lyAll === 10 && $$('#main .layer-chip').length === 4);
+      check('...no build-up: all layers; BU-01 picked: only 2F / 2B', lyAll === 10 && $$('#main .layer-chip').length === 2);
   setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
   check('Hirata IDs: "3252-3255" becomes four chips, and the traveller card shows them', $$('#main .panel-chip').length === 4 &&
         /3252, 3253, 3254, 3255/.test($('#main .traveller-mini').textContent) && /FIB-YYMMDD-NN/.test($('#main .traveller-mini').textContent));
@@ -405,13 +413,13 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('each typed Hirata ID shows its copper panel to the right (H-3)', $$('#main .panel-chips .panel-hirata-item').length === 4 &&
         $$('#main .panel-chips .panel-hirata-item')[0].children[1].classList.contains('cu-panel'));
   const lyNames = $$('#main .layer-chip').map(b => b.textContent);
-  check('layers come from the build-up: 1FCO / 1BCO core, then F and B per layer', lyNames[0] === '1FCO' && lyNames[1] === '1BCO' && lyNames.indexOf('2F') !== -1);
+  check('layers come from recognised build-up values (BU-01 -> 2F / 2B)', lyNames.length === 2 && lyNames[0] === '2F' && lyNames[1] === '2B');
   $$('#main .layer-chip').filter(b => b.textContent === '2F')[0].click(); await settle();
   check('...a click ticks one; the card shows it', $$('#main .layer-chip.is-on').length === 1 && /2F/.test($('#main .traveller-mini').textContent));
   buttonByText(M(), 'Submit').click(); await settle();
   const errs = $('#main .req-errors').textContent;
-  check('Submit: still missing where the panels are and the destructive tick - and step 3 opens', /where the panels are now/.test(errs) && /tick that they may be scrapped/.test(errs) &&
-        !/Pick a tool/.test(errs) && isOpenStep('where') && stepOf('where').classList.contains('is-missing'));
+  check('Submit: still missing where the panels are and the destructive tick - and the lot step stays open', /where the panels are now/.test(errs) && /tick that they may be scrapped/.test(errs) &&
+        !/Pick a tool/.test(errs) && isOpenStep('lot') && stepOf('lot').classList.contains('is-missing'));
   setVal(fieldIn(M(), 'Magazine'), mag1.id); await settle();
   const mzs = () => $('#main .wz-mag').querySelectorAll('.mz-slot');
   check('picking the magazine draws it from the front: 24 slots', mzs().length === 24);
@@ -451,8 +459,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
   check('"Copy this request" prefills tool, lot, panels and layers - not where the panels are', $$('#main .tool-pick-opt.is-on').length === 1 &&
         fieldIn(M(), 'Lot').value === '18178' && fieldIn(M(), 'Hirata IDs').value === '3252, 3253, 3254, 3255' && $$('#main .layer-chip.is-on').length === 1 &&
-        fieldIn(M(), 'Magazine').value === '' && fieldIn(M(), 'Or a note').value === '');
-  check('...and opens at the first step that needs something: where the panels are', isOpenStep('where'));
+        fieldIn(M(), 'Magazine').value === '' && fieldIn(M(), 'Where the panels are now').value === '');
+  check('...and opens at the first step that needs something: lot and panels', isOpenStep('lot'));
   win.setHash('#/new'); await settle();
   toolOpt('QVM').click(); await settle();
   buttonByText(doc.getElementById('main'), 'Save draft').click(); await settle();
@@ -474,12 +482,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('a lot number that is not one is named at the field', /Lot numbers are digits/.test(mainText()));
   setVal(fieldIn(M(), 'Lot'), '19170'); await settle();
   check('...a new one says "New lot", the project and build-up stay open to pick', /New lot/.test(mainText()) && !fieldIn(M(), 'Project').disabled);
-  setVal(fieldIn(M(), 'Project'), c4f.id); await settle(); setVal(fieldIn(M(), 'Build-up'), bu1.id); await settle();
-  segPick('Panels', 'count'); await settle();
-  check('..."Just how many" asks a number, 2 by default', fieldIn(M(), 'How many panels').value === '2');
-  setVal(fieldIn(M(), 'How many panels'), '3'); await settle();
-  setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id)[0].id); await settle();
-  setVal(fieldIn(M(), 'Or a note'), 'with Anna'); setVal(fieldIn(M(), 'Purpose'), 'Pad size');
+      setVal(fieldIn(M(), 'Project'), c4f.code); await settle(); setVal(fieldIn(M(), 'Build-up'), bu1.id); await settle();
+      segPick('Hirata IDs / How many', 'count'); await settle();
+      check('..."How many" asks a number, 2 by default', fieldIn(M(), 'Panel entry').value === '2');
+      setVal(fieldIn(M(), 'Panel entry'), '3'); await settle();
+      setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id)[0].name); await settle();
+      setVal(fieldIn(M(), 'Where the panels are now'), 'with Anna'); setVal(fieldIn(M(), 'Purpose'), 'Pad size');
   buttonByText(M(), 'Submit').click(); await settle();
   if (openDialog()) { buttonByText(openDialog(), 'Submit anyway').click(); await settle(); }
   const lotNew = MRT.store.data().lots.filter(l => l.lot_number === '19170')[0];
@@ -496,7 +504,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   // --- the workflow on the request page (M3 step 1)
   buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
-  setVal(fieldIn(M(), 'Or a note'), 'Magazine 15, top shelf');
+      setVal(fieldIn(M(), 'Where the panels are now'), 'Magazine 15, top shelf');
   const dT2 = tickIn(doc.getElementById('main'), 'I know FIB'); dT2.checked = true; dT2.dispatch('change');
   buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
   if (openDialog()) { buttonByText(openDialog(), 'Submit anyway').click(); await settle(); }
@@ -505,11 +513,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...the requester sees Edit request', !!buttonByText(doc.getElementById('main'), 'Edit request'));
   buttonByText(doc.getElementById('main'), 'Edit request').click(); await settle();
   check('Edit request opens the form, tool locked', mainText().indexOf('Edit ' + req2.request_no) !== -1 && $$('#main .tool-pick-opt').filter(b => b.disabled).length === 4);
-  $$('#main .layer-chip').filter(b => b.textContent === '1FCO')[0].click(); await settle();
+      $$('#main .layer-chip').filter(b => b.textContent === '2B')[0].click(); await settle();
   buttonByText(doc.getElementById('main'), 'Save changes').click(); await settle();
   const edlg = openDialog(); setVal(edlg.querySelector('textarea') || edlg.querySelector('input'), 'Core too');
   buttonByText(edlg, 'Save changes').click(); await settle();
-  check('...saved with a reason, the timeline says what changed', MRT.store.byId('requests', req2.id).layers.join() === '1FCO,2F' && /layers 2F -> 1FCO, 2F\. Reason: Core too/.test(mainText()));
+      check('...saved with a reason, the timeline says what changed', MRT.store.byId('requests', req2.id).layers.join() === '2F,2B' && /layers 2F -> 2F, 2B\. Reason: Core too/.test(mainText()));
   const meP = MRT.store.currentUser().id;
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
   check('Olga sees Accept, Start, Hold, Needs clarification, Panels received', ['Accept', 'Start', 'Hold', 'Needs clarification', 'Panels received'].every(t => !!buttonByText($('#main .req-actbar'), t)));
