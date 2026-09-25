@@ -29,7 +29,7 @@ window.MRT.views.board = (function () {
     { key: 'completed', label: 'Completed (7 days)', has: ['completed'] }
   ];
   var WEEK = 7 * 86400000;
-  var view = { pick: null };   // 'all' | 'mine' | a tool id - remembered per person on this PC
+  var view = { pick: null, only: 'all' };   // pick: 'all' | 'mine' | a tool id (remembered); only: 'all' | 'linestop' | 'late' | 'me'   // 'all' | 'mine' | a tool id - remembered per person on this PC
   var clocks = [];
   var open = null;       // the side panel, when one is open
 
@@ -52,6 +52,9 @@ window.MRT.views.board = (function () {
     });
     main.appendChild(ui.pageHead('Board', 'Every open request by tool. Click a card to see it and act on it here.'));
     main.appendChild(toolPicker(tools, mineTools, reqs));
+    var shown = reqs.filter(function (r) { return passes(r, me, now, cal); });
+    main.appendChild(onlyPicker(reqs, me, now, cal));
+    reqs = shown;
 
     if (!lanes.length) {
       main.appendChild(ui.emptyState({ icon: 'wrench', title: 'No tools yet', text: 'Add the lab\'s tools under Settings > Tools; each gets its own lane here.' }));
@@ -86,6 +89,30 @@ window.MRT.views.board = (function () {
     });
     main.appendChild(ui.el('div', { class: 'board-wrap' }, grid));
     tick();
+  }
+
+  var ONLY = [{ key: 'all', label: 'Everything' }, { key: 'linestop', label: 'Line stop' }, { key: 'late', label: 'Late' }, { key: 'me', label: 'Assigned to me' }];
+
+  /** The second filter row: priority / lateness / person (P5-5). */
+  function passes(r, me, now, cal) {
+    switch (view.only) {
+      case 'linestop': return D.isOpen(r) && levelOf(r) === 1;
+      case 'late': return D.isOpen(r) && D.isLate(r, now, cal);
+      case 'me': return r.assigned_to === me.id;
+      default: return true;
+    }
+  }
+  function onlyPicker(reqs, me, now, cal) {
+    var keep = view.only;
+    return ui.el('div', { class: 'tool-picks is-filters', role: 'group', 'aria-label': 'Show only' }, [ui.el('span', { class: 'muted tool-picks-label', text: 'Show' })].concat(ONLY.map(function (o) {
+      view.only = o.key;
+      var n = reqs.filter(function (r) { return D.isOpen(r) && passes(r, me, now, cal); }).length;
+      view.only = keep;
+      var on = keep === o.key;
+      return ui.el('button', { type: 'button', class: 'tool-pick' + (on ? ' is-on' : '') + (o.key === 'linestop' && n ? ' is-alarm' : ''), 'aria-pressed': on ? 'true' : 'false',
+        dataset: { only: o.key }, onclick: function () { view.only = o.key; window.MRT.app.route(); } },
+        [ui.el('span', { text: o.label }), ui.el('span', { class: 'tool-pick-n num', text: String(n) })]);
+    })));
   }
 
   /** The tool picker on top: All, My tools, or one tool (with its open count). */
