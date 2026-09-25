@@ -39,6 +39,7 @@ re-render a panel or rebuild data in a tick.
 | one input | `ui.field({label, type, unit, hint, options, multiline})` + `setState('valid'|'invalid', msg)` |
 | a form (dialogs, later the request form) | `ui.form(specs, values)` -> `values()`, `setError(key, msg)`; kinds: text, longtext, number, date, email, password, path, select, check, checks; `showIf` |
 | a tool drawing | `ui.toolGlyph(key, {size, state: 'idle'|'live'|'maint'|'off', label})` |
+| a Hirata code | `ui.copperPanel({columns, text, size})`, `ui.hirataFields(fields)`, `ui.hirataGrid({...})` - dots and rules from `domain.hirata*` |
 | a request as its traveller card | `ui.traveller(model, {size: 'full'|'mini'|'card'|'slip'})` - plain values in, never a second copy |
 | a status | `ui.statusChip(status)`, `ui.led(status, label)` |
 | a number that matters | `ui.kpiTile({label, value, status, icon, sub})` |
