@@ -1758,3 +1758,17 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .panel-hirata-item .mono { font-weight: 700; }
 @media (max-width: 760px) { .hirata-ref { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 
+/* --- Analytics (M5) ------------------------------------------------------ */
+.an-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 12px; }
+.an-filters .ifield { margin-bottom: 0; min-width: 160px; }
+.an-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.an-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px; margin-top: 16px; }
+.an-body > .panel + .panel, .an-body > .an-grid + .panel, .an-body > .panel + .an-grid { margin-top: 16px; }
+.kpi-tile.is-link { cursor: pointer; }
+.kpi-tile.is-link:hover { transform: translateY(-2px); border-color: var(--line-hi); }
+.kpi-tile.is-link:focus-visible { outline: var(--focus-w) solid var(--accent); outline-offset: 2px; }
+.link-btn { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px; text-align: left; }
+.link-btn:hover { color: var(--fg); }
+@media (max-width: 760px) { .an-grid { grid-template-columns: 1fr; } }
+

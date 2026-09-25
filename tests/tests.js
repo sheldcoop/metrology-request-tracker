@@ -406,11 +406,13 @@
     eq('turnaround median 7 h, on time 1 of 2 dated = 50 %', [an.turnaround.median_ms / H, an.turnaround.dated, an.turnaround.on_time_pct], [7, 2, 50]);
     eq('turnaround per tool', an.turnaround_by_tool.map(function (x) { return x.tool_id + ':' + x.n; }).sort(), ['tF:1', 'tQ:1']);
     eq('Line stop: 2 submitted, response median 2 h', [an.line_stop.n, an.line_stop.response_median_ms / H], [2, 2]);
-    eq('on-hold reasons', an.hold_reasons, [{ reason_id: 'hr1', n: 2 }]);
+    eq('on-hold reasons, with the requests behind the count', an.hold_reasons, [{ reason_id: 'hr1', n: 2, ids: ['ra', 'rb'] }]);
     eq('clarification rate FIB: 1 of 2', an.clarification_by_tool.filter(function (x) { return x.tool_id === 'tF'; }).map(function (x) { return x.with_clarification + '/' + x.n; }), ['1/2']);
     eq('clarification by BKM, own/none grouped', an.clarification_by_bkm.map(function (x) { return x.bkm_id; }).sort(), ['b1', 'none']);
-    eq('requests per month by project', an.per_month_project, [{ month: '2026-09', project_id: 'pC', n: 2 }, { month: '2026-09', project_id: 'pS', n: 1 }]);
-    eq('open by assignee', an.open_by_assignee, [{ key: 'uQ', n: 1 }]);
+    eq('requests per month by project', an.per_month_project.map(function (x) { return [x.month, x.project_id, x.n]; }), [['2026-09', 'pC', 2], ['2026-09', 'pS', 1]]);
+    eq('...each count knows its requests (click-through)', an.per_month_project[0].ids.sort(), ['ra', 'rd']);
+    eq('open by assignee', an.open_by_assignee, [{ key: 'uQ', n: 1, ids: ['rd'] }]);
+    eq('the top counts know their requests', [an.ids.done.sort(), an.ids.open_now], [['ra', 'rb'], ['rd']]);
     ok('backlog: one row per week, the last week has the open request', an.backlog.length >= 4 && an.backlog[an.backlog.length - 1].open === 1);
     eq('filter by tool', D.analytics(aData, { tool_id: 'tQ' }, aOpt).counts.submitted, 1);
     eq('filter by project', D.analytics(aData, { project_id: 'pC' }, aOpt).counts.submitted, 2);

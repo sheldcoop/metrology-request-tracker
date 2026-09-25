@@ -175,6 +175,19 @@ window.MRT.views.help = (function () {
       ],
       link: ['New request', '#/new'] },
 
+    { id: 'analytics', title: 'Analytics', icon: 'analytics',
+      intro: 'Numbers about the lab, in lab time (lab days and hours, holidays out). Click any number, bar or row to see the requests behind it - with Download.',
+      steps: [
+        'Pick the range (default: the last 90 days), a tool or a project at the top; "Last 90 days" resets.',
+        'My work (quality engineers): your tools\' open requests, late, due today, on hold and why, what waits on you, what you finished per day.',
+        'My requests (engineers): your open requests with the expected finish, "Where is my lot" (every request of a lot on every tool), and the typical turnaround per tool.',
+        'Lab and Management (Manager role only): backlog per week, turnaround median and p90 with hold time apart, on time, load per quality engineer, clarification and reopen rates, on-hold reasons, requests per month by project, Line stop response, demand per tool.',
+        'Every chart and table has Download: an Excel file (or CSV). Charts open full screen with the button at the top right.'
+      ],
+      tips: ['Turnaround = submitted to completed, in lab hours, with the time On hold taken out.', 'On time = completed by the end of the needed-by lab day. Requests without a date are not counted.',
+             'Capacity per tool is not set yet, so Management shows demand only.'],
+      link: ['Open Analytics', '#/analytics'] },
+
     { id: 'hirata', title: 'Hirata tools (panel codes)', icon: 'hirata',
       intro: 'Every panel carries a Hirata code: a pattern of drilled dots. Hirata tools reads it and draws it - nothing is saved.',
       steps: [
@@ -299,7 +312,7 @@ window.MRT.views.help = (function () {
     { id: 'coming', title: 'What comes next', icon: 'activity',
       steps: [
         'Done: M1 (shell, Settings, Help), M2 (lots, the request form, the request page), M3 (the workflow, My queue, My requests, the board) and M4 (notifications: the bell, pop-ups, Outlook drafts).',
-        'Next: M5 - analytics and exports. Then M6: import of the old request list. Later: the Hirata code decoder on lots.'
+        'M5: Analytics and exports (Excel). Next: M6 - import of the old request list. Later: attaching decoded Hirata panels to a lot.'
       ] }
   ];
 
