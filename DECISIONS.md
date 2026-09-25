@@ -604,3 +604,9 @@ never the only signal - the text/label says the same thing.
   `ui.statusIcon(status)` (the icon beside words already shown), in js/ui/core.js. Every status chip
   of the screens goes through it; KPI tiles (Analytics, Lab status, Health) show the status icon
   before their label; Lab status "1 late" carries the clock. A new screen cannot forget the icon.
+- **S-1** (2026-09-25, first-day walkthrough on a fresh folder) The setup to-do list (Health) is in the
+  order a new admin works through it - tools and people, the lab calendar, the lists, a second admin -
+  with one line per tool ("FIB: no primary quality engineer, no backup quality engineer, no results
+  folder") instead of three (23 lines became 14). The 20 sample magazines are on it now; the part-number
+  line no longer talks about lots (F-6). While quality engineers are missing, Health says how colleagues
+  get into the app (open the launcher once, then an admin ticks their roles).

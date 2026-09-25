@@ -987,7 +987,11 @@
     function codes(list) { return list.map(function (x) { return x.code; }); }
     function countOf(list, code) { return list.filter(function (x) { return x.code === code; }).length; }
     ok('fresh file: sample types and BKMs are on the list', codes(todo).indexOf('sample_types') !== -1 && codes(todo).indexOf('sample_bkms') !== -1);
-    eq('...every tool lacks a primary operator, backup and results root', [countOf(todo, 'no_primary'), countOf(todo, 'no_backup'), countOf(todo, 'no_results_root')], [5, 5, 5]);
+    eq('...one line per tool, saying what it lacks: primary, backup, results folder', [countOf(todo, 'tool_setup'), todo.filter(function (x) { return x.code === 'tool_setup'; })[0].missing,
+       /^HRM: no primary quality engineer, no backup quality engineer, no results folder$/.test(todo.filter(function (x) { return x.code === 'tool_setup'; })[0].text)], [5, ['primary', 'backup', 'results_root'], true]);
+    ok('...in first-day order: tools first, then the calendar, then reference data (sample magazines too), a second admin last',
+       codes(todo).indexOf('tool_setup') < codes(todo).indexOf('calendar_unconfirmed') && codes(todo).indexOf('calendar_unconfirmed') < codes(todo).indexOf('sample_types') &&
+       codes(todo).indexOf('sample_magazines') !== -1 && codes(todo)[codes(todo).length - 1] === 'one_admin');
     ok('...calendar unconfirmed, no closing days', codes(todo).indexOf('calendar_unconfirmed') !== -1 && codes(todo).indexOf('no_closing_days') !== -1);
     ok('...next year\'s holidays are there already', codes(todo).indexOf('no_holidays_next_year') === -1);
     ok('...a single admin is flagged', codes(todo).indexOf('one_admin') !== -1);
@@ -1004,6 +1008,7 @@
     hs2.part_numbers.push({ id: 'pnx', code: 'PN-1', project_ids: [hs2.projects[0].id], active: true });
     hs2.process_steps.push({ id: 'psx', name: 'After desmear', sort: 1, active: true });
     hs2.lot_fields.forEach(function (f) { delete f.sample; });
+    hs2.magazines.forEach(function (m) { delete m.sample; });
     eq('all set up: the list is empty', D.setupTodo(hs2, { today_ymd: '2026-09-24', calendar_confirmed: true }), []);
     ok('late in the year without next year\'s holidays: flagged', codes(D.setupTodo(hs2, { today_ymd: '2027-11-01', calendar_confirmed: true })).indexOf('no_holidays_next_year') !== -1);
     hs2.users.push({ id: 'u4', name: 'New Nora', roles: ['engineer'], active: true, needs_review: true });

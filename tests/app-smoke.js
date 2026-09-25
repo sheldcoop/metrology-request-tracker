@@ -204,7 +204,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('a wrong PIN is refused', /Wrong PIN/.test(mainText()));
   pinBox.value = '2468'; doc.getElementById('main').querySelector('form').dispatch('submit'); await settle();
   check('the right PIN opens Health first', /Still to do before real use/.test(mainText()) && /Data health/.test(mainText()));
-  check('...listing sample entries, missing quality engineers, the calendar', /still sample/.test(mainText()) && /FIB has no primary quality engineer/.test(mainText()) && /not confirmed/.test(mainText()));
+  check('...listing each tool on one line, the calendar, sample entries and sample magazines', /still sample/.test(mainText()) && /FIB: no primary quality engineer, no backup quality engineer/.test(mainText()) && /magazines are sample numbers/.test(mainText()) && /not confirmed/.test(mainText()));
   check('...with links to fix each', $$('#main a').filter(a => /^#\/settings\/tools/.test(a.getAttribute('href') || '')).length > 5);
   const todoBefore = MRT.store.health().todo.length;
 

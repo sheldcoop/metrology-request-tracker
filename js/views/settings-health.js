@@ -61,7 +61,10 @@
 
     body.appendChild(k.panel('Still to do before real use', 'check', [], h.todo.length ? [
       ui.el('p', { class: 'muted', text: 'The office checklist (OFFICE_SETUP.md), kept up to date by the app. ' +
-        'Each line goes away by itself once it is done.' }),
+        'Each line goes away by itself once it is done. Work from the top: tools and people first, then the lab calendar, then the lists.' }),
+      h.todo.some(function (x) { return x.code === 'tool_setup' && (x.missing || []).indexOf('primary') !== -1; }) && store.list('users').length < 3
+        ? ui.el('p', { class: 'setup-note', text: 'Quality engineers first need to be in the app: ask each colleague to open the launcher (Metrology Tool) once - ' +
+            'they add themselves and show up in People, where you tick their roles. Then pick them per tool.' }) : null,
       k.table(['', 'What', { label: '', cls: 'actions' }], h.todo.map(itemRow))
     ] : ui.emptyState({ icon: 'check', title: 'Set up', text: 'Nothing left from the setup checklist.' })));
 

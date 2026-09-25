@@ -1496,46 +1496,56 @@ window.MRT.domain = (function () {
    * @param {Object} o        {today_ymd, calendar_confirmed}
    */
   function setupTodo(data, o) {
+    // In the order a new admin should work through it (first-day walkthrough, 2026-09-25):
+    // 1 people and tools (without a quality engineer requests reach nobody), 2 the lab calendar
+    // (the countdowns run on it), 3 the reference data people pick from, 4 a second admin.
     var out = [];
     var today = (o && o.today_ymd) || '1970-01-01';
-    function add(code, text, tab, id) { out.push({ severity: 'todo', code: code, text: text, tab: tab, id: id || null }); }
+    function add(code, text, tab, id, more) { out.push(Object.assign({ severity: 'todo', code: code, text: text, tab: tab, id: id || null }, more || {})); }
     var tools = (data.tools || []).filter(function (t) { return t.active !== false; });
 
-    var sTypes = (data.measurement_types || []).filter(function (m) { return m.sample; }).length;
-    var sBkms = (data.bkms || []).filter(function (b) { return b.sample; }).length;
-    var sFields = (data.tool_fields || []).filter(function (f) { return f.sample; }).length;
-    if (sTypes) add('sample_types', sTypes + ' measurement type' + (sTypes === 1 ? ' is' : 's are') + ' still sample (made up) - check them with the engineers', 'tools');
-    if (sBkms) add('sample_bkms', sBkms + ' BKM' + (sBkms === 1 ? ' is' : 's are') + ' still sample, with fake paths - replace them with the real ones', 'tools');
-    if (sFields) add('sample_fields', sFields + ' extra field' + (sFields === 1 ? ' is' : 's are') + ' still sample', 'tools');
-    var sLotF = (data.lot_fields || []).filter(function (f) { return f.sample; }).length;
-    if (sLotF) add('sample_lot_fields', sLotF + ' lot field' + (sLotF === 1 ? ' is' : 's are') + ' still sample (first ideas) - check them with the team', 'lists');
-    var sLots = (data.lots || []).filter(function (l) { return l.sample; }).length;
-    if (sLots) add('sample_lots', sLots + ' sample lot' + (sLots === 1 ? ' is' : 's are') + ' still there - delete them on the Lots page before real use', 'lots');
-
+    // 1 people and tools - one line per tool, saying what it still lacks
+    var review = (data.users || []).filter(function (u) { return u.active && u.needs_review; });
+    review.forEach(function (u) { add('user_review', u.name + ' added themselves - check their roles', 'users', u.id); });
     tools.forEach(function (t) {
-      if (!t.primary_operator_id) add('no_primary', t.code + ' has no primary quality engineer', 'tools', t.id);
-      if (!t.backup_operator_id) add('no_backup', t.code + ' has no backup quality engineer', 'tools', t.id);
-      if (!t.results_root) add('no_results_root', t.code + ' has no results root folder', 'tools', t.id);
-      if (!(data.measurement_types || []).some(function (m) { return m.tool_id === t.id && m.active !== false; })) {
-        add('no_types', t.code + ' has no measurement types', 'tools', t.id);
-      }
+      var miss = [];
+      if (!t.primary_operator_id) miss.push('primary');
+      if (!t.backup_operator_id) miss.push('backup');
+      if (!t.results_root) miss.push('results_root');
+      if (!(data.measurement_types || []).some(function (m) { return m.tool_id === t.id && m.active !== false; })) miss.push('types');
+      if (!miss.length) return;
+      var words = { primary: 'primary quality engineer', backup: 'backup quality engineer', results_root: 'results folder', types: 'measurement types' };
+      add('tool_setup', t.code + ': no ' + miss.map(function (m) { return words[m]; }).join(', no '), 'tools', t.id, { missing: miss });
     });
 
-    if (!(data.process_steps || []).some(function (x) { return x.active !== false; })) {
-      add('no_process_steps', 'No process steps yet - requests say which step the panels are at', 'lists');
-    }
-    if (!(data.part_numbers || []).some(function (x) { return x.active !== false; })) {
-      add('no_part_numbers', 'No part numbers yet - add them per project before lots are registered', 'lists');
-    }
-
+    // 2 the lab calendar
     if (!(o && o.calendar_confirmed)) add('calendar_unconfirmed', 'Lab days and hours are not confirmed yet', 'calendar');
     var hol = data.holidays || [];
     if (!hol.some(function (h) { return h.kind === 'closing'; })) add('no_closing_days', 'No company closing days are listed (e.g. 24 and 31 December)', 'calendar');
     var nextYear = String(parseInt(today.slice(0, 4), 10) + 1);
     if (!hol.some(function (h) { return h.date.slice(0, 4) === nextYear; })) add('no_holidays_next_year', 'No holidays listed for ' + nextYear, 'calendar');
 
-    var review = (data.users || []).filter(function (u) { return u.active && u.needs_review; });
-    review.forEach(function (u) { add('user_review', u.name + ' added themselves - check their roles', 'users', u.id); });
+    // 3 the reference data people pick from
+    var sTypes = (data.measurement_types || []).filter(function (m) { return m.sample; }).length;
+    var sBkms = (data.bkms || []).filter(function (b) { return b.sample; }).length;
+    var sFields = (data.tool_fields || []).filter(function (f) { return f.sample; }).length;
+    if (sTypes) add('sample_types', sTypes + ' measurement type' + (sTypes === 1 ? ' is' : 's are') + ' still sample (made up) - check them with the engineers', 'tools');
+    if (sBkms) add('sample_bkms', sBkms + ' BKM' + (sBkms === 1 ? ' is' : 's are') + ' still sample, with fake paths - replace them with the real ones', 'tools');
+    if (sFields) add('sample_fields', sFields + ' extra field' + (sFields === 1 ? ' is' : 's are') + ' still sample', 'tools');
+    var sMags = (data.magazines || []).filter(function (m) { return m.sample; }).length;
+    if (sMags) add('sample_magazines', sMags + ' magazine' + (sMags === 1 ? ' is a' : 's are') + ' sample number' + (sMags === 1 ? '' : 's') + ' (M70345 ...) - enter the real magazine numbers', 'lists');
+    if (!(data.process_steps || []).some(function (x) { return x.active !== false; })) {
+      add('no_process_steps', 'No process steps yet - requests say which step the panels are at', 'lists');
+    }
+    if (!(data.part_numbers || []).some(function (x) { return x.active !== false; })) {
+      add('no_part_numbers', 'No part numbers yet - requests pick one of their project\'s (optional)', 'lists');
+    }
+    var sLotF = (data.lot_fields || []).filter(function (f) { return f.sample; }).length;
+    if (sLotF) add('sample_lot_fields', sLotF + ' lot field' + (sLotF === 1 ? ' is' : 's are') + ' still sample (first ideas) - check them with the team', 'lists');
+    var sLots = (data.lots || []).filter(function (l) { return l.sample; }).length;
+    if (sLots) add('sample_lots', sLots + ' sample lot' + (sLots === 1 ? ' is' : 's are') + ' still there - delete them on the Lots page before real use', 'lots');
+
+    // 4 a second admin
     var admins = (data.users || []).filter(function (u) { return hasRole(u, 'admin'); });
     if (admins.length === 1) add('one_admin', 'Only one admin (' + admins[0].name + ') - add a second one for when you are away', 'users');
     return out;
@@ -1604,7 +1614,7 @@ window.MRT.domain = (function () {
       if (u.active && (!u.roles || !u.roles.length)) add('warning', 'user_no_role', u.name + ' has no role', 'users', u.id);
     });
     validatePriorities(data.priorities || []).forEach(function (msg) { add('problem', 'priorities', msg, 'lists'); });
-    var sample = (data.measurement_types || []).concat(data.bkms || [], data.tool_fields || []).filter(function (x) { return x.sample; }).length;
+    var sample = (data.measurement_types || []).concat(data.bkms || [], data.tool_fields || [], data.magazines || []).filter(function (x) { return x.sample; }).length;
     if (sample) add('note', 'sample_entries', sample + ' sample entries are still in use (see the setup list)', 'tools');
     return out;
   }
