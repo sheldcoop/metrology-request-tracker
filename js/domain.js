@@ -343,8 +343,11 @@ window.MRT.domain = (function () {
    * the build-up, magazine slots.
    * ------------------------------------------------------------------ */
 
-  /** A panel's Hirata ID: digits, 1-8 (e.g. 23, 3252). */
-  function isPanelId(s) { return typeof s === 'string' && /^\d{1,8}$/.test(s); }
+  /**
+   * A panel's Hirata ID: digits, 1-9 - the full 9-digit Hirata code when it
+   * is known, usually its last 4 (lot per day + panel), e.g. 3252 (H-1).
+   */
+  function isPanelId(s) { return typeof s === 'string' && /^\d{1,9}$/.test(s); }
 
   /**
    * Panel IDs typed or pasted: commas, spaces or new lines; "3252-3255" is a
@@ -354,7 +357,7 @@ window.MRT.domain = (function () {
   function parsePanelIds(text) {
     var ids = [], errors = [];
     String(text || '').split(/[,;\s]+/).filter(Boolean).forEach(function (tok) {
-      var m = tok.match(/^(\d{1,8})-(\d{1,8})$/);
+      var m = tok.match(/^(\d{1,9})-(\d{1,9})$/);
       if (m) {
         var a = parseInt(m[1], 10), b = parseInt(m[2], 10);
         if (b < a || b - a >= 50) { errors.push(tok + ': a run goes up, at most 50 panels'); return; }
@@ -365,6 +368,80 @@ window.MRT.domain = (function () {
       if (ids.indexOf(tok) === -1) ids.push(tok);
     });
     return { ids: ids, errors: errors };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Hirata code (DECISIONS H-1..H-3): the dot code drilled into every panel.
+   * 9 digits - Supplier 1, Year 1, Week 2, Day 1, Lot per day 2, Panel 2
+   * (fixed, like Prince's Hirata tool). Each digit is a column of dots:
+   * rows weigh 8, 4, 2, 1, plus a bottom baseline dot that is always there;
+   * a digit is the sum of its filled rows and never above 9. A code starts
+   * with a column of all five dots (orientation).
+   * ------------------------------------------------------------------ */
+
+  var HIRATA_WEIGHTS = [8, 4, 2, 1];
+  var HIRATA_MAX = 9;
+  var HIRATA_FIELDS = [
+    { id: 'sup', name: 'Supplier', width: 1 },
+    { id: 'yr',  name: 'Year',     width: 1 },
+    { id: 'wk',  name: 'Week',     width: 2 },
+    { id: 'day', name: 'Day',      width: 1 },
+    { id: 'lot', name: 'Lot per day', width: 2 },
+    { id: 'pan', name: 'Panel',    width: 2 }
+  ];
+  var HIRATA_LENGTH = 9;
+  var HIRATA_TAIL = 4;           // lot per day + panel: what is matched on the physical panel
+
+  /** The dots of one digit, top to bottom: [8, 4, 2, 1, baseline] as true/false. */
+  function hirataDots(digit) {
+    var d = Number(digit);
+    if (String(digit).trim() === '' || !(d >= 0 && d <= HIRATA_MAX) || Math.floor(d) !== d) return null;
+    return HIRATA_WEIGHTS.map(function (w) { return (d & w) !== 0; }).concat([true]);
+  }
+
+  /** The digit a column of dots stands for (baseline ignored). */
+  function hirataDigit(dots) {
+    return HIRATA_WEIGHTS.reduce(function (s, w, i) { return s + (dots && dots[i] ? w : 0); }, 0);
+  }
+
+  /** Can this row's dot be switched on in the column without going above 9? Off is always fine. */
+  function hirataCanSet(dots, row) {
+    if (row < 0 || row >= HIRATA_WEIGHTS.length) return false;
+    if (dots[row]) return true;
+    return hirataDigit(dots) + HIRATA_WEIGHTS[row] <= HIRATA_MAX;
+  }
+
+  /**
+   * The fields of a code, read from the right: the last 2 digits are the
+   * panel, the 2 before the lot per day, and so on - so a 4-digit ID shows
+   * Lot per day + Panel and the full 9 shows everything.
+   * @returns [{id, name, value, partial}] - only the fields the digits reach
+   */
+  function hirataFields(digits) {
+    var s = String(digits || ''), out = [], end = s.length;
+    for (var i = HIRATA_FIELDS.length - 1; i >= 0 && end > 0; i--) {
+      var f = HIRATA_FIELDS[i], w = Math.min(f.width, end);
+      out.unshift({ id: f.id, name: f.name, value: s.slice(end - w, end), partial: w < f.width });
+      end -= w;
+    }
+    return out;
+  }
+
+  /**
+   * Check a typed code. kind: 'full' (9 digits), 'tail' (4: lot + panel),
+   * 'short' (other lengths - drawn as typed) or null with a problem.
+   */
+  function hirataCheck(text) {
+    var s = String(text || '').replace(/\s+/g, '');
+    if (!s) return { digits: '', kind: null, problem: null };
+    if (!/^\d+$/.test(s)) return { digits: s, kind: null, problem: 'Digits only' };
+    if (s.length > HIRATA_LENGTH) return { digits: s, kind: null, problem: 'A Hirata code has at most ' + HIRATA_LENGTH + ' digits' };
+    return { digits: s, kind: s.length === HIRATA_LENGTH ? 'full' : s.length === HIRATA_TAIL ? 'tail' : 'short', problem: null };
+  }
+
+  /** Several codes typed at once ("3407, 0119 1827"): each checked, in order. */
+  function hirataList(text) {
+    return String(text || '').split(/[\s,;]+/).filter(Boolean).map(hirataCheck);
   }
 
   /** Panels as people say them: "3252, 3253" (or "2 panels" when only counted). */
@@ -1286,6 +1363,17 @@ window.MRT.domain = (function () {
     isLotNumber: isLotNumber,
     isPanelId: isPanelId,
     parsePanelIds: parsePanelIds,
+    HIRATA_WEIGHTS: HIRATA_WEIGHTS,
+    HIRATA_MAX: HIRATA_MAX,
+    HIRATA_FIELDS: HIRATA_FIELDS,
+    HIRATA_LENGTH: HIRATA_LENGTH,
+    HIRATA_TAIL: HIRATA_TAIL,
+    hirataDots: hirataDots,
+    hirataDigit: hirataDigit,
+    hirataCanSet: hirataCanSet,
+    hirataFields: hirataFields,
+    hirataCheck: hirataCheck,
+    hirataList: hirataList,
     panelsText: panelsText,
     panelCountOf: panelCountOf,
     buildupLayers: buildupLayers,
