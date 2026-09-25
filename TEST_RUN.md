@@ -39,7 +39,8 @@ kept first). The steps below work on the demo or on a fresh folder.
       Do: user menu > Start page > pick another; restart. Expect: your choice wins.
 - [ ] **T1.3** Expect: the **strip under the top bar** shows Line stop / Late / On hold / Needs clarification counts
       (QE: your tools; engineer: your requests) and a clock. Do: click "Late". Expect: My queue / My requests filtered.
-- [ ] **T1.4** Do: user menu > Theme > Dark, Light, HC. Expect: every page readable in all three; remembered per person. Light = calm grey instrument look (no grid, no glow); High contrast = white paper, black 2px lines, blue actions (P8). Note anything that still looks amateur.
+- [ ] **T1.4** Do: user menu > **Theme...**. Expect: a gallery of 11 themes, each a small live sample (Mission Control, Ocean Depths, Midnight Galaxy, Forest Canopy, Tech Innovation, Instrument, Arctic Frost, Modern Minimalist, Golden Hour, Desert Rose, High contrast). A click switches at once; remembered per person; "Office default" follows the admin's pick. High contrast = black, white, signal yellow. Open a few pages in each; note any that look off.
+- [ ] **T1.4b** Do (admin): Settings > **Look**, click a theme. Expect: it becomes the office default; people who never picked their own get it.
 - [ ] **T1.5** Do: user menu > Reduce motion on. Expect: nothing moves (glyphs, pulses, entrances); off again moves.
 - [ ] **T1.6** Do: `[` key. Expect: side menu collapses to icons; again opens. Remembered.
 - [ ] **T1.7** Do: `?` key. Expect: the shortcut list. `g` then `q` / `r` / `l` / `t` / `s` / `h` go to the pages.
@@ -159,7 +160,7 @@ kept first). The steps below work on the demo or on a fresh folder.
 - [ ] **T8.6** Lab: backlog per week, turnaround median / p90 with hold apart, on time, load per QE, clarification per tool / BKM,
       on-hold reasons. Do the numbers look right for requests you know?
 - [ ] **T8.7** Management: requests per month by project, on time, Line stop response, demand per tool.
-- [ ] **T8.8** Charts: the full-screen button (top right of a chart); hover shows values; readable in all three themes.
+- [ ] **T8.8** Charts: the full-screen button (top right of a chart); hover shows values; readable in every theme.
 - [ ] **T8.9** Downloads open in **Excel** as .xlsx: a chart's Download, My queue / My requests Download (the filtered list),
       Settings > Data "Download the request history" (sheets Requests + Timeline).
 - [ ] **T8.10** Management > Monthly management pack: pick last month, Download the pack. Expect: one workbook, seven sheets
