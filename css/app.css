@@ -1829,3 +1829,55 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .tg-s-lamps .is-critical { background: var(--critical); box-shadow: var(--critical-glow); }
 .tg-s-lamps .is-expired { background: var(--expired); box-shadow: var(--expired-glow); }
 .tg-s-bar2 { height: 18px; border-radius: 2px; background: linear-gradient(90deg, var(--accent) 0 62%, var(--surface-3) 62%); }
+
+/* ================================================================== *
+ * Status icons (Prince, 2026-09-25: "status always has icon + text, never colour alone")
+ * One shape per meaning, the same in every theme, drawn as inline SVG masks in the status colour:
+ *   OK = tick in a circle · Warning / on hold = triangle ! · Critical / Line stop = stop octagon !
+ *   Late / expired = clock · Blocked = lock · Hot = flame.
+ * Chips, lamps, priority names and "late" clocks use them - so no screen shows status by colour alone.
+ * ================================================================== */
+:root {
+  --ic-ok: url("data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill-rule="evenodd" d="M12 1a11 11 0 1 1 0 22 11 11 0 0 1 0-22zM17.2 7.2l-7 7.3-3.4-3.4-2 2 5.4 5.4 9-9.3z"/%3E%3C/svg%3E");
+  --ic-warning: url("data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill-rule="evenodd" d="M12 1.5l11.5 20.5H.5zM10.6 8.5h2.8l-.5 7h-1.8zM10.6 17.2h2.8v2.6h-2.8z"/%3E%3C/svg%3E");
+  --ic-critical: url("data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill-rule="evenodd" d="M7.2 1h9.6L23 7.2v9.6L16.8 23H7.2L1 16.8V7.2zM10.5 5.5h3l-.5 8h-2zM10.5 15.5h3v3h-3z"/%3E%3C/svg%3E");
+  --ic-late: url("data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill-rule="evenodd" d="M12 1a11 11 0 1 1 0 22 11 11 0 0 1 0-22zM10.6 5.5v7.6l5.2 3.3 1.3-2.1-3.9-2.4V5.5z"/%3E%3C/svg%3E");
+  --ic-blocked: url("data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill-rule="evenodd" d="M6 10V7a6 6 0 0 1 12 0v3h1.5A1.5 1.5 0 0 1 21 11.5v10A1.5 1.5 0 0 1 19.5 23h-15A1.5 1.5 0 0 1 3 21.5v-10A1.5 1.5 0 0 1 4.5 10zM9 10h6V7a3 3 0 0 0-6 0z"/%3E%3C/svg%3E");
+  --ic-hot: url("data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath d="M12.5 1c.8 4.2 6.8 6.6 6.8 13.1A7.3 7.3 0 0 1 12 23a7.3 7.3 0 0 1-7.3-7.4c0-3.2 1.6-5.4 3.3-7 .3 2.4 1.3 3.9 3.1 4.6-.7-4.3-.2-8.3 1.4-12.2z"/%3E%3C/svg%3E");
+}
+.chip:is(.ok, .warning, .critical, .expired, .blocked)::before { width: 12px; height: 12px; border-radius: 0;
+  -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
+.chip.ok { --ic: var(--ic-ok); }  .chip.warning { --ic: var(--ic-warning); }  .chip.critical { --ic: var(--ic-critical); }
+.chip.expired { --ic: var(--ic-late); }  .chip.blocked { --ic: var(--ic-blocked); }
+
+/* lamps: the lamp takes the status shape; the glow follows the shape (drop-shadow on the lamp) */
+.led:is(.ok, .warning, .critical, .expired, .blocked) { width: 11px; height: 11px; background: none !important; box-shadow: none !important;
+  filter: drop-shadow(0 0 3px currentColor); }
+.led:is(.ok, .warning, .critical, .expired, .blocked)::before { content: ""; position: absolute; inset: 0; background: currentColor;
+  -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
+.led.ok { --ic: var(--ic-ok); }  .led.warning { --ic: var(--ic-warning); }  .led.critical { --ic: var(--ic-critical); }
+.led.expired { --ic: var(--ic-late); }  .led.blocked { --ic: var(--ic-blocked); }
+[data-contrast="high"] .led, [data-scheme="light"] .led { filter: none; }
+
+/* priority names: Line stop gets the stop octagon, Hot the flame */
+.prio-1 :is(.tm-prio, .tr-prio, .q-prio, .slip-prio) > b::before, .prio-1 .bcard-prio::before,
+.prio-2 :is(.tm-prio, .tr-prio, .q-prio, .slip-prio) > b::before, .prio-2 .bcard-prio::before {
+  content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 4px; vertical-align: -1px;
+  -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
+.prio-1 :is(.tm-prio, .tr-prio, .q-prio, .slip-prio) > b::before, .prio-1 .bcard-prio::before { --ic: var(--ic-critical); background: var(--critical-fg); }
+.prio-2 :is(.tm-prio, .tr-prio, .q-prio, .slip-prio) > b::before, .prio-2 .bcard-prio::before { --ic: var(--ic-hot); background: var(--warning-fg); }
+
+/* "late 3 h": the clock icon before the words */
+:is(.q-clock, .tr-clock).is-late::before { content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 4px; vertical-align: -1px;
+  background: currentColor; -webkit-mask: var(--ic-late) center / contain no-repeat; mask: var(--ic-late) center / contain no-repeat; }
+/* tool lamps on the board: Up = tick, Maintenance = triangle, Down = stop octagon (the words stay beside them);
+   the lamp itself is see-through, its shape is the ::before, and the glow (drop-shadow) follows the shape */
+.board-lamp i { position: relative; width: 10px; height: 10px; border-radius: 0; background: none; box-shadow: none !important;
+  color: var(--ok); filter: drop-shadow(0 0 3px currentColor); }
+.board-lamp.is-maintenance i { color: var(--warning); }
+.board-lamp.is-down i { color: var(--critical); }
+.board-lamp i::before { content: ""; position: absolute; inset: 0; background: currentColor;
+  -webkit-mask: var(--ic-ok) center / contain no-repeat; mask: var(--ic-ok) center / contain no-repeat; }
+.board-lamp.is-maintenance i::before { -webkit-mask-image: var(--ic-warning); mask-image: var(--ic-warning); }
+.board-lamp.is-down i::before { -webkit-mask-image: var(--ic-critical); mask-image: var(--ic-critical); }
+[data-contrast="high"] .board-lamp i, [data-scheme="light"] .board-lamp i { filter: none; }

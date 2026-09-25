@@ -22,6 +22,8 @@ if (depth) { console.log('unclosed { at end of file'); bad++; }
 const REQUIRED = {
   tokens: [':root, [data-theme]', '[data-scheme="light"]', '[data-contrast="high"]'],   // the theme colours: js/themes.js
   themeGallery: ['.tg-card.is-on', '.tg-sample', '.tg-s-lamps .is-ok'],
+  statusIcons: ['--ic-ok:', '--ic-warning:', '--ic-critical:', '--ic-late:', '--ic-blocked:', '--ic-hot:', '.chip:is(.ok, .warning, .critical, .expired, .blocked)::before',
+                '.led:is(.ok, .warning, .critical, .expired, .blocked)::before', ':is(.q-clock, .tr-clock).is-late::before', '.prio-1 .bcard-prio::before', '.board-lamp.is-down i::before'],
   panel: ['.panel-head', '.panel-title'], led: ['.led.live::after'],
   buttons: ['.btn-primary', '.btn-danger', '.btn-ghost'], segmented: ['.seg-opt input:checked + span'],
   field: ['.ifield-box', '.ifield.is-invalid'], chip: ['.chip.expired'],

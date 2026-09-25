@@ -152,7 +152,7 @@ window.MRT.themes = (function () {
            'accent-glow': '0 0 0 1px #0F62FE',
            ok: '#24A148', 'ok-fg': '#0E6027', 'ok-bg': '#DEFBE6',                                                // support-success; text green 70 on green 10
            warning: '#F1C21B', 'warning-fg': '#684E00', 'warning-bg': '#FCF4D6',                                 // yellow fill with dark text, as Carbon does
-           critical: '#FF832B', 'critical-fg': '#8A3800', 'critical-bg': '#FFF2E8',
+           critical: '#FF832B', 'critical-fg': '#BA4E00', 'critical-bg': '#FFF2E8',                              // text orange 60 (70 was too close to the red)
            expired: '#DA1E28', 'expired-fg': '#A2191F', 'expired-bg': '#FFF1F1',
            danger: '#DA1E28', 'danger-fg': '#A2191F', 'danger-bg': '#FFF1F1', 'on-danger': '#FFFFFF',
            blocked: '#8D8D8D', 'blocked-fg': '#525252', 'blocked-bg': '#E0E0E0',
@@ -168,13 +168,48 @@ window.MRT.themes = (function () {
            accent: '#74B9FF', 'accent-fill': '#194FB1', 'accent-fg': '#FFFFFF', 'accent-soft': '#1C2A39',          // fgColor accent, bgColor accent emphasis; muted accent made solid over bgColor muted
            'accent-glow': '0 0 0 2px #409EFF', 'glow-ring': '100%', 'glow-blur': '0%',
            ok: '#09B43A', 'ok-fg': '#2BD853', 'ok-bg': '#133527',                                                // borderColor success emphasis, fgColor success; 15% muted made solid
-           warning: '#E09B13', 'warning-fg': '#F0B72F', 'warning-bg': '#353024',
+           warning: '#F7C843', 'warning-fg': '#F7C843', 'warning-bg': '#353024',                                 // Primer yellow 2 (attention #e09b13 / #f0b72f was too close to severe)
            critical: '#FE9A2D', 'critical-fg': '#FE9A2D', 'critical-bg': '#2B2623',                              // severe
            expired: '#FF6A69', 'expired-fg': '#FF9492', 'expired-bg': '#2C252C',                                 // danger
            danger: '#FF6A69', 'danger-fg': '#FF9492', 'danger-bg': '#2C252C', 'on-danger': '#010409',
            blocked: '#9198A1', 'blocked-fg': '#B7BDC8', 'blocked-bg': '#262C36',
            'c-blue': '#4DA0FF', 'c-teal': '#1CB0AB', 'c-pink': '#E57BB2',                                        // Primer display blue / teal / pink 6
            shadow: 'none', 'shadow-pop': '0 0 0 1px #B7BDC8', scrim: 'rgba(1, 4, 9, .8)' } },
+
+    /* Personal themes (Prince, 2026-09-25: "as personal themes, not office default"). Official palettes:
+       Catppuccin (github.com/catppuccin/palette, palette.json, flavour mocha) and Gruvbox
+       (github.com/morhetz/gruvbox, colors/gruvbox.vim, light: bg light0..4, fg dark1..4, faded accents).
+       Only status tokens may leave the palette - to stay distinct (tests/contrast.js) and readable. */
+    { key: 'catppuccin-mocha', name: 'Catppuccin Mocha', scheme: 'dark', group: 'Candidates', candidate: true, personal: true, grid: false,
+      mood: 'Soft pastels on deep blue-violet - the most-loved editor theme, friendly for long shifts.',
+      swatches: ['#1E1E2E', '#89B4FA', '#CBA6F7', '#CDD6F4'],
+      p: { bg: '#181825', surface: '#1E1E2E', 'surface-2': '#313244', 'surface-3': '#45475A', inset: '#11111B',   // mantle, base, surface0, surface1, crust
+           fg: '#CDD6F4', 'fg-muted': '#BAC2DE', 'fg-faint': '#A6ADC8',                                         // text, subtext1, subtext0
+           line: '#313244', 'line-strong': '#45475A', 'line-hi': '#89B4FA', bracket: '#585B70',                   // surface0, surface1, blue, surface2
+           accent: '#89B4FA', 'accent-fill': '#89B4FA', 'accent-fg': '#1E1E2E', 'accent-soft': 'rgba(137, 180, 250, .14)',   // blue; dark text on pastel, as Catppuccin does
+           'accent-glow': '0 0 0 1px rgba(137, 180, 250, .6), 0 0 16px rgba(137, 180, 250, .22)',
+           ok: '#A6E3A1', 'ok-fg': '#A6E3A1', 'ok-bg': 'rgba(166, 227, 161, .12)',                              // green
+           warning: '#F9E2AF', 'warning-fg': '#F9E2AF', 'warning-bg': 'rgba(249, 226, 175, .12)',               // yellow
+           critical: '#FAB387', 'critical-fg': '#FAB387', 'critical-bg': 'rgba(250, 179, 135, .13)',            // peach
+           expired: '#F38BA8', 'expired-fg': '#F38BA8', 'expired-bg': 'rgba(243, 139, 168, .13)',              // red
+           danger: '#F38BA8', 'danger-fg': '#F38BA8', 'danger-bg': 'rgba(243, 139, 168, .13)', 'on-danger': '#1E1E2E',
+           blocked: '#7F849C', 'blocked-fg': '#A6ADC8', 'blocked-bg': 'rgba(127, 132, 156, .18)',              // overlay1, subtext0
+           'c-blue': '#74C7EC', 'c-teal': '#94E2D5', 'c-pink': '#CBA6F7',                                        // sapphire, teal, mauve (not pink: never taken for red)
+           radius: '8px', 'radius-panel': '12px' } },
+    { key: 'gruvbox-light', name: 'Gruvbox Light', scheme: 'light', group: 'Candidates', candidate: true, personal: true,
+      mood: 'Warm cream paper, dark brown ink, earthy colours - easy on the eyes in a bright room.',
+      swatches: ['#FBF1C7', '#3C3836', '#076678', '#AF3A03'],
+      p: { bg: '#F2E5BC', surface: '#FBF1C7', 'surface-2': '#F9F5D7', 'surface-3': '#EBDBB2', inset: '#F9F5D7',   // light0_soft, light0, light0_hard, light1
+           fg: '#3C3836', 'fg-muted': '#504945', 'fg-faint': '#665C54',                                         // dark1, dark2, dark3
+           line: '#D5C4A1', 'line-strong': '#BDAE93', 'line-hi': '#076678', bracket: '#A89984',                   // light2, light3, faded blue, light4
+           accent: '#076678', 'accent-fill': '#076678', 'accent-fg': '#FBF1C7', 'accent-soft': '#E3E6CF',          // faded blue; soft = blue 8% on light0
+           ok: '#98971A', 'ok-fg': '#66620B', 'ok-bg': '#EFEBC1',                                                // neutral green; text faded green darkened for AA
+           warning: '#D79921', 'warning-fg': '#8B5E04', 'warning-bg': '#F8E7BC',                                 // neutral yellow; text faded yellow darkened for AA
+           critical: '#D65D0E', 'critical-fg': '#A0480D', 'critical-bg': '#F8E0C2',                              // neutral orange; text between faded orange and red, AA on its tint
+           expired: '#CC241D', 'expired-fg': '#9D0006', 'expired-bg': '#F6DCC4',                                 // neutral / faded red
+           danger: '#CC241D', 'danger-fg': '#9D0006', 'danger-bg': '#F6DCC4', 'on-danger': '#FBF1C7',
+           blocked: '#928374', 'blocked-fg': '#504945', 'blocked-bg': '#EBDBB2',                                 // gray, dark2, light1
+           'c-blue': '#076678', 'c-teal': '#376A4B', 'c-pink': '#8F3F71' } },                                  // faded blue, aqua (darkened for AA), purple
 
     { key: 'hc', name: 'High contrast', scheme: 'dark', group: 'Accessibility', contrast: 'high',
       mood: 'Black, white and signal yellow - the strongest contrast, big focus ring.',
