@@ -29,6 +29,7 @@ window.MRT.views.help = (function () {
       ],
       tips: [
         'Made a mistake? Click Undo next to the lamp, or press Ctrl+Z, within ' + cfg.undo_ms / 1000 + ' seconds.',
+        'The strip under the top bar counts what needs attention - Line stop, Late, On hold, Needs clarification - for your tools (quality engineers) or your own requests. Click a count to see those requests.',
         'On a shared PC, use your name (top right) > Change user.'
       ],
       link: ['Open Lab status', '#/lab'] },

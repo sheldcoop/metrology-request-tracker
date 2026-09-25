@@ -405,6 +405,20 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
 - **A-6** The panel map (`js/ui/panelmap.js`) is unused since form v2 - **kept** for the Hirata
   decoder / panels by position (#22), marked "unused" in its file and the ui-kit.
 
+## M3 audit (2026-09-25, Prince)
+- **A-7** The **alert strip** (M1-2) was never built - **built now**: on every page, Line stop /
+  Late / On hold / Needs clarification counts for a quality engineer's tools (admins: all tools),
+  otherwise the person's own requests; each count opens My queue / My requests on that filter
+  (`#/queue/late` ...). Rule: `domain.stripCounts` + `domain.measuredTools` (now shared with My queue).
+- **A-8** Board cards move by **dragging only** for now (the request page and My queue have the
+  buttons). Prince is **not happy with how the board looks** - redesign later with the design
+  polish (P5); ask what bothers him most before changing it.
+- **A-9** M3-9 .. M3-12 (who does what, My queue, My requests, start page by role) were
+  recommendations - **confirmed as built**.
+- **A-10** R1: Prince tests everything built (M1-M4, Hirata tools, the audit fixes) from
+  `TEST_RUN.md`; the M4 audit is covered by that run. M5 is planned and built meanwhile
+  (Prince, 2026-09-25: "I will test tomorrow, you build M5 today").
+
 ## Hirata code (2026-09-25, Prince) - PLANNED, ask before building
 Prince's Hirata tool (decoder + pattern finder) is built into the app, rebuilt to our rules
 (no `innerHTML` with typed text, our themes and components). The code has **9 digits**: supplier
@@ -456,7 +470,7 @@ never the only signal - the text/label says the same thing.
   with a small bounce; the status rail fills step by step.
 - **P4 Panel map**: picked panels light up one by one as ranges are typed ("1-5, 12"); measured
   panels get a check; scrapped (FIB) panels cross out; received panels slide into a "lab" tray.
-- **P5 Lab board (Kanban)**: cards slide between lanes; a new request drops into its lane; a Line
+- **P5 Lab board (Kanban)** - Prince is not happy with its look (A-8): redesign; cards slide between lanes; a new request drops into its lane; a Line
   stop card has a pulsing red edge (ABF's critical glow); lanes a card may go to light up while
   dragging, lanes it may not go to stay dim (the transition rules, visible).
 - **P6 Small touches**: completing a request - a folder icon closes with a click and the results
