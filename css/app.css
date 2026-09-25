@@ -1896,3 +1896,18 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 /* Lab status: "3 open, 1 late" carries the clock */
 .tool-plate-facts dd.is-late::before { content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 4px; vertical-align: -1px;
   background: currentColor; -webkit-mask: var(--ic-late) center / contain no-repeat; mask: var(--ic-late) center / contain no-repeat; }
+
+/* New request, step 1: the tools stand on a lab bench (a shelf under the cards); each has its status
+   lamp top right; the picked one lifts and its piece of the bench lights up (transform/opacity only) */
+.tool-bench { position: relative; padding: 18px 0 14px; }
+.tool-bench::after { content: ""; position: absolute; left: 0; right: 0; bottom: 4px; height: 4px; border-radius: 2px;
+  background: var(--surface-3); box-shadow: inset 0 1px 0 var(--line-strong), 0 3px 6px rgba(0, 0, 0, .25); }
+.tool-bench-label { position: absolute; left: 0; top: 0; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-muted); }
+.tool-bank .tool-pick-opt { position: relative; }
+.tool-bank .tool-pick-opt > .led { position: absolute; top: 8px; right: 8px; }
+.tool-bank .tool-pick-opt::after { content: ""; position: absolute; left: 12%; right: 12%; bottom: -14px; height: 4px; border-radius: 2px; z-index: 1;
+  background: var(--accent); box-shadow: 0 0 10px var(--accent); opacity: 0; transform: scaleX(.3); transition: opacity var(--t) var(--ease), transform var(--t) var(--ease); }
+.tool-bank .tool-pick-opt.is-on { transform: translateY(-3px); }
+.tool-bank .tool-pick-opt.is-on::after { opacity: 1; transform: scaleX(1); }
+[data-contrast="high"] .tool-bank .tool-pick-opt::after, [data-scheme="light"] .tool-bank .tool-pick-opt::after { box-shadow: none; }
+[data-motion="reduce"] .tool-bank .tool-pick-opt, [data-motion="reduce"] .tool-bank .tool-pick-opt::after { transition: none; }

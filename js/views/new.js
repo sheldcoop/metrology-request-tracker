@@ -230,6 +230,7 @@ window.MRT.views['new'] = (function () {
         var on = t.id === st.tool_id;
         var b = ui.el('button', { type: 'button', class: 'tool-pick-opt is-' + t.status + (on ? ' is-on' : ''), role: 'radio',
           'aria-checked': on ? 'true' : 'false', title: t.name + (t.status !== 'up' ? ' - ' + D.TOOL_STATUS_LABEL[t.status] : '') }, [
+          ui.led(t.status === 'up' ? 'ok' : t.status === 'down' ? 'critical' : 'warning', D.TOOL_STATUS_LABEL[t.status]),   // the tool's lamp, top right
           ui.toolGlyph(t.glyph, { size: 40, state: t.status === 'up' ? 'idle' : t.status === 'down' ? 'off' : 'maint' }),
           ui.el('b', { class: 'mono', text: t.code }),
           t.name && t.name !== t.code ? ui.el('span', { class: 'tool-pick-name', text: t.name, title: t.name }) : null,   // no "AOI / AOI"
@@ -244,7 +245,8 @@ window.MRT.views['new'] = (function () {
         });
         return b;
       }));
-      ui.mount(steps.tool.body, [pick, toolTypeHost, st.tool_id ? next('tool') : null]);
+      var bench = ui.el('div', { class: 'tool-bench' }, [ui.el('span', { class: 'tool-bench-label', text: 'Lab bench' }), pick]);   // the tools standing on the bench
+      ui.mount(steps.tool.body, [bench, toolTypeHost, st.tool_id ? next('tool') : null]);
       paintType();
     }
 
