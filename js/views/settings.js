@@ -106,7 +106,7 @@ window.MRT.views.settings = (function () {
 
     /** A data table. heads: ['Name', {label, cls}]; rows: arrays of cells (text or Node). */
     table: function (heads, rows, empty) {
-      if (!rows.length) return ui.el('p', { class: 'muted table-empty', text: empty || 'Nothing here yet.' });
+      if (!rows.length) return ui.el('p', { class: 'muted table-empty' }, [ui.icon('inbox', 16), ui.el('span', { text: empty || 'Nothing here yet.' })]);
       return ui.el('div', { class: 'table-wrap' }, ui.el('table', { class: 'grid' }, [
         ui.el('thead', {}, ui.el('tr', {}, heads.map(function (h) {
           return ui.el('th', { class: h.cls || null, scope: 'col', text: typeof h === 'string' ? h : h.label });

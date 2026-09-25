@@ -1309,7 +1309,8 @@ p.muted { margin: 0 0 12px; font-size: 13px; }
 .health-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)); gap: 16px; margin-bottom: 16px; }
 @media (max-width: 760px) { .health-kpis { grid-template-columns: 1fr; } }
 
-.table-empty { margin: 4px 0; }
+.table-empty { display: flex; align-items: center; gap: 8px; margin: 4px 0; padding: 12px 14px; border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+.table-empty svg { flex: none; color: var(--fg-faint); }
 table.grid th.actions, table.grid td.actions { width: 1%; white-space: nowrap; text-align: right; }
 table.grid tbody tr.is-off td { color: var(--fg-faint); }
 table.grid tbody tr.is-off td b { color: var(--fg-muted); }
@@ -1561,6 +1562,7 @@ table.grid tbody tr { scroll-margin: 80px; }
   color: var(--fg-faint); font-size: 12px; }
 .board-cell { display: grid; align-content: start; gap: 6px; min-height: 90px; padding: 6px; border: 1px solid var(--line); border-radius: var(--radius);
   background: repeating-linear-gradient(0deg, transparent 0 21px, var(--line) 21px 22px); background-color: var(--bg); }
+[data-theme="hc"] .board-cell { background: var(--bg); }
 .bgauge { display: block; flex: 1; height: 4px; border-radius: 2px; background: var(--surface-3); overflow: hidden; }
 .bgauge i { display: block; height: 100%; background: var(--ok); transform-origin: left; transform: scaleX(0); transition: transform var(--t) var(--ease); }
 .bgauge.is-soon i { background: var(--warning); }
@@ -1824,7 +1826,8 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 @keyframes cu-light { 0% { opacity: 0; transform: translateY(-6px) scale(.9); } 60% { opacity: 1; transform: scale(1.06); } 100% { transform: none; } }
 .panel-cu { position: relative; display: inline-flex; }
 .panel-mark { position: absolute; right: -6px; top: -6px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
-  color: #fff; border: 2px solid var(--surface); }
+  color: var(--surface); border: 2px solid var(--surface); }
+[data-theme="dark"] .panel-mark, :root:not([data-theme]) .panel-mark { color: #fff; }
 .is-measured .panel-mark { background: var(--ok); }
 .is-scrapped .panel-mark { background: var(--danger); }
 .panel-hirata-item.is-scrapped .panel-cu::after { content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -1886,3 +1889,13 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 @keyframes rewind { 0% { transform: translateX(10px); opacity: .55; } 100% { transform: none; opacity: 1; } }
 .save-led.is-pulse .led { animation: save-pulse 700ms var(--ease-out) 1; }
 @keyframes save-pulse { 0% { transform: scale(1); } 35% { transform: scale(1.6); } 100% { transform: scale(1); } }
+
+/* Board tool picker (Prince, 2026-09-25) */
+.tool-picks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+.tool-pick { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: 999px;
+  background: var(--surface); color: var(--fg); font: inherit; font-size: 13px; cursor: pointer; transition: background-color var(--t-fast) ease; }
+.tool-pick:hover { background: var(--surface-3); }
+.tool-pick.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.tool-pick-n { min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--surface-3); color: var(--fg); font-size: 11px; text-align: center; }
+.tool-pick.is-on .tool-pick-n { background: var(--accent-fg); color: var(--accent); }
+.tool-picks-sep { width: 1px; height: 20px; margin: 0 4px; background: var(--line-strong); }

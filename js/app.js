@@ -1140,6 +1140,8 @@ window.MRT.app = (function () {
     recheckUser: recheckUser,
     awayDialog: awayDialog,
     awayText: awayText,
+    readPref: function (name) { return readPref(name, store.status().currentUserId); },
+    writePref: writePref,
     NAV: NAV,
     state: app
   };
