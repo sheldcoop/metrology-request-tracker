@@ -913,7 +913,7 @@ window.MRT.store = (function () {
 
   var LISTS = {
     users:             { prefix: 'usr',   label: 'user',             fields: ['name', 'windows_id', 'domain', 'email', 'roles', 'active'] },
-    tools:             { prefix: 'tool',  label: 'tool',             fields: ['code', 'name', 'glyph', 'destructive', 'status', 'status_until', 'status_note', 'primary_operator_id', 'backup_operator_id', 'results_root', 'active', 'sort'] },
+    tools:             { prefix: 'tool',  label: 'tool',             fields: ['code', 'name', 'glyph', 'destructive', 'status', 'status_until', 'status_note', 'primary_operator_id', 'backup_operator_id', 'results_root', 'capacity_per_day', 'capacity_note', 'active', 'sort'] },
     measurement_types: { prefix: 'mtype', label: 'measurement type', fields: ['tool_id', 'name', 'active', 'sort'] },
     lot_fields:        { prefix: 'lfld',  label: 'lot field',        fields: ['label', 'type', 'required', 'help', 'unit', 'min', 'max', 'choices', 'active', 'sort'] },
     tool_fields:       { prefix: 'fld',   label: 'field',            fields: ['tool_id', 'label', 'type', 'required', 'help', 'unit', 'min', 'max', 'choices', 'type_ids', 'active', 'sort'] },

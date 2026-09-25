@@ -607,6 +607,8 @@ window.MRT.domain = (function () {
         if (r.backup_operator_id && !exists('users', r.backup_operator_id)) p.push('Backup quality engineer not found');
         if (r.primary_operator_id && r.primary_operator_id === r.backup_operator_id) p.push('Primary and backup must be different people');
         if (r.results_root && !isSharePath(r.results_root)) p.push('Results root must be a share path like \\\\server\\share\\... or Z:\\...');
+        if (r.capacity_per_day !== null && r.capacity_per_day !== undefined && r.capacity_per_day !== '' &&
+            !(isNum(r.capacity_per_day) && r.capacity_per_day > 0 && r.capacity_per_day <= 100)) p.push('Capacity: requests per lab day, more than 0 and at most 100 (or empty)');
         break;
 
       case 'measurement_types':
@@ -1196,8 +1198,64 @@ window.MRT.domain = (function () {
       per_month_project: Object.keys(months).sort().map(function (key) {
         var p = key.split('|'); return { month: p[0], project_id: p[1] || null, n: months[key].length, ids: months[key] }; }),
       demand_by_tool: counted(byToolSub),
+      capacity_by_tool: (function () {
+        var fromY = f.from_ymd || viennaYmd(now - 89 * 86400000), toY = f.to_ymd || viennaYmd(now);
+        var labDays = labDaysBetween(fromY, toY, cal, hs);
+        return (d.tools || []).filter(function (t) { return t.active !== false && (!f.tool_id || t.id === f.tool_id); }).map(function (t) {
+          var dem = (byToolSub[t.id] || []).length, cap = capacityOf(t);
+          var capN = cap === null ? null : Math.round(cap * labDays * 10) / 10;
+          var load = capacityLoad(dem, capN);
+          return { tool_id: t.id, demand: dem, capacity: capN, per_day: cap, lab_days: labDays, load_pct: load.pct, level: load.level,
+                   ids: (byToolSub[t.id] || []).map(function (r) { return r.id; }) };
+        });
+      })(),
       line_stop: { n: lineStop.length, ids: ids(lineStop), response_median_ms: median(ls), response_p90_ms: percentile(ls, 90) }
     };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Capacity per tool (DECISIONS C-1, C-2; OPEN #3): requests per lab day,
+   * set by an admin. Shown, never blocking.
+   * ------------------------------------------------------------------ */
+
+  /** Lab days from one date to another, both included (lab days minus holidays). */
+  function labDaysBetween(fromYmd, toYmd, cal, hs) {
+    if (!isYmd(fromYmd) || !isYmd(toYmd) || toYmd < fromYmd) return 0;
+    var n = 0, d = fromYmd;
+    for (var guard = 0; d <= toYmd && guard < 4000; guard++) { if (isLabDay(d, cal, hs || {})) n++; d = addDaysYmd(d, 1); }
+    return n;
+  }
+
+  /** A tool's capacity per lab day, or null when not set. */
+  function capacityOf(tool) {
+    var c = tool ? tool.capacity_per_day : null;
+    return isNum(c) && c > 0 ? c : null;
+  }
+
+  /** Lab days of work in a queue: open requests / capacity, one decimal; null without a capacity. */
+  function queueDays(openCount, tool) {
+    var c = capacityOf(tool);
+    return c === null ? null : Math.round(openCount / c * 10) / 10;
+  }
+
+  /** How loaded a tool is: demand / capacity in %, and the level (C-2: amber above 100, red from 150). */
+  function capacityLoad(demand, capacity) {
+    if (!capacity) return { pct: null, level: null };
+    var pct = Math.round(demand / capacity * 1000) / 10;
+    return { pct: pct, level: pct >= 150 ? 'red' : pct > 100 ? 'amber' : 'ok' };
+  }
+
+  /**
+   * The gentle note on the request form (C-2): the tool's queue is longer
+   * than the lab days left to the needed-by date. Never blocks. null = no note.
+   */
+  function capacityNote(tool, openCount, todayYmd, neededYmd, cal, hs) {
+    var days = queueDays(openCount, tool);
+    if (days === null || !neededYmd || !isYmd(neededYmd)) return null;
+    var left = labDaysBetween(todayYmd, neededYmd, cal, hs);
+    if (days <= left) return null;
+    return tool.code + ' has about ' + days + ' lab day' + (days === 1 ? '' : 's') + ' of work queued - your date may be tight (' + left +
+      ' lab day' + (left === 1 ? '' : 's') + ' left). You can still submit.';
   }
 
   /* ------------------------------------------------------------------ *
@@ -1516,6 +1574,7 @@ window.MRT.domain = (function () {
       if (!t.primary_operator_id) add('no_primary', t.code + ' has no primary quality engineer', 'tools', t.id);
       if (!t.backup_operator_id) add('no_backup', t.code + ' has no backup quality engineer', 'tools', t.id);
       if (!t.results_root) add('no_results_root', t.code + ' has no results root folder', 'tools', t.id);
+      if (!capacityOf(t)) add('no_capacity', t.code + ' has no capacity (requests per lab day) - Analytics shows demand only', 'tools', t.id);
       if (!(data.measurement_types || []).some(function (m) { return m.tool_id === t.id && m.active !== false; })) {
         add('no_types', t.code + ' has no measurement types', 'tools', t.id);
       }
@@ -1688,6 +1747,11 @@ window.MRT.domain = (function () {
     findMentions: findMentions,
     TRANSITIONS: TRANSITIONS,
     isLate: isLate,
+    labDaysBetween: labDaysBetween,
+    capacityOf: capacityOf,
+    queueDays: queueDays,
+    capacityLoad: capacityLoad,
+    capacityNote: capacityNote,
     TEMPLATE_FIELDS: TEMPLATE_FIELDS,
     templateFieldsOf: templateFieldsOf,
     templateNameProblems: templateNameProblems,
