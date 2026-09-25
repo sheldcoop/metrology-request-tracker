@@ -122,7 +122,7 @@ window.MRT.views.help = (function () {
       steps: [
         'Columns: Submitted, Accepted, In progress, Waiting (on hold or a question to the engineer), Completed in the last 7 days.',
         'Cards: request ID, priority, lot and panels, the countdown and who has it. An open Line stop pulses red.',
-        'Quality engineers (and admins) drag a card to move it on: the columns it may go to light up, the others dim. A drop does the same as the button - with its small dialog when a date, reason or path is needed.',
+        'Click a card: a side panel opens with the full traveller and the buttons you may use (Accept, Start, Hold, Complete ...), with the same small dialogs as the request page. Ctrl+click opens the full page. Tools with nothing on them fold to one line; the bar on each card shows how much time is left until Needed by.',
         'Everyone else reads the board. Click a card for the full request; every action is also a button there.'
       ],
       tips: ['"Only my tools" shows just the lanes you work.'],

@@ -1,15 +1,15 @@
 /**
  * Metrology Request Tracker - views/board.js
  *
- * The lab board (#/board, Q22, Q39, DECISIONS M3-8): one lane per tool (its
- * glyph and status), columns Submitted | Accepted | In progress | Waiting
- * (on hold, needs clarification) | Completed (last 7 days). Cards are mini
- * travellers: priority stripe, ID, lot, panels, countdown; an open Line stop
- * pulses. The tool's quality engineers and admins drag a card to the next
- * column - the columns it may go to light up, the others dim; a drop runs
- * the same action as the button (with its dialog when one is needed).
- * Everyone else reads. Clicking a card opens the request page, where every
- * action is also a button (keyboard / no drag).
+ * The lab board (#/board, Q22, M3-8, redesign P5): a lab rack. One lane per
+ * tool (glyph, lamp, open count); lanes with nothing on them fold to a thin
+ * line. Columns are the status slots Submitted | Accepted | In progress |
+ * Waiting (on hold, needs clarification) | Completed (last 7 days). Cards are
+ * compact mini travellers: priority stripe, ID, lot, panels, a needed-by
+ * gauge and the quality engineer's initials.
+ * Click only (P5-3): a click opens a side panel with the full traveller and
+ * the usual action buttons (same rules, dialogs and audit as everywhere).
+ * Ctrl/middle click still opens the request page. Nothing is dragged.
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -31,24 +31,10 @@ window.MRT.views.board = (function () {
   var WEEK = 7 * 86400000;
   var view = { mine: false };
   var clocks = [];
-  var dragging = null;
+  var open = null;       // the side panel, when one is open
 
   function byId(coll, id) { return id ? store.byId(coll, id) : null; }
   function levelOf(r) { var p = byId('priorities', r.priority_id); return p ? p.level : 99; }
-
-  /** The action a drop on a column means for this card, or null (not allowed). */
-  function dropAction(r, colKey) {
-    var me = store.currentUser(), tool = byId('tools', r.tool_id), now = Date.now();
-    var can = function (a) { return D.canAct(me, a, r, tool, now); };
-    switch (colKey) {
-      case 'accepted': return can('accept') ? 'accept' : (can('resume') && r.return_to === 'accepted') ? 'resume' : null;
-      case 'in_progress': return can('start') ? 'start' : (can('resume') && r.return_to === 'in_progress') ? 'resume' : null;
-      case 'waiting': return can('hold') ? 'hold' : null;
-      case 'completed': return can('complete') ? 'complete' : null;
-      case 'submitted': return (can('resume') && r.return_to === 'submitted') ? 'resume' : null;
-      default: return null;
-    }
-  }
 
   function render(main) {
     var me = store.currentUser();
@@ -60,26 +46,34 @@ window.MRT.views.board = (function () {
     var reqs = store.visibleRequests(function (r) {
       return D.isOpen(r) || (r.status === 'completed' && r.completed_ts && now - Date.parse(r.completed_ts) < WEEK);
     });
-    var canDragAny = mineTools.length || D.hasRole(me, 'admin');
-    main.appendChild(ui.pageHead('Board', canDragAny ? 'Drag a card to move it on - the columns it may go to light up. Click a card for the full request.'
-      : 'Every open request by tool. Click a card for the full request.',
+    main.appendChild(ui.pageHead('Board', 'Every open request by tool. Click a card to see it and act on it here.',
       mineTools.length ? [ui.toggle({ kind: 'switch', label: 'Only my tools', checked: view.mine, onChange: function (v) { view.mine = v; window.MRT.app.route(); } }).node] : null));
 
-    var grid = ui.el('div', { class: 'board', style: { gridTemplateColumns: '120px repeat(' + COLS.length + ', minmax(170px, 1fr))' } });
-    grid.appendChild(ui.el('div', { class: 'board-corner' }));
-    COLS.forEach(function (c) {
+    var grid = ui.el('div', { class: 'board', style: { gridTemplateColumns: '150px repeat(' + COLS.length + ', minmax(170px, 1fr))' } });
+    grid.appendChild(ui.el('div', { class: 'board-corner' }, ui.el('span', { class: 'muted', text: 'Tool' })));
+    COLS.forEach(function (c, i) {
       var n = reqs.filter(function (r) { return c.has.indexOf(r.status) !== -1 && lanes.some(function (t) { return t.id === r.tool_id; }); }).length;
-      grid.appendChild(ui.el('div', { class: 'board-colhead' }, [ui.el('b', { text: c.label }), ui.el('span', { class: 'num muted', text: String(n) })]));
+      grid.appendChild(ui.el('div', { class: 'board-colhead is-' + c.key }, [ui.el('span', { class: 'board-step mono', text: String(i + 1) }),
+        ui.el('b', { text: c.label }), ui.el('span', { class: 'board-count num' + (n ? '' : ' is-zero'), text: String(n) })]));
     });
     lanes.forEach(function (t) {
-      var running = reqs.some(function (r) { return r.tool_id === t.id && r.status === 'in_progress'; });
-      grid.appendChild(ui.el('div', { class: 'board-lane is-' + t.status }, [ui.toolGlyph(t.glyph, { size: 32, state: t.status === 'up' ? (running ? 'live' : 'idle') : t.status === 'down' ? 'off' : 'maint' }),
-        ui.el('b', { class: 'mono', text: t.code }), t.status !== 'up' ? ui.el('span', { class: 'chip ' + (t.status === 'down' ? 'expired' : 'warning'), text: D.TOOL_STATUS_LABEL[t.status] }) : null]));
+      var mine = reqs.filter(function (r) { return r.tool_id === t.id; });
+      var open = mine.filter(function (r) { return D.isOpen(r); }).length;
+      var running = mine.some(function (r) { return r.status === 'in_progress'; });
+      var lane = ui.el('div', { class: 'board-lane is-' + t.status + (mine.length ? '' : ' is-empty') }, [
+        ui.toolGlyph(t.glyph, { size: mine.length ? 32 : 20, state: t.status === 'up' ? (running ? 'live' : 'idle') : t.status === 'down' ? 'off' : 'maint' }),
+        ui.el('div', { class: 'board-lane-name' }, [ui.el('b', { class: 'mono', text: t.code }),
+          ui.el('span', { class: 'board-lamp is-' + t.status, title: D.TOOL_STATUS_LABEL[t.status] }, [ui.el('i'), ui.el('span', { text: D.TOOL_STATUS_LABEL[t.status] })])]),
+        mine.length ? ui.el('span', { class: 'muted board-lane-open', text: open + ' open' }) : null
+      ]);
+      grid.appendChild(lane);
+      if (!mine.length) {
+        grid.appendChild(ui.el('div', { class: 'board-fold', style: { gridColumn: 'span ' + COLS.length }, text: 'Nothing on this tool' }));
+        return;
+      }
       COLS.forEach(function (c) {
-        var cards = D.sortQueue(reqs.filter(function (r) { return r.tool_id === t.id && c.has.indexOf(r.status) !== -1; }), { now_ts: now, cal: cal, levelOf: levelOf });
-        var cell = ui.el('div', { class: 'board-cell', dataset: { col: c.key, tool: t.id }, 'aria-label': t.code + ' - ' + c.label }, cards.map(card));
-        wireDrop(cell, c.key);
-        grid.appendChild(cell);
+        var cards = D.sortQueue(mine.filter(function (r) { return c.has.indexOf(r.status) !== -1; }), { now_ts: now, cal: cal, levelOf: levelOf });
+        grid.appendChild(ui.el('div', { class: 'board-cell', dataset: { col: c.key, tool: t.id }, 'aria-label': t.code + ' - ' + c.label }, cards.map(card)));
       });
     });
     main.appendChild(ui.el('div', { class: 'board-wrap' }, grid));
@@ -88,61 +82,41 @@ window.MRT.views.board = (function () {
 
   function card(r) {
     var lot = byId('lots', r.lot_id), prio = byId('priorities', r.priority_id), qe = byId('users', r.assigned_to);
-    var me = store.currentUser(), tool = byId('tools', r.tool_id);
     var level = prio ? prio.level : 3;
-    var movable = D.isOpen(r) && (D.hasRole(me, 'admin') || D.isToolMeasurer(me, tool));
     var clock = ui.el('span', { class: 'q-clock' });
-    clocks.push({ node: clock, r: r });
+    var bar = ui.el('i');
+    var gauge = ui.el('span', { class: 'bgauge', 'aria-hidden': 'true' }, bar);
+    clocks.push({ node: clock, gauge: gauge, bar: bar, r: r });
     var node = ui.traveller({
       id: r.request_no, level: level, urgent: level === 1 && D.isOpen(r), late: D.isLate(r, Date.now(), store.calendar()),
       prio: prio ? { name: prio.name, code: prio.code } : null, href: '#/request/' + r.id,
       ariaLabel: r.request_no + ', ' + D.REQUEST_STATUS_LABEL[r.status] + (prio ? ', ' + prio.name : ''),
       lines: [
         [(lot ? lot.lot_number : '?') + '  ·  ' + D.panelsText(r)],
+        [gauge],
         [r.status === 'on_hold' ? ui.el('span', { class: 'chip warning', text: 'On hold' }) : r.status === 'clarification' ? ui.el('span', { class: 'chip warning', text: 'Question' }) : null,
          clock, qe ? ui.el('span', { class: 'bcard-who', title: qe.name, text: ui.initials(qe.name) }) : null]
       ]
     }, { size: 'card' });
     node.dataset.id = r.id;
-    if (movable) node.setAttribute('draggable', 'true');
-    if (movable) {
-      node.addEventListener('dragstart', function (ev) {
-        dragging = r;
-        if (ev.dataTransfer) { ev.dataTransfer.setData('text/plain', r.id); ev.dataTransfer.effectAllowed = 'move'; }
-        lightColumns(r);
-      });
-      node.addEventListener('dragend', function () { dragging = null; lightColumns(null); });
-    }
+    node.addEventListener('click', function (ev) {
+      if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) return;   // a new tab still opens the page
+      ev.preventDefault();
+      show(r.id);
+    });
     return node;
   }
 
-  /** While dragging: the columns the card may go to light up, the others dim (Q39, P5). */
-  function lightColumns(r) {
-    document.querySelectorAll('.board-cell').forEach(function (cell) {
-      var ok = r && cell.dataset.tool === r.tool_id && !!dropAction(r, cell.dataset.col);
-      cell.classList.toggle('is-target', !!ok);
-      cell.classList.toggle('is-dim', !!r && !ok);
-    });
-  }
-
-  function wireDrop(cell, colKey) {
-    cell.addEventListener('dragover', function (ev) {
-      if (dragging && cell.dataset.tool === dragging.tool_id && dropAction(dragging, colKey)) ev.preventDefault();
-    });
-    cell.addEventListener('drop', function (ev) {
-      ev.preventDefault();
-      var r = dragging;
-      dragging = null; lightColumns(null);
-      if (r && cell.dataset.tool === r.tool_id) drop(r.id, colKey);
-    });
-  }
-
-  /** Move a request to a column: the action it means, with its dialog. Also used by tests. */
-  function drop(requestId, colKey) {
+  /** The side panel: the full traveller and the action buttons. Also used by tests. */
+  function show(requestId) {
     var r = byId('requests', requestId);
-    var a = r ? dropAction(r, colKey) : null;
-    if (!a) { ui.toast({ message: 'It cannot go there from ' + (r ? D.REQUEST_STATUS_LABEL[r.status] : '?') + '.' }); return Promise.resolve(null); }
-    return A.run(a, r);
+    if (!r) return null;
+    if (open) open.close();
+    var acts = A.buttons(r, { after: function () { if (open) open.close(); window.MRT.app.route(); } });
+    open = ui.drawer({ title: r.request_no, icon: 'requests', body: [window.MRT.views.request.card(r)],
+      foot: acts.concat([ui.el('a', { class: 'btn', href: '#/request/' + r.id, onclick: function () { if (open) open.close(); }, text: 'Open full page' })]),
+      onClose: function () { open = null; } });
+    return open;
   }
 
   function tick() {
@@ -150,13 +124,18 @@ window.MRT.views.board = (function () {
     var now = Date.now(), cal = store.calendar(), hs = D.holidaySet(store.data().holidays);
     clocks.forEach(function (c) {
       var r = c.r;
-      if (!D.isOpen(r) || r.status === 'on_hold' || !r.needed_by) { c.node.textContent = ''; return; }
+      c.gauge.className = 'bgauge' + (r.status === 'on_hold' ? ' is-paused' : '');
+      if (!D.isOpen(r) || r.status === 'on_hold' || !r.needed_by) { c.node.textContent = r.status === 'on_hold' ? 'paused' : ''; c.bar.style.transform = 'scaleX(' + (r.status === 'on_hold' ? 1 : 0) + ')'; return; }
       var cd = D.countdown(now, r.needed_by, cal, hs);
       var h = ui.formatDurationH(cd.lab_ms / 3600000);
       c.node.textContent = cd.late ? 'late ' + h : h + ' left';
-      c.node.className = 'q-clock ' + (cd.late ? 'is-late' : cd.lab_ms < 8 * 3600000 ? 'is-soon' : '');
+      var cls = cd.late ? 'is-late' : cd.lab_ms < 8 * 3600000 ? 'is-soon' : '';
+      c.node.className = 'q-clock ' + cls;
+      c.gauge.className = 'bgauge ' + cls;
+      // full at 40 lab hours or more left, empty at the deadline; full red when late
+      c.bar.style.transform = 'scaleX(' + (cd.late ? 1 : Math.max(0.04, Math.min(1, cd.lab_ms / (40 * 3600000)))) + ')';
     });
   }
 
-  return { render: render, tick: tick, drop: drop, dropAction: dropAction };
+  return { render: render, tick: tick, show: show };
 })();

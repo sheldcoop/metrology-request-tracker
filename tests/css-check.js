@@ -32,7 +32,7 @@ const REQUIRED = {
   lots: ['.lots-tools', '.cell-note'],
   request: ['.req-layout', '.tool-pick-opt.is-on', '.traveller-mini::before', '.req-errors', '.wz-step.is-done .wz-no', '.wz-dot.is-now', '.lot-line', '.layer-chip.is-on', '.panel-chip.is-scrapped'],
   queue: ['.q-row.is-late > td', '.queue-bulk', '.q-clock.is-late'],
-  board: ['.board-cell.is-target', '.board-cell.is-dim', '.bcard.is-urgent::after', '.bcard::before'],
+  board: ['.board-fold', '.bgauge.is-late i', 'dialog.drawer[open]', '.bcard.is-urgent::after', '.bcard::before'],
   slip: ['.slip::before', '.slip-code .barcode', '.slip-warn'],
   bell: ['.bell-count', '.bell-btn'],
   magazine: ['.mz-frame', '.mz-slot.is-picked .mz-panel', '.mz-slot.is-taken .mz-panel'],

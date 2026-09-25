@@ -560,19 +560,17 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Board: a lane per tool, five columns, the two accepted FIB cards', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 5 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 2);
   const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
-  check('...the Line stop card pulses and Olga may drag it', lsCard.classList.contains('is-urgent') && lsCard.getAttribute('draggable') === 'true');
-  lsCard.dispatch('dragstart');
-  const lit = $$('#main .board-cell.is-target').map(c => c.dataset.col).sort().join();
-  check('...dragging lights In progress and Waiting in its lane, dims the rest (Q39)', lit === 'in_progress,waiting' && $$('#main .board-cell.is-dim').length === 23);
-  lsCard.dispatch('dragend');
-  MRT.views.board.drop(qL.id, 'in_progress'); await settle();
-  check('...a drop on In progress runs Start (asks "Panels received?")', !!openDialog() && !!tickIn(openDialog(), 'Panels received'));
+  check('...the Line stop card pulses, has a needed-by gauge, nothing is draggable', lsCard.classList.contains('is-urgent') && !!lsCard.querySelector('.bgauge') &&
+        $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
+  lsCard.dispatch('click'); await settle();
+  const drw = win.document.querySelector('dialog.drawer');
+  check('...a click opens the side panel with the traveller and Start (P5-3)', !!drw && /Start/.test(drw.textContent) && /Open full page/.test(drw.textContent));
+  buttonByText(drw, 'Start').click(); await settle();
+  check('...Start from the panel asks "Panels received?"', !!openDialog() && !!tickIn(openDialog(), 'Panels received'));
   buttonByText(openDialog(), 'Save').click(); await settle();
-  check('...and the card moves', MRT.store.byId('requests', qL.id).status === 'in_progress' &&
+  check('...and the card moves, the panel closes', MRT.store.byId('requests', qL.id).status === 'in_progress' && !win.document.querySelector('dialog.drawer') &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
-  MRT.views.board.drop(qN.id, 'submitted');
-  const refusedToast = text('toasts'); await settle();
-  check('...a drop where it may not go says so and changes nothing', MRT.store.byId('requests', qN.id).status === 'accepted' && /cannot go there/.test(refusedToast));
+  check('...tools with nothing on them fold to one line', $$('#main .board-fold').length === $$('#main .board-lane.is-empty').length);
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
   win.setHash('#/lab'); await settle();
   const fibPlateQ = $$('#main .tool-plate').filter(p => /FIB/.test(p.textContent))[0];
