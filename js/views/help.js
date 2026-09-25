@@ -265,7 +265,8 @@ window.MRT.views.help = (function () {
         'Restore puts everything back to that day for everyone. The current file is kept as a safety copy first, and the audit log keeps every entry. A reason is required.',
         'Settings > Audit log: every change - who, when, what, old and new value, reason. Type in Filter to search.',
         'Change the admin PIN under Data & PIN. Tell the other admins.',
-        'Wrong data folder? Your name (top right) > Change data folder.'
+        'Wrong data folder? Your name (top right) > Change data folder.',
+        'Download the request history (Data & PIN): every request with all its status times, and every timeline event - an Excel workbook (CSV without the Excel library).'
       ],
       link: ['Open Settings > Data & PIN', '#/settings/data'] },
 

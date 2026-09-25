@@ -98,6 +98,8 @@
         row('Schema', ui.el('span', { class: 'num', text: String(store.SCHEMA_VERSION) }))
       ]),
       ui.el('div', { class: 'form-actions' }, [
+        ui.button('Download the request history', { icon: 'download', title: 'Every request with all its status times, and every timeline event (Q48)',
+          onClick: function () { window.MRT.exporter.run('request_history', window.MRT.exporter.historySheets); } }),
         ui.button('Download a copy now', { icon: 'download', onClick: function () {
           var f = store.exportText();
           window.MRT.app.downloadText(f.name.replace('recovered', 'copy'), f.text);
