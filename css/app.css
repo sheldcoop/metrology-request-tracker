@@ -115,7 +115,7 @@ h3 { font-size: 14px; }
 
 a { color: var(--accent); }
 
-::selection { background: var(--accent); color: var(--accent-fg); }
+::selection { background: var(--accent-fill); color: var(--accent-fg); }
 
 /* thin console scrollbars */
 * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
@@ -258,7 +258,7 @@ a { color: var(--accent); }
   transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, .25);
 }
 .btn-primary {
-  background: var(--accent); border-color: var(--accent); color: var(--accent-fg);
+  background: var(--accent-fill); border-color: var(--accent-fill); color: var(--accent-fg);
   box-shadow: 0 0 0 0 transparent;
 }
 .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--accent-glow); }
@@ -318,7 +318,7 @@ a { color: var(--accent); }
 }
 .seg-opt input:focus-visible + span { outline: var(--focus-w) solid var(--accent); outline-offset: 2px; }
 .seg-opt input:disabled + span { opacity: .4; cursor: not-allowed; }
-[data-contrast="high"] .seg-opt input:checked + span { background: var(--accent); color: var(--accent-fg); }
+[data-contrast="high"] .seg-opt input:checked + span { background: var(--accent-fill); color: var(--accent-fg); }
 
 /* --- Instrument fields ---------------------------------------------- *
  * .ifield is the new component; .field keeps legacy markup working and
@@ -407,7 +407,7 @@ select option { background: var(--surface-2); color: var(--fg); }
   border-left: 2px solid var(--accent-fg); border-bottom: 2px solid var(--accent-fg);
   transform: rotate(-45deg) scale(0); transition: transform var(--t) var(--ease-out);
 }
-.check input:checked { background: var(--accent); border-color: var(--accent); box-shadow: var(--accent-glow); }
+.check input:checked { background: var(--accent-fill); border-color: var(--accent-fill); box-shadow: var(--accent-glow); }
 .check input:checked::after { transform: rotate(-45deg) scale(1); }
 .check:hover input { border-color: var(--accent); }
 
@@ -846,7 +846,7 @@ kbd {
 .skip-link {
   position: absolute; left: 8px; top: -48px; z-index: 200;
   padding: 10px 16px; border-radius: var(--radius);
-  background: var(--accent); color: var(--accent-fg);
+  background: var(--accent-fill); color: var(--accent-fg);
   font-weight: 600; text-decoration: none;
   transition: transform var(--t) ease;
 }
@@ -1781,9 +1781,9 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .tool-pick { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: 999px;
   background: var(--surface); color: var(--fg); font: inherit; font-size: 13px; cursor: pointer; transition: background-color var(--t-fast) ease; }
 .tool-pick:hover { background: var(--surface-3); }
-.tool-pick.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.tool-pick.is-on { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--accent-fg); }
 .tool-pick-n { min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--surface-3); color: var(--fg); font-size: 11px; text-align: center; }
-.tool-pick.is-on .tool-pick-n { background: var(--accent-fg); color: var(--accent); }
+.tool-pick.is-on .tool-pick-n { background: var(--accent-fg); color: var(--accent-fill); }
 .tool-picks-sep { width: 1px; height: 20px; margin: 0 4px; background: var(--line-strong); }
 .tool-picks-label { font-size: 12px; margin-right: 2px; }
 .tool-pick.is-alarm:not(.is-on) { border-color: var(--critical); }

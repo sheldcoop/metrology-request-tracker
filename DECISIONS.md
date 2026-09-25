@@ -562,3 +562,17 @@ never the only signal - the text/label says the same thing.
 - **T-4** User menu > Theme... opens a gallery of live samples; a pick is kept per person on the PC.
   Settings > Look: an admin sets the office default theme (audited); "Office default" in the gallery
   follows it. The last used theme shows at start-up before anything is drawn (no flash).
+- **T-5** (2026-09-25, Prince: "I hated all" the theme-factory set) **Proposal, waiting for Prince's OK:**
+  three themes from full app design systems, colours taken from the official token sources, not
+  memory - IBM Carbon `@carbon/themes` (themes.json + colors.json: g100, white) and GitHub Primer
+  `primer/primitives` (dark-high-contrast, with its "dark" fallback, as Primer's build does).
+  1 Dark default: **Carbon Gray 100** (#161616 / #262626 / #f4f4f4, links #78a9ff, buttons #0f62fe),
+  flat and square, glow only on the status lamps. 2 Light: **Carbon White** (#ffffff / #f4f4f4 /
+  #161616, #0f62fe). 3 **Primer High Contrast** (#010409 / #151b23 / #ffffff, accent #74b9ff, strong
+  #b7bdc8 borders, no transparency: Primer's see-through status backgrounds mixed to solid, no glow).
+  Primer's current values differ a little from the ones Prince had (older release): background
+  #010409 not #0a0c10, text #ffffff not #f0f3f6, accent #74b9ff not #71b7ff, OK #2bd853 not #26cd4d.
+  A new token `--accent-fill` (buttons, ticks, selection) lets Carbon dark use #0f62fe for buttons
+  and #78a9ff for links. Shown in ui-kit.html (opens on "Proposal"), not yet in the app. After the
+  OK: these three become the app's themes, the theme-factory ones go; Nord / Catppuccin Mocha later
+  as optional personal themes.
