@@ -39,7 +39,7 @@ console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
 ['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js', 'js/analytics.js',
- 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js',
+ 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
  'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
@@ -685,6 +685,32 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   win.setHash('#/help/admin-setup'); await settle();
   check('#/help/admin-setup opens that guide', $$('.help-guide').filter(g => g.classList.contains('is-selected')).map(g => g.id).join() === 'help-admin-setup');
   check('every guide link goes to a live page', $$('.help-open').every(a => !!MRT.views[(a.getAttribute('href') || '').replace(/^#\//, '').split('/')[0]]));
+
+  // --- exports (M5-2, Q48): CSV without SheetJS, a real workbook with it
+  const downloads = [];
+  const RealBlob = win.Blob;
+  win.Blob = class { constructor(parts) { downloads.push(parts.join('')); } };
+  win.setHash('#/requests/all'); await settle();
+  buttonByText(doc.getElementById('main'), 'Download').click(); await settle();
+  const myCsv = downloads.slice(-1)[0] || '';
+  const myCount = +((mainText().match(/(\d+) shown/) || [])[1]);   // exactly what the list shows, filters included
+  check('My requests > Download: a CSV of the list as filtered, same columns everywhere', /^\ufeffRequest ID,Status,Tool/.test(myCsv) &&
+        myCsv.split('\r\n').length === myCount + 1, myCsv.split('\r\n').length + ' vs ' + (myCount + 1));
+  win.setHash('#/settings/data'); await settle();
+  const before = downloads.length;
+  buttonByText(doc.getElementById('main'), 'Download the request history').click(); await settle();
+  check('Settings > Data: the full request history - Requests and Timeline (2 CSV files)', downloads.length === before + 2 &&
+        /Turnaround \(lab h, hold out\)/.test(downloads[before]) && /^\ufeffRequest ID,When,Who,What,From,To,Text/.test(downloads[before + 1]));
+  win.Blob = RealBlob;
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'vendor/xlsx.full.min.js'), 'utf8'), ctx, { filename: 'xlsx.full.min.js' });
+  let wbOut = null;
+  win.XLSX.writeFile = (wb, name) => { wbOut = { wb, name }; };
+  buttonByText(doc.getElementById('main'), 'Download the request history').click(); await settle();
+  const reqSheet = wbOut && win.XLSX.utils.sheet_to_json(wbOut.wb.Sheets.Requests, { header: 1 });
+  check('with SheetJS: one .xlsx workbook, sheets Requests + Timeline, a row per submitted request', !!wbOut && /^mrt_request_history_\d{4}-\d{2}-\d{2}\.xlsx$/.test(wbOut.name) &&
+        wbOut.wb.SheetNames.join() === 'Requests,Timeline' &&
+        reqSheet.length === MRT.store.data().requests.filter(r => r.status !== 'draft').length + 1, wbOut && wbOut.name);
+  delete win.XLSX;
 
   // --- the alert strip (M1-2, built in the M3 audit)
   win.setHash('#/lab'); await settle(); tick(); await settle();

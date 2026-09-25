@@ -41,8 +41,10 @@ window.MRT.views.requests = (function () {
     if (want && STATUS_FILTER.some(function (f) { return f.value === want; })) { view.status = want; view.shown = PAGE; }
     var me = store.currentUser();
     clocks = [];
-    main.appendChild(ui.pageHead('My requests', 'Everything you asked the lab for. Waiting on you comes first.',
-      D.canRequest(me) ? [ui.button('New request', { kind: 'primary', icon: 'plus', onClick: function () { location.hash = '#/new'; } })] : null));
+    var shownRows = [];      // the list as filtered now - what Download writes (Q48)
+    main.appendChild(ui.pageHead('My requests', 'Everything you asked the lab for. Waiting on you comes first.', [
+      window.MRT.exporter.rowsButton('Download', 'My requests', function () { return window.MRT.exporter.requestRows(shownRows); }),
+      D.canRequest(me) ? ui.button('New request', { kind: 'primary', icon: 'plus', onClick: function () { location.hash = '#/new'; } }) : null]));
     var mineAll = store.visibleRequests(function (r) { return r.requester_id === me.id; });
     if (!mineAll.length) {
       main.appendChild(ui.emptyState({ icon: 'requests', title: 'No requests yet', text: 'Start with New request - register the lot first if it is new.',
@@ -82,6 +84,7 @@ window.MRT.views.requests = (function () {
       });
       function rank(r) { return waitingOnMe(r, now) ? 0 : D.isOpen(r) ? 1 : r.status === 'draft' ? 2 : 3; }
       list.sort(function (a, b) { return rank(a) - rank(b); });     // stable: newest first within each part
+      shownRows = list;
       var waiting = mineAll.filter(function (r) { return waitingOnMe(r, now); }).length;
       var oldDrafts = mineAll.filter(function (r) { return D.isOldDraft(r, now); }).length;
       ui.mount(holder, [

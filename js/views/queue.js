@@ -43,8 +43,10 @@ window.MRT.views.queue = (function () {
     if (want && STATUS_FILTER.some(function (f) { return f.value === want; })) { view.status = want; view.shown = PAGE; }
     clocks = [];
     var tools = myTools(me);
+    var shownRows = [];      // the queue as filtered now - what Download writes (Q48)
     main.appendChild(ui.pageHead('My queue', tools.length ? 'Open requests of ' + tools.map(function (t) { return t.code; }).join(', ') +
-      ' - Line stop on top, then late, then by needed-by date.' : 'Quality engineers see the requests of their tools here.'));
+      ' - Line stop on top, then late, then by needed-by date.' : 'Quality engineers see the requests of their tools here.',
+      tools.length ? [window.MRT.exporter.rowsButton('Download', 'My queue', function () { return window.MRT.exporter.requestRows(shownRows); })] : null));
     if (!tools.length) {
       main.appendChild(ui.emptyState({ icon: 'inbox', title: 'You are not a quality engineer of any tool',
         text: 'An admin sets the primary and backup quality engineer per tool (Settings > Tools). Your requests are under My requests.' }));
@@ -78,6 +80,7 @@ window.MRT.views.queue = (function () {
       var mine = sorted.filter(function (r) { return r.assigned_to === me.id; });
       var rest = sorted.filter(function (r) { return r.assigned_to !== me.id; });
       var all = mine.concat(rest);
+      shownRows = all;
       Object.keys(picked).forEach(function (id) { if (!all.some(function (r) { return r.id === id; })) delete picked[id]; });
       var list = all.slice(0, view.shown);
       var late = all.filter(function (r) { return D.isLate(r, now, cal); }).length;
