@@ -88,7 +88,7 @@ kept first). The steps below work on the demo or on a fresh folder.
 - [ ] **T3.8** Review: every step green; warnings make sense (no BKM, tool down/maintenance, the same panels already open). Submit.
       Expect: an ID like `FIB-260926-01`; a new lot appears on Lots.
 - [ ] **T3.9** Save a draft, close, carry on later (My requests > Drafts), delete a draft. Copy a past request: everything but date, reason, place.
-- [ ] **T3.10** The request page: traveller card (priority stripe, stamp, glyph), a needle dial under Needed by (green / amber / red zones; the needle moves right as lab time runs out; a pause sign when on hold - P2), countdown "x h lab time left" or
+- [ ] **T3.10** The request page: traveller card (priority stripe, stamp, glyph), panels: copper panels light up as you type IDs in the form; after Panels received they sit in an "In the lab tray"; after Complete a check or a red cross (scrapped) - P4; a needle dial under Needed by (green / amber / red zones; the needle moves right as lab time runs out; a pause sign when on hold - P2), countdown "x h lab time left" or
       "clock paused (outside lab hours)", status rail, timeline, BKM path with Copy.
       Expect: under Panels **each panel as a copper panel with its decoded fields**.
 - [ ] **T3.11** Comment with `@Name` of the QE. Edit the request with a reason: the timeline shows "panels ... -> ...".
