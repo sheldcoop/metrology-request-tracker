@@ -35,7 +35,7 @@ const REQUIRED = {
   shell: ['.topbar', '.nav-item', '.save-led', '.undo-btn', '.alert-banner', '.gate-card', '.nav-item.is-soon', '.gate-error'],
   lab: ['.tool-plate::before', '.tool-plate-facts', '.lab-grid'],
   lots: ['.lots-tools', '.cell-note'],
-  request: ['.req-layout', '.tool-pick-opt.is-on', '.traveller-mini::before', '.req-errors', '.wz-step.is-done .wz-no', '.wz-dot.is-now', '.lot-line', '.layer-chip.is-on', '.panel-chip.is-scrapped'],
+  request: ['.req-layout', '.tool-bank', '.tool-pick-opt.is-on', '.traveller-mini::before', '.req-errors', '.wz-step.is-done .wz-no', '.wz-dot.is-now', '.lot-line', '.layer-chip.is-on', '.panel-chip.is-scrapped'],
   queue: ['.q-row.is-late > td', '.queue-bulk', '.q-clock.is-late'],
   board: ['.board-fold', '.bgauge.is-late i', 'dialog.drawer[open]', '.bcard.is-urgent::after', '.bcard::before'],
   slip: ['.slip::before', '.slip-code .barcode', '.slip-warn'],
