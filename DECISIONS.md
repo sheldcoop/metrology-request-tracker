@@ -593,3 +593,6 @@ never the only signal - the text/label says the same thing.
   css/app.css (--ic-*): tick OK, triangle Warning, stop octagon Critical / Line stop, clock Late,
   lock Blocked, flame Hot. Applied centrally: every status chip, every lamp (the glow follows the
   shape), priority names (Line stop, Hot), "late" clocks, the tool lamps on the board.
+- **T-9** (2026-09-25, Prince: "do it") **Late is red everywhere** (the expired colour + clock icon):
+  queue rows, clocks, board cards and gauges, the needed-by dial, Lab status. Line stop stays orange
+  with the stop octagon; Hot and Warning stay amber, told apart by flame vs triangle and their words.
