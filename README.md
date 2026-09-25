@@ -68,8 +68,8 @@ stop on top, then late, then by needed-by date; assigned-to-me first;
 one-click actions per row, Accept all / Start all. It is their start page.
 
 **Board** - one lane per tool, columns Submitted / Accepted / In progress /
-Waiting / Completed (7 days); quality engineers drag cards on (allowed
-columns light up), everyone else reads.
+Waiting / Completed (7 days), empty tools fold to one line; a click on a card
+opens a side panel with the traveller and the allowed action buttons.
 
 **Notifications** - the bell (top right): what is new on your requests, your
 tools and your @mentions; browser pop-ups if turned on; after key events a

@@ -271,5 +271,5 @@ window.MRT.views.request = (function () {
       }).catch(function (e) { ui.toastError('Could not cancel: ' + e.message, e); });
   }
 
-  return { render: render, tick: paintClock };
+  return { render: render, tick: paintClock, card: function (r) { return traveller(r, byId('tools', r.tool_id), byId('lots', r.lot_id)); } };
 })();

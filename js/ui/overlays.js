@@ -359,10 +359,48 @@
     return Promise.resolve();
   }
 
+  /**
+   * A side panel from the right (board, P5). body: node; foot: [node].
+   * Esc, the X or a click on the dim area closes it. Returns {close}.
+   */
+  function drawer(o) {
+    var host = document.getElementById('dialogHost') || document.body;
+    var dlg = el('dialog', { class: 'drawer', 'aria-label': o.title || 'Details' });
+    var opener = document.activeElement, done = false;
+    function close() {
+      if (done) return;
+      done = true;
+      function finish() {
+        dlg.close();
+        if (dlg.parentNode) dlg.parentNode.removeChild(dlg);
+        if (opener && opener.isConnected && opener.focus) opener.focus();
+        if (o.onClose) o.onClose();
+      }
+      if (reducedMotion()) return finish();
+      dlg.classList.add('closing');
+      setTimeout(finish, 160);
+    }
+    dlg.appendChild(el('div', { class: 'modal-head' }, [
+      o.icon ? el('span', { class: 'panel-icon' }, icon(o.icon, 18)) : null,
+      el('h2', { text: o.title || '' }),
+      el('button', { class: 'btn-icon', type: 'button', 'aria-label': 'Close', onclick: close }, icon('close', 16))
+    ]));
+    dlg.appendChild(el('div', { class: 'drawer-body' }, o.body || null));
+    if (o.foot) dlg.appendChild(el('div', { class: 'drawer-foot' }, o.foot));
+    dlg.addEventListener('cancel', function (e) { e.preventDefault(); close(); });
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) close(); });
+    host.appendChild(dlg);
+    dlg.showModal();
+    var first = dlg.querySelector('.drawer-foot button, .btn-icon');
+    if (first) first.focus();
+    return { close: close, node: dlg };
+  }
+
   ui.bindTips = bindTips;
   ui.copyText = copyText;
   ui.confirm = confirm;
   ui.dialog = dialog;
+  ui.drawer = drawer;
   ui.hideTip = hideTip;
   ui.menu = menu;
   ui.placeTip = placeTip;

@@ -111,9 +111,11 @@ kept first). The steps below work on the demo or on a fresh folder.
       what happened to the panels; put back: the same magazine and slots offered - pick other slots once.
 - [ ] **T4.8** Engineer: **Results OK**, or **Reopen** with a reason. A completed request closes by itself after 7 days.
 - [ ] **T4.9** Tick several rows: Accept all / Start all.
-- [ ] **T4.10** Board: drag a card to the next column (real mouse). Expect: allowed columns light up, others dim;
-      a Line stop card pulses; dropping on Complete asks for the results folder.
-      (Note: the board's look will be redesigned later - write down what you would change.)
+- [ ] **T4.10** Board (redesigned, P5): tool rows with a lamp; tools with nothing on them fold to one line;
+      compact cards with a needed-by bar (green, amber under 8 lab hours, red pulsing when late, striped when on hold).
+      Click a card: a side panel opens from the right with the traveller and the action buttons; Start / Complete
+      ask the same questions as on the request page; the panel closes and the card moves. Esc or a click on the dim
+      area closes it. Ctrl+click opens the full request page in a new tab. Nothing can be dragged.
 - [ ] **T4.11** Away: set yourself away (user menu > I'm away). Expect: new requests of your tool go to the backup with a note;
       "Take it" lets either QE take a request.
 - [ ] **T4.12** Lab status: per tool queue numbers (open, late, oldest, typical wait); set a tool Down / Maintenance (until date, note);
