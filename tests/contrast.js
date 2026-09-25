@@ -20,8 +20,7 @@ for(const[t,v]of Object.entries(T))for(const[f,b]of pairs){let bg=parse(v[b]);if
 
 // Status colours must stay clearly apart (Prince, 2026-09-25): Line stop / Late / Hot / Warning / OK.
 // CIEDE2000 colour difference; fills (lamps, stripes, card edges - read at a glance) >= 15,
-// text colours >= 12 (always shown with their word and icon). Checked for the new themes
-// (candidate: true); the older themes are listed for information only.
+// text colours >= 12 (always shown with their word and icon). Checked for every theme.
 // CIEDE2000 between two hex colours
 function lab(hex){let [r,g,b]=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));
  let x=(r*.4124+g*.3576+b*.1805)/.95047,y=(r*.2126+g*.7152+b*.0722),z=(r*.0193+g*.1192+b*.9505)/1.08883;
@@ -40,6 +39,6 @@ function de2000(h1,h2){const[L1,a1,b1]=lab(h1),[L2,a2,b2]=lab(h2);const rad=Math
 
 const ST=['ok','warning','critical','expired'];
 for(const t of TH.list){const v=T[t.key];for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)for(const[k,min]of[['',15],['-fg',12]]){
-  const d=de2000(v[ST[i]+k],v[ST[j]+k]);const low=d<min;if(low&&t.candidate)bad++;
-  if((low&&t.candidate)||all)console.log(t.key.padEnd(8),(ST[i]+k+' vs '+ST[j]+k).padEnd(30),'dE',d.toFixed(1),low?(t.candidate?'TOO CLOSE':'close (older theme)'):'distinct')}}
+  const d=de2000(v[ST[i]+k],v[ST[j]+k]);const low=d<min;if(low)bad++;
+  if(low||all)console.log(t.key.padEnd(8),(ST[i]+k+' vs '+ST[j]+k).padEnd(30),'dE',d.toFixed(1),low?'TOO CLOSE':'distinct')}}
 console.log('fails',bad);if(bad)process.exitCode=1;

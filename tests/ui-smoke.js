@@ -160,22 +160,21 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 // the kit, once it exists (step 5)
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
-  const cand=win.MRT.themes.list.filter(t=>t.candidate),live=win.MRT.themes.list.filter(t=>!t.candidate);
-  expect('the kit opens on the proposal: the 5 candidate themes side by side, with their contrast table',cand.length===5&&root.querySelectorAll('.theme-scope').length===5&&
-    root.querySelectorAll('.theme-scope').map(x=>x.getAttribute('data-theme')).join()===cand.map(t=>t.key).join()&&root.querySelector('.kit-contrast').querySelectorAll('th').length===2+5);
-  const sel=doc.getElementById('kitBar').querySelector('select');sel.value='dark';sel.dispatch('change');flush();
+  const live=win.MRT.themes.list;
+  expect('the kit opens on all 5 themes side by side, with their contrast table',live.length===5&&root.querySelectorAll('.theme-scope').length===5&&
+    root.querySelector('.kit-contrast').querySelectorAll('th').length===2+5);
+  const sel=doc.getElementById('kitBar').querySelector('select');sel.value='carbon-g100';sel.dispatch('change');flush();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
   expect('the kit builds every section (24, with the theme gallery)',secs.length===24);
   expect('the kit shows 6 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===24);
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
   sel.value='all';sel.dispatch('change');flush();
   expect('the kit renders every theme of the app side by side',root.querySelectorAll('.theme-scope').length===live.length);
-  sel.value='ocean';sel.dispatch('change');flush();expect('...or one of them',doc.documentElement.getAttribute('data-theme')==='ocean')})}
-check('theme gallery',()=>{let got=null;const g=put(ui.themeGallery({themes:win.MRT.themes,value:'dark',onPick:k=>{got=k},extra:{key:'',name:'Office default',mood:'x'}}));
-  const cards=g.node.querySelectorAll('.tg-card');expect('one card per theme + Office default, grouped',cards.length===win.MRT.themes.list.filter(t=>!t.candidate).length+1&&g.node.querySelectorAll('.tg-group-title').length===3);
-  expect('each sample carries its own theme',g.node.querySelectorAll('.tg-sample').filter(x=>x.getAttribute('data-theme')).length===win.MRT.themes.list.filter(t=>!t.candidate).length);
-  expect('...the proposal themes are not offered in the app yet',!cards.some(c=>/^(carbon|primer)/.test(c.dataset.key)));
-  cards.filter(c=>c.dataset.key==='arctic')[0].click();expect('a click picks it',got==='arctic'&&g.value()==='arctic'&&cards.filter(c=>c.classList.contains('is-on')).length===1)});
+  sel.value='gruvbox-light';sel.dispatch('change');flush();expect('...or one of them',doc.documentElement.getAttribute('data-theme')==='gruvbox-light')})}
+check('theme gallery',()=>{let got=null;const g=put(ui.themeGallery({themes:win.MRT.themes,value:'carbon-g100',onPick:k=>{got=k},extra:{key:'',name:'Office default',mood:'x'}}));
+  const cards=g.node.querySelectorAll('.tg-card');expect('one card per theme + Office default, grouped',cards.length===win.MRT.themes.list.length+1&&g.node.querySelectorAll('.tg-group-title').length===2);
+  expect('each sample carries its own theme',g.node.querySelectorAll('.tg-sample').filter(x=>x.getAttribute('data-theme')).length===win.MRT.themes.list.length);
+  cards.filter(c=>c.dataset.key==='catppuccin-mocha')[0].click();expect('a click picks it',got==='catppuccin-mocha'&&g.value()==='catppuccin-mocha'&&cards.filter(c=>c.classList.contains('is-on')).length===1)});
 
 (async()=>{await dialogSubmitChecks().catch(e=>{errs++;console.log('ERR dialog submit',e.stack)});
 console.log('charts built',charts,'destroyed',destroyed);

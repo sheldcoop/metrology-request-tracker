@@ -2,7 +2,7 @@
  * Metrology Request Tracker - ui/theme-gallery.js
  *
  * The theme gallery (like a theme showcase): one card per theme of
- * js/themes.js, grouped Dark / Light / Accessibility. Each card is a small
+ * js/themes.js, grouped Main / Personal. Each card is a small
  * live sample drawn IN that theme (a panel, a status lamp row, an action
  * button, a field), with the theme's name, mood and four swatches. Click
  * or Enter picks it; arrows move between cards.
@@ -52,7 +52,7 @@
     }
     var groups = [];
     if (o.extra) groups.push(el('div', { class: 'tg-grid' }, card(o.extra)));
-    ['Dark', 'Light', 'Accessibility'].forEach(function (g) {
+    ['Main', 'Personal'].forEach(function (g) {
       var list = T.list.filter(function (t) { return t.group === g; });
       if (!list.length) return;
       groups.push(el('div', { class: 'tg-group-title', text: g }));

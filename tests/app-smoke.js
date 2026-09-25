@@ -134,18 +134,18 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const menu = doc.body.querySelector('.menu');
   check('the user menu opens with theme, start page and Change user', !!menu && /Theme/.test(menu.textContent) && /Start page/.test(menu.textContent) && /Change user/.test(menu.textContent));
   check('...and shows the roles', !!menu && /Admin/.test(menu.textContent));
-  buttonByText(menu, 'Theme: Mission Control...').click(); await settle();
+  buttonByText(menu, 'Theme: Carbon Gray 100...').click(); await settle();
   const thDlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   const tcard = k => thDlg.querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
   check('Theme... opens the gallery: every theme of js/themes.js as a live sample, plus "Office default"',
-        !!thDlg && thDlg.querySelectorAll('.tg-card').length === MRT.themes.list.filter(t => !t.candidate).length + 1 && thDlg.querySelectorAll('.tg-sample[data-theme="ocean"]').length === 1);
-  tcard('ocean').click();
-  check('...a click switches at once (theme, scheme) and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'ocean' &&
-        doc.documentElement.getAttribute('data-scheme') === 'dark' && storage['mrt.theme.' + MRT.store.currentUser().id] === 'ocean' && storage['mrt.theme.last'] === 'ocean');
-  tcard('hc').click();
-  check('...High contrast is black with signal yellow and says so', doc.documentElement.getAttribute('data-contrast') === 'high' && /FFD400/.test(MRT.themes.css()));
-  tcard('light').click();
-  check('...Instrument (light)', doc.documentElement.getAttribute('data-theme') === 'light' && doc.documentElement.getAttribute('data-scheme') === 'light' &&
+        !!thDlg && thDlg.querySelectorAll('.tg-card').length === MRT.themes.list.length + 1 && thDlg.querySelectorAll('.tg-sample[data-theme="gruvbox-light"]').length === 1);
+  tcard('catppuccin-mocha').click();
+  check('...a click switches at once (theme, scheme) and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'catppuccin-mocha' &&
+        doc.documentElement.getAttribute('data-scheme') === 'dark' && storage['mrt.theme.' + MRT.store.currentUser().id] === 'catppuccin-mocha' && storage['mrt.theme.last'] === 'catppuccin-mocha');
+  tcard('primer-hc').click();
+  check('...Primer High Contrast marks the page high contrast', doc.documentElement.getAttribute('data-contrast') === 'high' && /#010409/.test(MRT.themes.css()));
+  tcard('carbon-white').click();
+  check('...Carbon White (light)', doc.documentElement.getAttribute('data-theme') === 'carbon-white' && doc.documentElement.getAttribute('data-scheme') === 'light' &&
         doc.documentElement.getAttribute('data-contrast') === 'normal');
   buttonByText(thDlg, 'Done').click(); await settle();
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
@@ -311,18 +311,18 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   await tab('look');
   const lookCard = k => doc.getElementById('main').querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
-  check('Settings > Look: every theme as a live sample, the office default marked', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.filter(t => !t.candidate).length && lookCard('dark').classList.contains('is-on'));
-  lookCard('arctic').click(); await settle();
-  check('...a click makes Arctic Frost the office default (audited)', MRT.store.getSetting('default_theme') === 'arctic' && MRT.store.data().audit_log.slice(-1)[0].field === 'default_theme');
+  check('Settings > Look: every theme as a live sample, the office default marked, old keys still resolve', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.length && lookCard('carbon-g100').classList.contains('is-on') && MRT.themes.byKey('hc').key === 'primer-hc');
+  lookCard('gruvbox-light').click(); await settle();
+  check('...a click makes Gruvbox Light the office default (audited)', MRT.store.getSetting('default_theme') === 'gruvbox-light' && MRT.store.data().audit_log.slice(-1)[0].field === 'default_theme');
   doc.getElementById('userBtn').click(); await settle();
-  buttonByText(doc.body.querySelector('.menu'), 'Theme: Instrument...').click(); await settle();
+  buttonByText(doc.body.querySelector('.menu'), 'Theme: Carbon White...').click(); await settle();
   const thDlg2 = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   thDlg2.querySelectorAll('.tg-card').filter(c => c.dataset.key === '')[0].click();
-  check('..."Office default" in the gallery follows it again', doc.documentElement.getAttribute('data-theme') === 'arctic' && !storage['mrt.theme.' + MRT.store.currentUser().id]);
+  check('..."Office default" in the gallery follows it again', doc.documentElement.getAttribute('data-theme') === 'gruvbox-light' && !storage['mrt.theme.' + MRT.store.currentUser().id]);
   buttonByText(thDlg2, 'Done').click(); await settle();
-  lookCard('dark').click(); await settle();
-  check('...back to Mission Control: stored as "the app default", and I follow it at once', MRT.store.getSetting('default_theme') === null &&
-        doc.documentElement.getAttribute('data-theme') === 'dark');
+  lookCard('carbon-g100').click(); await settle();
+  check('...back to Carbon Gray 100: stored as "the app default", and I follow it at once', MRT.store.getSetting('default_theme') === null &&
+        doc.documentElement.getAttribute('data-theme') === 'carbon-g100');
   await tab('data');
   check('Data & PIN shows the file and today\'s backup', /mrt_data.json/.test(mainText()) && /latest/.test(mainText()));
   buttonByText(doc.getElementById('main'), 'Download a copy now').click(); await settle();

@@ -39,7 +39,7 @@ kept first). The steps below work on the demo or on a fresh folder.
       Do: user menu > Start page > pick another; restart. Expect: your choice wins.
 - [ ] **T1.3** Expect: the **strip under the top bar** shows Line stop / Late / On hold / Needs clarification counts
       (QE: your tools; engineer: your requests) and a clock. Do: click "Late". Expect: My queue / My requests filtered.
-- [ ] **T1.4** Do: user menu > **Theme...**. Expect: a gallery of 11 themes, each a small live sample (Mission Control, Ocean Depths, Midnight Galaxy, Forest Canopy, Tech Innovation, Instrument, Arctic Frost, Modern Minimalist, Golden Hour, Desert Rose, High contrast). A click switches at once; remembered per person; "Office default" follows the admin's pick. High contrast = black, white, signal yellow. Open a few pages in each; note any that look off.
+- [ ] **T1.4** Do: user menu > **Theme...**. Expect: Main - Carbon Gray 100 (default), Carbon White, Primer High Contrast; Personal - Catppuccin Mocha, Gruvbox Light; each a live sample. A click switches at once; remembered per person; "Office default" follows the admin's pick. Check in each: status shows an icon + word (tick OK, triangle Warning, octagon Line stop, clock Late in red, flame Hot).
 - [ ] **T1.4b** Do (admin): Settings > **Look**, click a theme. Expect: it becomes the office default; people who never picked their own get it.
 - [ ] **T1.5** Do: user menu > Reduce motion on. Expect: nothing moves (glyphs, pulses, entrances); off again moves.
 - [ ] **T1.6** Do: `[` key. Expect: side menu collapses to icons; again opens. Remembered.

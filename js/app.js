@@ -54,7 +54,7 @@ window.MRT.app = (function () {
 
   var app = {
     route: 'lab',
-    theme: 'dark',
+    theme: 'carbon-g100',
     tickTimer: null,
     revisionTimer: null,
     currentView: null
