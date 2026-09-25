@@ -419,6 +419,23 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
   `TEST_RUN.md`; the M4 audit is covered by that run. M5 is planned and built meanwhile
   (Prince, 2026-09-25: "I will test tomorrow, you build M5 today").
 
+## M5 analytics and exports (2026-09-25, Prince: plan A, build today)
+- **M5-1** One Analytics page, four tabs: **My work** (quality engineers), **My requests**
+  (engineers; incl. "where is my lot"), **Lab** and **Management** (Manager role only, Q52). Filters:
+  date range (default last 90 days), tool, project; every number clicks through to its requests.
+  Turnaround = submitted -> completed in **lab time with hold taken out** (hold shown apart);
+  calendar time kept too; response = submitted -> first Accept/Start; **on time** = completed by the
+  end of the needed-by lab day (undated requests not counted); backlog = open requests at each
+  week's end; "done" = completed in the range, demand = submitted in the range. Capacity is not
+  known (OPEN #3): demand only. Rules: `domain.analytics` + helpers, with tests; cache `js/analytics.js`.
+- **M5-2** Exports (Q48): every table/chart has Download; full request history (a row per request
+  with every status time + a row per timeline event); monthly management pack (one workbook, a
+  sheet per topic). **SheetJS** `vendor/xlsx.full.min.js` 0.20.3 (downloaded with Prince's OK,
+  official cdn.sheetjs.com, offline) makes real .xlsx; without it CSV.
+- **M5-3** From now on a hold's timeline event also stores its reason ID (older holds are matched
+  by the reason's name).
+- **M5 build order**: 1 `m5-rules` - 2 `m5-exports` - 3 `m5-analytics` - 4 `m5-pack`.
+
 ## Hirata code (2026-09-25, Prince) - PLANNED, ask before building
 Prince's Hirata tool (decoder + pattern finder) is built into the app, rebuilt to our rules
 (no `innerHTML` with typed text, our themes and components). The code has **9 digits**: supplier

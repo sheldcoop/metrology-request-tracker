@@ -1015,6 +1015,184 @@ window.MRT.domain = (function () {
              oldest_lab_ms: oldest ? workingMs(Date.parse(oldest.submitted_ts), nowTs, cal, hs) : 0, wait_ms: mid, wait_n: started.length };
   }
 
+  /* ------------------------------------------------------------------ *
+   * Analytics (M5, Q20, Q48, DECISIONS M5-1): pure maths on requests and
+   * their timeline events. Durations in lab time (Q36) unless named
+   * calendar; hold time kept apart (Q9); "on time" = completed by the end
+   * of the lab day of the needed-by date (undated requests are not
+   * counted). Moments are ms since 1970 (_ts), durations ms (_ms).
+   * ------------------------------------------------------------------ */
+
+  function numbers(xs) {
+    return (xs || []).filter(function (x) { return typeof x === 'number' && isFinite(x); }).sort(function (p, q) { return p - q; });
+  }
+
+  /** Median (null when empty). */
+  function median(xs) {
+    var a = numbers(xs);
+    if (!a.length) return null;
+    return a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2;
+  }
+
+  /** p-th percentile, nearest rank (p90 = percentile(xs, 90)); null when empty. */
+  function percentile(xs, p) {
+    var a = numbers(xs);
+    if (!a.length) return null;
+    return a[Math.min(a.length - 1, Math.max(0, Math.ceil(p / 100 * a.length) - 1))];
+  }
+
+  /** A request's status changes, oldest first: [{ts, from, to, text, hold_reason_id}]. */
+  function statusChanges(requestId, events) {
+    return (events || []).filter(function (e) { return e.request_id === requestId && e.kind === 'status'; })
+      .map(function (e) { return { ts: Date.parse(e.ts), from: e.from, to: e.to, text: e.text || '', hold_reason_id: e.hold_reason_id || null }; })
+      .sort(function (a, b) { return a.ts - b.ts; });
+  }
+
+  /** The status a request had at a moment; null before it was submitted. */
+  function statusAt(changes, ts) {
+    var st = null;
+    for (var i = 0; i < changes.length && changes[i].ts <= ts; i++) st = changes[i].to;
+    return st === 'draft' ? null : st;
+  }
+
+  /**
+   * One request's times (M5-1):
+   *   response_ms   submitted -> first Accept or Start (lab time)
+   *   turnaround_ms submitted -> (last) Completed, lab time, hold taken out
+   *   hold_ms       lab time On hold (to now while still on hold)
+   *   calendar_ms   submitted -> completed, plain clock
+   *   on_time       true/false when completed and dated, else null
+   *   clarifications, reopens, holds [{ts, reason_id, reason_text}]
+   */
+  function requestTimes(r, events, cal, hs, nowTs) {
+    var ch = statusChanges(r.id, events);
+    var firstSub = ch.filter(function (c) { return c.to === 'submitted'; })[0];
+    var sub = r.submitted_ts ? Date.parse(r.submitted_ts) : firstSub ? firstSub.ts : null;
+    var out = { submitted_ts: sub, completed_ts: null, response_ms: null, turnaround_ms: null, hold_ms: 0,
+                calendar_ms: null, on_time: null, clarifications: 0, reopens: 0, holds: [] };
+    if (!sub) return out;
+    var holdFrom = null;
+    ch.forEach(function (c) {
+      if (out.response_ms === null && (c.to === 'accepted' || c.to === 'in_progress')) out.response_ms = workingMs(sub, c.ts, cal, hs);
+      if (holdFrom !== null && c.to !== 'on_hold') { out.hold_ms += workingMs(holdFrom, c.ts, cal, hs); holdFrom = null; }
+      if (c.to === 'on_hold') { holdFrom = c.ts; out.holds.push({ ts: c.ts, reason_id: c.hold_reason_id, reason_text: c.text.split(':')[0] }); }
+      if (c.to === 'clarification') out.clarifications++;
+      if (c.from === 'completed' && c.to !== 'completed') { out.reopens++; out.completed_ts = null; }
+      if (c.to === 'completed') out.completed_ts = c.ts;
+    });
+    if (holdFrom !== null) out.hold_ms += workingMs(holdFrom, nowTs, cal, hs);
+    if (!out.completed_ts && r.status === 'completed' && r.completed_ts) out.completed_ts = Date.parse(r.completed_ts);
+    if (out.completed_ts) {
+      out.calendar_ms = out.completed_ts - sub;
+      out.turnaround_ms = Math.max(0, workingMs(sub, out.completed_ts, cal, hs) - out.hold_ms);
+      if (r.needed_by && isYmd(r.needed_by)) out.on_time = out.completed_ts <= viennaTs(r.needed_by, cal.end);
+    }
+    return out;
+  }
+
+  /** Is a moment inside a Vienna date range (inclusive; empty ends = open)? */
+  function inDateRange(ts, fromYmd, toYmd) {
+    if (ts === null || ts === undefined || isNaN(ts)) return false;
+    var d = viennaYmd(ts);
+    return (!fromYmd || d >= fromYmd) && (!toYmd || d <= toYmd);
+  }
+
+  /** 'YYYY-MM' of a moment in Vienna. */
+  function viennaMonth(ts) { return viennaYmd(ts).slice(0, 7); }
+
+  /** The Monday of the Vienna week of a moment ('YYYY-MM-DD'). */
+  function viennaWeekStart(ts) { var d = viennaYmd(ts); return addDaysYmd(d, 1 - isoWeekday(d)); }
+
+  function groupBy(rows, keyOf) {
+    var g = {};
+    rows.forEach(function (r) { var k = keyOf(r) || 'none'; (g[k] = g[k] || []).push(r); });
+    return g;
+  }
+
+  /**
+   * Everything the Analytics page shows, for one filter (M5-1, Q20):
+   * @param {Object} d  the data (requests, request_events, holidays, hold_reasons)
+   * @param {Object} f  {from_ymd, to_ymd, tool_id, project_id}
+   * @param {Object} o  {now_ts, cal, levelOf(r)}
+   * "Done" = COMPLETED in the range; demand = SUBMITTED in the range;
+   * backlog = open requests at the end of each week (at most 26 weeks).
+   */
+  function analytics(d, f, o) {
+    var cal = o.cal, hs = holidaySet(d.holidays), now = o.now_ts, ev = d.request_events || [];
+    var all = (d.requests || []).filter(function (r) {
+      return r.status !== 'draft' && (!f.tool_id || r.tool_id === f.tool_id) && (!f.project_id || r.project_id === f.project_id);
+    });
+    var times = {}, changes = {};
+    all.forEach(function (r) { times[r.id] = requestTimes(r, ev, cal, hs, now); changes[r.id] = statusChanges(r.id, ev); });
+    var submitted = all.filter(function (r) { return inDateRange(times[r.id].submitted_ts, f.from_ymd, f.to_ymd); });
+    var done = all.filter(function (r) { return times[r.id].completed_ts && inDateRange(times[r.id].completed_ts, f.from_ymd, f.to_ymd); });
+    var openNow = all.filter(isOpen);
+
+    function tat(rows) {
+      var dated = rows.filter(function (r) { return times[r.id].on_time !== null; });
+      var ok = dated.filter(function (r) { return times[r.id].on_time; }).length;
+      return { n: rows.length,
+               median_ms: median(rows.map(function (r) { return times[r.id].turnaround_ms; })),
+               p90_ms: percentile(rows.map(function (r) { return times[r.id].turnaround_ms; }), 90),
+               hold_median_ms: median(rows.map(function (r) { return times[r.id].hold_ms; })),
+               dated: dated.length, on_time: ok, on_time_pct: dated.length ? Math.round(ok / dated.length * 1000) / 10 : null };
+    }
+    function counted(g) { return Object.keys(g).map(function (k) { return { key: k === 'none' ? null : k, n: g[k].length }; }).sort(function (a, b) { return b.n - a.n; }); }
+    function clarRate(rows) {
+      var c = rows.filter(function (r) { return times[r.id].clarifications > 0; }).length;
+      return { n: rows.length, with_clarification: c, pct: rows.length ? Math.round(c / rows.length * 1000) / 10 : null };
+    }
+
+    var weeks = [], wEnd = viennaTs(addDaysYmd(viennaWeekStart(now), 6), '23:59');
+    var fromTs = f.from_ymd ? viennaTs(f.from_ymd, '00:00') : now - 90 * 86400000;
+    for (var k = 0; k < 26 && wEnd >= fromTs; k++) { weeks.unshift(wEnd); wEnd -= 7 * 86400000; }
+    var backlog = weeks.map(function (t) {
+      var at = Math.min(t, now);
+      var open = all.filter(function (r) { var s = statusAt(changes[r.id], at); return !!s && OPEN_STATUSES.indexOf(s) !== -1; });
+      return { week: viennaWeekStart(at), open: open.length, by_tool: counted(groupBy(open, function (r) { return r.tool_id; })) };
+    });
+
+    var holdCount = {};
+    all.forEach(function (r) {
+      times[r.id].holds.forEach(function (h) {
+        if (!inDateRange(h.ts, f.from_ymd, f.to_ymd)) return;
+        var id = h.reason_id || ((d.hold_reasons || []).filter(function (x) { return x.name === h.reason_text; })[0] || {}).id || null;
+        holdCount[id || 'other'] = (holdCount[id || 'other'] || 0) + 1;
+      });
+    });
+
+    var months = {};
+    submitted.forEach(function (r) { var key = viennaMonth(times[r.id].submitted_ts) + '|' + (r.project_id || ''); months[key] = (months[key] || 0) + 1; });
+    var lineStop = submitted.filter(function (r) { return o.levelOf(r) === 1; });
+    var ls = lineStop.map(function (r) { return times[r.id].response_ms; });
+    var byToolDone = groupBy(done, function (r) { return r.tool_id; });
+    var byToolSub = groupBy(submitted, function (r) { return r.tool_id; });
+    var bkmKey = function (r) { return r.bkm_id || (r.bkm_path ? 'own' : 'none'); };
+    var byBkm = groupBy(submitted, bkmKey);
+
+    return {
+      filter: f, times: times,
+      counts: { submitted: submitted.length, done: done.length, open_now: openNow.length,
+                late_now: openNow.filter(function (r) { return isLate(r, now, cal); }).length,
+                on_hold_now: openNow.filter(function (r) { return r.status === 'on_hold'; }).length },
+      turnaround: tat(done),
+      turnaround_by_tool: Object.keys(byToolDone).map(function (id) { return Object.assign({ tool_id: id }, tat(byToolDone[id])); }),
+      done_by_qe: counted(groupBy(done, function (r) { return r.completed_by; })),
+      open_by_tool: counted(groupBy(openNow, function (r) { return r.tool_id; })),
+      open_by_assignee: counted(groupBy(openNow, function (r) { return r.assigned_to; })),
+      backlog: backlog,
+      reopen: { n: done.length, reopened: done.filter(function (r) { return times[r.id].reopens > 0; }).length },
+      clarification_by_tool: Object.keys(byToolSub).map(function (id) { return Object.assign({ tool_id: id }, clarRate(byToolSub[id])); }),
+      clarification_by_bkm: Object.keys(byBkm).map(function (id) { return Object.assign({ bkm_id: id }, clarRate(byBkm[id])); }),
+      hold_reasons: Object.keys(holdCount).map(function (id) { return { reason_id: id === 'other' ? null : id, n: holdCount[id] }; })
+        .sort(function (a, b) { return b.n - a.n; }),
+      per_month_project: Object.keys(months).sort().map(function (key) {
+        var p = key.split('|'); return { month: p[0], project_id: p[1] || null, n: months[key] }; }),
+      demand_by_tool: counted(byToolSub),
+      line_stop: { n: lineStop.length, response_median_ms: median(ls), response_p90_ms: percentile(ls, 90) }
+    };
+  }
+
   /** A draft untouched for 30+ days - flagged for cleanup (Q33). */
   var OLD_DRAFT_DAYS = 30;
   function isOldDraft(r, nowTs) {
@@ -1438,6 +1616,15 @@ window.MRT.domain = (function () {
     findMentions: findMentions,
     TRANSITIONS: TRANSITIONS,
     isLate: isLate,
+    median: median,
+    percentile: percentile,
+    statusChanges: statusChanges,
+    statusAt: statusAt,
+    requestTimes: requestTimes,
+    inDateRange: inDateRange,
+    viennaMonth: viennaMonth,
+    viennaWeekStart: viennaWeekStart,
+    analytics: analytics,
     measuredTools: measuredTools,
     stripCounts: stripCounts,
     sortQueue: sortQueue,

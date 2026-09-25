@@ -1292,6 +1292,8 @@ window.MRT.store = (function () {
       r.version += 1;
       event(r.id, action === 'results_ok' ? 'results_ok' : 'status', from, to, text);
       if (action === 'accept' && r.expected_done) state.data.request_events[state.data.request_events.length - 1].expected_done = r.expected_done;
+      // the reason as an ID too, so analytics can count on-hold reasons (Q20, M5)
+      if (action === 'hold') state.data.request_events[state.data.request_events.length - 1].hold_reason_id = r.hold_reason_id;
       audit('request', r.id, action, 'status', from, to, text);
       return commit().then(function () { return r; });
     });

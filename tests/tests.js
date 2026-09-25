@@ -357,6 +357,65 @@
     ok('a hidden default is refused', D.validatePriorities([{ is_default: true, active: false }, { active: true }]).length === 1);
 
     /* =============== store: first run and seed =============== */
+    /* =============== analytics (M5) =============== */
+    group('Analytics: lab-time metrics, filters, backlog (M5-1)');
+    var H = 3600000, aCal = { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' }, aHs = {};
+    eq('median / p90', [D.median([5, 1, 3]), D.median([1, 2, 3, 4]), D.percentile([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 90), D.median([])], [3, 2.5, 9, null]);
+    // Mon 21.09.2026 (Vienna UTC+2): submitted 08:00, accepted 10:00, hold 12:00 -> Tue 09:00, completed Tue 12:00
+    var ra = { id: 'ra', status: 'completed', tool_id: 'tF', project_id: 'pC', priority_id: 'p1', needed_by: '2026-09-22',
+               submitted_ts: '2026-09-21T06:00:00.000Z', completed_ts: '2026-09-22T10:00:00.000Z', completed_by: 'uQ', bkm_id: 'b1' };
+    var evA = [
+      { request_id: 'ra', kind: 'status', ts: '2026-09-21T06:00:00.000Z', from: 'draft', to: 'submitted' },
+      { request_id: 'ra', kind: 'status', ts: '2026-09-21T08:00:00.000Z', from: 'submitted', to: 'accepted' },
+      { request_id: 'ra', kind: 'status', ts: '2026-09-21T10:00:00.000Z', from: 'accepted', to: 'on_hold', text: 'Tool down: vacuum', hold_reason_id: 'hr1' },
+      { request_id: 'ra', kind: 'status', ts: '2026-09-22T07:00:00.000Z', from: 'on_hold', to: 'accepted' },
+      { request_id: 'ra', kind: 'comment', ts: '2026-09-22T07:30:00.000Z', text: 'x' },
+      { request_id: 'ra', kind: 'status', ts: '2026-09-22T10:00:00.000Z', from: 'in_progress', to: 'completed' }
+    ];
+    var tA = D.requestTimes(ra, evA, aCal, aHs, Date.parse('2026-09-25T10:00:00Z'));
+    eq('response: submitted -> accepted = 2 h lab time', tA.response_ms / H, 2);
+    eq('hold: Mon 12-18 + Tue 07-09 = 8 h lab time', tA.hold_ms / H, 8);
+    eq('turnaround: 15 h lab time minus 8 h hold = 7 h', tA.turnaround_ms / H, 7);
+    eq('calendar time kept too: 28 h', tA.calendar_ms / H, 28);
+    eq('on time: completed before the end of Tuesday\'s lab day', tA.on_time, true);
+    eq('the hold reason is counted by ID', tA.holds.map(function (x) { return x.reason_id + '/' + x.reason_text; }), ['hr1/Tool down']);
+    var rb = Object.assign({}, ra, { id: 'rb', needed_by: '2026-09-21' });
+    ok('needed Monday, done Tuesday: not on time', D.requestTimes(rb, evA.map(function (e) { return Object.assign({}, e, { request_id: 'rb' }); }), aCal, aHs, 0).on_time === false);
+    var rc = Object.assign({}, ra, { id: 'rc', needed_by: null });
+    eq('no needed-by date: on time not counted', D.requestTimes(rc, evA.map(function (e) { return Object.assign({}, e, { request_id: 'rc' }); }), aCal, aHs, 0).on_time, null);
+    var evR = evA.concat([{ request_id: 'ra', kind: 'status', ts: '2026-09-23T07:00:00.000Z', from: 'completed', to: 'accepted' },
+                          { request_id: 'ra', kind: 'status', ts: '2026-09-23T09:00:00.000Z', from: 'accepted', to: 'completed' }]);
+    var tR = D.requestTimes(ra, evR, aCal, aHs, 0);
+    eq('reopened and completed again: counts the reopen, the last completion wins', [tR.reopens, tR.completed_ts], [1, Date.parse('2026-09-23T09:00:00Z')]);
+    var ch = D.statusChanges('ra', evA);
+    eq('status at a moment', [D.statusAt(ch, Date.parse('2026-09-21T05:00:00Z')), D.statusAt(ch, Date.parse('2026-09-21T11:00:00Z')), D.statusAt(ch, Date.parse('2026-09-25T00:00:00Z'))],
+       [null, 'on_hold', 'completed']);
+    ok('date range is inclusive, in Vienna time', D.inDateRange(Date.parse('2026-09-21T22:30:00Z'), '2026-09-22', '2026-09-22') && !D.inDateRange(null, '', ''));
+    eq('week start is the Monday; month is YYYY-MM', [D.viennaWeekStart(Date.parse('2026-09-24T10:00:00Z')), D.viennaMonth(Date.parse('2026-09-30T22:30:00Z'))], ['2026-09-21', '2026-10']);
+
+    var aData = { requests: [ra, Object.assign({}, rb, { tool_id: 'tQ', project_id: 'pS', priority_id: 'p3', bkm_id: null, bkm_path: '' }),
+                             { id: 'rd', status: 'clarification', tool_id: 'tF', project_id: 'pC', priority_id: 'p1', submitted_ts: '2026-09-23T06:00:00.000Z', assigned_to: 'uQ' },
+                             { id: 'rx', status: 'draft', tool_id: 'tF' }],
+                  request_events: evA.concat(evA.map(function (e) { return Object.assign({}, e, { request_id: 'rb' }); }),
+                    [{ request_id: 'rd', kind: 'status', ts: '2026-09-23T06:00:00.000Z', from: 'draft', to: 'submitted' },
+                     { request_id: 'rd', kind: 'status', ts: '2026-09-23T07:00:00.000Z', from: 'submitted', to: 'clarification' }]),
+                  holidays: [], hold_reasons: [{ id: 'hr1', name: 'Tool down' }] };
+    var aOpt = { now_ts: Date.parse('2026-09-25T10:00:00Z'), cal: aCal, levelOf: function (r) { return r.priority_id === 'p1' ? 1 : 3; } };
+    var an = D.analytics(aData, { from_ymd: '2026-09-01', to_ymd: '2026-09-30' }, aOpt);
+    eq('counts: 3 submitted (drafts never), 2 done, 1 open', [an.counts.submitted, an.counts.done, an.counts.open_now], [3, 2, 1]);
+    eq('turnaround median 7 h, on time 1 of 2 dated = 50 %', [an.turnaround.median_ms / H, an.turnaround.dated, an.turnaround.on_time_pct], [7, 2, 50]);
+    eq('turnaround per tool', an.turnaround_by_tool.map(function (x) { return x.tool_id + ':' + x.n; }).sort(), ['tF:1', 'tQ:1']);
+    eq('Line stop: 2 submitted, response median 2 h', [an.line_stop.n, an.line_stop.response_median_ms / H], [2, 2]);
+    eq('on-hold reasons', an.hold_reasons, [{ reason_id: 'hr1', n: 2 }]);
+    eq('clarification rate FIB: 1 of 2', an.clarification_by_tool.filter(function (x) { return x.tool_id === 'tF'; }).map(function (x) { return x.with_clarification + '/' + x.n; }), ['1/2']);
+    eq('clarification by BKM, own/none grouped', an.clarification_by_bkm.map(function (x) { return x.bkm_id; }).sort(), ['b1', 'none']);
+    eq('requests per month by project', an.per_month_project, [{ month: '2026-09', project_id: 'pC', n: 2 }, { month: '2026-09', project_id: 'pS', n: 1 }]);
+    eq('open by assignee', an.open_by_assignee, [{ key: 'uQ', n: 1 }]);
+    ok('backlog: one row per week, the last week has the open request', an.backlog.length >= 4 && an.backlog[an.backlog.length - 1].open === 1);
+    eq('filter by tool', D.analytics(aData, { tool_id: 'tQ' }, aOpt).counts.submitted, 1);
+    eq('filter by project', D.analytics(aData, { project_id: 'pC' }, aOpt).counts.submitted, 2);
+    eq('a range that misses them all', D.analytics(aData, { from_ymd: '2027-01-01', to_ymd: '2027-01-31' }, aOpt).counts.done, 0);
+
     /* =============== the alert strip (M1-2, M3 audit) =============== */
     group('Alert strip: whose requests, the counts (M1-2)');
     var sCal = { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' };
@@ -788,6 +847,7 @@
     var holdR = ST.list('hold_reasons')[1];
     await refused('Hold needs a reason from the list', ST.requestAction(w.id, 'hold', {}), 'invalid');
     w = await ST.requestAction(w.id, 'hold', { hold_reason_id: holdR.id, note: 'stage error' });
+    eq('the hold event keeps the reason ID, for analytics (M5)', ST.data().request_events.filter(function (e) { return e.request_id === w.id && e.to === 'on_hold'; }).slice(-1)[0].hold_reason_id, holdR.id);
     eq('On hold: reason, note, remembers where it was', [w.status, w.hold_reason_id, w.return_to], ['on_hold', holdR.id, 'accepted']);
     w = await ST.requestAction(w.id, 'resume', {});
     eq('Resume goes back to Accepted', [w.status, w.hold_reason_id], ['accepted', null]);
