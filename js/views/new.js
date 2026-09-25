@@ -233,7 +233,7 @@ window.MRT.views['new'] = (function () {
           ui.toolGlyph(t.glyph, { size: 40, state: t.status === 'up' ? 'idle' : t.status === 'down' ? 'off' : 'maint' }),
           ui.el('b', { class: 'mono', text: t.code }),
           ui.el('span', { class: 'tool-pick-name', text: t.name }),
-          t.status !== 'up' ? ui.el('span', { class: 'chip ' + (t.status === 'down' ? 'expired' : 'warning'), text: D.TOOL_STATUS_LABEL[t.status] }) : null
+          t.status !== 'up' ? ui.statusBadge(t.status === 'down' ? 'expired' : 'warning', D.TOOL_STATUS_LABEL[t.status]) : null
         ]);
         if (editing && !on) b.disabled = true;
         b.addEventListener('click', function () {
@@ -341,7 +341,7 @@ window.MRT.views['new'] = (function () {
       var lot = byId('lots', st.lot_id);
       if (lot) {
         var owner = byId('users', lot.owner_id);
-        ui.mount(lotNote, [ui.el('span', { class: 'chip ok', text: 'Lot found' }), '  ',
+        ui.mount(lotNote, [ui.statusBadge('ok', 'Lot found'), '  ',
           lot.panel_count ? lot.panel_count + ' panels  ·  ' : null,
           (lot.scrapped || []).length ? ['Scrapped: ', ui.el('span', { class: 'mono', text: lot.scrapped.join(', ') }), '  ·  '] : null,
           owner ? 'Registered by ' + owner.name : null]);
@@ -350,7 +350,7 @@ window.MRT.views['new'] = (function () {
         ui.mount(lotNote, null);
         lotF.setState('invalid', 'Lot numbers are digits; a split lot adds .01, e.g. 18178.01');
       } else if (lotNumber) {
-        ui.mount(lotNote, [ui.el('span', { class: 'chip warning', text: 'New lot' }), '  ',
+        ui.mount(lotNote, [ui.statusBadge('warning', 'New lot'), '  ',
           'Lot ' + lotNumber + ' is not registered yet - it is registered when you submit.']);
         lotF.setState(null);
       } else {
@@ -592,13 +592,13 @@ window.MRT.views['new'] = (function () {
         level: prio ? prio.level : 3, prio: prio ? { name: prio.name, code: prio.code } : null,
         fields: [
           fact('Project', [proj ? proj.code : null, pn ? pn.code : null].filter(Boolean).join('  ·  ') || '-', 'mono'),
-          fact('Lot', [lotNumber || '-', st.new_lot && lotNumber ? ui.el('span', { class: 'chip warning', text: 'new' }) : null], 'mono'),
+          fact('Lot', [lotNumber || '-', st.new_lot && lotNumber ? ui.statusBadge('warning', 'new') : null], 'mono'),
           fact('Build-up', bu ? bu.code : '-', 'mono'),
           fact('Panels', D.panelsText(st), 'mono'),
           fact('Layers', st.layers.length ? st.layers.join(' ') : '-', 'mono'),
           fact('Where', where || '-'),
           fact('Needed by', st.needed_by || 'no date', 'num'),
-          fact('BKM', st.bkm_id || st.bkm_path ? 'yes' : ui.el('span', { class: 'chip warning', text: 'No BKM' })),
+          fact('BKM', st.bkm_id || st.bkm_path ? 'yes' : ui.statusBadge('warning', 'No BKM')),
           fact('Afterwards', D.AFTER_LABEL[st.after] || '-')
         ],
         footer: st.magazine_id && byId('magazines', st.magazine_id) && st.slots.length ? ui.magazineSlots({ magazine: byId('magazines', st.magazine_id),
@@ -728,7 +728,7 @@ window.MRT.views['new'] = (function () {
       return ui.el('li', {}, [
         ui.el('a', { class: 'mono', href: r.status === 'draft' ? '#/new/' + r.id : '#/request/' + r.id, text: label }),
         ui.el('span', { class: 'muted', text: (lot ? ' · lot ' + lot.lot_number : r.new_lot ? ' · lot ' + r.new_lot.lot_number + ' (new)' : '') + ' · ' + D.REQUEST_STATUS_LABEL[r.status] }),
-        old ? ui.el('span', { class: 'chip warning', text: '30+ days' }) : null
+        old ? ui.statusBadge('warning', '30+ days') : null
       ]);
     }
     return ui.panel({ title: 'Your requests', icon: 'inbox', body: [

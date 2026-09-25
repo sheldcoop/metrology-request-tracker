@@ -33,12 +33,12 @@ window.MRT.views.lab = (function () {
     var a = D.awayState(u, today);
     if (!a || a.state !== 'now') return u.name;
     return ui.el('span', { class: 'cell-main' }, [ui.el('span', { text: u.name }),
-      ui.el('span', { class: 'chip warning', text: a.until ? 'Away until ' + a.until : 'Away', title: a.note || null })]);
+      ui.statusBadge('warning', a.until ? 'Away until ' + a.until : 'Away', { title: a.note || null })]);
   }
 
   function statusChip(status) {
     var s = STATUS[status] || STATUS.up;
-    return ui.el('span', { class: 'chip ' + s.chip, text: s.label });
+    return ui.statusBadge(s.chip, s.label);
   }
 
   function render(main, ctx) {
@@ -93,7 +93,7 @@ window.MRT.views.lab = (function () {
         ui.el('div', { class: 'tool-plate-id' }, [
           ui.el('h2', { class: 'tool-code mono', text: t.code }),
           ui.el('div', { class: 'tool-name', text: t.name }),
-          t.destructive ? ui.el('span', { class: 'chip warning', text: 'Destructive', title: 'Measuring destroys the panels' }) : null
+          t.destructive ? ui.statusBadge('warning', 'Destructive', { title: 'Measuring destroys the panels' }) : null
         ]),
         statusChip(t.status)
       ]),

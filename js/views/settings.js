@@ -121,7 +121,7 @@ window.MRT.views.settings = (function () {
       ]));
     },
 
-    chip: function (text, kind) { return ui.el('span', { class: 'chip ' + (kind || 'neutral'), text: text }); },
+    chip: function (text, kind) { return ui.statusBadge(kind || 'neutral', text); },
 
     /** The "Sample" tag for made-up entries (M1-8). */
     sampleTag: function () {

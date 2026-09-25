@@ -1881,3 +1881,16 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .board-lamp.is-maintenance i::before { -webkit-mask-image: var(--ic-warning); mask-image: var(--ic-warning); }
 .board-lamp.is-down i::before { -webkit-mask-image: var(--ic-critical); mask-image: var(--ic-critical); }
 [data-contrast="high"] .board-lamp i, [data-scheme="light"] .board-lamp i { filter: none; }
+
+/* the status icon alone (ui.statusIcon), beside words already shown: KPI tiles, table cells */
+.st-ic { display: inline-block; flex: none; width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px;
+  -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
+.st-ic.is-ok { --ic: var(--ic-ok); background: var(--ok-fg); }
+.st-ic.is-warning { --ic: var(--ic-warning); background: var(--warning-fg); }
+.st-ic.is-critical { --ic: var(--ic-critical); background: var(--critical-fg); }
+.st-ic.is-expired { --ic: var(--ic-late); background: var(--expired-fg); }
+.st-ic.is-blocked { --ic: var(--ic-blocked); background: var(--blocked-fg); }
+.st-ic.is-neutral { display: none; }
+/* Lab status: "3 open, 1 late" carries the clock */
+.tool-plate-facts dd.is-late::before { content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 4px; vertical-align: -1px;
+  background: currentColor; -webkit-mask: var(--ic-late) center / contain no-repeat; mask: var(--ic-late) center / contain no-repeat; }

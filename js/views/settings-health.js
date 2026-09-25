@@ -41,7 +41,7 @@
     var keys = now.map(function (x) { return x.text; });
     var gone = before ? before.filter(function (x) { return keys.indexOf(x.text) === -1; }) : [];
     before = now.slice();
-    return gone.map(function (x) { return [ui.el('span', { class: 'chip ok', text: 'Fixed' }), ui.el('span', { class: 'health-fixed', text: x.text }), '']; });
+    return gone.map(function (x) { return [ui.statusBadge('ok', 'Fixed'), ui.el('span', { class: 'health-fixed', text: x.text }), '']; });
   }
 
   function render(body) {
