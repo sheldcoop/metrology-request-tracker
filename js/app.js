@@ -604,8 +604,8 @@ window.MRT.app = (function () {
   }
 
   /* ------------------------------------------------------------------ *
-   * Search: in M1 tools, measurement types, BKMs and people.
-   * Requests, lots and panels join in M2/M3 (Q41).
+   * Search (Q41): tools, measurement types, BKMs, requests (ID, purpose,
+   * part number, comment text), lots and people.
    * ------------------------------------------------------------------ */
 
   function wireSearch() {
