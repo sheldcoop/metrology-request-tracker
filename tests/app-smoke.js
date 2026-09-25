@@ -779,6 +779,20 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...the tile shows the rule\'s number', mainText().replace(/\s+/g, '').indexOf('Opennow' + a90.counts.open_now) !== -1);
   win.setHash('#/analytics/mgmt'); await settle();
   check('Management: per month by project, on time, Line stop response, demand per tool', ['Requests per month', 'Line stop', 'Demand per tool', 'capacity per tool is not set'].every(t => mainText().indexOf(t) !== -1));
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'vendor/xlsx.full.min.js'), 'utf8'), ctx, { filename: 'xlsx.full.min.js' });
+  let pack = null;
+  win.XLSX.writeFile = (wb, name) => { pack = { wb, name }; };
+  const packMonth = fieldIn(doc.getElementById('main'), 'Month').value;
+  buttonByText(doc.getElementById('main'), 'Download the pack').click(); await settle();
+  const pm = MRT.domain.analytics(MRT.store.data(), { from_ymd: packMonth + '-01', to_ymd: MRT.domain.addDaysYmd(MRT.domain.addDaysYmd(packMonth + '-01', 32).slice(0, 7) + '-01', -1) },
+    { now_ts: Date.now(), cal: MRT.store.calendar(), levelOf: MRT.analytics.levelOf });
+  const sum = pack && win.XLSX.utils.sheet_to_json(pack.wb.Sheets.Summary, { header: 1 });
+  const val = label => ((sum || []).filter(r => r[0] === label)[0] || [])[1];
+  check('Management pack: one workbook for the month, seven sheets', !!pack && new RegExp('^mrt_management_pack_' + packMonth.replace('-', '_') + '_\\d{4}-\\d{2}-\\d{2}\\.xlsx$').test(pack.name) &&
+        pack.wb.SheetNames.join() === 'Summary,Per tool,Per project,Line stop,On-hold reasons,Clarification,Requests', pack && pack.name + ' ' + pack.wb.SheetNames.join());
+  check('...its Summary matches the rules for that month', val('Requests submitted') === pm.counts.submitted && val('Requests completed') === pm.counts.done &&
+        val('Line stop requests') === pm.line_stop.n);
+  delete win.XLSX;
   const fromBox = fieldIn(doc.getElementById('main'), 'From'); setVal(fromBox, '2030-01-01'); await settle();
   check('a filter with nothing in it shows 0 submitted', mainText().replace(/\s+/g, '').indexOf('Requests(submitted)0') !== -1);
   buttonByText(doc.getElementById('main'), 'Last 90 days').click(); await settle();

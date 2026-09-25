@@ -84,6 +84,50 @@ window.MRT.exporter = (function () {
     ];
   }
 
+  /**
+   * The monthly management pack (Q48): one workbook for a month 'YYYY-MM' -
+   * Summary, Per tool, Per project, Line stop, On-hold reasons, Clarification,
+   * Requests. The numbers are domain.analytics for that month (all tools and
+   * projects), so they match the Analytics page for the same range.
+   */
+  function managementPack(month) {
+    var first = month + '-01';
+    var next = D.addDaysYmd(first, 32).slice(0, 7) + '-01';
+    var last = D.addDaysYmd(next, -1);
+    var levelOf = window.MRT.analytics.levelOf;
+    var a = D.analytics(store.data(), { from_ymd: first, to_ymd: last }, { now_ts: Date.now(), cal: store.calendar(), levelOf: levelOf });
+    var t = a.turnaround;
+    function pctOf(v) { return v === null || v === undefined ? '' : v; }
+    var reqs = a.ids.submitted.concat(a.ids.done.filter(function (id) { return a.ids.submitted.indexOf(id) === -1; }))
+      .map(function (id) { return store.byId('requests', id); }).filter(Boolean);
+    return [
+      { name: 'Summary', rows: [['Management pack', month], ['From', first], ['To', last], ['Made', stamp(Date.now())], [],
+        ['Requests submitted', a.counts.submitted], ['Requests completed', a.counts.done],
+        ['Turnaround median (lab h, hold out)', hours(t.median_ms)], ['Turnaround p90 (lab h)', hours(t.p90_ms)], ['Hold median (lab h)', hours(t.hold_median_ms)],
+        ['On time %', pctOf(t.on_time_pct)], ['On time / with a date', t.on_time + ' / ' + t.dated],
+        ['Line stop requests', a.line_stop.n], ['Line stop response median (lab h)', hours(a.line_stop.response_median_ms)],
+        ['Reopened', a.reopen.reopened + ' / ' + a.reopen.n],
+        ['Open at month end', a.backlog.length ? a.backlog[a.backlog.length - 1].open : ''], [],
+        ['Lab time = lab days and hours (Settings > Lab calendar), holidays out. On time = completed by the end of the needed-by lab day.']] },
+      { name: 'Per tool', rows: [['Tool', 'Submitted', 'Completed', 'Turnaround median (lab h)', 'p90 (lab h)', 'Hold median (lab h)', 'On time %', 'With a question %']]
+        .concat(store.list('tools', { all: true }).map(function (tool) {
+          var tt = a.turnaround_by_tool.filter(function (x) { return x.tool_id === tool.id; })[0] || {};
+          var dem = a.demand_by_tool.filter(function (x) { return x.key === tool.id; })[0] || {};
+          var cl = a.clarification_by_tool.filter(function (x) { return x.tool_id === tool.id; })[0] || {};
+          return [tool.code, dem.n || 0, tt.n || 0, hours(tt.median_ms), hours(tt.p90_ms), hours(tt.hold_median_ms), pctOf(tt.on_time_pct), pctOf(cl.pct)];
+        })) },
+      { name: 'Per project', rows: [['Project', 'Requests submitted']].concat(a.per_month_project.map(function (x) {
+          return [x.project_id ? code('projects', x.project_id) : 'no project', x.n]; })) },
+      { name: 'Line stop', rows: requestRows(a.line_stop.ids.map(function (id) { return store.byId('requests', id); }).filter(Boolean)) },
+      { name: 'On-hold reasons', rows: [['Reason', 'Times put on hold']].concat(a.hold_reasons.map(function (x) {
+          return [x.reason_id ? nameOf('hold_reasons', x.reason_id) : 'other', x.n]; })) },
+      { name: 'Clarification', rows: [['Tool / BKM', 'Requests', 'With a question', '%']].concat(
+          a.clarification_by_tool.map(function (x) { return ['Tool ' + code('tools', x.tool_id), x.n, x.with_clarification, pctOf(x.pct)]; }),
+          a.clarification_by_bkm.map(function (x) { return ['BKM ' + (x.bkm_id === 'own' ? 'own path' : x.bkm_id === 'none' ? 'none' : nameOf('bkms', x.bkm_id)), x.n, x.with_clarification, pctOf(x.pct)]; })) },
+      { name: 'Requests', rows: requestRows(reqs) }
+    ];
+  }
+
   /* --- writing ---------------------------------------------------------------- */
 
   function csvOf(rows) {
@@ -154,7 +198,7 @@ window.MRT.exporter = (function () {
 
   return {
     hasXlsx: hasXlsx, stamp: stamp, hours: hours,
-    requestRows: requestRows, historySheets: historySheets,
+    requestRows: requestRows, historySheets: historySheets, managementPack: managementPack,
     csvOf: csvOf, download: download, exportSheets: exportSheets, run: run, rowsButton: rowsButton
   };
 })();

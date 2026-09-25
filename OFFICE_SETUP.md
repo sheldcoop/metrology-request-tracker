@@ -43,6 +43,8 @@ lists it until it is edited or deleted.
 
 - [ ] **Quality engineers**: tick the role in Settings > People, then set the
       primary and backup quality engineer per tool (Settings > Tools).
+- [ ] **Managers**: tick the **Manager** role for the people who should see Analytics > Lab and
+      Management (Q52).
 - [ ] **Rights per role**: decide what Operators may do (today: nothing yet) -
       OPEN_QUESTIONS #14.
 - [ ] **Results roots**: the real share folder per tool (e.g. `\\server\lab\FIB`).
