@@ -65,81 +65,85 @@
   --scrim: rgba(3, 6, 10, .6);
 }
 
+/* Light: "instrument panel" (P8, 2026-09-25) - calm neutral greys like lab
+   instrument software, crisp 1px lines, no grid, no glows, flat surfaces,
+   one engineering blue for actions, status colours only for meaning. */
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #EDF1F6;
-  --grid-line: rgba(3, 105, 161, .06);
+  --bg: #ECEEF1;
+  --grid-line: transparent;
   --surface: #FFFFFF;
-  --surface-2: #F6F8FB;
-  --surface-3: #E7ECF2;
-  --inset: #F1F4F8;
-  --fg: #0F1B2A;
-  --fg-muted: #4A5A6E;
-  --fg-faint: #5C6B7D;
-  --line: rgba(3, 105, 161, .18);
-  --line-strong: rgba(3, 105, 161, .32);
-  --line-hi: rgba(3, 105, 161, .6);
-  --bracket: rgba(3, 105, 161, .55);
+  --surface-2: #F6F7F9;
+  --surface-3: #E4E7EB;
+  --inset: #F2F4F6;
+  --fg: #15191E;
+  --fg-muted: #474F5A;
+  --fg-faint: #5A636E;
+  --line: #D5DAE0;
+  --line-strong: #B4BCC6;
+  --line-hi: #0B5CAD;
+  --bracket: #8C96A3;
 
-  --accent: #0369A1;
+  --accent: #0B5CAD;
   --accent-fg: #FFFFFF;
-  --accent-soft: rgba(3, 105, 161, .09);
-  --accent-glow: 0 0 0 1px rgba(3, 105, 161, .55), 0 0 14px rgba(3, 105, 161, .18);
+  --accent-soft: rgba(11, 92, 173, .08);
+  --accent-glow: 0 0 0 1px #0B5CAD;
 
-  --ok: #16A34A;       --ok-fg: #166534;       --ok-bg: rgba(22, 163, 74, .10);
-  --warning: #D97706;  --warning-fg: #A34A06;  --warning-bg: rgba(217, 119, 6, .11);
-  --critical: #EA580C; --critical-fg: #A63808; --critical-bg: rgba(234, 88, 12, .10);
-  --expired: #DC2626;  --expired-fg: #A11A1A;  --expired-bg: rgba(220, 38, 38, .09);
-  --danger: #DC2626;   --danger-fg: #A11A1A;   --danger-bg: rgba(220, 38, 38, .09);
-  --blocked: #64748B;  --blocked-fg: #475569;  --blocked-bg: rgba(100, 116, 139, .12);
+  --ok: #15803D;       --ok-fg: #14612F;       --ok-bg: #E8F3EC;
+  --warning: #C26A00;  --warning-fg: #8A4A00;  --warning-bg: #FBF1E2;
+  --critical: #D9510C; --critical-fg: #9C3706; --critical-bg: #FCEDE4;
+  --expired: #C81E1E;  --expired-fg: #991515;  --expired-bg: #FBE9E9;
+  --danger: #C81E1E;   --danger-fg: #991515;   --danger-bg: #FBE9E9;
+  --blocked: #64707E;  --blocked-fg: #46505C;  --blocked-bg: #EDEFF2;
   --on-danger: #FFFFFF;
 
-  --glow-ring: 50%;  --glow-blur: 20%;
+  --glow-ring: 100%; --glow-blur: 0%;    /* a crisp ring, no blur */
 
   --c-blue: #1D4ED8;  --c-teal: #0F766E;  --c-pink: #BE185D;
 
-  --shadow: 0 1px 2px rgba(15, 27, 42, .06), 0 6px 18px rgba(15, 27, 42, .07);
-  --shadow-pop: 0 18px 44px rgba(15, 27, 42, .22);
-  --scrim: rgba(15, 27, 42, .35);
+  --shadow: 0 1px 0 rgba(21, 25, 30, .05);
+  --shadow-pop: 0 12px 32px rgba(21, 25, 30, .18);
+  --scrim: rgba(21, 25, 30, .35);
 }
 
-/* High contrast: pure black, white lines, no glows, no grid, thicker focus. */
+/* High contrast: a technical drawing - white paper, black ink, 2px lines,
+   no glows, no grid, no tints; blue for actions, dark status colours. */
 [data-theme="hc"] {
-  color-scheme: dark;
-  --bg: #000000;
+  color-scheme: light;
+  --bg: #FFFFFF;
   --grid-line: transparent;
-  --surface: #000000;
-  --surface-2: #0B0B0B;
-  --surface-3: #1F1F1F;
-  --inset: #000000;
-  --fg: #FFFFFF;
-  --fg-muted: #FFFFFF;
-  --fg-faint: #DADADA;
-  --line: #FFFFFF;
-  --line-strong: #FFFFFF;
-  --line-hi: #FFDD00;
-  --bracket: #FFDD00;
+  --surface: #FFFFFF;
+  --surface-2: #FFFFFF;
+  --surface-3: #EDEDED;
+  --inset: #FFFFFF;
+  --fg: #000000;
+  --fg-muted: #000000;
+  --fg-faint: #262626;
+  --line: #000000;
+  --line-strong: #000000;
+  --line-hi: #0033CC;
+  --bracket: #000000;
 
-  --accent: #FFDD00;
-  --accent-fg: #000000;
-  --accent-soft: #2B2600;
-  --accent-glow: 0 0 0 2px #FFDD00;
+  --accent: #0033CC;
+  --accent-fg: #FFFFFF;
+  --accent-soft: #E6ECFF;
+  --accent-glow: 0 0 0 2px #0033CC;
 
-  --ok: #00FF88;       --ok-fg: #00FF88;       --ok-bg: #002614;
-  --warning: #FFB020;  --warning-fg: #FFB020;  --warning-bg: #2B1D00;
-  --critical: #FF9D3D; --critical-fg: #FFA64D; --critical-bg: #2B1600;
-  --expired: #FF5B5B;  --expired-fg: #FF7070;  --expired-bg: #2B0000;
-  --danger: #FF5B5B;   --danger-fg: #FF7070;   --danger-bg: #2B0000;
-  --blocked: #C8C8C8;  --blocked-fg: #D8D8D8;  --blocked-bg: #1F1F1F;
-  --on-danger: #000000;
+  --ok: #006B2C;       --ok-fg: #005221;       --ok-bg: #FFFFFF;
+  --warning: #8F4F00;  --warning-fg: #6E3C00;  --warning-bg: #FFFFFF;
+  --critical: #A63A00; --critical-fg: #8A2F00; --critical-bg: #FFFFFF;
+  --expired: #B00000;  --expired-fg: #8F0000;  --expired-bg: #FFFFFF;
+  --danger: #B00000;   --danger-fg: #8F0000;   --danger-bg: #FFFFFF;
+  --blocked: #4D4D4D;  --blocked-fg: #333333;  --blocked-bg: #FFFFFF;
+  --on-danger: #FFFFFF;
 
-  --glow-ring: 100%; --glow-blur: 0%;    /* solid 1px ring, no blur */
+  --glow-ring: 100%; --glow-blur: 0%;
 
-  --c-blue: #8FD3FF;  --c-teal: #40FFE6;  --c-pink: #FF8AD8;
+  --c-blue: #0033CC;  --c-teal: #00665C;  --c-pink: #A3005C;
 
   --shadow: none;
-  --shadow-pop: 0 0 0 2px #FFFFFF;
-  --scrim: rgba(0, 0, 0, .8);
+  --shadow-pop: 0 0 0 2px #000000;
+  --scrim: rgba(0, 0, 0, .55);
 }
 
 /* Status glows, derived from each theme's own colours. Declared on every
@@ -176,7 +180,11 @@
 
   --focus-w: 2px;
 }
-[data-theme="hc"] { --focus-w: 3px; --radius-panel: 4px; }
+[data-theme="light"] { --radius: 4px; --radius-panel: 6px; }
+[data-theme="hc"] { --focus-w: 3px; --radius: 2px; --radius-panel: 2px; }
+/* the drawing's ink: 2px outlines on the things you read and click */
+[data-theme="hc"] :is(.panel, .tm, .bcard, .board-cell, .board-lane, .board-colhead, dialog.modal, dialog.drawer, .btn, .btn-primary, .chip, input, select, textarea, table.grid) { border-width: 2px; }
+[data-theme="hc"] .chip { background: #FFFFFF; }
 
 /* ================================================================== *
  * 2. Base

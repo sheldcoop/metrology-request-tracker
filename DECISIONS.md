@@ -506,6 +506,10 @@ never the only signal - the text/label says the same thing.
   P5-2 compact cards: ID, priority stripe, lot, panels, needed-by bar, QE initials.
   P5-3 **click only, no dragging**: a click opens a side panel (ui.drawer) with the full traveller and the
   usual action buttons; Ctrl+click opens the page. (Replaces the drag of Q39.)
+- **P8 Themes, built (2026-09-25):** Prince found light and high-contrast "not like an expert engineer" and chose
+  **"instrument panel"**: light = calm neutral greys, crisp 1px lines, no grid, no glows, flat surfaces, smaller
+  radii, one engineering blue (#0B5CAD). High contrast = a technical drawing: white paper, black ink, 2px lines,
+  blue for actions, dark status colours (was black with yellow). Dark unchanged. Contrast check passes.
 - **P5 Lab board (Kanban)** - Prince is not happy with its look (A-8): redesign; cards slide between lanes; a new request drops into its lane; a Line
   stop card has a pulsing red edge (ABF's critical glow); lanes a card may go to light up while
   dragging, lanes it may not go to stay dim (the transition rules, visible).
