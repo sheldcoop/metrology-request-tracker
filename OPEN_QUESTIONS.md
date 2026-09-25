@@ -6,7 +6,7 @@ Parked decisions. Add the date and who raised it; move to DECISIONS.md once answ
 |---|---|---|---|
 | 1 | 2026-09-24, Prince | Old request list for the one-time import (M6) | Prince gives an anonymised sample (fake names) right before M6 (R3). |
 | 2 | 2026-09-24, Prince | SMTP details for real automatic emails | Needs IT: server, port, sender address (+ service account). Needs a server; until then Outlook drafts. |
-| 3 | 2026-09-24 | Daily capacity per tool | Only tool Up/Down/Maintenance for now; capacity numbers if wanted later. |
+| 3 | 2026-09-24 | Daily capacity per tool | **Decided 2026-09-25 (C-1, C-2), parked by Prince for after the polish:** requests per lab day per tool (Settings > Tools); capacity vs demand in Analytics (amber > 100 %, red >= 150 %), "about N lab days of work" on Lab status, a gentle note on the form, never blocking. Rules + tests done on branch `capacity` (not merged); screens still to do. |
 | 4 | 2026-09-24 | Result values / verdict per panel | Only a results folder path for now; capturing key values would allow cross-lot charts later. |
 | 5 | 2026-09-24 | Real extra fields per tool (HRM, AOI, PRF, QVM, FIB) | Tools start with none; real fields become seed data and test cases. |
 | 6 | 2026-09-24, Prince | Real measurement types per tool | Sample types seeded (DECISIONS M1-8); Prince checks with engineers. Talk about it at the end of M1. |
