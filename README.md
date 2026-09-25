@@ -8,7 +8,8 @@ No server, no build step, no internet.
 
 > M1 (the shell), M2 (lots, request form, request page), M3 (workflow,
 > My queue, My requests, board) and M4 (notifications) are built and being
-> audited. Next: M5 (analytics and exports) - Analytics is greyed until then.
+> audited; M5 (analytics and exports) is built. Next: M6 (import of the old
+> request list).
 
 ## What the pages do (M1)
 
@@ -99,6 +100,12 @@ optional note, never a reason. Shown on Lab status, People and Health.
 
 Entries in use are hidden, not deleted. A "Sample" tag marks made-up
 entries; save one (changed or not) to confirm it as real.
+
+**Analytics** - four tabs: My work (quality engineers), My requests
+(engineers, incl. "where is my lot"), Lab and Management (Manager role):
+turnaround in lab hours with hold apart, on time, backlog, load, clarification
+and reopen rates, on-hold reasons, Line stop response, demand per tool. Every
+number opens its requests; every chart and table downloads to Excel.
 
 **Hirata tools** - read a panel's dot code (tap the dots, get every field) or
 type codes to see the copper panel they are drilled into; nothing is saved.

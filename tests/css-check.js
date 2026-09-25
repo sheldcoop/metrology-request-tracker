@@ -39,6 +39,7 @@ const REQUIRED = {
   requestPage: ['.traveller.is-urgent::after', '.tr-stamp', '.status-rail', '.rail-step.is-now .rail-dot', '.timeline', '.mention'],
   panelmap: ['.panel-map', '.pm-cell.is-picked::after', '.pm-cell.is-scrapped', '.pm-cell::before'],
   form: ['.form-grid', '.form-checks', '.modal-error'],
+  analytics: ['.an-kpis', '.an-grid', '.kpi-tile.is-link', '.link-btn'],
   hirata: ['.cu-panel', '.cu-hole', '.hf-item', '.hg-cell.is-locked', 'print-color-adjust: exact'],
   help: ['.help-layout', '.help-steps li::marker', '.help-roles', '@media print'],
   settings: ['.sample-tag', '.row-actions', 'tr.is-off', '.setup-note', '.lock-panel', '.settings-cols'],

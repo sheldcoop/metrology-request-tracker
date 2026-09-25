@@ -1131,16 +1131,18 @@ window.MRT.domain = (function () {
     function tat(rows) {
       var dated = rows.filter(function (r) { return times[r.id].on_time !== null; });
       var ok = dated.filter(function (r) { return times[r.id].on_time; }).length;
-      return { n: rows.length,
+      return { n: rows.length, ids: rows.map(function (r) { return r.id; }),
                median_ms: median(rows.map(function (r) { return times[r.id].turnaround_ms; })),
                p90_ms: percentile(rows.map(function (r) { return times[r.id].turnaround_ms; }), 90),
                hold_median_ms: median(rows.map(function (r) { return times[r.id].hold_ms; })),
                dated: dated.length, on_time: ok, on_time_pct: dated.length ? Math.round(ok / dated.length * 1000) / 10 : null };
     }
-    function counted(g) { return Object.keys(g).map(function (k) { return { key: k === 'none' ? null : k, n: g[k].length }; }).sort(function (a, b) { return b.n - a.n; }); }
+    function ids(rows) { return rows.map(function (r) { return r.id; }); }
+    function counted(g) { return Object.keys(g).map(function (k) { return { key: k === 'none' ? null : k, n: g[k].length, ids: ids(g[k]) }; }).sort(function (a, b) { return b.n - a.n; }); }
     function clarRate(rows) {
       var c = rows.filter(function (r) { return times[r.id].clarifications > 0; }).length;
-      return { n: rows.length, with_clarification: c, pct: rows.length ? Math.round(c / rows.length * 1000) / 10 : null };
+      return { n: rows.length, with_clarification: c, pct: rows.length ? Math.round(c / rows.length * 1000) / 10 : null,
+               ids: ids(rows.filter(function (r) { return times[r.id].clarifications > 0; })) };
     }
 
     var weeks = [], wEnd = viennaTs(addDaysYmd(viennaWeekStart(now), 6), '23:59');
@@ -1149,20 +1151,21 @@ window.MRT.domain = (function () {
     var backlog = weeks.map(function (t) {
       var at = Math.min(t, now);
       var open = all.filter(function (r) { var s = statusAt(changes[r.id], at); return !!s && OPEN_STATUSES.indexOf(s) !== -1; });
-      return { week: viennaWeekStart(at), open: open.length, by_tool: counted(groupBy(open, function (r) { return r.tool_id; })) };
+      return { week: viennaWeekStart(at), open: open.length, ids: ids(open), by_tool: counted(groupBy(open, function (r) { return r.tool_id; })) };
     });
 
-    var holdCount = {};
+    var holdCount = {}, holdIds = {};
     all.forEach(function (r) {
       times[r.id].holds.forEach(function (h) {
         if (!inDateRange(h.ts, f.from_ymd, f.to_ymd)) return;
-        var id = h.reason_id || ((d.hold_reasons || []).filter(function (x) { return x.name === h.reason_text; })[0] || {}).id || null;
-        holdCount[id || 'other'] = (holdCount[id || 'other'] || 0) + 1;
+        var id = h.reason_id || ((d.hold_reasons || []).filter(function (x) { return x.name === h.reason_text; })[0] || {}).id || 'other';
+        holdCount[id] = (holdCount[id] || 0) + 1;
+        (holdIds[id] = holdIds[id] || []).indexOf(r.id) === -1 && holdIds[id].push(r.id);
       });
     });
 
     var months = {};
-    submitted.forEach(function (r) { var key = viennaMonth(times[r.id].submitted_ts) + '|' + (r.project_id || ''); months[key] = (months[key] || 0) + 1; });
+    submitted.forEach(function (r) { var key = viennaMonth(times[r.id].submitted_ts) + '|' + (r.project_id || ''); (months[key] = months[key] || []).push(r.id); });
     var lineStop = submitted.filter(function (r) { return o.levelOf(r) === 1; });
     var ls = lineStop.map(function (r) { return times[r.id].response_ms; });
     var byToolDone = groupBy(done, function (r) { return r.tool_id; });
@@ -1181,15 +1184,19 @@ window.MRT.domain = (function () {
       open_by_tool: counted(groupBy(openNow, function (r) { return r.tool_id; })),
       open_by_assignee: counted(groupBy(openNow, function (r) { return r.assigned_to; })),
       backlog: backlog,
-      reopen: { n: done.length, reopened: done.filter(function (r) { return times[r.id].reopens > 0; }).length },
+      reopen: { n: done.length, reopened: done.filter(function (r) { return times[r.id].reopens > 0; }).length,
+                ids: ids(done.filter(function (r) { return times[r.id].reopens > 0; })) },
+      ids: { submitted: ids(submitted), done: ids(done), open_now: ids(openNow),
+             late_now: ids(openNow.filter(function (r) { return isLate(r, now, cal); })),
+             on_hold_now: ids(openNow.filter(function (r) { return r.status === 'on_hold'; })) },
       clarification_by_tool: Object.keys(byToolSub).map(function (id) { return Object.assign({ tool_id: id }, clarRate(byToolSub[id])); }),
       clarification_by_bkm: Object.keys(byBkm).map(function (id) { return Object.assign({ bkm_id: id }, clarRate(byBkm[id])); }),
-      hold_reasons: Object.keys(holdCount).map(function (id) { return { reason_id: id === 'other' ? null : id, n: holdCount[id] }; })
+      hold_reasons: Object.keys(holdCount).map(function (id) { return { reason_id: id === 'other' ? null : id, n: holdCount[id], ids: holdIds[id] }; })
         .sort(function (a, b) { return b.n - a.n; }),
       per_month_project: Object.keys(months).sort().map(function (key) {
-        var p = key.split('|'); return { month: p[0], project_id: p[1] || null, n: months[key] }; }),
+        var p = key.split('|'); return { month: p[0], project_id: p[1] || null, n: months[key].length, ids: months[key] }; }),
       demand_by_tool: counted(byToolSub),
-      line_stop: { n: lineStop.length, response_median_ms: median(ls), response_p90_ms: percentile(ls, 90) }
+      line_stop: { n: lineStop.length, ids: ids(lineStop), response_median_ms: median(ls), response_p90_ms: percentile(ls, 90) }
     };
   }
 

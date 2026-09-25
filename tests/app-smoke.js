@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -87,9 +87,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // --- the side menu (M1-6)
   const items = doc.getElementById('navItems').children;
   check('ten menu entries', items.length === 10, items.length);
-  check('nine live: Lab status, My queue, My requests, New request, Lots, Board, Hirata tools, Settings, Help', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,requests,new,lots,board,hirata,settings,help');
-  check('one greyed with its milestone (Analytics, M5)', items.filter(i => i.classList.contains('is-soon')).map(i => i.textContent.slice(-2)).join() === 'M5');
-  check('greyed entries are announced as unavailable', items.filter(i => i.getAttribute('aria-disabled') === 'true').length === 1);
+  check('all ten live (Analytics came with M5)', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,requests,new,lots,board,hirata,analytics,settings,help');
+  check('nothing greyed any more', items.filter(i => i.classList.contains('is-soon') || i.getAttribute('aria-disabled') === 'true').length === 0);
 
   // --- Lab status
   check('start page is Lab status', win.location.hash === '#/lab', win.location.hash);
@@ -98,9 +97,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('an admin may set every status', doc.getElementById('main').querySelectorAll('button').filter(b => /Set status/.test(b.textContent)).length === 5);
   check('sample entries are flagged', $$('.tool-plate-sample').length === 5);
 
-  // --- a page still to come
+  // --- Analytics is live (M5); its own checks come later
   win.setHash('#/analytics'); await settle();
-  check('#/analytics says it comes in M5', /Analytics comes in M5/.test(text('main')), text('main').slice(0, 80));
+  check('#/analytics opens the Analytics page', /Analytics/.test(text('main')) && /Lab time/.test(text('main')), text('main').slice(0, 80));
   win.setHash('#/settings'); await settle();
   check('Settings opens (placeholder until step 4)', /Settings/.test(text('main')));
 
@@ -142,7 +141,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
   doc.getElementById('keysBtn').click(); await settle();
   const keys = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
-  check('the shortcut list opens and lists only live pages', !!keys && /Lab status/.test(keys.textContent) && !/Analytics/.test(keys.textContent));
+  check('the shortcut list opens and lists only live pages', !!keys && /Lab status/.test(keys.textContent) && /Analytics/.test(keys.textContent));
   if (keys) { buttonByText(keys, 'Close').click(); await settle(); }
   doc.dispatch('keydown', { key: '[', target: doc.body });
   check('[ collapses the side menu', doc.documentElement.getAttribute('data-nav') === 'collapsed');
@@ -150,7 +149,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   doc.dispatch('keydown', { key: 'g', target: doc.body }); doc.dispatch('keydown', { key: 'h', target: doc.body }); await settle();
   check('g h goes to Help', win.location.hash === '#/help');
   doc.dispatch('keydown', { key: 'g', target: doc.body }); doc.dispatch('keydown', { key: 'a', target: doc.body }); await settle();
-  check('g a does nothing yet (Analytics is M5)', win.location.hash === '#/help');
+  check('g a goes to Analytics', win.location.hash === '#/analytics');
   win.setHash('#/lab'); await settle();
 
   // --- change user; an unknown Windows ID signs up
@@ -744,6 +743,50 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const codes = fieldIn(doc.getElementById('main'), 'Hirata codes'); setVal(codes, '3407, 0119 161234507, 12x'); await settle();
   check('Find a pattern: one copper panel per good code, the bad one named', $$('.hirata-sheet')[0].querySelectorAll('.cu-panel').length === 3 && /Skipped: "12x"/.test(mainText()));
   check('...and the 0-9 reference', $$('#main .hirata-ref-item').length === 10);
+
+  // --- Analytics (M5): tabs by role, click-through, filters
+  const meA = MRT.store.currentUser();
+  const mgr = MRT.store.data().users.filter(u => u.active && (u.roles || []).indexOf('manager') !== -1)[0];
+  win.setHash('#/analytics/mine'); await settle();
+  const tabNames = () => $$('#main .tab-btn').map(b => b.textContent);
+  check('without the Manager role: My work and My requests only (Q52)', (meA.roles || []).indexOf('manager') !== -1 || tabNames().join() === 'My work,My requests');
+  check('My requests tab: tiles, expected finish, where is my lot, turnaround per tool', /My open requests/.test(mainText()) && /Where is my lot/.test(mainText()) && /Typical turnaround per tool/.test(mainText()));
+  const openTile = $$('#main .kpi-tile.is-link')[0];
+  if (openTile) { openTile.click(); await settle(); }
+  const listDlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
+  check('clicking a tile opens the requests behind it, with links and Download', !openTile || (!!listDlg && listDlg.querySelectorAll('a').some(a => /^#\/request\//.test(a.getAttribute('href'))) &&
+        !!buttonByText(listDlg, 'Download these')));
+  if (listDlg) { buttonByText(listDlg, 'Close') ? buttonByText(listDlg, 'Close').click() : listDlg.dispatch('cancel'); await settle(); }
+  const saveRoles = meA.roles.slice();
+  meA.roles = saveRoles.concat(['manager']);                 // try the manager tabs (in memory only)
+  // a stand-in Chart.js: runs every chart's config, checks its data
+  const madeCharts = [], badCharts = [];
+  win.Chart = function (canvas, cfg) {
+    madeCharts.push(cfg);
+    const chartObj = { chartArea: { left: 0, right: 100, top: 0, bottom: 100 }, ctx: { createLinearGradient: () => ({ addColorStop() {} }) } };
+    (cfg.data.datasets || []).forEach(d => {
+      if (!Array.isArray(d.data) || d.data.length !== cfg.data.labels.length) badCharts.push(d.label);
+      if (typeof d.backgroundColor === 'function') d.backgroundColor({ chart: chartObj });
+    });
+    if (cfg.options.onClick) cfg.options.onClick({}, [], this);
+    this.destroy = () => {};
+  };
+  win.setHash('#/analytics/lab'); await settle();
+  check('with the Manager role: Lab and Management tabs', tabNames().join() === 'My work,My requests,Lab,Management');
+  check('Lab: open, late, turnaround, on time, backlog, per tool, load, clarification, hold reasons', ['Open now', 'Late now', 'Turnaround median', 'On time',
+        'Backlog at each', 'Turnaround per tool', 'Load per quality engineer', 'Clarification rate per tool', 'On-hold reasons'].every(t => mainText().indexOf(t) !== -1));
+  const a90 = MRT.analytics.get(MRT.analytics.defaultFilter());
+  check('...the tile shows the rule\'s number', mainText().replace(/\s+/g, '').indexOf('Opennow' + a90.counts.open_now) !== -1);
+  win.setHash('#/analytics/mgmt'); await settle();
+  check('Management: per month by project, on time, Line stop response, demand per tool', ['Requests per month', 'Line stop', 'Demand per tool', 'capacity per tool is not set'].every(t => mainText().indexOf(t) !== -1));
+  const fromBox = fieldIn(doc.getElementById('main'), 'From'); setVal(fromBox, '2030-01-01'); await settle();
+  check('a filter with nothing in it shows 0 submitted', mainText().replace(/\s+/g, '').indexOf('Requests(submitted)0') !== -1);
+  buttonByText(doc.getElementById('main'), 'Last 90 days').click(); await settle();
+  meA.roles = saveRoles;
+  check('every Analytics chart is built, one value per label', madeCharts.length >= 5 && !badCharts.length, madeCharts.length + ' charts, bad: ' + badCharts.join());
+  delete win.Chart;
+  win.setHash('#/analytics/work'); await settle();
+  check('My work opens (a quality engineer sees their tools; others are told)', /Open \(my tools\)|You measure no tool/.test(mainText()));
 
   // --- a failed save: the lamp and a toast with Retry
   folder.failWrites = true;
