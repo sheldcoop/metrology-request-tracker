@@ -49,6 +49,10 @@ window.MRT.views.board = (function () {
     main.appendChild(ui.pageHead('Board', 'Every open request by tool. Click a card to see it and act on it here.',
       mineTools.length ? [ui.toggle({ kind: 'switch', label: 'Only my tools', checked: view.mine, onChange: function (v) { view.mine = v; window.MRT.app.route(); } }).node] : null));
 
+    if (!lanes.length) {
+      main.appendChild(ui.emptyState({ icon: 'wrench', title: 'No tools yet', text: 'Add the lab\'s tools under Settings > Tools; each gets its own lane here.' }));
+      return;
+    }
     var grid = ui.el('div', { class: 'board', style: { gridTemplateColumns: '150px repeat(' + COLS.length + ', minmax(170px, 1fr))' } });
     grid.appendChild(ui.el('div', { class: 'board-corner' }, ui.el('span', { class: 'muted', text: 'Tool' })));
     COLS.forEach(function (c, i) {
@@ -128,7 +132,7 @@ window.MRT.views.board = (function () {
       if (!D.isOpen(r) || r.status === 'on_hold' || !r.needed_by) { c.node.textContent = r.status === 'on_hold' ? 'paused' : ''; c.bar.style.transform = 'scaleX(' + (r.status === 'on_hold' ? 1 : 0) + ')'; return; }
       var cd = D.countdown(now, r.needed_by, cal, hs);
       var h = ui.formatDurationH(cd.lab_ms / 3600000);
-      c.node.textContent = (cd.late ? 'late ' + h : h + ' left') + (cd.paused ? ' ⏸' : '');
+      c.node.textContent = (cd.late ? 'late ' + h : h + ' left') + (cd.paused ? ' \u23F8\uFE0E' : '');
       c.node.title = cd.paused ? 'Clock paused - outside lab hours' : '';
       var cls = cd.late ? 'is-late' : cd.lab_ms < 8 * 3600000 ? 'is-soon' : '';
       c.node.className = 'q-clock ' + cls;
