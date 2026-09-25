@@ -22,7 +22,7 @@ window.MRT.app = (function () {
   var D = window.MRT.domain;
 
   var MILESTONE = 'M1';
-  var THEMES = ['dark', 'light', 'hc'];
+  var TH = window.MRT.themes;         // every theme: js/themes.js
 
   /**
    * The side menu, in order (M1-6). A page is live when its view file has
@@ -77,11 +77,20 @@ window.MRT.app = (function () {
     var byRole = D.homeFor(store.byId('users', userId));
     return isLive(byRole) ? byRole : 'lab';
   }
-  function readTheme(userId) { var v = readPref('theme', userId); return THEMES.indexOf(v) !== -1 ? v : 'dark'; }
+  /** The office default (Settings > Look), else the app's default. */
+  function officeTheme() {
+    if (!store.status().loaded) {          // before the data is read: keep what themes.js put up (the last used)
+      var now = document.documentElement.getAttribute('data-theme');
+      return TH.byKey(now) ? now : TH.DEFAULT;
+    }
+    var v = store.getSetting('default_theme');
+    return TH.byKey(v) ? v : TH.DEFAULT;
+  }
+  /** This person's own pick on this PC, else the office default. */
+  function readTheme(userId) { var v = readPref('theme', userId); return TH.byKey(v) ? v : officeTheme(); }
 
   function applyTheme(theme) {
-    app.theme = THEMES.indexOf(theme) === -1 ? 'dark' : theme;
-    document.documentElement.setAttribute('data-theme', app.theme);
+    app.theme = TH.apply(TH.byKey(theme) ? theme : TH.DEFAULT);
     ui.rethemeCharts();   // canvas colours do not follow CSS on their own
   }
 
@@ -108,7 +117,23 @@ window.MRT.app = (function () {
     applyNav(readPref('nav', userId) === 'collapsed');
   }
 
-  function setTheme(next) { applyTheme(next); writePref('theme', next); }
+  /** '' = follow the office default again. */
+  function setTheme(next) {
+    if (next) { applyTheme(next); writePref('theme', next); return; }
+    try { localStorage.removeItem(prefKey('theme', store.status().currentUserId)); } catch (e) { /* private mode */ }
+    applyTheme(officeTheme());
+  }
+
+  /** The theme gallery: every theme as a live sample; a click switches at once and is remembered for you on this PC. */
+  function themeDialog() {
+    var mine = readPref('theme', store.status().currentUserId);
+    var office = TH.byKey(officeTheme());
+    var g = ui.themeGallery({ themes: TH, value: TH.byKey(mine) ? mine : '', onPick: setTheme,
+      extra: { key: '', name: 'Office default', mood: 'Follow the theme your admin set for everyone: ' + office.name + '.' } });
+    ui.dialog({ title: 'Theme', icon: 'contrast', wide: true,
+      body: [ui.el('p', { class: 'muted', text: 'Click a theme - it switches at once and is kept for you on this PC. Status colours mean the same in every theme.' }), g.node],
+      actions: [{ label: 'Done', kind: 'primary', value: null }] });
+  }
   function setReduceMotion(on) { applyMotion(on); writePref('motion', on ? 'reduce' : 'full'); }
   function toggleNav() {
     var collapsed = document.documentElement.getAttribute('data-nav') !== 'collapsed';
@@ -918,9 +943,6 @@ window.MRT.app = (function () {
     var u = store.currentUser();
     if (!u) return;
     var s = store.status();
-    var themeSeg = ui.segmented({ label: 'Theme', value: app.theme, onChange: setTheme, options: [
-      { value: 'dark', label: 'Dark', icon: 'moon' }, { value: 'light', label: 'Light', icon: 'sun' },
-      { value: 'hc', label: 'HC', icon: 'contrast' }] });
     var motion = ui.toggle({ kind: 'switch', label: 'Reduce motion', checked: !!app.reduceMotion, onChange: setReduceMotion });
     var homes = livePages().filter(function (n) { return n.key !== 'settings' && n.key !== 'help'; });
     var home = ui.el('select', { class: 'input menu-select', 'aria-label': 'Start page' }, homes.map(function (n) {
@@ -935,7 +957,7 @@ window.MRT.app = (function () {
     var awayLabel = away && away.state !== 'over' ? 'Away ' + awayText(away) + ' - change' : 'I\'m away...';
 
     ui.menu(anchor, [
-      { node: [ui.el('span', { text: 'Theme' }), themeSeg.node] },
+      { label: 'Theme: ' + (TH.byKey(app.theme) || {}).name + '...', icon: 'contrast', onClick: themeDialog },
       { node: motion.node },
       { node: [ui.el('span', { text: 'Start page' }), home] },
       { sep: true },
@@ -1138,6 +1160,7 @@ window.MRT.app = (function () {
     paintAlertBanner: paintAlertBanner,
     downloadText: downloadText,
     recheckUser: recheckUser,
+    refreshTheme: function () { applyTheme(readTheme(store.status().currentUserId)); },   // after the office default changed
     awayDialog: awayDialog,
     awayText: awayText,
     readPref: function (name) { return readPref(name, store.status().currentUserId); },

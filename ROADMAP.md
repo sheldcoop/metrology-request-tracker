@@ -32,7 +32,7 @@ Nothing - everything that needs no outside input is built. Next: the R1 test run
 Who | Task | How
 ---|---|---
 Prince | Click through the demo | `git pull`, app > Change data folder > `demo-data`, PIN 1234
-Prince | Browser check: looks, 3 themes, drag on the board, glyph motion | Edge; `tests/preview.html?demo=big&audit=1` for the a11y audit
+Prince | Browser check: looks, the themes (user menu > Theme...), drag on the board, glyph motion | Edge; `tests/preview.html?demo=big&audit=1` for the a11y audit
 Prince | Office check: launcher, share, two PCs saving, pop-ups, Outlook draft, A6 print | `TEST_RUN.md` sections 0, 2b, 3
 Prince | Try a hand scanner on a printed slip | request page > Print slip, scan anywhere in the app
 Prince | Decide: QR code on the slip too (phones)? | today Code 128 only; a phone app would only show the ID

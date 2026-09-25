@@ -12,7 +12,7 @@
  *   ?as=quality | engineer | operator     sign in as Olga (Quality engineer), Erik, Mia instead
  *   ?demo=big                             the big made-up file (js/demo-data.js); ?as=prince|erik|mia|olga|max ...
  *                                         any of its people by first name; a button downloads the file
- *   ?theme=dark | light | hc              ?motion=reduce       ?empty=1  first run on an empty folder
+ *   ?theme=<any key of js/themes.js>      ?motion=reduce       ?empty=1  first run on an empty folder
  *   ?click=<css>                          click that element after load (open a dialog), URL-encoded
  *   ?audit=1                              run tests/a11y-audit.js after load (and after the click)
  *   ?fakechart=1                          a stand-in Chart.js that runs every chart config
@@ -149,7 +149,7 @@
     var dp = MRT.demoData.people.filter(function (p) { return p.key === as; })[0] || MRT.demoData.people[0];
     me = { id: 'usr_demo_' + dp.key, windows_id: dp.windows_id };
   }
-  var theme = (q.match(/[?&]theme=(\w+)/) || [])[1];
+  var theme = (q.match(/[?&]theme=([\w-]+)/) || [])[1];
   try {
     localStorage.setItem('mrt.identity', JSON.stringify({ windows_id: me.windows_id, domain: 'CORP' }));
     if (/[?&]empty=1/.test(q)) localStorage.removeItem('mrt.identity');

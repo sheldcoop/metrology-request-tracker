@@ -547,3 +547,18 @@ never the only signal - the text/label says the same thing.
 - **F3** Email and local AI each behind one adapter module (today: Outlook draft / AI off). No keys
   or passwords in the shared folder. CORS, data rules and IT approval checked before either goes live.
   Details: CLAUDE.md "Architecture" and "Identity"; open points OPEN_QUESTIONS #8-#12.
+
+## Themes (2026-09-25, Prince: "the themes, starting with high contrast, suck - take inspiration from theme-factory, make it configurable and central")
+- **T-1** All themes live in ONE file, `js/themes.js`: name, mood, swatches and colour tokens. css/app.css
+  only uses the tokens and keys the few look differences on `data-scheme` (dark/light) and
+  `data-contrast` (high), never on a theme's name (tests/css-check.js enforces it). tests/contrast.js
+  checks WCAG AA for every theme from that file. A new theme = one entry there.
+- **T-2** Eleven themes, inspired by the theme-factory palettes and tuned for an instrument screen:
+  dark Mission Control (default), Ocean Depths, Midnight Galaxy, Forest Canopy, Tech Innovation; light
+  Instrument, Arctic Frost, Modern Minimalist, Golden Hour, Desert Rose; High contrast. Status colours
+  keep their meaning in every theme. Fonts stay the system stacks (no downloads from file://).
+- **T-3** High contrast is now black / white / signal yellow (like Windows high contrast), 2px ink and a
+  3px focus ring - the white-paper version is gone.
+- **T-4** User menu > Theme... opens a gallery of live samples; a pick is kept per person on the PC.
+  Settings > Look: an admin sets the office default theme (audited); "Office default" in the gallery
+  follows it. The last used theme shows at start-up before anything is drawn (no flash).

@@ -38,11 +38,11 @@ const realError = console.error;
 console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
-['js/config.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js', 'js/analytics.js',
- 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js', 'js/exporter.js',
+['js/config.js', 'js/themes.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js', 'js/analytics.js',
+ 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js', 'js/ui/theme-gallery.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/settings-look.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -134,10 +134,20 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const menu = doc.body.querySelector('.menu');
   check('the user menu opens with theme, start page and Change user', !!menu && /Theme/.test(menu.textContent) && /Start page/.test(menu.textContent) && /Change user/.test(menu.textContent));
   check('...and shows the roles', !!menu && /Admin/.test(menu.textContent));
-  const light = menu.querySelectorAll('input').filter(i => i.getAttribute('value') === 'light')[0];
-  light.checked = true; light.dispatch('change');
-  check('the theme switches and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'light' &&
-        storage['mrt.theme.' + MRT.store.currentUser().id] === 'light');
+  buttonByText(menu, 'Theme: Mission Control...').click(); await settle();
+  const thDlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
+  const tcard = k => thDlg.querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
+  check('Theme... opens the gallery: every theme of js/themes.js as a live sample, plus "Office default"',
+        !!thDlg && thDlg.querySelectorAll('.tg-card').length === MRT.themes.list.length + 1 && thDlg.querySelectorAll('.tg-sample[data-theme="ocean"]').length === 1);
+  tcard('ocean').click();
+  check('...a click switches at once (theme, scheme) and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'ocean' &&
+        doc.documentElement.getAttribute('data-scheme') === 'dark' && storage['mrt.theme.' + MRT.store.currentUser().id] === 'ocean' && storage['mrt.theme.last'] === 'ocean');
+  tcard('hc').click();
+  check('...High contrast is black with signal yellow and says so', doc.documentElement.getAttribute('data-contrast') === 'high' && /FFD400/.test(MRT.themes.css()));
+  tcard('light').click();
+  check('...Instrument (light)', doc.documentElement.getAttribute('data-theme') === 'light' && doc.documentElement.getAttribute('data-scheme') === 'light' &&
+        doc.documentElement.getAttribute('data-contrast') === 'normal');
+  buttonByText(thDlg, 'Done').click(); await settle();
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
   doc.getElementById('keysBtn').click(); await settle();
   const keys = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
@@ -299,6 +309,20 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const af = fieldIn(doc.getElementById('main'), 'Filter'); setVal(af, 'nova'); await settle();
   check('...and filters', /1 match/.test(mainText()));
 
+  await tab('look');
+  const lookCard = k => doc.getElementById('main').querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
+  check('Settings > Look: every theme as a live sample, the office default marked', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.length && lookCard('dark').classList.contains('is-on'));
+  lookCard('arctic').click(); await settle();
+  check('...a click makes Arctic Frost the office default (audited)', MRT.store.getSetting('default_theme') === 'arctic' && MRT.store.data().audit_log.slice(-1)[0].field === 'default_theme');
+  doc.getElementById('userBtn').click(); await settle();
+  buttonByText(doc.body.querySelector('.menu'), 'Theme: Instrument...').click(); await settle();
+  const thDlg2 = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
+  thDlg2.querySelectorAll('.tg-card').filter(c => c.dataset.key === '')[0].click();
+  check('..."Office default" in the gallery follows it again', doc.documentElement.getAttribute('data-theme') === 'arctic' && !storage['mrt.theme.' + MRT.store.currentUser().id]);
+  buttonByText(thDlg2, 'Done').click(); await settle();
+  lookCard('dark').click(); await settle();
+  check('...back to Mission Control: stored as "the app default", and I follow it at once', MRT.store.getSetting('default_theme') === null &&
+        doc.documentElement.getAttribute('data-theme') === 'dark');
   await tab('data');
   check('Data & PIN shows the file and today\'s backup', /mrt_data.json/.test(mainText()) && /latest/.test(mainText()));
   buttonByText(doc.getElementById('main'), 'Download a copy now').click(); await settle();

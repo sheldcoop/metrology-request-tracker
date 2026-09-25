@@ -22,7 +22,8 @@ if(process.argv[2]==='chart'){win.Chart=function(canvas,cfg){charts++;this.cfg=c
   if(cfg.options.onHover)cfg.options.onHover({},[]);
   const a=cfg.options.animations;if(a){a.y.from({index:1,chart:chartObj,datasetIndex:0});a.x.delay({type:'data',index:2})}
   this.destroy=()=>destroyed++;};}const ctx=vm.createContext(win);
-['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller','hirata'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
+vm.runInContext(fs.readFileSync(path.join(ROOT,'js/themes.js'),'utf8'),ctx,{filename:'themes.js'});
+['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller','hirata','theme-gallery'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
 let errs=0;
 function check(name,fn){try{fn();flush()}catch(e){errs++;console.log('ERR',name,e.stack.split('\n').slice(0,3).join(' | '))}}
 function expect(name,cond){if(!cond){errs++;console.log('FAIL',name)}}
@@ -160,11 +161,16 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
-  expect('the kit builds every section (23)',secs.length===23);
+  expect('the kit builds every section (24, with the theme gallery)',secs.length===24);
   expect('the kit shows 6 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===24);
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
-  for(const i of doc.getElementById('kitBar').querySelectorAll('input')){i.checked=true;i.dispatch('change');flush()}
-  expect('the kit renders all three themes side by side',root.querySelectorAll('.theme-scope').length===3)})}
+  const sel=doc.getElementById('kitBar').querySelector('select');sel.value='all';sel.dispatch('change');flush();
+  expect('the kit renders every theme of js/themes.js side by side',root.querySelectorAll('.theme-scope').length===win.MRT.themes.list.length);
+  sel.value='ocean';sel.dispatch('change');flush();expect('...or one of them',doc.documentElement.getAttribute('data-theme')==='ocean')})}
+check('theme gallery',()=>{let got=null;const g=put(ui.themeGallery({themes:win.MRT.themes,value:'dark',onPick:k=>{got=k},extra:{key:'',name:'Office default',mood:'x'}}));
+  const cards=g.node.querySelectorAll('.tg-card');expect('one card per theme + Office default, grouped',cards.length===win.MRT.themes.list.length+1&&g.node.querySelectorAll('.tg-group-title').length===3);
+  expect('each sample carries its own theme',g.node.querySelectorAll('.tg-sample').filter(x=>x.getAttribute('data-theme')).length===win.MRT.themes.list.length);
+  cards.filter(c=>c.dataset.key==='arctic')[0].click();expect('a click picks it',got==='arctic'&&g.value()==='arctic'&&cards.filter(c=>c.classList.contains('is-on')).length===1)});
 
 (async()=>{await dialogSubmitChecks().catch(e=>{errs++;console.log('ERR dialog submit',e.stack)});
 console.log('charts built',charts,'destroyed',destroyed);

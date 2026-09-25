@@ -206,7 +206,7 @@ copied without changing anything.
   node tests/preview-smoke.js  the dev preview boots on demo data
   node tests/ui-smoke.js       every UI component and the UI kit
   node tests/css-check.js      CSS braces balance, component rules present
-  node tests/contrast.js       WCAG AA contrast of every text colour, 3 themes
+  node tests/contrast.js       WCAG AA contrast of every text colour, every theme of js/themes.js
   ```
 - **`ui-kit.html`** - every component in every state; "All three" shows the themes side by side.
 - **`tests/preview.html`** - the real app on demo data in memory (nothing is

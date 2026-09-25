@@ -95,7 +95,8 @@ window.MRT.store = (function () {
     calendar_confirmed: false,        // setup to-do until an admin saves or confirms the calendar
     admin_pin_salt: null,
     admin_pin_hash: null,
-    last_backup_date: null
+    last_backup_date: null,
+    default_theme: null               // the office's theme (a key of js/themes.js); null = the app's default
   };
 
   /** Lot fields as records, from seed.js (shape as tool fields, no tool). */
@@ -587,6 +588,23 @@ window.MRT.store = (function () {
         audit('file', cfg.data_file, 'replace', 'data', safety, kind === 'demo' ? 'demo data' : 'empty', reason.trim());
         return commit({ undo: false });
       }).then(function () { return { kind: kind, safety_copy: cfg.backup_dir + '/' + safety, user: meNow }; });
+    });
+  }
+
+  /**
+   * Admin: the theme everyone starts with (Settings > Look). Each person can still pick their
+   * own in the user menu. key: a theme key of js/themes.js, or null for the app's default.
+   */
+  function setDefaultTheme(key, reason) {
+    return guard(function () {
+      requireAdmin();
+      var T = window.MRT.themes;
+      assert(key === null || (T ? !!T.byKey(key) : /^[a-z0-9-]{1,24}$/.test(key)), 'Unknown theme: ' + key, 'invalid');
+      var old = getSetting('default_theme');
+      assert(old !== key, 'Nothing was changed', 'no_change');
+      setSettingValue('default_theme', key);
+      audit('setting', 'default_theme', 'update', 'default_theme', old, key, reason ? String(reason).trim() : null);
+      return commit().then(function () { return key; });
     });
   }
 
@@ -1882,6 +1900,7 @@ window.MRT.store = (function () {
     addSampleLots: addSampleLots,
     addSampleMagazines: addSampleMagazines,
     replaceData: replaceData,
+    setDefaultTheme: setDefaultTheme,
     addLots: addLots,
     setLotOwner: setLotOwner,
     deleteLot: deleteLot,

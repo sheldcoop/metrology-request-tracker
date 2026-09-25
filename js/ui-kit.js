@@ -13,7 +13,8 @@
 
   var ui = window.MRT.ui;
   var el = ui.el;
-  var THEMES = [['dark', 'Dark'], ['light', 'Light'], ['hc', 'High contrast']];
+  var TH = window.MRT.themes;         // every theme: js/themes.js
+  var THEMES = TH.list.map(function (t) { return [t.key, t.name]; });
   var STATUSES = ['ok', 'warning', 'critical', 'expired', 'blocked'];
   var KEY = 'mrt.kit.';
 
@@ -58,7 +59,8 @@
       ['c-blue', 'surface', 'Chart blue'], ['c-teal', 'surface', 'Chart teal'], ['c-pink', 'surface', 'Chart pink']
     ];
     var probes = THEMES.map(function (t) {
-      var host = el('div', { 'data-theme': t[0], style: { position: 'absolute', visibility: 'hidden' } });
+      var host = el('div', { style: { position: 'absolute', visibility: 'hidden' } });
+      TH.setOn(host, t[0]);
       document.body.appendChild(host);
       return host;
     });
@@ -464,6 +466,7 @@
       section('Form (ui.form)', formDemo(), 'Field specs in, labelled controls out; "Unit" and "Max" show only for a Number, "Choices" only for One choice.'),
       section('Chips, tags, setup note', chips()),
       section('KPI tiles', kpis()),
+      section('Theme gallery', ui.themeGallery({ themes: TH, value: TH.DEFAULT }).node, 'js/themes.js holds every theme; each card is a live sample drawn in its own theme (user menu > Theme..., Settings > Look).'),
       section('Tool glyphs', glyphs(), 'One drawing per tool: probe (HRM), camera (AOI), stylus (PRF), optics (QVM), ion column (FIB), reticle (any other).'),
       section('Charts (Chart.js, shared theme)', charts(), 'One theme config in js/ui/charts.js: token colours, gradients, draw-in, panel-style tooltip, full screen.'),
       section('Panel map (unused - kept for OPEN_QUESTIONS #22)', panelMapDemo(), 'No screen uses it since form v2 (Hirata IDs). Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
@@ -492,12 +495,13 @@
   function render() {
     root.className = 'kit-root' + (mode === 'all' ? ' all' : '');
     if (mode === 'all') {
-      document.documentElement.removeAttribute('data-theme');
       ui.mount(root, THEMES.map(function (t) {
-        return el('div', { class: 'theme-scope', 'data-theme': t[0] }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));
+        var scope = el('div', { class: 'theme-scope' }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));
+        TH.setOn(scope, t[0]);
+        return scope;
       }));
     } else {
-      document.documentElement.setAttribute('data-theme', mode);
+      TH.setOn(document.documentElement, mode);
       ui.mount(root, (sectionRange.length ? [] : [section('Contrast (WCAG AA, computed from the live tokens)', contrastTable())]).concat(gallery()));
     }
     ui.stagger(root);
@@ -511,10 +515,10 @@
   }
 
   function bar() {
-    var themeSeg = ui.segmented({ label: 'Theme', value: mode, options: [
-      { value: 'dark', label: 'Dark', icon: 'moon' }, { value: 'light', label: 'Light', icon: 'sun' },
-      { value: 'hc', label: 'High contrast', icon: 'contrast' }, { value: 'all', label: 'All three', icon: 'grid' }],
-      onChange: function (v) { mode = v; try { localStorage.setItem(KEY + 'mode', v); } catch (e) { /* */ } render(); } });
+    var themeSeg = { node: ui.el('select', { class: 'input menu-select', 'aria-label': 'Theme' },
+      THEMES.map(function (t) { return ui.el('option', { value: t[0], text: t[1], selected: t[0] === mode }); })
+        .concat([ui.el('option', { value: 'all', text: 'All themes side by side', selected: mode === 'all' })])) };
+    themeSeg.node.addEventListener('change', function () { mode = themeSeg.node.value; try { localStorage.setItem(KEY + 'mode', mode); } catch (e) { /* */ } render(); });
     var reduce = document.documentElement.getAttribute('data-motion') === 'reduce';
     ui.mount(document.getElementById('kitBar'), [
       el('h1', {}, [ui.icon('logo', 20), el('span', { text: 'Metrology Request Tracker · UI kit' })]),
@@ -529,6 +533,7 @@
     mode = localStorage.getItem(KEY + 'mode') || 'dark';
     var qm = (location.search.match(/[?&]mode=(\w+)/) || [])[1];
     if (qm) mode = qm;
+    if (mode !== 'all' && !TH.byKey(mode)) mode = TH.DEFAULT;
     if (/[?&]motion=reduce/.test(location.search) || localStorage.getItem(KEY + 'motion') === 'reduce') {
       document.documentElement.setAttribute('data-motion', 'reduce');
     }

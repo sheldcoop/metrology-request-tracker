@@ -42,8 +42,8 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
   cut, QVM optics, PRF stylus, AOI camera, HRM probe), a request drawn as a lab **traveller card** with
   a priority stripe and status stamps, the **panel map** for picking panels, the queue as a **lab board**
   with tool lanes. No generic cards where a real object fits.
-- **Mission Control look:** dark theme first, glowing status, live countdowns; Light and High-contrast
-  themes too. Desk PCs first (1920x1080, 1440x900).
+- **Mission Control look:** dark theme first, glowing status, live countdowns. **All themes live in
+  `js/themes.js`** (DECISIONS T-1..T-4): CSS keys only on data-scheme / data-contrast, never a theme name. Desk PCs first (1920x1080, 1440x900).
 - **Purposeful motion:** only `transform`/`opacity` animate; `[data-motion="reduce"]` and
   `prefers-reduced-motion` turn it off; pause off-screen animation. Same feel as ABF.
 - **Everything configurable in Settings** (admin PIN): tools, measurement types per tool, per-tool

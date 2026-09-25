@@ -1123,6 +1123,17 @@
     ok('...after a safety copy of the current file', !!a.files[res.safety_copy]);
     eq('...the audit log is kept and grows', auditCount(), auditN + 1);
 
+    group('Store: the office theme (Settings > Look)');
+    a = await adminStore();
+    eq('no office theme at first (the app default)', ST.getSetting('default_theme'), null);
+    await ST.setDefaultTheme('arctic', 'calmer for the lab');
+    eq('an admin sets one, audited', [ST.getSetting('default_theme'), ST.data().audit_log.slice(-1)[0].new_value], ['arctic', 'arctic']);
+    await refused('...not a theme that does not exist', ST.setDefaultTheme('neon-pink', 'x'), 'invalid');
+    await refused('...the same again is "nothing changed"', ST.setDefaultTheme('arctic', 'x'), 'no_change');
+    await ST.saveEntry('users', { fields: { name: 'Tia Theme', roles: ['engineer'] } });
+    ST.setCurrentUser(ST.data().users.filter(function (u) { return u.name === 'Tia Theme'; })[0].id);
+    await refused('...only admins', ST.setDefaultTheme(null, 'x'), 'not_admin');
+
     group('Store: fill with demo data, start empty (Settings > Data, for testing)');
     a = await freshStore();
     await ST.createFirstAdmin({ name: 'Pat Admin', windows_id: 'padmin', pin: '2468' });
