@@ -1,73 +1,162 @@
-# Test run (rollout R1) - before M4
+# Test run R1 - everything built so far (M1-M4, Hirata tools, audit fixes)
 
-One quality engineer (QE) and one engineer use the app for a few days on the real share.
-Tick what works; write down what does not (what you did, what you expected, what happened).
-A screenshot helps. Everything else is welcome too: missing fields, confusing words, too many clicks.
+Rewritten 2026-09-25 (DECISIONS A-10). One quality engineer (QE) and one engineer - or Prince
+alone with two browsers - go through it on the real share, in Edge.
 
-## Before the test run (optional)
-- [ ] Click through everything with the big demo file first (README "Trying everything with the
-      big demo file"): `demo-data\` folder, admin PIN 1234.
+**How to report:** tick `[x]` what works. When something does not, write the step number, what
+you did, what you expected and what happened in the table at the end (a screenshot helps), e.g.
+"T4.7 - clicked Complete, the folder was empty, expected `\\srv\lab\FIB\2026\FIB-...`".
+Everything else is welcome too: confusing words, too many clicks, something missing.
 
-## 0. Admin, once (Prince)
-- [ ] Pull `main`, open with `Metrology Tool.cmd` in Edge from the share. The data file upgrades
-      (pop-up about backups\ - fine).
-- [ ] Settings > People: give the QE the **Quality engineer** role, the engineer **Engineer**.
-- [ ] Settings > Tools: make the QE **primary** of one tool (e.g. FIB), set its **results root**.
-- [ ] Settings > Lists: add a real **process step** or two; check the **on-hold reasons**; check the **build-up layers** (BU-04 = up to 5F / 5B).
-- [ ] Settings > Data & PIN > "Add 3 sample lots", or register real lots on the Lots page.
+**Two people with one PC:** open the app in **Edge** as the QE and in **Chrome** as the engineer
+(same data folder). Each browser remembers its own person. Or use your name (top right) >
+**Change user** and type the other Windows user name.
 
-## 1. Engineer
-- [ ] Opens on **My requests**.
-- [ ] Lots > Register lot: lot number, panels (optional), lot fields - no project or build-up any more.
-- [ ] Your own data folder: Settings > Data & PIN > "Fill with demo data" (reason: testing). You are still
-      admin (top right: Prince Khurana), My requests is full. When done: "Start empty", or restore
-      the "before demo data" copy from the Backups list.
-- [ ] Your own data folder: Settings > Lists > Magazines shows M70345-M70364 after the upgrade (or use
-      Settings > Data > "Add the sample magazines"); the form's step 3 then offers them.
-- [ ] New request (guided): tool drawing, type, BKM (or own path) -> Next. Project · Lot · Build-up on one
-      line, three separate choices: pick the project (part numbers appear), type a registered lot
-      (nothing fills in), then a new number ("New lot"). Build-up optional: pick one, the layers change. Hirata IDs ("3252-3255")
-      or "Just how many". Tick a layer. Is it easy to follow? Do the folded lines say the right thing?
-- [ ] Step 3: pick a magazine, press and drag over slots (real mouse); the IDs show in the slots in order.
-      Slots of another open request are grey. Or write a note instead.
-- [ ] Priority, date, purpose. Review: every step green. Submit. A new lot shows up on Lots.
-- [ ] Warnings before submit make sense (no BKM, tool down, same panels open).
-- [ ] The request page: traveller card, countdown in lab time, status rail, Copy buttons.
-- [ ] Comment with @Name of the QE.
-- [ ] Edit the request with a reason; the timeline shows the change.
-- [ ] Save a draft, carry on later, delete a draft.
-- [ ] When the QE asks a question: answer it from My requests (Answered).
-- [ ] When completed: Results OK - or Reopen with a reason.
+**Shortcut for trying everything:** the `demo-data\` folder in the repo is a full demo (admin PIN
+**1234**). Settings > Data & PIN > "Fill with demo data" puts it into any data folder (a backup is
+kept first). The steps below work on the demo or on a fresh folder.
 
-## 2. Quality engineer
-- [ ] Opens on **My queue**; the Line stop is on top, late ones red.
-- [ ] Accept (with and without an expected-done date), Panels received, Start.
-- [ ] Hold with a reason, Resume. Needs clarification.
-- [ ] Complete: the proposed results folder is right (Copy works, the folder can be opened).
-      Put back: the same magazine and slots are offered; pick other slots once.
-- [ ] Tick several rows: Accept all / Start all.
-- [ ] **Board**: drag a card to the next column (Edge, real mouse); the allowed columns light up.
-- [ ] Set yourself Away (user menu): new requests go to the backup.
+---
 
-## 2b. New since M3 (both)
-- [ ] The **bell**: a red count for new things; click a line opens the request; Mark all as read.
-- [ ] Bell > "Turn on pop-ups": do Windows pop-ups appear while the app is open? (Unknown from `file://`.)
-- [ ] After Submit / a question / Complete / Cancel: "Email ..." on the green message opens a ready
-      Outlook draft (people need an email in Settings > People).
-- [ ] Someone else saves while you only look: your page updates by itself.
-- [ ] Request page > **Print slip**: prints on A6 (or A4); a hand scanner reading the barcode opens
-      the request (click somewhere on the page first, not in a text field).
-- [ ] Lab status: queue numbers per tool; while a request is In progress, the tool drawing moves;
-      a Down tool shows a blinking lamp. With Reduce motion (user menu) everything stands still.
+## T0. Before you start (Prince, once)
 
-## 3. Both, all the time
-- [ ] Two people saving at nearly the same time: the "someone else saved" message, nothing lost.
-- [ ] Undo (10 s, Ctrl+Z) after a change.
-- [ ] The three themes (user menu) - all readable?
-- [ ] Anything slow (a page that takes more than a blink)?
-- [ ] Help (?) answers the questions you had.
+- [ ] **T0.1** Do: `git pull` on the share copy (or copy the new program files - never `data\`).
+      Expect: `index.html`, `Metrology Tool.cmd`, `js\`, `css\` updated; your `data\` untouched.
+- [ ] **T0.2** Do: open `tests\test.html` in Edge. Expect: green **ALL 547 TESTS PASSED** (or more).
+- [ ] **T0.3** Do: double-click `Metrology Tool.cmd` from a **mapped drive** (`Z:\...`).
+      Expect: Edge opens the app; the address bar shows no `?who=` afterwards.
+- [ ] **T0.4** Do: the same from the **network path** (`\\server\share\...`).
+      Expect: a short "UNC paths are not supported" line in the black window (harmless), then Edge opens the app.
+- [ ] **T0.5** Do: first time on this PC: **Choose data folder** > pick `data\`.
+      Expect: the app opens. Next start: straight in or one click "Reconnect".
+- [ ] **T0.6** Do (only on an old data file): watch for a message after opening.
+      Expect: "The data file was upgraded ... A copy of the old file is in backups\" - and that copy exists.
+
+## T1. Shell (everyone)
+
+- [ ] **T1.1** Expect: side menu with Lab status, My queue, My requests, New request, Lots, Board, **Hirata tools**, Settings, Help live; **Analytics greyed "M5"**.
+- [ ] **T1.2** Expect: start page by role - QE on **My queue**, engineer on **My requests**, others on Lab status.
+      Do: user menu > Start page > pick another; restart. Expect: your choice wins.
+- [ ] **T1.3** Expect: the **strip under the top bar** shows Line stop / Late / On hold / Needs clarification counts
+      (QE: your tools; engineer: your requests) and a clock. Do: click "Late". Expect: My queue / My requests filtered.
+- [ ] **T1.4** Do: user menu > Theme > Dark, Light, HC. Expect: every page readable in all three; remembered per person.
+- [ ] **T1.5** Do: user menu > Reduce motion on. Expect: nothing moves (glyphs, pulses, entrances); off again moves.
+- [ ] **T1.6** Do: `[` key. Expect: side menu collapses to icons; again opens. Remembered.
+- [ ] **T1.7** Do: `?` key. Expect: the shortcut list. `g` then `q` / `r` / `l` / `t` / `s` / `h` go to the pages.
+- [ ] **T1.8** Do: `/`, type part of a request ID, a lot number, a person, a word from a comment.
+      Expect: results for each; Enter opens the first.
+- [ ] **T1.9** Do: change something (e.g. a tool status), then **Undo** next to the save lamp within 10 s (or Ctrl+Z).
+      Expect: the change is back; the audit log shows both.
+- [ ] **T1.10** Expect: the save lamp is green "Saved hh:mm" after every change.
+
+## T2. Settings (admin, PIN)
+
+- [ ] **T2.1** Do: Settings. Expect: PIN asked once per visit; a wrong PIN says "Wrong PIN". A non-admin sees "Settings are for admins".
+- [ ] **T2.2** Health: Expect "Still to do before real use" (sample entries, tools without QEs / results root,
+      calendar, closing days, people to review) and "Data health". Each line's button opens the right place.
+- [ ] **T2.3** People > Add person: name, Windows ID, **Quality engineer** role. Expect: saved; a wrong email is refused inside the dialog.
+- [ ] **T2.4** People: someone who added themselves shows **New**; click **Reviewed**. Expect: the mark goes.
+- [ ] **T2.5** People > Edit a person > Away from / until (until empty = until further notice). Expect: "Away" shown; Lab status shows it.
+- [ ] **T2.6** Tools > Edit FIB: primary and backup QE (only quality engineers offered), results root `\\...`.
+      Expect: a path that is not a share path is refused inside the dialog.
+- [ ] **T2.7** Tools > pick a tool: measurement types (a "Sample" one: open it, Save unchanged -> it becomes real),
+      extra fields (add a "One choice" field with 3 choices, one per line), BKMs (Copy path).
+- [ ] **T2.8** Tools: delete a type that has a BKM. Expect: "Cannot delete ... used by 1 BKM - hide it instead".
+- [ ] **T2.9** Lists: projects, **part numbers** (linked to one or more projects), build-ups (layers), priorities
+      (one default), process steps, on-hold reasons, magazines, lot fields. Add / edit / hide one of each.
+- [ ] **T2.10** Lab calendar: "These are right" (or change days/hours); add a closing day (24.12.);
+      "Public holidays <next year>". Expect: the Health to-do list gets shorter.
+- [ ] **T2.11** Audit log: every change so far, filter by a name. Expect: who / when / old -> new / reason.
+- [ ] **T2.12** Data & PIN: Download a copy now (a JSON file arrives); the Backups list shows today;
+      Change the PIN (twice, with a reason). Restore: try on the demo folder only.
+- [ ] **T2.13** Settings > Lots: add several lots at once ("99950-99952"), change a lot's owner (reason), delete an unused lot.
+
+## T3. Engineer: lots and a new request
+
+- [ ] **T3.1** Lots > Register lot: number (5 digits or `18178.01`), optional panel count, lot fields.
+      Expect: saved; a duplicate number is refused.
+- [ ] **T3.2** New request: step 1 **Tool & method** - pick FIB (drawing), a measurement type, a BKM or paste an own path.
+      Expect: the traveller card on the right fills in live; Next opens step 2.
+- [ ] **T3.3** Step 2: Project (part numbers of that project appear), Lot (type a registered one: nothing is filled in or locked;
+      type a new number: "new"), Build-up (optional; the layer chips change), layers.
+- [ ] **T3.4** Step 2: Hirata IDs `3252-3255`. Expect: four chips, **each with a small copper panel to its right** showing its drilled pattern.
+      Type `3252, abc`. Expect: "abc is not a Hirata ID" at the field. Try "Just how many" = 2.
+- [ ] **T3.5** Step 3: pick a magazine, **press and drag** over slots (real mouse). Expect: the IDs appear in the slots in order;
+      slots of other open requests are grey. Or write a note instead.
+- [ ] **T3.6** FIB (destructive): the tick "Panels may be destroyed" is required; "afterwards" is set to scrap.
+- [ ] **T3.7** Step 4: priority Line stop -> a reason is required; needed-by date optional.
+- [ ] **T3.8** Review: every step green; warnings make sense (no BKM, tool down/maintenance, the same panels already open). Submit.
+      Expect: an ID like `FIB-260926-01`; a new lot appears on Lots.
+- [ ] **T3.9** Save a draft, close, carry on later (My requests > Drafts), delete a draft. Copy a past request: everything but date, reason, place.
+- [ ] **T3.10** The request page: traveller card (priority stripe, stamp, glyph), countdown "x h lab time left" or
+      "clock paused (outside lab hours)", status rail, timeline, BKM path with Copy.
+      Expect: under Panels **each panel as a copper panel with its decoded fields**.
+- [ ] **T3.11** Comment with `@Name` of the QE. Edit the request with a reason: the timeline shows "panels ... -> ...".
+- [ ] **T3.12** Print slip: A6 (or A4). Expect: big ID, barcode, the panels **as copper patterns** (copper colour kept on paper),
+      "FIB DESTROYS THESE PANELS". Hold it next to a real panel: does the pattern match?
+- [ ] **T3.13** With a hand scanner: scan the slip's barcode on any page (click the page first, not a text field). Expect: the request opens.
+- [ ] **T3.14** Cancel a request with a reason. Expect: stays visible as Cancelled; never deleted.
+
+## T4. Quality engineer: the queue
+
+- [ ] **T4.1** My queue: Line stop on top, then late (red), then by date; "assigned to me" first. Filters: tool, status (incl. Line stop, Late).
+- [ ] **T4.2** Accept (with and without an expected-done date). Expect: the engineer sees the expected date.
+- [ ] **T4.3** Panels received (who, when, where kept). Start: if not received yet it asks once, already ticked.
+- [ ] **T4.4** Hold with a reason from the list + note; Resume. Expect: back where it was; the countdown paused meanwhile.
+- [ ] **T4.5** Needs clarification (comment required). Engineer: answers in the timeline, clicks **Answered**. Expect: back in the queue.
+- [ ] **T4.6** Change the priority as QE. Expect: in the timeline and the audit log.
+- [ ] **T4.7** Complete: the results folder is proposed as `<root>\2026\<ID>\` (Copy; does the folder open?);
+      what happened to the panels; put back: the same magazine and slots offered - pick other slots once.
+- [ ] **T4.8** Engineer: **Results OK**, or **Reopen** with a reason. A completed request closes by itself after 7 days.
+- [ ] **T4.9** Tick several rows: Accept all / Start all.
+- [ ] **T4.10** Board: drag a card to the next column (real mouse). Expect: allowed columns light up, others dim;
+      a Line stop card pulses; dropping on Complete asks for the results folder.
+      (Note: the board's look will be redesigned later - write down what you would change.)
+- [ ] **T4.11** Away: set yourself away (user menu > I'm away). Expect: new requests of your tool go to the backup with a note;
+      "Take it" lets either QE take a request.
+- [ ] **T4.12** Lab status: per tool queue numbers (open, late, oldest, typical wait); set a tool Down / Maintenance (until date, note);
+      while a request is In progress the tool drawing moves; a Down tool's lamp blinks.
+
+## T5. Notifications (M4, both)
+
+- [ ] **T5.1** The **bell**: a red count for new things (new request for the QE, status changes for the engineer, @mentions).
+      Click a line: the request opens. "Mark all as read" clears it. Read/unread is per PC.
+- [ ] **T5.2** Bell > turn on pop-ups. Expect (unknown from `file://`): Windows pop-ups while the app is open - write down if nothing comes.
+- [ ] **T5.3** After Submit / Needs clarification / Complete / Cancel: the green message offers "Email ..." -> a ready Outlook draft
+      (people need an email in Settings > People). Does it open your Outlook?
+- [ ] **T5.4** Two browsers: someone saves while the other only looks. Expect: the other page updates by itself (no dialog open, nobody typing).
+- [ ] **T5.5** Both change something at nearly the same time. Expect: "Data was changed by ... Reload?", nothing lost.
+
+## T6. Hirata tools (everyone)
+
+- [ ] **T6.1** Menu > Hirata tools > **Read a panel**: tap dots on the grid (use a real panel).
+      Expect: digits under each column, the 9-digit code, each field (Supplier, Year, Week, Day, Lot per day, Panel), the copper panel of the last 4.
+- [ ] **T6.2** Tap a dot that would take a column above 9. Expect: it shakes and "cannot go above 9". The bottom row cannot be changed.
+- [ ] **T6.3** Type `161234507` in "Or type the digits". Expect: the grid shows it; letters are refused. Copy digits works.
+- [ ] **T6.4** **Find a pattern**: `3407, 0119, 161234507, 12x`. Expect: three copper panels with their fields, "Skipped: 12x", the 0-9 reference.
+- [ ] **T6.5** Print. Expect: the copper panels print in copper. Hold them against real panels: do they match?
+- [ ] **T6.6** Keyboard only: Tab into the grid, arrows move, Space sets a dot.
+
+## T7. Help and looks (Prince)
+
+- [ ] **T7.1** Help (?): search "restore", "Hirata", "away"; each guide's button opens its page; Print / PDF works.
+- [ ] **T7.2** `ui-kit.html`: every component in all states; "All three" themes side by side - anything unreadable or ugly?
+      New sections: Traveller card (four sizes), Hirata code, Panel map (marked unused).
+- [ ] **T7.3** `tests\preview.html?audit=1` (and `&theme=light`, `&theme=hc`): F12 console ends with **AUDIT DONE 0 findings**.
+      Also on `#/hirata`, `#/queue`, `#/new`, `#/settings/tools` - send me any AUDIT FAIL lines.
+- [ ] **T7.4** `tests\preview.html?perf=1`: console PERF lines - any page render above 150 ms?
+- [ ] **T7.5** Anything slow with the real file (a page that takes more than a blink)?
+
+---
 
 ## Notes
-| Date | Who | What happened | Expected |
-|---|---|---|---|
-|  |  |  |  |
+
+| Step | Date | Who | What I did | What I expected | What happened |
+|---|---|---|---|---|---|
+|  |  |  |  |  |  |
+|  |  |  |  |  |  |
+|  |  |  |  |  |  |
+
+**Missing / confusing / too many clicks:**
+
+-
