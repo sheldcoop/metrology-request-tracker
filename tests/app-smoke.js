@@ -580,6 +580,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...and the card moves, the panel closes', MRT.store.byId('requests', qL.id).status === 'in_progress' && !win.document.querySelector('dialog.drawer') &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
   check('...tools with nothing on them fold to one line', $$('#main .board-fold').length === $$('#main .board-lane.is-empty').length);
+  const fibPick = $$('#main .tool-pick').filter(b => b.dataset.pick === fib().id)[0];
+  fibPick.click(); await settle();
+  check('Board tool picker: one tool shows only its lane (Prince)', $$('#main .board-lane').length === 1 && /FIB/.test($('#main .board-lane').textContent) &&
+        $$('#main .tool-pick.is-on')[0].dataset.pick === fib().id);
+  $$('#main .tool-pick').filter(b => b.dataset.pick === 'all')[0].click(); await settle();
+  check('...All tools brings every lane back', $$('#main .board-lane').length === 5);
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
   win.setHash('#/lab'); await settle();
   const fibPlateQ = $$('#main .tool-plate').filter(p => /FIB/.test(p.textContent))[0];

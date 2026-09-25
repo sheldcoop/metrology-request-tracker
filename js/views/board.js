@@ -29,7 +29,7 @@ window.MRT.views.board = (function () {
     { key: 'completed', label: 'Completed (7 days)', has: ['completed'] }
   ];
   var WEEK = 7 * 86400000;
-  var view = { mine: false };
+  var view = { pick: null };   // 'all' | 'mine' | a tool id - remembered per person on this PC
   var clocks = [];
   var open = null;       // the side panel, when one is open
 
@@ -41,13 +41,17 @@ window.MRT.views.board = (function () {
     clocks = [];
     var tools = store.list('tools');
     var mineTools = tools.filter(function (t) { return D.isToolMeasurer(me, t); });
-    var lanes = view.mine && mineTools.length ? mineTools : tools;
+    var app = window.MRT.app;
+    if (view.pick === null) view.pick = (app.readPref && app.readPref('board_tool')) || 'all';
+    if (view.pick === 'mine' && !mineTools.length) view.pick = 'all';
+    if (view.pick !== 'all' && view.pick !== 'mine' && !tools.some(function (t) { return t.id === view.pick; })) view.pick = 'all';
+    var lanes = view.pick === 'mine' ? mineTools : view.pick === 'all' ? tools : tools.filter(function (t) { return t.id === view.pick; });
     var now = Date.now(), cal = store.calendar();
     var reqs = store.visibleRequests(function (r) {
       return D.isOpen(r) || (r.status === 'completed' && r.completed_ts && now - Date.parse(r.completed_ts) < WEEK);
     });
-    main.appendChild(ui.pageHead('Board', 'Every open request by tool. Click a card to see it and act on it here.',
-      mineTools.length ? [ui.toggle({ kind: 'switch', label: 'Only my tools', checked: view.mine, onChange: function (v) { view.mine = v; window.MRT.app.route(); } }).node] : null));
+    main.appendChild(ui.pageHead('Board', 'Every open request by tool. Click a card to see it and act on it here.'));
+    main.appendChild(toolPicker(tools, mineTools, reqs));
 
     if (!lanes.length) {
       main.appendChild(ui.emptyState({ icon: 'wrench', title: 'No tools yet', text: 'Add the lab\'s tools under Settings > Tools; each gets its own lane here.' }));
@@ -82,6 +86,23 @@ window.MRT.views.board = (function () {
     });
     main.appendChild(ui.el('div', { class: 'board-wrap' }, grid));
     tick();
+  }
+
+  /** The tool picker on top: All, My tools, or one tool (with its open count). */
+  function toolPicker(tools, mineTools, reqs) {
+    function openOn(ids) { return reqs.filter(function (r) { return D.isOpen(r) && ids.indexOf(r.tool_id) !== -1; }).length; }
+    function pick(key) { view.pick = key; if (window.MRT.app.writePref) window.MRT.app.writePref('board_tool', key); window.MRT.app.route(); }
+    function chip(key, label, n, glyph) {
+      var on = view.pick === key;
+      return ui.el('button', { type: 'button', class: 'tool-pick' + (on ? ' is-on' : ''), 'aria-pressed': on ? 'true' : 'false', dataset: { pick: key },
+        onclick: function () { pick(key); } }, [glyph || null, ui.el('span', { class: 'mono', text: label }), ui.el('span', { class: 'tool-pick-n num', text: String(n) })]);
+    }
+    var all = tools.map(function (t) { return t.id; });
+    return ui.el('div', { class: 'tool-picks', role: 'group', 'aria-label': 'Show tools' }, [
+      chip('all', 'All tools', openOn(all)),
+      mineTools.length ? chip('mine', 'My tools', openOn(mineTools.map(function (t) { return t.id; }))) : null,
+      ui.el('span', { class: 'tool-picks-sep', 'aria-hidden': 'true' })
+    ].concat(tools.map(function (t) { return chip(t.id, t.code, openOn([t.id]), ui.toolGlyph(t.glyph, { size: 18, state: t.status === 'up' ? 'idle' : t.status === 'down' ? 'off' : 'maint' })); })));
   }
 
   function card(r) {

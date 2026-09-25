@@ -1889,3 +1889,13 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 @keyframes rewind { 0% { transform: translateX(10px); opacity: .55; } 100% { transform: none; opacity: 1; } }
 .save-led.is-pulse .led { animation: save-pulse 700ms var(--ease-out) 1; }
 @keyframes save-pulse { 0% { transform: scale(1); } 35% { transform: scale(1.6); } 100% { transform: scale(1); } }
+
+/* Board tool picker (Prince, 2026-09-25) */
+.tool-picks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+.tool-pick { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: 999px;
+  background: var(--surface); color: var(--fg); font: inherit; font-size: 13px; cursor: pointer; transition: background-color var(--t-fast) ease; }
+.tool-pick:hover { background: var(--surface-3); }
+.tool-pick.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.tool-pick-n { min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--surface-3); color: var(--fg); font-size: 11px; text-align: center; }
+.tool-pick.is-on .tool-pick-n { background: var(--accent-fg); color: var(--accent); }
+.tool-picks-sep { width: 1px; height: 20px; margin: 0 4px; background: var(--line-strong); }

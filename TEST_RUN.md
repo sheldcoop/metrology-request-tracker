@@ -116,6 +116,7 @@ kept first). The steps below work on the demo or on a fresh folder.
       Click a card: a side panel opens from the right with the traveller and the action buttons; Start / Complete
       ask the same questions as on the request page; the panel closes and the card moves. Esc or a click on the dim
       area closes it. Ctrl+click opens the full request page in a new tab. Nothing can be dragged.
+      Tool picker on top: click HRM -> only the HRM lane; All tools -> all; My tools (QE); the choice is kept after a reload.
 - [ ] **T4.10b** Small touches (P6/P7): Complete -> toast with a folder icon that closes and "Copy results path";
       a new notification makes the bell swing once; the save lamp pulses once after a save; Undo makes the page slide back once;
       outside lab hours countdowns end with ⏸; a primary QE away shows "⇄ backup name" on the request's People panel;
