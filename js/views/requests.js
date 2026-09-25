@@ -90,7 +90,7 @@ window.MRT.views.requests = (function () {
       var waiting = mineAll.filter(function (r) { return waitingOnMe(r, now); }).length;
       var oldDrafts = mineAll.filter(function (r) { return D.isOldDraft(r, now); }).length;
       ui.mount(holder, [
-        ui.el('p', { class: 'muted' }, [list.length + ' shown', waiting ? ui.el('span', { class: 'chip warning', text: waiting + ' waiting on you' }) : null,
+        ui.el('p', { class: 'muted' }, [list.length + ' shown', waiting ? ui.statusBadge('warning', waiting + ' waiting on you') : null,
           oldDrafts ? ui.el('a', { href: '#/requests', class: 'chip warning', text: oldDrafts + ' old draft' + (oldDrafts === 1 ? '' : 's') + ' to clean up',
             onclick: function (ev) { ev.preventDefault(); view.status = 'drafts'; statusF.input.value = 'drafts'; draw(); } }) : null]),
         list.length ? table(list.slice(0, view.shown), now) : ui.emptyState({ icon: 'requests', title: 'Nothing matches', text: 'Try "All" or clear the filter.' }),
@@ -119,9 +119,9 @@ window.MRT.views.requests = (function () {
       return ui.el('tr', { id: 'row-' + r.id, class: 'q-row prio-' + (prio ? prio.level : 3) + (late ? ' is-late' : '') + (waitingOnMe(r, now) ? ' is-mine' : '') }, [
         ui.el('td', {}, ui.el('span', { class: 'cell-tool' }, [tool ? ui.toolGlyph(tool.glyph, { size: 24 }) : null,
           ui.el('a', { class: 'mono', href: link, text: r.request_no || ((tool ? tool.code : '?') + ' draft') }),
-          D.isOldDraft(r, now) ? ui.el('span', { class: 'chip warning', title: 'Untouched for 30 days or more - submit or delete it (Q33)', text: '30+ days' }) : null])),
+          D.isOldDraft(r, now) ? ui.statusBadge('warning', '30+ days', { title: 'Untouched for 30 days or more - submit or delete it (Q33)' }) : null])),
         ui.el('td', {}, [ui.el('span', { class: 'mono', text: lot ? lot.lot_number : '-' }), ui.el('span', { class: 'muted', text: '  ' + D.panelsText(r) })]),
-        ui.el('td', {}, ui.el('span', { class: 'chip ' + chip(r, closed), text: closed ? 'Closed' : D.REQUEST_STATUS_LABEL[r.status] })),
+        ui.el('td', {}, ui.statusBadge(chip(r, closed), closed ? 'Closed' : D.REQUEST_STATUS_LABEL[r.status])),
         ui.el('td', { text: prio ? prio.name : '-' }),
         ui.el('td', {}, [ui.el('span', { class: 'num', text: r.needed_by || '-' }), ui.el('br'), clock]),
         ui.el('td', {}, ui.el('span', { class: 'num' + (r.expected_done && r.needed_by && r.expected_done > r.needed_by ? ' is-later' : ''), text: r.expected_done || '-' })),

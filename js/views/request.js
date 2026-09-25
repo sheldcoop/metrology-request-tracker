@@ -203,7 +203,7 @@ window.MRT.views.request = (function () {
       ui.el('div', { class: 'ifield-label', text: 'BKM' }),
       bkmPath ? ui.el('div', {}, [bkm ? ui.el('div', { text: bkm.name + (bkm.doc_version ? ' (' + bkm.doc_version + ')' : '') }) : null,
         ui.el('span', { class: 'cell-path' }, [ui.el('span', { class: 'mono', text: bkmPath, title: bkmPath }), copyBtn(bkmPath, 'BKM path')])])
-        : ui.el('span', { class: 'chip warning', text: 'No BKM - see the purpose' }),
+        : ui.statusBadge('warning', 'No BKM - see the purpose'),
       ui.el('div', { class: 'ifield-label', text: r.results_path ? 'Results folder' : 'Results folder (proposed, Q30)' }),
       results ? ui.el('span', { class: 'cell-path' }, [ui.el('span', { class: 'mono', text: results, title: results }), copyBtn(results, 'Results path')])
               : muted('The tool has no results root yet (Settings > Tools).'),
@@ -233,7 +233,7 @@ window.MRT.views.request = (function () {
       if (!u) return [ui.el('dt', { text: role }), ui.el('dd', {}, muted('not set'))];
       var a = D.awayState(u, today);
       var away = a && a.state === 'now', bk = away && backupId ? byId('users', backupId) : null;
-      return [ui.el('dt', { text: role }), ui.el('dd', {}, [u.name, away ? ui.el('span', { class: 'chip warning', text: 'Away' + (a.until ? ' until ' + a.until : '') }) : null,
+      return [ui.el('dt', { text: role }), ui.el('dd', {}, [u.name, away ? ui.statusBadge('warning', 'Away' + (a.until ? ' until ' + a.until : '')) : null,
         bk ? ui.el('span', { class: 'away-swap', title: 'Away - ' + bk.name + ' covers' }, [ui.el('span', { class: 'away-arrow', 'aria-hidden': 'true', text: '⇄' }), bk.name]) : null])];
     }
     return ui.panel({ title: 'People', icon: 'users', body: ui.el('dl', { class: 'facts' }, [].concat(

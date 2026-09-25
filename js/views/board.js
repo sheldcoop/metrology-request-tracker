@@ -166,7 +166,7 @@ window.MRT.views.board = (function () {
       lines: [
         [(lot ? lot.lot_number : '?') + '  ·  ' + D.panelsText(r)],
         [gauge],
-        [r.status === 'on_hold' ? ui.el('span', { class: 'chip warning', text: 'On hold' }) : r.status === 'clarification' ? ui.el('span', { class: 'chip warning', text: 'Question' }) : null,
+        [r.status === 'on_hold' ? ui.statusBadge('warning', 'On hold') : r.status === 'clarification' ? ui.statusBadge('warning', 'Question') : null,
          clock, qe ? ui.el('span', { class: 'bcard-who', title: qe.name, text: ui.initials(qe.name) }) : null]
       ]
     }, { size: 'card' });

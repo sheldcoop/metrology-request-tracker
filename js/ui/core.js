@@ -340,6 +340,23 @@ window.MRT.ui = (function () {
     return live ? watchOffscreen(node) : node;
   }
 
+  /**
+   * THE way to show a status (DECISIONS T-8): its icon + its word, never colour alone.
+   * status: ok | warning | critical | expired | blocked | neutral. The icon shape comes from
+   * css/app.css (--ic-*): tick, triangle, stop octagon, clock, lock.
+   *   ui.statusBadge('expired', 'Late')      a chip: icon + word
+   *   ui.statusIcon('critical')              the icon alone, beside words you already show
+   */
+  var STATUS_KINDS = ['ok', 'warning', 'critical', 'expired', 'blocked', 'neutral'];
+  function statusBadge(status, text, o) {
+    var s = STATUS_KINDS.indexOf(status) === -1 ? 'neutral' : status;
+    return el('span', { class: 'chip ' + s + (o && o.cls ? ' ' + o.cls : ''), title: (o && o.title) || null, text: text });
+  }
+  function statusIcon(status) {
+    var s = STATUS_KINDS.indexOf(status) === -1 ? 'neutral' : status;
+    return el('span', { class: 'st-ic is-' + s, 'aria-hidden': 'true' });
+  }
+
   var seq = 0;
   function uid(prefix) { seq += 1; return prefix + seq; }
 
@@ -413,6 +430,8 @@ window.MRT.ui = (function () {
     icon: icon,
     initials: initials,
     led: led,
+    statusBadge: statusBadge,
+    statusIcon: statusIcon,
     mount: mount,
     pad2: pad2,
     pageHead: pageHead, linkLabels: linkLabels,

@@ -204,7 +204,7 @@
     var subEl = o.sub !== undefined ? el('div', { class: 'kpi-tile-sub', text: o.sub }) : null;
     var node = el(o.href ? 'a' : 'div', { class: 'kpi-tile ' + st, href: o.href || null }, [
       el('div', { class: 'kpi-tile-head' }, [
-        el('span', { class: 'kpi-tile-label', text: o.label }),
+        el('span', { class: 'kpi-tile-label' }, [st !== 'neutral' ? ui.statusIcon(st) : null, o.label]),   // status = icon + word (T-8)
         o.icon ? el('span', { class: 'kpi-tile-icon' }, icon(o.icon, 18)) : null
       ]),
       valueEl,

@@ -600,3 +600,7 @@ never the only signal - the text/label says the same thing.
   (default), Carbon White, Primer High Contrast - and Personal - Catppuccin Mocha, Gruvbox Light. The
   eleven older themes are gone; their keys map onto the new ones (dark-looking -> Carbon Gray 100,
   light-looking -> Carbon White, hc -> Primer HC), so saved choices and an office default keep working.
+- **T-11** One shared way to show a status: `ui.statusBadge(status, word)` (a chip: icon + word) and
+  `ui.statusIcon(status)` (the icon beside words already shown), in js/ui/core.js. Every status chip
+  of the screens goes through it; KPI tiles (Analytics, Lab status, Health) show the status icon
+  before their label; Lab status "1 late" carries the clock. A new screen cannot forget the icon.

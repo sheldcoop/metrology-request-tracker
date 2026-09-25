@@ -85,7 +85,7 @@ window.MRT.views.queue = (function () {
       var list = all.slice(0, view.shown);
       var late = all.filter(function (r) { return D.isLate(r, now, cal); }).length;
       ui.mount(holder, [
-        ui.el('p', { class: 'muted' }, [all.length + ' open', late ? ui.el('span', { class: 'chip critical', text: late + ' late' }) : null,
+        ui.el('p', { class: 'muted' }, [all.length + ' open', late ? ui.statusBadge('critical', late + ' late') : null,
           mine.length ? '  ·  ' + mine.length + ' assigned to you' : null]),
         all.length ? table(list, me, mine.length) : ui.emptyState({ icon: 'inbox', title: 'Nothing waiting', text: 'No open requests match.' }),
         all.length > view.shown ? ui.button('Show ' + Math.min(PAGE, all.length - view.shown) + ' more', { size: 'sm', onClick: function () { view.shown += PAGE; draw(); } }) : null
@@ -152,12 +152,12 @@ window.MRT.views.queue = (function () {
         ui.el('td', {}, prio ? ui.el('span', { class: 'q-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono muted', text: prio.code })]) : ''),
         ui.el('td', {}, ui.el('span', { class: 'cell-tool' }, [tool ? ui.toolGlyph(tool.glyph, { size: 24 }) : null,
           ui.el('a', { class: 'mono', href: '#/request/' + r.id, text: r.request_no }),
-          !bkmPath ? ui.el('span', { class: 'chip warning', text: 'No BKM' }) : null])),
+          !bkmPath ? ui.statusBadge('warning', 'No BKM') : null])),
         ui.el('td', {}, [ui.el('span', { class: 'mono', text: lot ? lot.lot_number : '?' }), ui.el('span', { class: 'muted', text: '  ' + D.panelsText(r) }),
           ui.el('div', { class: 'q-where', text: A.whereOf(r) })]),
         ui.el('td', { text: who ? who.name : '?' }),
         ui.el('td', {}, [ui.el('span', { class: 'num', text: r.needed_by || '-' }), ui.el('br'), clock]),
-        ui.el('td', {}, ui.el('span', { class: 'chip ' + statusChip(r.status), text: D.REQUEST_STATUS_LABEL[r.status] })),
+        ui.el('td', {}, ui.statusBadge(statusChip(r.status), D.REQUEST_STATUS_LABEL[r.status])),
         ui.el('td', { text: assigned ? assigned.name : '-' }),
         ui.el('td', { class: 'actions' }, ui.el('span', { class: 'row-actions' }, actions))
       ]);
