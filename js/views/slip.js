@@ -31,15 +31,12 @@ window.MRT.views.slip = (function () {
       ui.button('Back to the request', { kind: 'ghost', icon: 'chevron_left', onClick: function () { location.hash = '#/request/' + r.id; } }),
       ui.button('Print', { kind: 'primary', icon: 'download', onClick: function () { window.print(); } })
     ]));
-    function f(label, value, cls) { return ui.el('div', { class: 'slip-f' + (cls ? ' ' + cls : '') }, [ui.el('span', { text: label }), ui.el('b', { text: value || '-' })]); }
-    main.appendChild(ui.el('article', { class: 'slip prio-' + (prio ? prio.level : 3), 'aria-label': 'Traveller slip ' + r.request_no }, [
-      ui.el('header', { class: 'slip-head' }, [
-        tool ? ui.toolGlyph(tool.glyph, { size: 40 }) : null,
-        ui.el('div', { class: 'slip-id mono', text: r.request_no }),
-        prio ? ui.el('div', { class: 'slip-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono', text: prio.code })]) : null
-      ]),
-      ui.el('div', { class: 'slip-code' }, ui.code128(r.request_no, { height: 44, module: 2, label: r.request_no })),
-      ui.el('div', { class: 'slip-grid' }, [
+    function f(label, value, cls) { return { label: label, value: value || '-', cls: cls || null }; }
+    main.appendChild(ui.traveller({
+      id: r.request_no, level: prio ? prio.level : 3, prio: prio ? { name: prio.name, code: prio.code } : null,
+      glyph: tool ? { key: tool.glyph } : null,
+      code: ui.code128(r.request_no, { height: 44, module: 2, label: r.request_no }),
+      fields: [
         f('Tool', tool ? tool.code + (type ? ' - ' + type.name : '') : null),
         f('Lot', lot ? lot.lot_number + '  ' + [(byId('projects', r.project_id) || {}).code, r.part_number_id ? (byId('part_numbers', r.part_number_id) || {}).code : null,
           (byId('buildups', r.buildup_id) || {}).code].filter(Boolean).join(' · ') : null),
@@ -51,9 +48,9 @@ window.MRT.views.slip = (function () {
         f('Submitted', ui.formatDate(r.submitted_ts)),
         f('Afterwards', D.AFTER_LABEL[r.after] + (r.after_other ? ': ' + r.after_other : '')),
         f('BKM', bkm ? bkm.name : r.bkm_path ? 'own BKM (path on the request)' : 'none - see the purpose', 'wide')
-      ]),
-      tool && tool.destructive ? ui.el('div', { class: 'slip-warn', text: tool.code + ' DESTROYS THESE PANELS - confirmed by the requester' }) : null
-    ]));
+      ],
+      warn: tool && tool.destructive ? tool.code + ' DESTROYS THESE PANELS - confirmed by the requester' : null
+    }, { size: 'slip' }));
   }
 
   return { render: render };

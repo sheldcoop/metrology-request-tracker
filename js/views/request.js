@@ -75,17 +75,12 @@ window.MRT.views.request = (function () {
     live.r = r; live.node = clock;
     paintClock();
     var glyphState = r.status === 'in_progress' ? 'live' : tool && tool.status === 'down' ? 'off' : tool && tool.status === 'maintenance' ? 'maint' : 'idle';
-    return ui.el('article', { class: 'traveller prio-' + level + (level === 1 && D.isOpen(r) ? ' is-urgent' : ''), 'aria-label': 'Traveller card ' + r.request_no }, [
-      ui.el('header', { class: 'tr-head' }, [
-        tool ? ui.toolGlyph(tool.glyph, { size: 56, state: glyphState, label: tool.name }) : null,
-        ui.el('div', { class: 'tr-id' }, [
-          ui.el('h2', { class: 'mono', text: r.request_no }),
-          ui.el('div', { class: 'muted', text: (tool ? tool.code : '?') + '  ·  ' + (type ? type.name : 'no measurement type') })
-        ]),
-        D.isClosed(r, Date.now()) ? ui.el('span', { class: 'tr-stamp is-neutral', text: 'Closed' })
-          : ui.el('span', { class: 'tr-stamp is-' + (STAMP[r.status] || 'neutral'), text: D.REQUEST_STATUS_LABEL[r.status] })
-      ]),
-      ui.el('div', { class: 'tr-grid' }, [
+    return ui.traveller({
+      id: r.request_no, subtitle: (tool ? tool.code : '?') + '  ·  ' + (type ? type.name : 'no measurement type'),
+      glyph: tool ? { key: tool.glyph, state: glyphState, label: tool.name } : null,
+      level: level, urgent: level === 1 && D.isOpen(r),
+      stamp: D.isClosed(r, Date.now()) ? { label: 'Closed', kind: 'neutral' } : { label: D.REQUEST_STATUS_LABEL[r.status], kind: STAMP[r.status] || 'neutral' },
+      fields: [
         cell('Lot', lot ? [ui.el('b', { class: 'mono', text: lot.lot_number }), ui.el('span', { class: 'muted', text: '  ' +
           [(byId('projects', r.project_id) || {}).code, r.part_number_id ? (byId('part_numbers', r.part_number_id) || {}).code : null,
            (byId('buildups', r.buildup_id) || {}).code].filter(Boolean).join(' · ') })] : muted('?')),
@@ -100,9 +95,9 @@ window.MRT.views.request = (function () {
         cell('Assigned to', r.assigned_to ? userName(r.assigned_to) : muted('nobody yet')),
         r.received_ts ? cell('Panels received', userName(r.received_by) + ', ' + ui.formatTs(r.received_ts), r.received_where || null) : null,
         r.status === 'on_hold' ? cell('On hold', ((byId('hold_reasons', r.hold_reason_id) || {}).name || '?'), r.hold_note || null) : null
-      ]),
-      magazineView(r)
-    ]);
+      ],
+      footer: magazineView(r)
+    }, { size: 'full' });
   }
 
   /** The magazine with this request's panels in their slots (F-3), when it has one. */
@@ -111,14 +106,12 @@ window.MRT.views.request = (function () {
     if (!m || !(r.slots || []).length) return null;
     var slotsNow = r.put_back && r.status === 'completed' ? r.put_back.slots : r.slots;
     var magNow = r.put_back && r.status === 'completed' ? byId('magazines', r.put_back.magazine_id) || m : m;
-    return ui.el('div', { class: 'tr-mag' }, ui.magazineSlots({ magazine: magNow, picked: slotsNow, readOnly: true,
-      labels: window.MRT.requestActions.slotLabels(r.panels, slotsNow) }).node);
+    return ui.magazineSlots({ magazine: magNow, picked: slotsNow, readOnly: true,
+      labels: window.MRT.requestActions.slotLabels(r.panels, slotsNow) }).node;
   }
 
-  function cell(label, value, sub, extra) {
-    return ui.el('div', { class: 'tr-cell' }, [ui.el('div', { class: 'tr-label', text: label }), ui.el('div', { class: 'tr-value' }, value),
-      sub ? ui.el('div', { class: 'tr-sub', text: sub }) : null, extra || null]);
-  }
+  /** One fact on the card (drawn by ui.traveller). */
+  function cell(label, value, sub, extra) { return { label: label, value: value, sub: sub || null, extra: extra || null }; }
 
   /** The countdown text; the 1 s tick repaints only this (text only). */
   function paintClock() {

@@ -278,6 +278,43 @@
     ]);
   }
 
+  function travellerDemo() {
+    var PRIOS = [null, { name: 'Line stop', code: 'P1' }, { name: 'Hot', code: 'P2' }, { name: 'Normal', code: 'P3' }, { name: 'Low', code: 'P4' }];
+    var STAMPS = [['Submitted', 'neutral'], ['Accepted', 'accent'], ['In progress', 'ok'], ['On hold', 'warning'], ['Completed', 'ok'], ['Cancelled', 'neutral']];
+    function facts(level) {
+      return [
+        { label: 'Lot', value: [el('b', { class: 'mono', text: '18178' }), el('span', { class: 'muted', text: '  C4F · BU-02' })] },
+        { label: 'Priority', value: el('span', { class: 'tr-prio' }, [el('b', { text: PRIOS[level].name }), el('span', { class: 'mono muted', text: PRIOS[level].code })]) },
+        { label: 'Needed by', value: el('b', { class: 'num', text: '02.10.2026' }), extra: el('div', { class: 'tr-clock ' + (level === 1 ? 'is-late' : 'is-ok'), text: level === 1 ? 'Late by 3 h lab time' : '14 h lab time left (2 days)' }) },
+        { label: 'Panels', value: el('b', { class: 'mono', text: '3252, 3253  (2)' }), sub: 'layer 2F · M70345 slots 3-4' },
+        { label: 'Assigned to', value: 'Olga Berger' }
+      ];
+    }
+    var fulls = [1, 2, 3, 4].map(function (lv, i) {
+      return labelled('Full, ' + PRIOS[lv].name + ', ' + STAMPS[i + (lv === 4 ? 1 : 0)][0], ui.traveller({ id: 'FIB-260925-0' + lv, subtitle: 'FIB  ·  Via cross-section',
+        glyph: { key: 'fib', state: lv === 2 ? 'live' : 'idle', label: 'FIB' }, level: lv, urgent: lv === 1,
+        stamp: { label: STAMPS[i + (lv === 4 ? 1 : 0)][0], kind: STAMPS[i + (lv === 4 ? 1 : 0)][1] }, fields: facts(lv) }, { size: 'full' }));
+    });
+    var more = [
+      labelled('Full, on hold', ui.traveller({ id: 'QVM-260925-01', subtitle: 'QVM  ·  Via diameter', glyph: { key: 'qvm', state: 'idle', label: 'QVM' }, level: 3,
+        stamp: { label: 'On hold', kind: 'warning' }, fields: [{ label: 'On hold', value: 'Waiting for panels', sub: 'magazine still in the line' }] }, { size: 'full' })),
+      labelled('Mini (form preview, no tool yet)', ui.traveller({ id: 'Pick a tool', subtitle: 'measurement type', icon: 'request_new', level: 3,
+        fields: [{ label: 'Lot', value: '-', cls: 'mono' }, { label: 'BKM', value: el('span', { class: 'chip warning', text: 'No BKM' }) }] }, { size: 'mini' })),
+      labelled('Mini (form preview)', ui.traveller({ id: 'FIB-YYMMDD-NN', subtitle: 'Via cross-section', glyph: { key: 'fib' }, level: 2, prio: PRIOS[2],
+        fields: [{ label: 'Lot', value: '18178', cls: 'mono' }, { label: 'Panels', value: '3252, 3253', cls: 'mono' }, { label: 'Needed by', value: '2026-10-02', cls: 'num' }] }, { size: 'mini' })),
+      labelled('Board cards: Line stop, late, on hold', el('div', { class: 'kit-row' }, [
+        ui.traveller({ id: 'FIB-260925-01', level: 1, urgent: true, prio: PRIOS[1], href: '#', lines: [['18178  ·  3252, 3253'], [el('span', { class: 'q-clock', text: '5 h left' })]] }, { size: 'card' }),
+        ui.traveller({ id: 'HRM-260925-02', level: 3, late: true, prio: PRIOS[3], href: '#', lines: [['18180  ·  2 panels'], [el('span', { class: 'q-clock', text: 'late 1 d' })]] }, { size: 'card' }),
+        ui.traveller({ id: 'PRF-260925-01', level: 4, prio: PRIOS[4], href: '#', lines: [['19189  ·  23'], [el('span', { class: 'chip warning', text: 'On hold' })]] }, { size: 'card' })
+      ])),
+      labelled('Slip (print)', ui.traveller({ id: 'FIB-260925-01', level: 1, prio: PRIOS[1], glyph: { key: 'fib' },
+        code: ui.code128 ? ui.code128('FIB-260925-01', { height: 44, module: 2, label: 'FIB-260925-01' }) : null,
+        fields: [{ label: 'Tool', value: 'FIB - Via cross-section' }, { label: 'Lot', value: '18178  C4F · BU-02' }, { label: 'Panels', value: '3252, 3253  (2)', cls: 'wide' }, { label: 'Needed by', value: '2026-10-02' }],
+        warn: 'FIB DESTROYS THESE PANELS - confirmed by the requester' }, { size: 'slip' }))
+    ];
+    return el('div', { class: 'kit-grid', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))' } }, fulls.concat(more));
+  }
+
   function panelMapDemo() {
     var D = window.MRT.domain;
     var out = el('div', { class: 'kit-note', style: { margin: 0 } });
@@ -403,7 +440,8 @@
       section('KPI tiles', kpis()),
       section('Tool glyphs', glyphs(), 'One drawing per tool: probe (HRM), camera (AOI), stylus (PRF), optics (QVM), ion column (FIB), reticle (any other).'),
       section('Charts (Chart.js, shared theme)', charts(), 'One theme config in js/ui/charts.js: token colours, gradients, draw-in, panel-style tooltip, full screen.'),
-      section('Panel map', panelMapDemo(), 'Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
+      section('Panel map (unused - kept for OPEN_QUESTIONS #22)', panelMapDemo(), 'No screen uses it since form v2 (Hirata IDs). Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
+      section('Traveller card (ui.traveller)', travellerDemo(), 'One drawing, four sizes: full (request page), mini (form preview), card (board), slip (print). Priority stripe per level; Line stop pulses while open.'),
       section('Magazine slots', el('div', { class: 'kit-grid' }, [
           labelled('Pick: press and drag over slots; slots 9-10 taken by another request', ui.magazineSlots({ magazine: { code: 'M70345', slots: 24 }, picked: [3, 4],
             labels: { 3: '3252', 4: '3253' }, taken: { 9: 'FIB-260924-01', 10: 'FIB-260924-01' } }).node),

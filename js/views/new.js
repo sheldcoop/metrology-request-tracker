@@ -564,27 +564,26 @@ window.MRT.views['new'] = (function () {
       var tool = byId('tools', st.tool_id), prio = byId('priorities', st.priority_id), type = byId('measurement_types', st.type_id);
       var bu = byId('buildups', st.buildup_id), proj = byId('projects', st.project_id), pn = byId('part_numbers', st.part_number_id);
       var where = D.placeText(st, magsById());
-      ui.mount(preview, ui.el('div', { class: 'traveller-mini prio-' + (prio ? prio.level : 3) }, [
-        ui.el('div', { class: 'tm-head' }, [
-          tool ? ui.toolGlyph(tool.glyph, { size: 32 }) : ui.icon('request_new', 24),
-          ui.el('div', {}, [ui.el('div', { class: 'tm-id mono', text: editing ? draft.request_no : tool ? tool.code + '-YYMMDD-NN' : 'Pick a tool' }),
-                            ui.el('div', { class: 'muted', text: type ? type.name : 'measurement type' })]),
-          prio ? ui.el('span', { class: 'tm-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono', text: prio.code })]) : null
-        ]),
-        ui.el('dl', { class: 'facts' }, [
-          ui.el('dt', { text: 'Project' }), ui.el('dd', { class: 'mono', text: [proj ? proj.code : null, pn ? pn.code : null].filter(Boolean).join('  ·  ') || '-' }),
-          ui.el('dt', { text: 'Lot' }), ui.el('dd', { class: 'mono' }, [lotNumber || '-', st.new_lot && lotNumber ? ui.el('span', { class: 'chip warning', text: 'new' }) : null]),
-          ui.el('dt', { text: 'Build-up' }), ui.el('dd', { class: 'mono', text: bu ? bu.code : '-' }),
-          ui.el('dt', { text: 'Panels' }), ui.el('dd', { class: 'mono', text: D.panelsText(st) }),
-          ui.el('dt', { text: 'Layers' }), ui.el('dd', { class: 'mono', text: st.layers.length ? st.layers.join(' ') : '-' }),
-          ui.el('dt', { text: 'Where' }), ui.el('dd', { text: where || '-' }),
-          ui.el('dt', { text: 'Needed by' }), ui.el('dd', { class: 'num', text: st.needed_by || 'no date' }),
-          ui.el('dt', { text: 'BKM' }), ui.el('dd', {}, st.bkm_id || st.bkm_path ? 'yes' : ui.el('span', { class: 'chip warning', text: 'No BKM' })),
-          ui.el('dt', { text: 'Afterwards' }), ui.el('dd', { text: D.AFTER_LABEL[st.after] || '-' })
-        ]),
-        st.magazine_id && byId('magazines', st.magazine_id) && st.slots.length ? ui.el('div', { class: 'tm-mag' }, ui.magazineSlots({ magazine: byId('magazines', st.magazine_id),
-          picked: st.slots, labels: window.MRT.requestActions.slotLabels(st.panels, st.slots), readOnly: true }).node) : null
-      ]));
+      function fact(label, value, cls) { return { label: label, value: value, cls: cls || null }; }
+      ui.mount(preview, ui.traveller({
+        id: editing ? draft.request_no : tool ? tool.code + '-YYMMDD-NN' : 'Pick a tool',
+        subtitle: type ? type.name : 'measurement type',
+        glyph: tool ? { key: tool.glyph } : null, icon: 'request_new',
+        level: prio ? prio.level : 3, prio: prio ? { name: prio.name, code: prio.code } : null,
+        fields: [
+          fact('Project', [proj ? proj.code : null, pn ? pn.code : null].filter(Boolean).join('  ·  ') || '-', 'mono'),
+          fact('Lot', [lotNumber || '-', st.new_lot && lotNumber ? ui.el('span', { class: 'chip warning', text: 'new' }) : null], 'mono'),
+          fact('Build-up', bu ? bu.code : '-', 'mono'),
+          fact('Panels', D.panelsText(st), 'mono'),
+          fact('Layers', st.layers.length ? st.layers.join(' ') : '-', 'mono'),
+          fact('Where', where || '-'),
+          fact('Needed by', st.needed_by || 'no date', 'num'),
+          fact('BKM', st.bkm_id || st.bkm_path ? 'yes' : ui.el('span', { class: 'chip warning', text: 'No BKM' })),
+          fact('Afterwards', D.AFTER_LABEL[st.after] || '-')
+        ],
+        footer: st.magazine_id && byId('magazines', st.magazine_id) && st.slots.length ? ui.magazineSlots({ magazine: byId('magazines', st.magazine_id),
+          picked: st.slots, labels: window.MRT.requestActions.slotLabels(st.panels, st.slots), readOnly: true }).node : null
+      }, { size: 'mini' }));
     }
 
     /* --- actions ------------------------------------------------------- */
