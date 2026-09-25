@@ -492,6 +492,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText($('#main .req-actbar'), 'Accept').click(); await settle();
   setVal(fieldIn(openDialog(), 'Expected done'), '2030-01-10'); buttonByText(openDialog(), 'Save').click(); await settle();
   check('Accept with an expected done date: stamp Accepted, date on the card', MRT.store.byId('requests', req2.id).status === 'accepted' && $('#main .tr-stamp').textContent === 'Accepted' && /Expected done/.test($('#main .traveller').textContent));
+  check('...the new stamp presses on and the rail fills (P3)', $('#main .tr-stamp').classList.contains('is-stamping') && $('#main .status-rail').classList.contains('is-filling'));
   buttonByText($('#main .req-actbar'), 'Start').click(); await settle();
   check('Start asks "Panels received?" once, ticked (M3-3)', !!openDialog() && tickIn(openDialog(), 'Panels received').checked === true);
   setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Save').click(); await settle();

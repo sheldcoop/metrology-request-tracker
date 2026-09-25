@@ -1453,6 +1453,8 @@ table.grid tbody tr { scroll-margin: 80px; }
 /* the status stamp, like a rubber stamp on a paper traveller */
 .tr-stamp { margin-left: auto; padding: 4px 12px; border: 2px solid currentColor; border-radius: 4px; transform: rotate(-4deg);
   font: 800 14px/1.2 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; opacity: .9; }
+.tr-stamp.is-stamping { animation: stamp-press 420ms var(--ease-out) both; }
+@keyframes stamp-press { 0% { opacity: 0; transform: rotate(-4deg) scale(1.9); } 55% { opacity: .95; transform: rotate(-4deg) scale(.9); } 100% { opacity: .9; transform: rotate(-4deg) scale(1); } }
 .tr-stamp.is-accent { color: var(--accent); }
 .tr-stamp.is-ok { color: var(--ok-fg); }
 .tr-stamp.is-warning { color: var(--warning-fg); }
@@ -1493,6 +1495,8 @@ table.grid tbody tr { scroll-margin: 80px; }
 .rail-dot { position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); }
 .rail-step.is-done .rail-dot { border-color: var(--accent); background: var(--accent); }
 .rail-step.is-now .rail-dot { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.status-rail.is-filling .rail-step.is-now::before, .status-rail.is-filling .rail-step.is-done:last-of-type::before { transform-origin: left; animation: grow-x 500ms var(--ease-out) both; }
+.status-rail.is-filling .rail-step.is-now .rail-dot { animation: pop 280ms 380ms var(--ease-out) both; }
 .rail-side { flex: 0 1 180px; display: grid; gap: 2px; align-self: end; padding: 4px 10px; border: 1px solid currentColor; border-radius: var(--radius); font-size: 13px; }
 .rail-side.is-warning { color: var(--warning-fg); }
 .rail-side.is-expired { color: var(--expired-fg); }

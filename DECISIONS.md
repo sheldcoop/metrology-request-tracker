@@ -509,6 +509,7 @@ never the only signal - the text/label says the same thing.
 - **P2 built (2026-09-25):** Prince chose a **needle dial** on the request page (ui.needleGauge): half circle,
   green/amber/red zones, needle = share of lab time used from submitted to needed by (all of it when late),
   pause sign when on hold or outside lab hours; board cards keep the small bar.
+- **P3 built (2026-09-25):** on a status change the new stamp presses onto the traveller and the rail fills to the new step (only when the status changed since the page was last drawn; still with Reduce motion).
 - **P8 Themes, built (2026-09-25):** Prince found light and high-contrast "not like an expert engineer" and chose
   **"instrument panel"**: light = calm neutral greys, crisp 1px lines, no grid, no glows, flat surfaces, smaller
   radii, one engineering blue (#0B5CAD). High contrast = a technical drawing: white paper, black ink, 2px lines,
