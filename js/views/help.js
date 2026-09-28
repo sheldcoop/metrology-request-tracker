@@ -287,6 +287,7 @@ window.MRT.views.help = (function () {
         'Settings > Data & PIN shows the data file, lets you download a copy now, and lists the daily backups.',
         'Test data (Settings > Data & PIN): "Fill with demo data" puts the made-up demo (18 people, ~260 requests) into this folder - you become its Prince Khurana (admin) with your own Windows ID and keep your PIN. "Start empty" starts again like a first run with only you. Both keep the current file in the backups first; restore it from the Backups list ("before demo data").',
         'Restore puts everything back to that day for everyone. The current file is kept as a safety copy first, and the audit log keeps every entry. A reason is required.',
+        'If the live file is damaged: the app loads the previous copy by itself and says so (check the latest changes). If that is not enough, restore the newest daily backup, then the newest safety copy ("before-..."). Keep a downloaded copy somewhere safe too (Download a copy now).',
         'Settings > Audit log: every change - who, when, what, old and new value, reason. Type in Filter to search.',
         'Change the admin PIN under Data & PIN. Tell the other admins.',
         'Wrong data folder? Your name (top right) > Change data folder.',
