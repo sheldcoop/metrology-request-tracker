@@ -876,8 +876,10 @@ window.MRT.views['new'] = (function () {
     }
 
     /* Draft auto-save: 2 s after the last keystroke, quiet (no toast, no
-       navigation). Only for new drafts, never for editing a submitted request.
-       A detached form (already navigated away) stays silent. */
+       navigation). Only updates a draft the user created with Save draft -
+       never conjures one from a half-filled form, and never touches editing
+       a submitted request. A detached form (already navigated away) stays
+       silent. */
     var autoT = null;
     var autoNote = ui.el('span', { class: 'muted', 'aria-live': 'polite' });
     function queueAutosave() {
@@ -886,7 +888,7 @@ window.MRT.views['new'] = (function () {
       autoT = setTimeout(autoSaveDraft, 2000);
     }
     function autoSaveDraft() {
-      if (editing || !document.contains(formCol)) return;
+      if (editing || !draft || !document.contains(formCol)) return;
       var f = fields();
       if (!f.tool_id) return;
       store.saveDraft({ id: draft ? draft.id : undefined, version: draft ? draft.version : undefined, fields: f }).then(function (r) {
