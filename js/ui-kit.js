@@ -365,7 +365,7 @@
   function queueDemo() {
     function stat(v, label, bad) {
       return el('div', { class: 'qs' + (bad ? ' is-bad' : '') }, [
-        el('span', { class: 'qs-n num', text: String(v) }), el('span', { class: 'qs-l', text: label })]);
+        el('span', { class: 'qs-n num', text: String(v) }), ' ', el('span', { class: 'qs-l', text: label })]);
     }
     function qrow(no, prio, prioCode, tool, glyphKey, late) {
       return el('tr', { class: 'q-row prio-' + prio + (late ? ' is-late' : '') }, [

@@ -123,7 +123,7 @@ window.MRT.views.queue = (function () {
     function shiftStrip(n, late, mine) {
       function stat(v, label, bad) {
         return ui.el('div', { class: 'qs' + (bad ? ' is-bad' : '') }, [
-          ui.el('span', { class: 'qs-n num', text: String(v) }), ui.el('span', { class: 'qs-l', text: label })]);
+          ui.el('span', { class: 'qs-n num', text: String(v) }), ' ', ui.el('span', { class: 'qs-l', text: label })]);
       }
       return ui.el('div', { class: 'queue-shift', 'aria-live': 'polite' }, [
         stat(n, 'open'),
