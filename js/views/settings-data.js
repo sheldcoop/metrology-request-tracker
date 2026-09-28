@@ -100,6 +100,8 @@
       ui.el('div', { class: 'form-actions' }, [
         ui.button('Download the request history', { icon: 'download', title: 'Every request with all its status times, and every timeline event (Q48)',
           onClick: function () { window.MRT.exporter.run('request_history', window.MRT.exporter.historySheets); } }),
+        ui.button('Export Master Excel', { icon: 'download', title: 'The whole app as one Excel file: every request plus a meta sheet. Edit it and import it back (admins only, like all of Settings).',
+          onClick: function () { window.MRT.exporter.run('master', window.MRT.excelBridge.masterSheets); } }),
         ui.button('Download a copy now', { icon: 'download', onClick: function () {
           var f = store.exportText();
           window.MRT.app.downloadText(f.name.replace('recovered', 'copy'), f.text);
