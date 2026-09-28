@@ -1422,6 +1422,25 @@
     a.files[cfg.data_file] = '{ not json';
     ST.init(a);
     await refused('a damaged file is reported, not overwritten', ST.load(), 'bad_json');
+    a = await adminStore();
+    await ST.saveEntry('projects', { fields: { code: 'KEEP' } });
+    var keptRev = fileOf(a).revision;
+    var prevText = a.files['mrt_data.prev.json'];
+    ok('every save parks the replaced file as the previous copy',
+      !!prevText && JSON.parse(prevText).revision === keptRev - 1 &&
+      JSON.parse(prevText).projects.every(function (p) { return p.code !== 'KEEP'; }));
+    a.files[cfg.data_file] = '{torn mid-save';
+    await ST.load();
+    eq('a torn live file recovers the previous copy (flagged)',
+      [ST.status().recoveredFromPrev, ST.status().revision, ST.list('projects').some(function (p) { return p.code === 'KEEP'; })],
+      [true, keptRev - 1, false]);
+    await ST.saveEntry('projects', { fields: { code: 'AFTER' } });
+    eq('...and saving again continues cleanly', fileOf(a).revision, keptRev);
+    a.files[cfg.data_file] = '{torn'; a.files['mrt_data.prev.json'] = '{also torn';
+    await refused('two torn copies still report damage', ST.load(), 'bad_json');
+    a = window.MRT.adapters.storageMemory({});
+    a.files[cfg.data_file] = '{ not json';
+    ST.init(a);
     eq('...and left as it was', a.files[cfg.data_file], '{ not json');
 
     // Schema 1 -> 2 adds part numbers (M1-13); 2 -> 3 process steps and "destructive" (M2-7, M2-11).

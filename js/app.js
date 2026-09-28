@@ -249,6 +249,10 @@ window.MRT.app = (function () {
       ui.toast({ kind: 'info', timeout_ms: 8000, message: 'The data file was upgraded from an older version. ' +
         'A copy of the old file is in ' + cfg.backup_dir + '\\.' });
     }
+    if (s.recoveredFromPrev) {
+      ui.toast({ kind: 'warning', timeout_ms: 12000, message: 'The data file was damaged, so the app recovered the previous copy. ' +
+        'Check your latest changes; a daily backup can restore more.' });
+    }
     if (!store.data().users.length) return showFirstRun();
     var ident = identity.detect();
     if (!ident) return showAskId();
