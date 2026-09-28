@@ -64,6 +64,11 @@ window.MRT.views.requests = (function () {
     main.appendChild(ui.el('div', { class: 'lots-tools' }, [statusF.node, toolF.node, textF.node]));
     main.appendChild(holder);
 
+    function stat(v, label, cls) {
+      return ui.el('div', { class: 'qs ' + (cls || '') }, [
+        ui.el('span', { class: 'qs-n num', text: String(v) }), ui.el('span', { class: 'qs-l', text: label })]);
+    }
+
     function draw() {
       clocks = [];
       if (view.status === 'templates') { shownRows = []; ui.mount(holder, window.MRT.templates.list(me)); return; }
@@ -90,11 +95,18 @@ window.MRT.views.requests = (function () {
       list.sort(function (a, b) { return rank(a) - rank(b); });     // stable: newest first within each part
       shownRows = list;
       var waiting = mineAll.filter(function (r) { return waitingOnMe(r, now); }).length;
+      var late = list.filter(function (r) { return D.isLate(r, now, store.calendar()); }).length;
       var oldDrafts = mineAll.filter(function (r) { return D.isOldDraft(r, now); }).length;
       ui.mount(holder, [
-        ui.el('p', { class: 'muted' }, [list.length + ' shown', waiting ? ui.statusBadge('warning', waiting + ' waiting on you') : null,
-          oldDrafts ? ui.el('a', { href: '#/requests', class: 'chip warning', text: oldDrafts + ' old draft' + (oldDrafts === 1 ? '' : 's') + ' to clean up',
-            onclick: function (ev) { ev.preventDefault(); view.status = 'drafts'; statusF.input.value = 'drafts'; draw(); } }) : null]),
+        ui.el('div', {}, [
+          ui.el('div', { class: 'queue-shift', 'aria-live': 'polite' }, [
+            stat(list.length, 'shown'),
+            waiting ? stat(waiting, 'waiting on you', 'is-warn') : null,
+            late ? stat(late, 'late', 'is-bad') : null
+          ]),
+          oldDrafts ? ui.el('p', {}, ui.el('a', { href: '#/requests', class: 'chip warning', text: oldDrafts + ' old draft' + (oldDrafts === 1 ? '' : 's') + ' to clean up',
+            onclick: function (ev) { ev.preventDefault(); view.status = 'drafts'; statusF.input.value = 'drafts'; draw(); } })) : null
+        ]),
         list.length ? table(list.slice(0, view.shown), now) : ui.emptyState({ icon: 'requests', title: 'Nothing matches', text: 'Try "All" or clear the filter.' }),
         list.length > view.shown ? ui.button('Show ' + Math.min(PAGE, list.length - view.shown) + ' more', { size: 'sm', onClick: function () { view.shown += PAGE; draw(); } }) : null
       ]);

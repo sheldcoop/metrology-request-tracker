@@ -1482,6 +1482,8 @@ table.grid tbody tr { scroll-margin: 80px; }
 .queue-shift .qs-l { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--fg-muted); }
 .queue-shift .qs.is-bad .qs-n { color: var(--expired-fg); }
 .queue-shift .qs.is-bad .qs-l { color: var(--expired-fg); }
+.queue-shift .qs.is-warn .qs-n { color: var(--warning-fg); }
+.queue-shift .qs.is-warn .qs-l { color: var(--warning-fg); }
 .queue-sep td { padding-top: 16px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-muted); border-top: 2px solid var(--line-strong); }
 .queue-sep td .num { color: var(--fg); }
 .q-row > td:first-child { border-left: 4px solid var(--ok); }
