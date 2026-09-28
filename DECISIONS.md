@@ -672,3 +672,24 @@ never the only signal - the text/label says the same thing.
   folder") instead of three (23 lines became 14). The 20 sample magazines are on it now; the part-number
   line no longer talks about lots (F-6). While quality engineers are missing, Health says how colleagues
   get into the app (open the launcher once, then an admin ticks their roles).
+- **E-1** (2026-09-28, Prince: "go with your best") **Master Excel** (`js/excel-bridge.js`):
+  one workbook, Requests keyed by readable `request_no` (no ID-scheme change was
+  needed - it already existed), six reference sheets (Tools, Measurement types,
+  Priorities, Projects, Build-ups, BKM), meta sheet with the live revision.
+  Import edits 5 fields only (Priority, Assigned to, Needed by, Expected done,
+  Purpose); status moves and new requests stay in the app; empty cell = no
+  change; stale revision refused; safety copy + all-or-nothing save in
+  `store.importRequests`. Not a storage adapter (folder read/write interface
+  does not fit workbooks); views never touch XLSX. No migration needed.
+- **E-2** Master lists export as reference only; bulk list import deliberately
+  out (lists are curated in Settings; silent rewrites rejected).
+- **R-1** (2026-09-28, Prince: "go", page-by-page) One design language: ghost
+  station numerals, quiet-until-attention colour (neutral steel, red only on
+  down/late), 800-weight mono numerals (shift strips, KPI tiles), priority
+  stripe shared by board cards, queue rows, request rows. Order: Board (wall) >
+  Queue (shift) > Request detail (command strip, rail pulse, timeline thread) >
+  Lab (engraved plates, attention washes) > My requests (strip) > New request
+  (rail numerals, open-step edge). Lots/Hirata/slip unchanged (utility/print).
+- **A-1** (2026-09-28, Prince: "report only") Holistic audit `AUDIT.md`: 56
+  items, EXISTS/PARTIAL/MISSING with file refs; severity summary in chat.
+  Fixes tracked as the "fix all" goal (2026-09-29).
