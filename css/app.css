@@ -1329,6 +1329,9 @@ table.grid tbody tr { scroll-margin: 80px; }
 .traveller-mini.prio-1::before { background: var(--critical); }
 .traveller-mini.prio-2::before { background: var(--warning); }
 .traveller-mini.prio-4::before { background: var(--fg-faint); }
+/* Line stop in the preview: the stripe glows and pulses like the real card (opacity only) */
+.traveller-mini.is-urgent::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; border-radius: var(--radius) 0 0 var(--radius);
+  box-shadow: 0 0 14px 3px var(--critical); opacity: .25; animation: stripe-pulse 1.6s ease-in-out infinite; pointer-events: none; }
 .tm-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .tm-id { font-size: 15px; font-weight: 700; }
 .tm-prio { margin-left: auto; display: grid; justify-items: end; line-height: 1.15; }

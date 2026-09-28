@@ -833,7 +833,8 @@ window.MRT.views['new'] = (function () {
         id: editing ? draft.request_no : tool ? tool.code + '-YYMMDD-NN' : 'Pick a tool',
         subtitle: typeName || 'measurement type',
         glyph: tool ? { key: tool.glyph } : null, icon: 'request_new',
-        level: prio ? prio.level : 3, prio: prioName ? { name: prioName, code: prioCode || 'NEW' } : null,
+        level: prio ? prio.level : 3, urgent: !!prio && prio.level === 1,
+        prio: prioName ? { name: prioName, code: prioCode || 'NEW' } : null,
         fields: [
           fact('Project', [projCode, pn ? pn.code : (st.new_part_number ? st.new_part_number.code : null)].filter(Boolean).join('  ·  ') || '-', 'mono'),
           fact('Lot', [lotNumber || '-', st.new_lot && lotNumber ? ui.statusBadge('warning', 'new') : null], 'mono'),

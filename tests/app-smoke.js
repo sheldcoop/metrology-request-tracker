@@ -408,6 +408,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   segPick('Priority', normalId); await settle();
   check('...back to Normal: no reason asked, stripe back', !fieldIn(M(), 'Why Hot?') && !fieldIn(M(), 'Why Line stop?') &&
         $('#main .traveller-mini').classList.contains('prio-3'));
+  segPick('Priority', MRT.store.list('priorities').filter(p => p.code === 'P1')[0].id); await settle();
+  check('...Line stop: red stripe that pulses, reason asked', $('#main .traveller-mini').classList.contains('prio-1') &&
+        $('#main .traveller-mini').classList.contains('is-urgent') && !!fieldIn(M(), 'Why Line stop?'));
+  segPick('Priority', normalId); await settle();
   stepOf('lot').querySelector('.wz-head').click(); await settle();
   setVal(fieldIn(M(), 'Lot'), '18178'); await settle();
   check('typing a registered lot finds it - and fills in nothing: project, lot, build-up are separate (F-6)', /Lot found/.test(mainText()) &&

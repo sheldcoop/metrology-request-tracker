@@ -52,7 +52,7 @@
   }
 
   function mini(m) {
-    return el('div', { class: 'traveller-mini prio-' + (m.level || 3) }, [
+    return el('div', { class: 'traveller-mini prio-' + (m.level || 3) + (m.urgent ? ' is-urgent' : '') }, [
       el('div', { class: 'tm-head' }, [
         glyphOf(m, 32),
         el('div', {}, [el('div', { class: 'tm-id mono', text: m.id }), el('div', { class: 'muted', text: m.subtitle || '' })]),
