@@ -589,6 +589,7 @@
     eq('an admin adds Anna without a Windows ID', anna.windows_id, null);
     ST.setCurrentUser(anna.id);
     await refused('only admins add people', ST.saveEntry('users', { fields: { name: 'X', roles: ['engineer'] } }), 'not_admin');
+    await refused('an operator cannot grant herself admin', ST.saveEntry('users', { id: anna.id, fields: { roles: ['operator', 'admin'] } }), 'not_admin');
     ST.init(a); await ST.load();
     eq('nobody is signed in after a reload', ST.currentUser(), null);
     eq('"Is this you?" finds Anna by name', ST.nameMatches('anna  BERGER').map(function (u) { return u.name; }), ['Anna Berger']);
@@ -1189,6 +1190,18 @@
     a.failWrites = false;
     await ST.retrySave();
     ok('retry saves it', fileOf(a).projects.some(function (p) { return p.code === 'RO'; }) && !ST.status().pendingSave);
+
+    a = await adminStore();
+    await ST.saveEntry('projects', { fields: { code: 'FIRST', name: 'First' } });
+    var peak = fileOf(a).revision;
+    var second = fileOf(a);
+    second.revision = peak + 1; second.saved_by = 'u-second-user'; second.saved_ts = '2026-09-24T09:00:00.000Z';
+    a.files[cfg.data_file] = JSON.stringify(second);   // another PC saved after us
+    await refused('the second user saving over the first stops', ST.saveEntry('projects', { fields: { code: 'OVERWRITE' } }), 'revision_conflict');
+    await ST.load();   // Reload takes the new file (the refused edit is dropped, like the banner says)
+    await ST.saveEntry('projects', { fields: { code: 'ON-TOP' } });
+    eq('...and the second user then saves cleanly on top', [fileOf(a).revision, fileOf(a).projects.some(function (p) { return p.code === 'ON-TOP'; })],
+      [peak + 2, true]);
 
     /* =============== store: backups and restore =============== */
     group('Store: daily backups and restore');
