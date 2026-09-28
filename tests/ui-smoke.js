@@ -113,7 +113,10 @@ check('heatmap',()=>{put(ui.heatmap({rows:['Mon','Tue'],cols:['07','08','09'],va
 check('glyphs',()=>{expect('six glyphs',ui.GLYPHS.length===6);
   ui.GLYPHS.forEach(g=>['idle','live','maint','off'].forEach(s=>{const n=ui.toolGlyph(g.key,{size:40,state:s,label:g.label});root.appendChild(n);
     expect('glyph '+g.key+' '+s,n.classList.contains('is-'+s)&&n.innerHTML.indexOf('tg-body')!==-1&&n.getAttribute('role')==='img')}));
-  const parts={hrm:['tg-focus','tg-trace'],aoi:['tg-scan','tg-defect'],prf:['tg-stylus','tg-trace'],qvm:['tg-reticle','tg-shift'],fib:['tg-raster','tg-face'],generic:['tg-spin']};
+  const parts={hrm:['tg-focus','tg-trace'],aoi:['tg-scan','tg-defect'],prf:['tg-stylus','tg-trace'],qvm:['tg-reticle','tg-shift'],fib:['tx-raster','tx-mill','tx-blink','tx-shimmer','tx-alert','tx-detail'],generic:['tg-spin']};
+  const live=ui.toolGlyph('fib',{state:'live',rate:2,alert:true});expect('rate/alert opts land on the node',live.style['--tx-rate']===2&&live.classList.contains('is-alert'));
+  ui.GLYPHS.forEach(g=>{const h=ui.toolGlyph(g.key).innerHTML;const nodes=(h.match(/<[a-z]+/g)||[]).length;
+    expect('node budget under 100: '+g.key,nodes<=100&&(h.indexOf('tx-detail')!==-1||h.indexOf('tg-lamp')!==-1))});
   Object.keys(parts).forEach(k=>{const h=ui.toolGlyph(k).innerHTML;expect('P1 working parts + lamp: '+k,parts[k].every(p=>h.indexOf(p)!==-1)&&h.indexOf('tg-lamp')!==-1)});
   const d=ui.toolGlyph('xyz');expect('unknown glyph -> generic',d.dataset.glyph==='generic'&&d.getAttribute('aria-hidden')==='true');
   ui.toolGlyphState(d,'off');expect('state change',d.classList.contains('is-off')&&!d.classList.contains('is-idle'));

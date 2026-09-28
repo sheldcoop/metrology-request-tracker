@@ -5,9 +5,15 @@
  * sketch it on a whiteboard. The admin picks a glyph per tool in Settings,
  * so a new tool needs no code change (it can use the generic reticle).
  *
- *   ui.toolGlyph('fib', {size: 40, state: 'live', label: 'FIB'})
+ *   ui.toolGlyph('fib', {size: 40, state: 'live', label: 'FIB', rate: 2, alert: true, destructive: true})
  *     state: 'idle' (default) | 'live' (working: its parts move - P1)
  *            | 'maint' (dashed amber beam) | 'off' (Down: dimmed, warning lamp blinks)
+ *     rate: animation speed multiplier (queue length); alert: red pulse (late);
+ *     destructive: the FIB cut variant when the tool mills (auto-mapped, P1)
+ *   Living icons (v2): moving parts carry tx-* classes whose duration is
+ *   var(--tx-d) = base x slow / rate; .tx-work dims when Down; .tx-alert is
+ *   the late pulse; .tx-detail fades in on hover. Still drawings are complete
+ *   last frames, so idle and Reduce motion show the finished picture.
  *   ui.toolGlyphState(node, state)   change it later without a redraw
  *   ui.GLYPHS                        [{key, label}] for the Settings dropdown
  *
@@ -83,15 +89,28 @@
          '<path class="tg-beam tg-shift" d="M15 37.5l7-6M19.5 31.5h2.5M22 34v-2.5"/>' +
          '<circle class="tg-beam tg-reticle" cx="15" cy="37.5" r="6"/>' + LAMP,
 
-    // FIB: the ion column milling its trench - beam rastering, banks flying,
-    // the cross-section face opening between the trench walls
-    fib: '<path class="tg-body" d="M15 4h18l-5 13h-8z"/>' +
+    // FIB, living: the ion column over its trench - glowing raster beam,
+    // holographic shimmer on the column, sparks, the milled face opening.
+    // Hover shows the trench depth; the red ring only pulses on alert/Down.
+    fib: '<defs><filter id="txg-fib" x="-40%" y="-40%" width="180%" height="180%">' +
+         '<feGaussianBlur stdDeviation="1.1"/></filter>' +
+         '<filter id="txh-fib" x="0" y="0" width="100%" height="100%">' +
+         '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="n"/>' +
+         '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0.35 0 0 0 0 0.69 0 0 0 0 1 0 0 0 0.5 0"/></filter></defs>' +
+         '<path class="tg-body" d="M15 4h18l-5 13h-8z"/>' +
          '<path class="tg-detail" d="M17.5 9h13"/>' +
-         '<path class="tg-beam tg-raster" d="M24 17v15"/>' +
-         '<path class="tg-beam tg-sparks" d="M20 32l-3-2M28 32l3-2" stroke-opacity=".7"/>' +
+         '<rect class="tx tx-shimmer" style="--tx-base:2.6s" x="17" y="5" width="14" height="11" filter="url(#txh-fib)"/>' +
+         '<g class="tx-work">' +
+         '<path class="tg-beam tx tx-raster" style="--tx-base:1.1s" d="M24 17v15" filter="url(#txg-fib)" stroke-width="3.5"/>' +
+         '<path class="tg-beam tx tx-raster" style="--tx-base:1.1s" d="M24 17v15"/>' +
+         '<path class="tg-beam tx tx-blink" style="--tx-base:.7s" d="M20 32l-3-2M28 32l3-2" stroke-opacity=".7"/>' +
          '<path class="tg-block" d="M4 32h40v10H4z"/>' +
          '<path class="tg-sample" d="M20 32v10M28 32v10"/>' +
-         '<path class="tg-face" d="M20 34.5h8M20 37.5h8M20 40.5h8"/>' + LAMP,
+         '<path class="tg-face tx tx-mill" style="--tx-base:1s" d="M20 34.5h8M20 37.5h8M20 40.5h8"/>' +
+         '</g>' +
+         '<circle class="tx-alert" cx="24" cy="37" r="9"/>' +
+         '<g class="tx-detail"><path class="tg-detail" d="M31 33v9M29.5 33h3M29.5 42h3"/>' +
+         '<text class="tx-text" x="34" y="39">8.2</text></g>' + LAMP,
 
     // any other tool: a measuring reticle
     generic: '<circle class="tg-body" cx="24" cy="24" r="14"/>' +
@@ -114,7 +133,7 @@
   function toolGlyphState(node, state) {
     var s = STATES.indexOf(state) === -1 ? 'idle' : state;
     STATES.forEach(function (x) { node.classList.toggle('is-' + x, x === s); });
-    if (s === 'live' || s === 'off') ui.watchOffscreen(node);   // pause the motion off-screen
+    ui.watchOffscreen(node);   // pause the motion off-screen (live, alert and maint loops)
     return node;
   }
 
@@ -123,10 +142,11 @@
    * reticle). With a label it is an image for screen readers; without,
    * it is decoration next to text that already names the tool.
    * @param {string} key
-   * @param {Object} o {size, state, label}
+   * @param {Object} o {size, state, label, rate, alert, destructive}
    */
   function toolGlyph(key, o) {
     o = o || {};
+    var k = (key === 'fib' && o.destructive && DRAW['fib-destructive']) ? 'fib-destructive' : key;
     var size = o.size || 32;
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 48 48');
@@ -138,8 +158,10 @@
     svg.setAttribute('stroke-linejoin', 'round');
     if (o.label) { svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', o.label); }
     else svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML = DRAW[key] || DRAW.generic;   // static strings from this file
-    svg.dataset.glyph = DRAW[key] ? key : 'generic';
+    svg.innerHTML = DRAW[k] || DRAW.generic;   // static strings from this file
+    svg.dataset.glyph = DRAW[k] ? k : 'generic';
+    if (o.rate && isFinite(o.rate) && o.rate > 0) svg.style.setProperty('--tx-rate', o.rate);
+    if (o.alert) svg.classList.add('is-alert');
     return toolGlyphState(svg, o.state);
   }
 
