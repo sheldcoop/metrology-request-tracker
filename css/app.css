@@ -1204,7 +1204,8 @@ kbd {
 }
 .tool-plate.is-maintenance::before { background: var(--warning); }
 .tool-plate.is-down::before { background: var(--expired); }
-.tool-plate.is-down { border-color: color-mix(in srgb, var(--expired) 45%, transparent); }
+.tool-plate.is-down { border-color: color-mix(in srgb, var(--expired) 45%, transparent); background: color-mix(in srgb, var(--expired) 6%, var(--surface)); }
+.tool-plate.is-maintenance { background: color-mix(in srgb, var(--warning) 5%, var(--surface)); }
 .tool-plate.is-selected { border-color: var(--line-hi); box-shadow: var(--shadow), var(--accent-glow); }
 .tool-plate-head { display: flex; align-items: center; gap: 14px; }
 .tool-plate-head .chip { margin-left: auto; align-self: flex-start; }
@@ -1212,7 +1213,7 @@ kbd {
   padding: 6px; border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--inset); box-sizing: content-box;
 }
-.tool-code { font-size: 22px; font-weight: 700; letter-spacing: .04em; line-height: 1.1; }
+.tool-code { font-size: 22px; font-weight: 800; letter-spacing: .08em; line-height: 1.1; }
 .tool-name { color: var(--fg-muted); font-size: 13px; }
 .tool-plate-note { margin: 0; font-size: 13px; color: var(--fg-muted); }
 .tool-plate-note b { color: var(--fg); }
