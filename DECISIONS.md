@@ -515,6 +515,12 @@ weighted 8/4/2/1 plus a baseline dot, never above 9, with a start column for ori
   alongside Deep Lab / Cleanroom / Signal, Apple-minimalist philosophy -
   restraint, whitespace, frosted surfaces, one accent, quiet type. The other
   three get a polish pass from the same inspiration.
+- **Minimal theme** (2026-09-28, Prince: "go with your best"): black, white and
+  grays everywhere EXCEPT the four status colors, which stay standard - a gray
+  line-stop is a safety regression, and statuses are signals, not decoration
+  (same reason copper stays copper). Proven on the gate first: a pure-gray
+  status ramp cannot pass the distinctness rule (9 failures) and its texts
+  would be near-identical anyway.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test
