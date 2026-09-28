@@ -521,7 +521,7 @@
   function render() {
     root.className = 'kit-root' + (mode === 'all' ? ' all' : '');
     if (concept) document.documentElement.setAttribute('data-concept', concept); else document.documentElement.removeAttribute('data-concept');
-    var head = concept ? [el('p', { class: 'cx-concept-note', text: 'Concept preview: ' + concept + ' on top of ' + mode + '. Still a sketch - flip with ?concept=deep-lab | cleanroom | signal.' })] : [];
+    var head = concept ? [el('p', { class: 'cx-concept-note', text: 'Concept preview: ' + concept + ' on top of ' + mode + '. Still a sketch - flip with ?concept=deep-lab | cleanroom | signal | frost.' })] : [];
     if (mode === 'all') {
       TH.setOn(document.documentElement, TH.DEFAULT);
       document.documentElement.removeAttribute('data-concept');
@@ -564,7 +564,8 @@
   var CONCEPTS = [
     { key: 'deep-lab', name: 'Deep Lab (dark glass)', base: 'carbon-g100' },
     { key: 'cleanroom', name: 'Cleanroom (light airy)', base: 'carbon-white' },
-    { key: 'signal', name: 'Signal (dark solid)', base: 'carbon-g100' }
+    { key: 'signal', name: 'Signal (dark solid)', base: 'carbon-g100' },
+    { key: 'frost', name: 'Frost (glass flagship)', base: 'carbon-white' }
   ];
   function conceptOf(key) { return CONCEPTS.filter(function (c) { return c.key === key; })[0] || null; }
 

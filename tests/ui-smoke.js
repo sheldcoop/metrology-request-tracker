@@ -161,7 +161,7 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const live=win.MRT.themes.list;
-  expect('the kit opens on all 5 themes side by side, with their contrast table',live.length===5&&root.querySelectorAll('.theme-scope').length===5+3&&
+  expect('the kit opens on all 5 themes side by side, with their contrast table',live.length===5&&root.querySelectorAll('.theme-scope').length===5+4&&
     root.querySelector('.kit-contrast').querySelectorAll('th').length===2+5);
   const sel=doc.getElementById('kitTheme');sel.value='carbon-g100';sel.dispatch('change');flush();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
@@ -169,7 +169,7 @@ if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.rea
   expect('the kit shows 6 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===24);
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
   sel.value='all';sel.dispatch('change');flush();
-  expect('the kit renders every theme of the app side by side, plus the 3 concepts',root.querySelectorAll('.theme-scope').length===live.length+3);
+  expect('the kit renders every theme of the app side by side, plus the 4 concepts',root.querySelectorAll('.theme-scope').length===live.length+4);
   sel.value='gruvbox-light';sel.dispatch('change');flush();expect('...or one of them',doc.documentElement.getAttribute('data-theme')==='gruvbox-light')})}
 check('status badge',()=>{const b=put(ui.statusBadge('expired','Late'));expect('statusBadge: a chip with the status class (its icon) and the word',b.classList.contains('chip')&&b.classList.contains('expired')&&b.textContent==='Late');
   expect('...an unknown status falls back to neutral',ui.statusBadge('nope','x').classList.contains('neutral'));
