@@ -361,6 +361,41 @@
     ]);
   }
 
+  /** My queue in isolation: the shift strip, counted separators, a late row. */
+  function queueDemo() {
+    function stat(v, label, bad) {
+      return el('div', { class: 'qs' + (bad ? ' is-bad' : '') }, [
+        el('span', { class: 'qs-n num', text: String(v) }), el('span', { class: 'qs-l', text: label })]);
+    }
+    function qrow(no, prio, prioCode, tool, glyphKey, late) {
+      return el('tr', { class: 'q-row prio-' + prio + (late ? ' is-late' : '') }, [
+        el('td', {}, el('input', { type: 'checkbox', 'aria-label': 'Tick ' + no })),
+        el('td', {}, el('span', { class: 'q-prio' }, [el('b', { text: prio === 1 ? 'Line stop' : 'Normal' }), el('span', { class: 'mono muted', text: prioCode })])),
+        el('td', {}, el('span', { class: 'cell-tool' }, [ui.toolGlyph(glyphKey, { size: 24 }),
+          el('a', { class: 'mono', href: '#', text: no })])),
+        el('td', {}, [el('span', { class: 'mono', text: '18178' }), el('span', { class: 'muted', text: '  3252, 3253' })]),
+        el('td', { text: 'Olga Berger' }),
+        el('td', {}, [el('span', { class: 'num', text: '2026-10-02' }), el('br'),
+          el('span', { class: 'q-clock' + (late ? ' is-late' : ''), text: late ? 'late 1 d' : '5 h left' })]),
+        el('td', {}, ui.statusBadge(late ? 'critical' : 'ok', late ? 'Submitted' : 'In progress')),
+        el('td', { text: tool === 'FIB' ? 'Olga Berger' : '-' }),
+        el('td', { class: 'actions' })
+      ]);
+    }
+    return el('div', {}, [
+      labelled('Shift strip', el('div', { class: 'queue-shift' }, [stat(12, 'open'), stat(3, 'late', true), stat(5, 'yours')])),
+      labelled('Ranked table', el('div', { class: 'table-wrap' }, el('table', { class: 'grid queue-table' }, [
+        el('thead', {}, el('tr', {}, ['', 'Priority', 'Request', 'Lot / panels', 'Requested by', 'Needed by', 'Status', 'Assigned', ''].map(function (h) {
+          return el('th', { scope: 'col', text: h }); }))),
+        el('tbody', {}, [
+          el('tr', { class: 'queue-sep' }, el('td', { colspan: '10' }, [el('span', { text: 'Assigned to you  ·  ' }), el('span', { class: 'num', text: '5' })])),
+          qrow('FIB-260925-01', 1, 'P1', 'FIB', 'fib', true),
+          qrow('QVM-260925-02', 3, 'P3', 'QVM', 'qvm', false)
+        ])
+      ])))
+    ]);
+  }
+
   function travellerDemo() {
     var PRIOS = [null, { name: 'Line stop', code: 'P1' }, { name: 'Hot', code: 'P2' }, { name: 'Normal', code: 'P3' }, { name: 'Low', code: 'P4' }];
     var STAMPS = [['Submitted', 'neutral'], ['Accepted', 'accent'], ['In progress', 'ok'], ['On hold', 'warning'], ['Completed', 'ok'], ['Cancelled', 'neutral']];
@@ -528,6 +563,7 @@
       section('Hirata code (ui.copperPanel, ui.hirataFields, ui.hirataGrid)', hirataDemo(), 'Copper stays copper in every theme. The grid blocks any dot that would take a column above 9; the bottom row is the baseline.'),
       section('Traveller card (ui.traveller)', travellerDemo(), 'One drawing, four sizes: full (request page), mini (form preview), card (board), slip (print). Priority stripe per level; Line stop pulses while open.'),
       section('Board wall (stations + nameplates)', boardDemo(), 'The lab wall: ghost station numerals with a state edge and tally, machine nameplates with lamp and open count. Colour only on attention; the late ticket carries the red wash.'),
+      section('Queue shift (strip + ranked table)', queueDemo(), 'Your shift in one glance - open, late (red only when nonzero), yours - then the work in queue order under counted separators. Late rows carry the red wash.'),
       section('Magazine slots', el('div', { class: 'kit-grid' }, [
           labelled('Pick: press and drag over slots; slots 9-10 taken by another request', ui.magazineSlots({ magazine: { code: 'M70345', slots: 24 }, picked: [3, 4],
             labels: { 3: '3252', 4: '3253' }, taken: { 9: 'FIB-260924-01', 10: 'FIB-260924-01' } }).node),
