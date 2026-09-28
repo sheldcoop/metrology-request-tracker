@@ -66,7 +66,7 @@ window.MRT.views.requests = (function () {
 
     function stat(v, label, cls) {
       return ui.el('div', { class: 'qs ' + (cls || '') }, [
-        ui.el('span', { class: 'qs-n num', text: String(v) }), ui.el('span', { class: 'qs-l', text: label })]);
+        ui.el('span', { class: 'qs-n num', text: String(v) }), ' ', ui.el('span', { class: 'qs-l', text: label })]);
     }
 
     function draw() {
