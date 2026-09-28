@@ -714,36 +714,8 @@ window.MRT.views['new'] = (function () {
           st.priority_id = v; st.new_priority = null;
           paintUrgency(); changed();
         } });
-      var newF = ui.field({ label: 'Or a new priority', value: st.new_priority ? st.new_priority.name : '',
-        placeholder: 'Type a name to add one', hint: 'Added to the priorities when you submit.' });
-      function readNewPriority() {
-        var typed = newF.value().trim();
-        var before = st.priority_id, hadReason = !!(prio && prio.needs_reason);
-        if (!typed) {
-          st.new_priority = null;
-          newF.setState(null);
-        } else {
-          var key = D.normalizeName(typed);
-          var hit = (prios || []).filter(function (p) {
-            return D.normalizeName(p.name) === key || String(p.code || '').toUpperCase() === typed.toUpperCase();
-          })[0] || null;
-          if (hit) {
-            st.priority_id = hit.id;
-            st.new_priority = null;
-            newF.setState('valid');
-          } else {
-            st.priority_id = null;
-            st.new_priority = { name: typed };
-            newF.setState('valid', 'New priority. It will be added when you submit.');
-          }
-        }
-        var now = byId('priorities', st.priority_id);
-        if (before !== st.priority_id || hadReason !== !!(now && now.needs_reason)) { paintUrgency(); changed(); return; }
-        seg.set(st.priority_id);   // typing kept focus: only the tabs follow
-        changed();
-      }
-      newF.input.addEventListener('input', readNewPriority);
-      newF.input.addEventListener('change', readNewPriority);
+      // New priorities come from Settings only (2026-09-28): no typing here.
+      // A template or copy may still carry one; submitting keeps working.
       var reasonF = prio && prio.needs_reason ? ui.field({ label: 'Why ' + prio.name + '?', value: st.priority_reason || '',
         placeholder: 'e.g. line 2 stopped, customer audit on Friday', hint: 'Required for ' + prio.name + '; managers see it.' }) : null;
       if (reasonF) reasonF.input.addEventListener('input', function () { st.priority_reason = reasonF.value().trim(); changed(); });
@@ -752,7 +724,7 @@ window.MRT.views['new'] = (function () {
         hint: 'With a date there is a countdown; without one the priority says how urgent it is.' });
       neededF.input.addEventListener('change', function () { st.needed_by = neededF.value() || null; changed(); });
       ui.mount(steps.urgency.body, [
-        ui.el('div', { class: 'ifield-label', text: 'Priority' }), seg.node, newF.node,
+        ui.el('div', { class: 'ifield-label', text: 'Priority' }), seg.node,
         prio && prio.description ? ui.el('p', { class: 'muted', text: prio.description }) : null,
         reasonF ? reasonF.node : null, neededF.node, next('urgency')]);
     }

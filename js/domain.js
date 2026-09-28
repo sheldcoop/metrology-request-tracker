@@ -133,7 +133,7 @@ window.MRT.domain = (function () {
   /**
    * Split a Windows login into a stored windows_id and domain.
    *   'pkhurana'        -> {windows_id: 'pkhurana', domain: null}
-   *   'CORP\\PKhurana'  -> {windows_id: 'pkhurana', domain: 'CORP'}
+   *   'ATS\\PKhurana'  -> {windows_id: 'pkhurana', domain: 'ATS'}
    * windows_id is lowercase with no domain; domain is upper case.
    * Returns null for anything that is not a plausible login name.
    */
@@ -592,7 +592,7 @@ window.MRT.domain = (function () {
         if (!Array.isArray(r.roles) || !r.roles.every(function (x) { return ROLES.indexOf(x) !== -1; })) p.push('Unknown role');
         if (r.windows_id && !isWindowsId(r.windows_id)) p.push('Windows ID: lowercase letters, digits, . - _ only, no domain');
         if (r.windows_id && others(d.users, r.id).some(function (u) { return identityMatches(u, r); })) p.push('Windows ID ' + r.windows_id + ' already belongs to someone else');
-        if (r.domain && !/^[A-Z0-9][A-Z0-9._-]{0,63}$/.test(r.domain)) p.push('Domain: letters and digits only, e.g. CORP');
+        if (r.domain && !/^[A-Z0-9][A-Z0-9._-]{0,63}$/.test(r.domain)) p.push('Domain: letters and digits only, e.g. ATS');
         if (r.email && !isEmail(r.email)) p.push('That email address does not look right');
         if (r.email && dupBy(d.users, r.id, 'email', r.email, function (v) { return String(v).toLowerCase(); })) p.push('Email ' + r.email + ' already belongs to someone else');
         if (r.away_from || r.away_until || r.away_note) p.push.apply(p, validateAway({ from: r.away_from, until: r.away_until, note: r.away_note }));

@@ -104,16 +104,16 @@
     /* =============== domain: identity and names =============== */
     group('Identity, roles and "Is this you?"');
     eq('plain login', D.parseWindowsLogin('PKhurana'), { windows_id: 'pkhurana', domain: null });
-    eq('DOMAIN\\user splits and normalises', D.parseWindowsLogin(' corp\\PKhurana '), { windows_id: 'pkhurana', domain: 'CORP' });
+    eq('DOMAIN\\user splits and normalises', D.parseWindowsLogin(' ats\\PKhurana '), { windows_id: 'pkhurana', domain: 'ATS' });
     eq('empty is no login', D.parseWindowsLogin(''), null);
     eq('spaces are not a login', D.parseWindowsLogin('p khurana'), null);
     eq('odd characters are not a login', D.parseWindowsLogin('pk$'), null);
     ok('dots and dashes are fine', D.isWindowsId('p.khurana-2'));
     ok('upper case is not a stored ID', !D.isWindowsId('PKhurana'));
 
-    ok('same ID, no domains: match', D.identityMatches({ windows_id: 'pk' }, { windows_id: 'pk', domain: 'CORP' }));
-    ok('same ID, same domain: match', D.identityMatches({ windows_id: 'pk', domain: 'CORP' }, { windows_id: 'pk', domain: 'corp' }));
-    ok('same ID, other domain: no match', !D.identityMatches({ windows_id: 'pk', domain: 'LAB' }, { windows_id: 'pk', domain: 'CORP' }));
+    ok('same ID, no domains: match', D.identityMatches({ windows_id: 'pk' }, { windows_id: 'pk', domain: 'ATS' }));
+    ok('same ID, same domain: match', D.identityMatches({ windows_id: 'pk', domain: 'ATS' }, { windows_id: 'pk', domain: 'ats' }));
+    ok('same ID, other domain: no match', !D.identityMatches({ windows_id: 'pk', domain: 'LAB' }, { windows_id: 'pk', domain: 'ATS' }));
     ok('user without an ID matches nobody', !D.identityMatches({ windows_id: null }, { windows_id: null }));
 
     eq('names lose accents, case and extra spaces', D.normalizeName('  Jürgen   MÜLLER '), 'jurgen muller');
@@ -565,9 +565,9 @@
     await refused('a PIN of 3 digits is refused', ST.createFirstAdmin({ name: 'Prince Khurana', windows_id: 'pkhurana', pin: '123' }), 'bad_pin');
     await refused('a bad Windows ID is refused', ST.createFirstAdmin({ name: 'Prince Khurana', windows_id: 'p k', pin: '1234' }), 'bad_identity');
     eq('...and nobody was created', ST.data().users.length, 0);
-    var first = await ST.createFirstAdmin({ name: ' Prince Khurana ', windows_id: 'CORP\\PKhurana', pin: '2468' });
+    var first = await ST.createFirstAdmin({ name: ' Prince Khurana ', windows_id: 'ATS\\PKhurana', pin: '2468' });
     eq('the first person is Admin', first.roles, ['admin']);
-    eq('ID stored lowercase with the domain apart', [first.windows_id, first.domain], ['pkhurana', 'CORP']);
+    eq('ID stored lowercase with the domain apart', [first.windows_id, first.domain], ['pkhurana', 'ATS']);
     eq('...and is signed in', ST.currentUser().id, first.id);
     eq('the file is saved as revision 1', fileOf(a).revision, 1);
     ok('the PIN is stored hashed, never plain', fileOf(a).settings.every(function (s) { return s.value_json.indexOf('2468') === -1; }));

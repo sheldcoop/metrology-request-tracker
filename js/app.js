@@ -308,7 +308,7 @@ window.MRT.app = (function () {
     var ident = identity.detect();
     var name = ui.field({ label: 'Your name', placeholder: 'First and last name' });
     var wid = ui.field({ label: 'Windows user name', value: ident ? (ident.domain ? ident.domain + '\\' : '') + ident.windows_id : '',
-                         hint: ident ? 'From the launcher.' : 'As you log in to Windows, e.g. pkhurana or CORP\\pkhurana.', mono: true });
+                         hint: ident ? 'From the launcher.' : 'As you log in to Windows, e.g. pkhurana or ATS\\pkhurana.', mono: true });
     var email = ui.field({ label: 'Company email (optional)', type: 'email', hint: 'Used later for email and single sign-on.' });
     var pin = ui.field({ label: 'Admin PIN', type: 'password', inputmode: 'numeric', hint: '4 to 12 digits. Asked before every admin change.' });
     var pin2 = ui.field({ label: 'Admin PIN again', type: 'password', inputmode: 'numeric' });

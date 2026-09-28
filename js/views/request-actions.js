@@ -55,7 +55,9 @@ window.MRT.requestActions = (function () {
 
   function buttons(r, o) {
     o = o || {};
-    return available(r).filter(function (a) { return !o.only || o.only.indexOf(a) !== -1; }).map(function (a) {
+    var avail = available(r);
+    var list = o.only ? o.only.filter(function (a) { return avail.indexOf(a) !== -1; }) : avail;
+    return list.map(function (a) {
       return ui.button(label(a), { size: o.size || null, kind: PRIMARY[a] ? 'primary' : null, icon: ICON[a],
         ariaLabel: label(a) + ' ' + (r.request_no || ''), dataset: { reqAction: a },
         onClick: function () { run(a, r).then(function (res) { if (res && o.after) o.after(res); }); } });

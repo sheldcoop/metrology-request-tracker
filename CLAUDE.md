@@ -118,10 +118,10 @@ once. Admin actions need the PIN.
   the launcher's `?who=`; later it reads the company SSO (Windows / Entra ID). Nothing else in the
   app reads `?who=`, `%USERNAME%` or a login token.
 - Each user stores `windows_id` (lowercase, no domain, e.g. `pkhurana`), `domain` (optional, e.g.
-  `CORP`) and `email` (optional, company address), all editable in Settings > Users. `detect()`
+  `ATS`) and `email` (optional, company address), all editable in Settings > Users. `detect()`
   returns `{windows_id, domain, email, source}`; the store matches by `windows_id` (+ domain when
   both are known) today, and by email or `DOMAIN\user` under SSO. `domain.js` normalises IDs
-  (`CORP\PKhurana` -> `pkhurana` + `CORP`).
+  (`ATS\PKhurana` -> `pkhurana` + `ATS`).
 - **Roles stay in our app** (Engineer, Operator, Manager, Admin), never taken from SSO groups.
 
 ## Quality targets (Prince verifies in the browser)
