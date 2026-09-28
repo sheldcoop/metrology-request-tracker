@@ -1237,6 +1237,9 @@
         window.MRT.themes.byKey('hc').key, window.MRT.themes.byKey('catppuccin-mocha').key, window.MRT.themes.byKey('gruvbox-light').key,
         window.MRT.themes.byKey('minimal').key, window.MRT.themes.DEFAULT],
        ['deep-lab', 'cleanroom', 'signal', 'signal', 'deep-lab', 'cleanroom', 'minimal', 'ats']);
+    var themeCss = window.MRT.themes.css();
+    ok('the default theme CSS comes first, so a picked theme paints over it (its :root rule ties [data-theme] on specificity)',
+      themeCss.indexOf(':root,') === 0 && themeCss.indexOf(':root,', 1) === -1);
     await ST.saveEntry('users', { fields: { name: 'Tia Theme', roles: ['engineer'] } });
     ST.setCurrentUser(ST.data().users.filter(function (u) { return u.name === 'Tia Theme'; })[0].id);
     await refused('...only admins', ST.setDefaultTheme(null, 'x'), 'not_admin');

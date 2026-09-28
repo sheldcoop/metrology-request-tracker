@@ -220,9 +220,14 @@ window.MRT.themes = (function () {
     return o;
   }
 
-  /** The CSS of all themes: one [data-theme="key"] block each (the default also on :root). */
+  /** The CSS of all themes: one [data-theme="key"] block each, the default's block
+      FIRST (it also sits on :root, and :root ties every [data-theme] block on
+      specificity - so the default must come first or it would paint over every
+      theme the page picks). The rest follow in gallery order. */
   function css() {
-    return THEMES.map(function (t) {
+    var ordered = THEMES.filter(function (t) { return t.key === DEFAULT; })
+      .concat(THEMES.filter(function (t) { return t.key !== DEFAULT; }));
+    return ordered.map(function (t) {
       var o = tokens(t);
       var sel = (t.key === DEFAULT ? ':root, ' : '') + '[data-theme="' + t.key + '"]';
       return sel + ' {\n  color-scheme: ' + t.scheme + ';\n' + Object.keys(o).map(function (k) { return '  --' + k + ': ' + o[k] + ';'; }).join('\n') + '\n}';
