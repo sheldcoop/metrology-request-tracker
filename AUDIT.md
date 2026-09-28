@@ -1,16 +1,20 @@
-# Holistic gap audit — 2026-09-28 (report only, nothing fixed)
+# Holistic gap audit — 2026-09-28 (statuses updated as the fix-all goal landed fixes)
 
-Gates at audit time: 640/640 unit tests · app-smoke 285/285 · ui-smoke ok ·
+Gates after fix-all: 654/654 unit tests · app-smoke 285/285 · ui-smoke ok ·
 css-check ok · contrast 0 fails · preview-smoke 13. Main == origin/main, tree clean.
 Scale: EXISTS = works + covered · PARTIAL = works but untested, warn-only, or by-design limit ·
 MISSING = absent.
 
 ## TIER 1 — Data safety
-1. Concurrent writes, two users — PARTIAL. Last-writer protection exists
+1. Concurrent writes, two users — EXISTS (fixed 2026-09-29). Two-user order tested
+   (`tests/tests.js` saving group: second saver refused, reload, saves on top). Last-writer protection exists
    (`store.js` save() re-reads; higher revision refuses `revision_conflict`;
    banner+reload in `js/app.js:804`, smoke-tested `tests/app-smoke.js:974-982`).
    No true two-adapter concurrency test in `tests/tests.js`.
-2. Write atomicity — PARTIAL. Single `createWritable().write().close()`
+2. Write atomicity — PARTIAL, mitigated (fixed 2026-09-29). Every save now parks the replaced
+   file as `mrt_data.prev.json`; a torn live file loads the previous copy, flagged
+   (`store.status().recoveredFromPrev`) with a warning toast (`js/app.js` afterLoad).
+   Single `createWritable().write().close()`
    (`js/adapters/storage-folder.js:140-144`); no temp+rename, so a crash/power
    cut mid-write can tear the live file. Mitigation tested: damaged file is
    reported not overwritten (`tests/tests.js:1411`), restore from backup is
@@ -46,8 +50,10 @@ MISSING = absent.
 14. Undo after bulk — PARTIAL. Single-change undo for 10 s (`store.js:1964+`);
     bulk paths (import/replaceData/demo) use `undo:false` + safety copy instead.
     Bulk Accept undoes one request, not the batch.
-15. Form draft auto-save — PARTIAL. Drafts + manual Save draft exist
-    (`js/views/new.js:867,939`); no auto-save on input.
+15. Form draft auto-save — EXISTS (fixed 2026-09-29). Quiet 2 s autosave updates an
+    explicitly created draft only (never conjures one, never touches submitted edits;
+    detached forms stay silent), with an "auto-saved HH:MM" note (`js/views/new.js`).
+    Re-save contract tested (`tests/tests.js`).
 16. Deep linking — EXISTS (`#/request/<id>`, `#/lab/<tool>`, `#/queue/late`;
     smoke-navigated throughout `tests/app-smoke.js`).
 17. Session restoration — EXISTS. Folder handle in IndexedDB
@@ -65,8 +71,9 @@ MISSING = absent.
 22. Tool DOWN routing — PARTIAL. Down/maintenance is warned, never enforced:
     `domain.js:1600` submitWarnings (Q44 shown, never blocking). A request CAN be
     submitted onto a down tool.
-23. Working-time clock — PARTIAL. Vienna via Intl, holidays, lab calendar, all
-    tested; DST edges specifically untested (3 mentions in `tests/tests.js`).
+23. Working-time clock — EXISTS (fixed 2026-09-29). Vienna via Intl, holidays, lab
+    calendar; both clock changes tested (Oct 25-hour and Mar 23-hour Sundays,
+    `tests/tests.js` working-time group).
 24. Help page — EXISTS (`js/views/help.js`, incl. Master Excel guide).
 25. Print slip — EXISTS (`js/views/slip.js`, A6, barcode, print CSS).
 26. Edge AND Safari — PARTIAL by design. Chromium-only (File System Access);
@@ -95,9 +102,8 @@ MISSING = absent.
     39 ms); never measured in a real browser.
 36. Test coverage gaps — PARTIAL (judgment). 640 tests + 285 smoke checks; gaps
     are exactly the PARTIALs/MISSINGs in this file.
-37. Docs current — PARTIAL. DECISIONS.md/OPEN_QUESTIONS.md live (capacity C-1/C-2,
-    M6 items); today's Excel bridge + restyle decisions are NOT yet recorded
-    there (left untouched — report only).
+37. Docs current — EXISTS (fixed 2026-09-29). Excel (E-1/E-2), restyle (R-1) and audit
+    (A-1) recorded in DECISIONS.md; audit decisions parked as OPEN_QUESTIONS 24-29.
 
 ## TIER 5 — Security & compliance
 38. No user text in innerHTML — EXISTS. Rule comments in every ui module;
@@ -111,9 +117,10 @@ MISSING = absent.
 41. Every action checks canAct() — EXISTS. requestAction/submitRequest/cancel/
     comment/tool-status/edit paths assert their domain predicate
     (`js/store.js`, `domain.js:74,851,896`).
-42. Role escalation prevention — PARTIAL. Role writes go through admin-gated
-    store paths (`requireAdmin`, `js/store.js:719,940,952`) + PIN page gate;
-    first-run bootstrap (`createFirstAdmin`) and PIN strength unreviewed.
+42. Role escalation prevention — EXISTS (fixed 2026-09-29). Role writes go through
+    admin-gated store paths (`requireAdmin`) + PIN page gate; self-grant refusal
+    tested (`tests/tests.js`: operator cannot grant herself admin; last admin
+    cannot lose the role). PIN strength still unreviewed.
 43. Role change propagation — PARTIAL. `recheckUser()` repaints from the live
     user object (`js/app.js:432`); cross-PC changes arrive via reload path (18).
     No explicit role-revocation drill.
@@ -126,8 +133,9 @@ MISSING = absent.
 ## TIER 6 — Bigger picture
 46. QE onboarding — PARTIAL. Help covers roles + getting started; no guided
     first-run path.
-47. Disaster recovery plan — PARTIAL. Daily backups + tested restore + Help
-    "Updating the app" file-copy steps; no written RTO/RPO statement.
+47. Disaster recovery plan — PARTIAL (fixed 2026-09-29). Daily backups + tested restore + Help recovery
+    order (previous copy → daily backup → safety copy → downloaded copy); no RTO/RPO
+    statement (needs office IT facts).
 48. Bus factor — PARTIAL (judgment). Clean layers + recorded decisions; single
     author, Prince reviews each step.
 49. Vendor exit — EXISTS. Zero runtime dependencies: vanilla JS, vendored
@@ -135,8 +143,9 @@ MISSING = absent.
     nothing; the repo builds nothing.
 50. Attachments (panel photos) — MISSING. Only a "Later" roadmap mention
     (`js/views/help.js:335`).
-51. Comment edit/delete + audit — MISSING. `addComment` only
-    (`js/store.js:1486`); a typo is permanent.
+51. Comment edit/delete + audit — PARTIAL (fixed 2026-09-29). Author-or-admin edit
+    with edited stamp + audit trail (`store.editComment`, timeline Edit button);
+    deletion deliberately out (timeline stays append-only).
 52. Offline degradation — PARTIAL. `file://` is offline-native; share loss shows
     reconnect UI; no degraded-mode drill.
 53. Accessibility — PARTIAL. `tests/a11y-audit.js` exists, shortcuts + focus
