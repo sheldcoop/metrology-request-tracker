@@ -45,12 +45,48 @@ window.MRT.excelBridge = (function () {
     });
   }
 
-  /** Step 2: Requests + meta. Master-list sheets join in step 4. */
+  /** Step 2: Requests + meta. Step 4: master lists as reference sheets (export
+      only - the valid names for the Requests sheet; lists are curated in
+      Settings, never bulk-rewritten from Excel). */
   function masterSheets() {
     return [
       { name: 'Requests', rows: exporter.requestRows(sortedRequests()) },
+      { name: 'Tools', rows: toolRows() },
+      { name: 'Measurement types', rows: typeRows() },
+      { name: 'Priorities', rows: listRows('priorities', ['Name', 'Code', 'Level'], function (p) { return [p.name, p.code, p.level]; }) },
+      { name: 'Projects', rows: listRows('projects', ['Code', 'Name'], function (p) { return [p.code, p.name || '-']; }) },
+      { name: 'Build-ups', rows: listRows('buildups', ['Code', 'Name'], function (p) { return [p.code, p.name || '-']; }) },
+      { name: 'BKM', rows: bkmRows() },
       { name: 'meta', rows: metaRows() }
     ];
+  }
+
+  function userName(id) { var u = id ? store.byId('users', id) : null; return u ? u.name : '-'; }
+  function toolCode(id) { var t = id ? store.byId('tools', id) : null; return t ? t.code : '-'; }
+
+  function listRows(coll, head, fn) {
+    return [head].concat(store.list(coll, { all: true }).map(fn));
+  }
+
+  function toolRows() {
+    return [['Code', 'Name', 'Status', 'Primary QE', 'Backup QE', 'Destructive']].concat(
+      store.list('tools', { all: true }).map(function (t) {
+        return [t.code, t.name, (window.MRT.domain.TOOL_STATUS_LABEL || {})[t.status] || t.status,
+          userName(t.primary_operator_id), userName(t.backup_operator_id), t.destructive ? 'yes' : 'no'];
+      }));
+  }
+
+  function typeRows() {
+    return [['Tool', 'Name']].concat(store.list('measurement_types', { all: true }).map(function (m) {
+      return [toolCode(m.tool_id), m.name];
+    }));
+  }
+
+  function bkmRows() {
+    return [['Tool', 'Measurement type', 'Name']].concat(store.list('bkms', { all: true }).map(function (b) {
+      var m = b.type_id ? store.byId('measurement_types', b.type_id) : null;
+      return [toolCode(b.tool_id), m ? m.name : '-', b.name];
+    }));
   }
 
   /* --- import (step 3): Excel edits data fields only ------------------ */

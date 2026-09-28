@@ -487,7 +487,7 @@ a.kpi-tile:hover, button.kpi-tile:hover { transform: translateY(-2px); border-co
 .kpi-tile-icon { margin-left: auto; color: var(--kpi-c, var(--accent)); opacity: .9; }
 .kpi-tile-value {
   font-family: var(--font-mono); font-variant-numeric: tabular-nums;
-  font-size: 34px; font-weight: 600; line-height: 1.1; letter-spacing: -.02em;
+  font-size: 34px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em;
   color: var(--kpi-fg, var(--fg));
 }
 .kpi-tile-sub { font-size: 12px; color: var(--fg-muted); }

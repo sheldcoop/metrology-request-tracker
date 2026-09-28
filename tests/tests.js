@@ -1326,8 +1326,15 @@
     group('Excel bridge: export (Requests + meta)');
     var XB = window.MRT.excelBridge;
     var sheets = XB.masterSheets();
-    eq('two sheets: Requests and meta', sheets.map(function (s) { return s.name; }), ['Requests', 'meta']);
-    var reqRows = sheets[0].rows, metaSheet = sheets[1].rows;
+    eq('Requests + six reference sheets + meta', sheets.map(function (s) { return s.name; }),
+      ['Requests', 'Tools', 'Measurement types', 'Priorities', 'Projects', 'Build-ups', 'BKM', 'meta']);
+    var toolsSheet = sheets.filter(function (s) { return s.name === 'Tools'; })[0].rows;
+    var prioSheet = sheets.filter(function (s) { return s.name === 'Priorities'; })[0].rows;
+    eq('reference sheets: headers plus one row per entry, no internal ids',
+      [toolsSheet[0].slice(0, 3), toolsSheet.length - 1, prioSheet[0],
+       toolsSheet.slice(1).concat(prioSheet.slice(1)).every(function (r) { return r.every(function (c) { return !/[a-z]+_[0-9a-z_]+/i.test(String(c)); }); })],
+      [['Code', 'Name', 'Status'], ST.list('tools', { all: true }).length, ['Name', 'Code', 'Level'], true]);
+    var reqRows = sheets[0].rows, metaSheet = sheets.filter(function (s) { return s.name === 'meta'; })[0].rows;
     eq('Requests header starts with the readable Request ID', reqRows[0].slice(0, 3), ['Request ID', 'Status', 'Tool']);
     var liveNos = ST.data().requests.map(function (r) { return r.request_no || '(draft)'; });
     var gotIds = reqRows.slice(1).map(function (r) { return r[0]; });
