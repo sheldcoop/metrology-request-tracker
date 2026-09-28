@@ -422,12 +422,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const lyAll = $$('#main .layer-chip').length;
   setVal(fieldIn(M(), 'Build-up'), bu1.code); await settle();
       check('...no build-up: all layers; BU-01 picked: only 2F / 2B', lyAll === 10 && $$('#main .layer-chip').length === 2);
-  setVal(fieldIn(M(), 'Panel entry'), '3252-3255'); await settle();
+  setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
   check('Hirata IDs: "3252-3255" becomes four chips, and the traveller card shows them', $$('#main .panel-chip').length === 4 &&
         /3252, 3253, 3254, 3255/.test($('#main .traveller-mini').textContent) && /FIB-YYMMDD-NN/.test($('#main .traveller-mini').textContent));
-  setVal(fieldIn(M(), 'Panel entry'), '3252, abc'); await settle();
+  setVal(fieldIn(M(), 'Hirata IDs'), '3252, abc'); await settle();
   check('...a typo is named at the field', /"abc" is not a Hirata ID/.test(mainText()));
-  setVal(fieldIn(M(), 'Panel entry'), '3252-3255'); await settle();
+  setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
   check('each typed Hirata ID shows its copper panel to the right (H-3)', $$('#main .panel-chips .panel-hirata-item').length === 4 &&
         $$('#main .panel-chips .panel-hirata-item')[0].children[1].classList.contains('cu-panel'));
   const lyNames = $$('#main .layer-chip').map(b => b.textContent);
@@ -476,7 +476,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...and its timeline has "created", "submitted", then the comment', MRT.store.requestEvents(req1.id).map(e => e.kind + ':' + (e.to || '')).join() === 'created:draft,status:submitted,comment:');
   buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
   check('"Copy this request" prefills tool, lot, panels and layers - not where the panels are', $$('#main .tool-pick-opt.is-on').length === 1 &&
-        fieldIn(M(), 'Lot').value === '18178' && fieldIn(M(), 'Panel entry').value === '3252, 3253, 3254, 3255' && $$('#main .layer-chip.is-on').length === 1 &&
+        fieldIn(M(), 'Lot').value === '18178' && fieldIn(M(), 'Hirata IDs').value === '3252, 3253, 3254, 3255' && $$('#main .layer-chip.is-on').length === 1 &&
         fieldIn(M(), 'Magazine').value === '' && fieldIn(M(), 'Where the panels are now').value === '');
   check('...and opens at the first step that needs something: where panels are', isOpenStep('where'));
   win.setHash('#/new'); await settle();
@@ -502,8 +502,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...a new one says "New lot", the project and build-up stay open to pick', /New lot/.test(mainText()) && !fieldIn(M(), 'Project').disabled);
       setVal(fieldIn(M(), 'Project'), c4f.code); await settle(); setVal(fieldIn(M(), 'Build-up'), bu1.code); await settle();
       segPick('Hirata IDs / How many', 'count'); await settle();
-      check('..."How many" asks a number, 2 by default', fieldIn(M(), 'Panel entry').value === '2');
-      setVal(fieldIn(M(), 'Panel entry'), '3'); await settle();
+      check('..."How many" asks a number, 2 by default, with no Hirata box', fieldIn(M(), 'Number of panels').value === '2' && !fieldIn(M(), 'Hirata IDs'));
+      setVal(fieldIn(M(), 'Number of panels'), '3'); await settle();
       setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id)[0].name); await settle();
       setVal(fieldIn(M(), 'Where the panels are now'), 'with Anna'); setVal(fieldIn(M(), 'Purpose'), 'Pad size');
   buttonByText(M(), 'Submit').click(); await settle();
