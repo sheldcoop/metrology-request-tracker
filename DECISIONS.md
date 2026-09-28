@@ -570,6 +570,13 @@ never the only signal - the text/label says the same thing.
   "Completed column" switch (remembered). Later (listed): wall-screen mode, column limits (needs capacity), "stuck" age tag.
 - **Quality pass (2026-09-25, code only):** board empty state when there are no tools; empty settings tables framed with an
   icon; high contrast board cells without ruling; panel marks readable in every theme; pause sign forced to text style (no emoji on Windows).
+- **P9 Own themes, built (2026-09-28):** six themes, all ours - AT&S (default,
+  company navy #003366, corporate red #CC0000 only for late/danger), Deep Lab,
+  Cleanroom, Signal (high-contrast successor), Frost (glass flagship,
+  Apple-minimalist), Minimal (monochrome except standard statuses - a gray
+  line-stop would be a safety regression, proven on the gate). The 2026-09-25
+  set is retired; old keys resolve through ALIASES (old `minimal` lands on the
+  new Minimal). One list in `js/themes.js`, CSS keys on scheme/contrast only.
 - **P8 Themes, built (2026-09-25):** Prince found light and high-contrast "not like an expert engineer" and chose
   **"instrument panel"**: light = calm neutral greys, crisp 1px lines, no grid, no glows, flat surfaces, smaller
   radii, one engineering blue (#0B5CAD). High contrast = a technical drawing: white paper, black ink, 2px lines,
