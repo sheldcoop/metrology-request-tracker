@@ -430,6 +430,14 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
   check('each typed Hirata ID shows its copper panel to the right (H-3)', $$('#main .panel-chips .panel-hirata-item').length === 4 &&
         $$('#main .panel-chips .panel-hirata-item')[0].children[1].classList.contains('cu-panel'));
+  setVal(fieldIn(M(), 'Hirata IDs'), '3252, 32525'); await settle();
+  check('...five digits are refused at the field, only the 4-digit ID is kept (H-4)', /"32525" is not 4 digits/.test(mainText()) &&
+        $$('#main .panel-chip').length === 1);
+  setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
+  $$('#main .panel-chips .panel-hirata-item')[0].click(); await settle();
+  check('...tapping a panel shows it large with its ID (H-5)', !!openDialog() && !!openDialog().querySelector('.panel-zoom') &&
+        /3252/.test(openDialog().querySelector('.panel-zoom-id').textContent));
+  buttonByText(openDialog(), 'Close').click(); await settle();
   const lyNames = $$('#main .layer-chip').map(b => b.textContent);
   check('layers come from recognised build-up values (BU-01 -> 2F / 2B)', lyNames.length === 2 && lyNames[0] === '2F' && lyNames[1] === '2B');
   $$('#main .layer-chip').filter(b => b.textContent === '2F')[0].click(); await settle();
