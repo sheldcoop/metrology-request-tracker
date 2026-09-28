@@ -168,7 +168,9 @@
     var bad = ui.field({ label: 'Results root', value: 'results', mono: true }); bad.setState('invalid', 'A share path like \\\\server\\share\\...');
     f.push(labelled('Invalid', bad.node));
     f.push(labelled('Disabled', ui.field({ label: 'Request ID', value: 'FIB-260924-03', mono: true, disabled: true }).node));
-    f.push(labelled('Select', ui.field({ label: 'Measurement type', value: 'b', options: [{ value: 'a', label: 'Via cross-section' }, { value: 'b', label: 'Layer thickness' }] }).node));
+    f.push(labelled('Combo (no native selects)', ui.combo({ label: 'Measurement type', value: 'Layer thickness', mono: true,
+      placeholder: 'Type or pick a measurement type',
+      items: [{ value: 'Via cross-section', label: 'FIB · destructive' }, { value: 'Layer thickness', label: 'FIB · non-destructive' }, { value: 'Via diameter', label: 'QVM · optical' }] }).node));
     f.push(labelled('Date', ui.field({ label: 'Needed by', type: 'date', value: '2026-10-02' }).node));
     f.push(labelled('Multiline', ui.field({ label: 'Purpose', multiline: true, placeholder: 'What should be measured, and why?' }).node));
     var live = ui.field({ label: 'Try me: 0 - 50', type: 'number', unit: 'µm', hint: 'Type a value' });
@@ -227,7 +229,15 @@
       ui.stagger(host);
     }
     paint();
-    return el('div', {}, [host, el('div', { class: 'kit-row', style: { marginTop: '12px' } }, [ui.button('Replay count-up', { icon: 'refresh', size: 'sm', onClick: paint })])]);
+    var strip = el('div', { class: 'cx-kpi-strip' }, [
+      ui.kpiTile({ label: 'Up', value: 4, status: 'ok' }).node,
+      ui.kpiTile({ label: 'Open requests', value: 1043, sub: '+12 this week' }).node,
+      ui.kpiTile({ label: 'Line stop', value: 3, status: 'critical', sub: 'FIB · QVM' }).node,
+      ui.kpiTile({ label: 'Late', value: 2, status: 'expired', sub: 'oldest 3 d' }).node
+    ]);
+    return el('div', {}, [host,
+      labelled('Strip (the metrics widget: one bar, dividers, no boxes)', strip),
+      el('div', { class: 'kit-row', style: { marginTop: '12px' } }, [ui.button('Replay count-up', { icon: 'refresh', size: 'sm', onClick: paint })])]);
   }
 
   /* --- Tool glyphs ---------------------------------------------------- */
@@ -248,7 +258,18 @@
            'PRF stylus glides over the step and draws the profile; HRM probe taps while the surface slides; AOI scan frame sweeps, defect boxes blink. ' +
            'With Reduce motion each shows its last frame. Sizes: 18 (search), 24 (queue), 28 (Settings table), 40 (gate), 56 (Lab status nameplate).'),
       el('div', { class: 'kit-row', style: { marginTop: '8px' } }, ui.GLYPHS.map(function (g) { return ui.toolGlyph(g.key, { size: 96, state: 'live', label: g.label + ', working' }); })),
-      el('div', { class: 'kit-row', style: { marginTop: '8px' } }, [18, 28, 40, 56, 72].map(function (n) { return ui.toolGlyph('fib', { size: n }); }))
+      el('div', { class: 'kit-row', style: { marginTop: '8px' } }, [18, 28, 40, 56, 72].map(function (n) { return ui.toolGlyph('fib', { size: n }); })),
+      labelled('Hero cards (the tool is the anchor: big glyph, lamp, key facts)', el('div', { class: 'cx-tool-hero' }, [
+        { key: 'fib', state: 'live', lamp: 'ok', name: 'FIB', facts: ['Up · Via cross-section', 'Queue 3 · oldest 5 h'] },
+        { key: 'qvm', state: 'idle', lamp: 'ok', name: 'QVM', facts: ['Up · Via diameter', 'Queue 11 · oldest 2 h'] },
+        { key: 'prf', state: 'off', lamp: 'expired', name: 'PRF', facts: ['Down · stylus worn', 'Back Friday, 2 waiting'] }
+      ].map(function (h) {
+        return el('div', { class: 'cx-hero-card' }, [
+          ui.toolGlyph(h.key, { size: 84, state: h.state, label: h.name }),
+          el('div', { class: 'cx-hero-facts' }, [el('div', {}, [ui.led(h.lamp), el('b', { text: ' ' + h.name })])].concat(
+            h.facts.map(function (f) { return el('span', { class: 'muted', text: f }); })))
+        ]);
+      })))
     ]);
   }
 
@@ -492,9 +513,12 @@
 
   var root = document.getElementById('kitRoot');
   var mode = 'dark';
+  var concept = (location.search.match(/[?&]concept=([\w-]+)/) || [])[1] || null;
 
   function render() {
     root.className = 'kit-root' + (mode === 'all' ? ' all' : '');
+    if (concept) root.setAttribute('data-concept', concept); else root.removeAttribute('data-concept');
+    var head = concept ? [el('p', { class: 'cx-concept-note', text: 'Concept preview: ' + concept + ' on top of ' + mode + '. Still a sketch - flip with ?concept=deep-lab | cleanroom | signal.' })] : [];
     if (mode === 'all') {
       TH.setOn(document.documentElement, TH.DEFAULT);
       ui.mount(root, [el('div', { style: { gridColumn: '1 / -1', padding: '20px 20px 0' } }, [
@@ -508,7 +532,7 @@
       })));
     } else {
       TH.setOn(document.documentElement, mode);
-      ui.mount(root, (sectionRange.length ? [] : [section('Contrast (WCAG AA, computed from the live tokens)', contrastTable())]).concat(gallery()));
+      ui.mount(root, head.concat(sectionRange.length ? [] : [section('Contrast (WCAG AA, computed from the live tokens)', contrastTable())]).concat(gallery()));
     }
     ui.stagger(root);
     ui.linkLabels(root);

@@ -44,6 +44,34 @@
   .kit-contrast .fail { color: var(--critical-fg); font-weight: 700; }
   .kit-mini-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
   @media (max-width: 1400px) { .kit-root.all { grid-template-columns: 1fr; } }
+
+  /* --- Redesign foundations (kit only; the winning direction promotes these to css/app.css) --- */
+  /* Data text: tabular monospace everywhere a value is read, never the UI face. */
+  .cx-display { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 650; letter-spacing: -.01em; line-height: 1.1; }
+  /* Combo popup opens with motion (transform/opacity only). */
+  @keyframes cx-pop { from { opacity: 0; transform: translateY(-4px) scale(.99); } to { opacity: 1; transform: none; } }
+  .kit-root .combo-pop:not([hidden]) { animation: cx-pop 140ms var(--ease-out); transform-origin: top center; }
+  [data-motion="reduce"] .kit-root .combo-pop:not([hidden]) { animation: none; }
+  /* Airy tables: taller rows, quiet actions until the row is hovered or focused. */
+  .kit-sec .table-wrap table.grid th { padding: 10px 16px; }
+  .kit-sec .table-wrap table.grid td { padding: 14px 16px; }
+  .kit-sec .row-actions { opacity: .45; transition: opacity var(--t-fast) ease; }
+  .kit-sec tr:hover .row-actions, .kit-sec tr:focus-within .row-actions { opacity: 1; }
+  /* Metrics widget: one strip, dividers between tiles, no tile boxes. */
+  .cx-kpi-strip { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-pop); overflow: hidden; }
+  .cx-kpi-strip .kpi-tile { border: 0; border-radius: 0; box-shadow: none; background: transparent; flex: 1 1 150px; }
+  .cx-kpi-strip .kpi-tile + .kpi-tile { border-left: 1px solid var(--line); }
+  /* Tool hero: the tool card is the anchor - big glyph, lamp, key facts. */
+  .cx-tool-hero { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .cx-hero-card { display: flex; gap: 16px; align-items: center; padding: 18px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-pop); }
+  .cx-hero-facts { display: grid; gap: 2px; font-size: 13px; }
+  .cx-hero-facts b { font-size: 15px; }
+  .cx-concept-note { margin: 0 0 16px; padding: 10px 14px; font-size: 13px; color: var(--fg-muted);
+    background: var(--surface-2); border: 1px dashed var(--line-strong); border-radius: var(--radius); }
 </style>
 </head>
 <body>
