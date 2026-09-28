@@ -7,12 +7,13 @@
  *
  *   1 Tool           the tool (its glyph), measurement type, BKM (Q13, Q51, M2-10)
  *   2 Lot & panels   Project · Part number · Lot · Build-up on one line
- *                    (F-6), then panels (Hirata IDs or count), process step,
- *                    layers, magazine slots / panel location, and where they
- *                    go afterwards (F-1..F-3, M2-8, M2-11, M2-12)
- *   3 Urgency        priority with a reason when it needs one (Q26), an
+ *                    (F-6), then panels (Hirata IDs or count), process step
+ *                    and layers (F-1, F-2, M2-8, M2-11)
+ *   3 Where panels are  magazine slots / panel location, and where they
+ *                    go afterwards (F-3, M2-12)
+ *   4 Urgency        priority with a reason when it needs one (Q26), an
  *                    optional needed-by date (M2-4)
- *   4 Details        purpose (M2-13) and the tool's own fields (Q5)
+ *   5 Details        purpose (M2-13) and the tool's own fields (Q5)
  *   Review           what is still missing, step by step; then Submit
  *
  * Save as a private draft any time (Q33) or submit: warnings first (Q44),
@@ -39,6 +40,7 @@ window.MRT.views['new'] = (function () {
   var STEPS = [
     { key: 'tool', title: 'Tool' },
     { key: 'lot', title: 'Lot and panels' },
+    { key: 'where', title: 'Where panels are' },
     { key: 'urgency', title: 'Priority and date' },
     { key: 'details', title: 'Purpose and tool fields' },
     { key: 'review', title: 'Review and send' }
@@ -260,7 +262,7 @@ window.MRT.views['new'] = (function () {
           if (st.tool_id === t.id || editing) return;
           st.tool_id = t.id; st.type_id = null; st.new_type = null; st.bkm_id = null; st.extra = {}; st.destructive_ok = false;
           st.after = t.destructive ? 'scrap' : (st.after === 'scrap' ? 'back_to_me' : st.after);
-          paintTool(); paintLot(); paintDetails(); changed();
+          paintTool(); paintLot(); paintWhere(); paintDetails(); changed();
         });
         return b;
       }));
@@ -314,7 +316,7 @@ window.MRT.views['new'] = (function () {
       ui.mount(toolTypeHost, [ui.el('div', { class: 'form-grid' }, [typeF.node, bkmF.node]), pathF.node]);
     }
 
-    /* 2. Lot, panels and panel locations -------------------------------- */
+    /* 2. Lot and panels -------------------------------------------------- */
     // Project, part number, lot and build-up stay request-level choices (F-6).
     var layersHost = ui.el('div', { class: 'req-part wz-layers' });
     var lotNote = ui.el('p', { class: 'muted lot-info', 'aria-live': 'polite' });
@@ -444,9 +446,6 @@ window.MRT.views['new'] = (function () {
       var lots = (store.data().lots || []).slice().sort(function (a, b) { return a.created_ts < b.created_ts ? 1 : -1; }).slice(0, 300);
       var partNumbers = store.list('part_numbers', { all: true }).filter(function (p) { return p.active !== false || p.id === st.part_number_id; });
       var stepRows = store.list('process_steps', { all: true }).filter(function (s) { return s.active !== false || s.id === st.process_step_id; });
-      var mags = store.list('magazines', { all: true }).filter(function (m) { return m.active !== false || m.id === st.magazine_id; });
-      var locs = knownLocations();
-      var tool = byId('tools', st.tool_id);
 
       if (!st.project_id && projects.length === 1 && !editing) st.project_id = projects[0].id;
       var projNow = byId('projects', st.project_id);
@@ -470,35 +469,6 @@ window.MRT.views['new'] = (function () {
       var idsF, countF;
       var stepF = ui.field({ label: 'Panels are after', cls: 'panels-step', value: stepNow ? stepNow.name : (st.process_step_other || ''),
         placeholder: 'e.g. after desmear', list: stepRows.map(function (s) { return { value: s.name }; }) });
-
-      var whereNowF = ui.field({ label: 'Where the panels are now', cls: 'half', value: st.panel_location || '',
-        placeholder: 'e.g. with Anna / in MES / top shelf', list: locs.map(function (x) { return { value: x }; }) });
-      var afterChoices = distinctValues(D.AFTER_OPTIONS.filter(function (a) { return a !== 'other'; }).map(function (a) { return D.AFTER_LABEL[a]; }).concat(locs));
-      var afterF = ui.field({ label: 'Where the panels go after measuring', cls: 'half', value: afterTextValue(),
-        placeholder: 'e.g. Back to me / Back to the line / with Anna', list: afterChoices.map(function (x) { return { value: x }; }),
-        disabled: !!(tool && tool.destructive), hint: tool && tool.destructive ? tool.code + ' destroys the panels: always scrap.' : null });
-
-      var magNow = byId('magazines', st.magazine_id);
-      var magF = ui.field({ label: 'Magazine', cls: 'half', value: magNow ? magNow.code : (st.new_magazine ? st.new_magazine.code : ''),
-        placeholder: 'Type or pick magazine', list: mags.map(function (m) { return { value: m.code, label: (m.slots || 24) + ' slots' }; }) });
-      var slotsHost = ui.el('div', { class: 'wz-mag' });
-      var fit = ui.el('p', { class: 'muted', 'aria-live': 'polite' });
-
-      function fitText() {
-        var n = D.panelCountOf(st), k = st.slots.length;
-        fit.textContent = !st.magazine_id ? '' : !k ? 'Click the slots the panels sit in - or press and drag over several.'
-          : n && k !== n ? k + ' slot' + (k === 1 ? '' : 's') + ' picked for ' + n + ' panel' + (n === 1 ? '' : 's') + ' - one panel per slot.' : 'Slot order = panel order.';
-      }
-
-      function paintSlots() {
-        var m = byId('magazines', st.magazine_id);
-        if (!m) { slotPicker = null; ui.mount(slotsHost, null); fitText(); return; }
-        slotPicker = ui.magazineSlots({ magazine: m, picked: st.slots, labels: window.MRT.requestActions.slotLabels(st.panels, st.slots),
-          taken: D.takenSlots(store.data().requests, m.id, draft ? draft.id : null),
-          onChange: function (slots) { st.slots = slots; slotPicker.setLabels(window.MRT.requestActions.slotLabels(st.panels, slots)); fitText(); changed(); } });
-        ui.mount(slotsHost, slotPicker.node);
-        fitText();
-      }
 
       function readProject() {
         var typed = projF.value().trim().toUpperCase();
@@ -608,6 +578,79 @@ window.MRT.views['new'] = (function () {
         changed();
       }
 
+      projF.input.addEventListener('input', readProject);
+      projF.input.addEventListener('change', readProject);
+      pnF.input.addEventListener('input', readPartNumber);
+      pnF.input.addEventListener('change', readPartNumber);
+      lotF.input.addEventListener('input', function () { lotTyped(lotF.value().trim(), lotF); changed(); });
+      lotF.input.addEventListener('change', function () { lotTyped(lotF.value().trim(), lotF); changed(); });
+      buF.input.addEventListener('input', readBuildup);
+      buF.input.addEventListener('change', readBuildup);
+      stepF.input.addEventListener('input', readProcessStep);
+      stepF.input.addEventListener('change', readProcessStep);
+
+      ui.mount(steps.lot.body, [
+        ui.el('div', { class: 'lot-main-row' }, [projF.node, pnF.node, lotF.node, buF.node]),
+        lotNote,
+        ui.el('div', { class: 'panels-row' }, [
+          ui.el('div', { class: 'panels-mode' }, [ui.el('div', { class: 'ifield-label', text: 'Hirata IDs / How many' }), modeSeg.node]),
+          entryHost,
+          stepF.node
+        ]),
+        layersHost,
+        next('lot')
+      ]);
+
+      paintPanelEntry();
+      if (panelMode === 'ids' && st.panels.length) {
+        shownPanels = st.panels.slice();
+        ui.mount(chipsHost, st.panels.map(function (id) {
+          var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
+          return panelChip(id, gone.indexOf(id) !== -1);
+        }));
+      }
+      lotTyped(lotNumber, lotF);
+      readProject();
+      readPartNumber();
+      readBuildup();
+      readProcessStep();
+    }
+
+    /* 3. Where the panels are: magazine slots / note, and where they go after (F-3, M2-12) */
+    function paintWhere() {
+      var mags = store.list('magazines', { all: true }).filter(function (m) { return m.active !== false || m.id === st.magazine_id; });
+      var locs = knownLocations();
+      var tool = byId('tools', st.tool_id);
+
+      var whereNowF = ui.field({ label: 'Where the panels are now', cls: 'half', value: st.panel_location || '',
+        placeholder: 'e.g. with Anna / in MES / top shelf', list: locs.map(function (x) { return { value: x }; }) });
+      var afterChoices = distinctValues(D.AFTER_OPTIONS.filter(function (a) { return a !== 'other'; }).map(function (a) { return D.AFTER_LABEL[a]; }).concat(locs));
+      var afterF = ui.field({ label: 'Where the panels go after measuring', cls: 'half', value: afterTextValue(),
+        placeholder: 'e.g. Back to me / Back to the line / with Anna', list: afterChoices.map(function (x) { return { value: x }; }),
+        disabled: !!(tool && tool.destructive), hint: tool && tool.destructive ? tool.code + ' destroys the panels: always scrap.' : null });
+
+      var magNow = byId('magazines', st.magazine_id);
+      var magF = ui.field({ label: 'Magazine', cls: 'half', value: magNow ? magNow.code : (st.new_magazine ? st.new_magazine.code : ''),
+        placeholder: 'Type or pick magazine', list: mags.map(function (m) { return { value: m.code, label: (m.slots || 24) + ' slots' }; }) });
+      var slotsHost = ui.el('div', { class: 'wz-mag' });
+      var fit = ui.el('p', { class: 'muted', 'aria-live': 'polite' });
+
+      function fitText() {
+        var n = D.panelCountOf(st), k = st.slots.length;
+        fit.textContent = !st.magazine_id ? '' : !k ? 'Click the slots the panels sit in - or press and drag over several.'
+          : n && k !== n ? k + ' slot' + (k === 1 ? '' : 's') + ' picked for ' + n + ' panel' + (n === 1 ? '' : 's') + ' - one panel per slot.' : 'Slot order = panel order.';
+      }
+
+      function paintSlots() {
+        var m = byId('magazines', st.magazine_id);
+        if (!m) { slotPicker = null; ui.mount(slotsHost, null); fitText(); return; }
+        slotPicker = ui.magazineSlots({ magazine: m, picked: st.slots, labels: window.MRT.requestActions.slotLabels(st.panels, st.slots),
+          taken: D.takenSlots(store.data().requests, m.id, draft ? draft.id : null),
+          onChange: function (slots) { st.slots = slots; slotPicker.setLabels(window.MRT.requestActions.slotLabels(st.panels, slots)); fitText(); changed(); } });
+        ui.mount(slotsHost, slotPicker.node);
+        fitText();
+      }
+
       function readAfterField() {
         setAfterFromText(afterF.value(), tool);
         if (tool && tool.destructive) afterF.setState('valid');
@@ -638,16 +681,6 @@ window.MRT.views['new'] = (function () {
         changed();
       }
 
-      projF.input.addEventListener('input', readProject);
-      projF.input.addEventListener('change', readProject);
-      pnF.input.addEventListener('input', readPartNumber);
-      pnF.input.addEventListener('change', readPartNumber);
-      lotF.input.addEventListener('input', function () { lotTyped(lotF.value().trim(), lotF); changed(); });
-      lotF.input.addEventListener('change', function () { lotTyped(lotF.value().trim(), lotF); changed(); });
-      buF.input.addEventListener('input', readBuildup);
-      buF.input.addEventListener('change', readBuildup);
-      stepF.input.addEventListener('input', readProcessStep);
-      stepF.input.addEventListener('change', readProcessStep);
       whereNowF.input.addEventListener('input', function () { st.panel_location = whereNowF.value().trim(); changed(); });
       whereNowF.input.addEventListener('change', function () { st.panel_location = whereNowF.value().trim(); changed(); });
       afterF.input.addEventListener('input', readAfterField);
@@ -659,41 +692,19 @@ window.MRT.views['new'] = (function () {
         onChange: function (v) { st.destructive_ok = v; changed(); } }) : null;
       if (!(tool && tool.destructive)) st.destructive_ok = false;
 
-      ui.mount(steps.lot.body, [
-        ui.el('div', { class: 'lot-main-row' }, [projF.node, pnF.node, lotF.node, buF.node]),
-        lotNote,
-        ui.el('div', { class: 'panels-row' }, [
-          ui.el('div', { class: 'panels-mode' }, [ui.el('div', { class: 'ifield-label', text: 'Hirata IDs / How many' }), modeSeg.node]),
-          entryHost,
-          stepF.node
-        ]),
+      ui.mount(steps.where.body, [
         ui.el('div', { class: 'form-grid' }, [whereNowF.node, afterF.node]),
-        ui.el('div', { class: 'wz-where' }, [
-          ui.el('div', { class: 'req-part' }, [ui.el('div', { class: 'form-grid' }, magF.node), fit, slotsHost]),
-          layersHost
-        ]),
+        ui.el('div', { class: 'req-part' }, [ui.el('div', { class: 'form-grid' }, magF.node), fit, slotsHost]),
         destructiveT ? ui.el('div', { class: 'req-destructive' }, [ui.icon('alert', 16), destructiveT.node]) : null,
-        next('lot')
+        next('where')
       ]);
 
-      paintPanelEntry();
-      if (panelMode === 'ids' && st.panels.length) {
-        shownPanels = st.panels.slice();
-        ui.mount(chipsHost, st.panels.map(function (id) {
-          var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
-          return panelChip(id, gone.indexOf(id) !== -1);
-        }));
-      }
-      lotTyped(lotNumber, lotF);
-      readProject();
-      readPartNumber();
-      readBuildup();
-      readProcessStep();
       readAfterField();
       readMagazine();
     }
 
     /* 4. Priority and date ----------------------------------------------- */
+    // (step 3 is paintWhere above)
     function paintUrgency() {
       var prios = store.list('priorities');
       var prioF = ui.field({ label: 'Priority', value: (byId('priorities', st.priority_id) || {}).name || (st.new_priority ? st.new_priority.name : ''),
@@ -928,7 +939,7 @@ window.MRT.views['new'] = (function () {
       ui.button('Submit', { kind: 'primary', icon: 'check', onClick: submit })
     ]));
 
-    paintTool(); paintLot(); paintUrgency(); paintDetails(); paintPreview();
+    paintTool(); paintLot(); paintWhere(); paintUrgency(); paintDetails(); paintPreview();
     // where to start: the tool when there is none yet, a draft or copy opens at the first step that needs something
     if (src) {
       STEPS.forEach(function (s) { shown[s.key] = true; });
