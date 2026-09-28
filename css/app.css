@@ -1441,7 +1441,9 @@ table.grid tbody tr { scroll-margin: 80px; }
 .tr-clock.is-ok { color: var(--ok-fg); }
 .tr-clock.is-soon { color: var(--warning-fg); }
 .tr-clock.is-late { color: var(--expired-fg); font-weight: 700; }
-.req-actbar { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 16px; }
+.req-actbar { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 16px; padding: 10px 12px; border: 1px solid var(--line-strong);
+  border-radius: var(--radius); background: var(--surface-2); }
+.req-actbar:empty { display: none; }
 .tr-clock.is-paused { color: var(--warning-fg); }
 /* status rail: Submitted - Accepted - In progress - Completed, who and when */
 .status-rail { display: flex; flex-wrap: wrap; gap: 0; list-style: none; margin: 0 0 16px; padding: 0; }
@@ -1450,7 +1452,7 @@ table.grid tbody tr { scroll-margin: 80px; }
 .rail-step.is-done::before, .rail-step.is-now::before { background: var(--accent); }
 .rail-dot { position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); }
 .rail-step.is-done .rail-dot { border-color: var(--accent); background: var(--accent); }
-.rail-step.is-now .rail-dot { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.rail-step.is-now .rail-dot { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); animation: pulse 2.2s ease-in-out infinite; }
 .status-rail.is-filling .rail-step.is-now::before, .status-rail.is-filling .rail-step.is-done:last-of-type::before { transform-origin: left; animation: grow-x 500ms var(--ease-out) both; }
 .status-rail.is-filling .rail-step.is-now .rail-dot { animation: pop 280ms 380ms var(--ease-out) both; }
 .rail-side { flex: 0 1 180px; display: grid; gap: 2px; align-self: end; padding: 4px 10px; border: 1px solid currentColor; border-radius: var(--radius); font-size: 13px; }
@@ -1459,7 +1461,8 @@ table.grid tbody tr { scroll-margin: 80px; }
 .rail-side .muted { color: var(--fg-muted); }
 /* timeline */
 .timeline { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 12px; }
-.tl-item { display: grid; grid-template-columns: 26px 1fr; gap: 10px; }
+.tl-item { position: relative; display: grid; grid-template-columns: 26px 1fr; gap: 10px; }
+.tl-item:not(:last-child)::before { content: ""; position: absolute; left: 12px; top: 30px; bottom: -10px; width: 2px; background: var(--line); }
 .tl-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--fg-muted); }
 .tl-item.is-status .tl-icon { color: var(--accent); border-color: var(--accent); }
 .tl-item.to-cancelled .tl-icon { color: var(--expired-fg); border-color: var(--expired); }
