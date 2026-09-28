@@ -29,31 +29,40 @@
   'use strict';
 
   /*
-   * Drawn on a 48 x 48 grid, stroke 2. Each glyph draws what its tool
-   * really does (2026-09-28): HRM the microscope field, AOI golden
-   * reference vs scan, QVM the shift between two layers, PRF the via cut
-   * in profile, FIB the ion beam milling its trench. Working parts move
-   * only while the tool is working (state 'live'); the still drawing IS
-   * the last frame, so Reduce motion and idle tools show a complete picture:
-   *   tg-focus   HRM lens breathing      tg-trace   HRM caliper drawing in
-   *   tg-scan    AOI scan frame sweeping tg-defect  AOI defect boxes blinking
-   *   tg-stylus  PRF stylus gliding      tg-trace   PRF profile drawn behind it
-   *   tg-reticle QVM crosshair locking   tg-shift   QVM shift arrow nudging
-   *   tg-raster  FIB beam rastering      tg-face    FIB cross-section face growing
-   *   tg-spin    reticle turning (any other tool)
+   * Drawn on a 48 x 48 grid, stroke 2 - living instrument scenes (look over
+   * physics, never noisy: at most 3 moving parts each). Moving parts carry
+   * tx-* classes (see the header); still drawings are complete last frames:
+   *   HRM microscope field: breathing lens, drawing caliper, diameter tick
+   *   AOI golden vs scan: sweeping bar, blinking defects, recording dot
+   *   PRF via cut: gliding stylus, drawing profile
+   *   QVM layer shift: nudging arrow, turning lock ring, pulsing via
+   *   FIB ion trench: glowing raster beam, shimmer, sparks, opening face
+   *   FIB-destructive: the wide deep trench, banks flying, hatched face
+   *   generic: turning reticle (fallback for any other tool)
    *   tg-lamp    warning lamp, shown and blinking only when the tool is Down
+   *   tx-alert   red ring, pulsing on alert (late) or Down; tx-detail fades
+   *              in on hover with the reading (depth, defects, shift, width)
    */
   var LAMP = '<circle class="tg-lamp" cx="42" cy="6" r="3"/>';
   var DRAW = {
-    // HRM: a microscope field - lens ring and reticle over traces, a pad,
-    // and a caliper across the trace width; the lens breathes, the caliper draws in
-    hrm: '<circle class="tg-body tg-focus" cx="24" cy="15" r="11"/>' +
+    // HRM, living: the microscope field - breathing lens, drawing caliper,
+    // pulsing diameter tick. Hover reads the trace width.
+    hrm: '<defs><filter id="txh-hrm" x="0" y="0" width="100%" height="100%">' +
+         '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="n"/>' +
+         '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0.35 0 0 0 0 0.69 0 0 0 0 1 0 0 0 0.5 0"/></filter></defs>' +
+         '<circle class="tg-body tx tx-focus" style="--tx-base:2.4s" cx="24" cy="15" r="11"/>' +
+         '<circle class="tx tx-shimmer" style="--tx-base:3s;fill:var(--accent-soft)" cx="24" cy="15" r="11" filter="url(#txh-hrm)" stroke="none"/>' +
          '<circle class="tg-detail" cx="24" cy="15" r="6.5"/>' +
          '<path class="tg-detail" d="M24 6.5V10M24 20v3.5M15.5 15h3.5M29 15h3.5"/>' +
          '<circle class="tg-sample" cx="10" cy="36" r="4.5"/>' +
-         '<path class="tg-detail" d="M6.8 32.8l6.4 6.4"/>' +
+         '<path class="tg-detail tx tx-blink" style="--tx-base:1.2s" d="M6.8 32.8l6.4 6.4"/>' +
          '<path class="tg-sample" d="M20 33h20M20 40h20"/>' +
-         '<path class="tg-beam tg-trace" d="M40 31v11M38 31h4M38 42h4"/>' + LAMP,
+         '<g class="tx-work">' +
+         '<path class="tg-beam tx tx-draw" style="--tx-base:1.6s" d="M40 31v11M38 31h4M38 42h4"/>' +
+         '</g>' +
+         '<circle class="tx-alert" cx="40" cy="36.5" r="8"/>' +
+         '<g class="tx-detail"><rect class="tg-detail" x="2" y="28" width="15" height="9" rx="1"/>' +
+         '<text class="tx-text" x="4" y="35">0.35</text></g>' + LAMP,
 
     // AOI, living: golden reference vs scanned panel - the scan bar sweeps
     // the scan half, defect boxes blink, the camera recording dot pulses.
@@ -109,16 +118,24 @@
          '<path class="tg-detail" d="M19 28.5h10M19 27v3M29 27v3"/>' +
          '<path class="tg-detail" d="M43 32v10M41.5 32h3M41.5 42h3"/>' + LAMP,
 
-    // QVM: two stacked layers, shifted - pad on one, via on the other, a
-    // shift arrow between them; the crosshair locks the pad, the arrow nudges
-    qvm: '<rect class="tg-body" x="18" y="3" width="12" height="9" rx="2"/>' +
+    // QVM, living: two shifted layers - pad below, via above, the shift
+    // arrow nudging between them, the lock ring turning, the via pulsing.
+    // Hover reads the shift; the red ring only pulses on alert/Down.
+    qvm: '<defs><filter id="txh-qvm" x="0" y="0" width="100%" height="100%">' +
+         '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="n"/>' +
+         '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0.35 0 0 0 0 0.69 0 0 0 0 1 0 0 0 0.5 0"/></filter></defs>' +
+         '<rect class="tg-body" x="18" y="3" width="12" height="9" rx="2"/>' +
+         '<rect class="tx tx-shimmer" style="--tx-base:2.8s" x="19" y="4" width="10" height="7" filter="url(#txh-qvm)"/>' +
          '<path class="tg-beam" d="M21 12l-4 12M27 12l4 12" stroke-dasharray="3 3"/>' +
          '<rect class="tg-sample" x="6" y="34" width="26" height="7"/>' +
          '<rect class="tg-sample" x="12" y="27" width="26" height="7"/>' +
          '<circle class="tg-sample" cx="15" cy="37.5" r="3"/>' +
-         '<circle class="tg-dot" cx="23" cy="30.5" r="1.8"/>' +
-         '<path class="tg-beam tg-shift" d="M15 37.5l7-6M19.5 31.5h2.5M22 34v-2.5"/>' +
-         '<circle class="tg-beam tg-reticle" cx="15" cy="37.5" r="6"/>' + LAMP,
+         '<circle class="tg-dot tx tx-blink" style="--tx-base:.8s" cx="23" cy="30.5" r="1.8"/>' +
+         '<path class="tg-beam tg-shift tx tx-nudge" style="--tx-base:1.8s" d="M15 37.5l7-6M19.5 31.5h2.5M22 34v-2.5"/>' +
+         '<g class="tx tx-turn" style="--tx-base:6s"><path class="tg-beam tg-reticle" d="M15 28.5v3M15 43.5v3M6 37.5h3M21 37.5h3"/></g>' +
+         '<circle class="tx-alert" cx="15" cy="37.5" r="9"/>' +
+         '<g class="tx-detail"><rect class="tg-detail" x="25" y="33" width="15" height="9" rx="1"/>' +
+         '<text class="tx-text" x="27" y="40">0.8</text></g>' + LAMP,
 
     // FIB, living: the ion column over its trench - glowing raster beam,
     // holographic shimmer on the column, sparks, the milled face opening.

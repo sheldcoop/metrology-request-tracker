@@ -857,8 +857,11 @@ kbd {
 @keyframes tx-shimmer { from { opacity: .3; } to { opacity: .75; } }
 .tool-glyph .tg-focus { transform-box: fill-box; transform-origin: center; }
 .tool-glyph .tg-shift { fill: none; stroke: var(--accent); transform-box: fill-box; transform-origin: center; }
-.tool-glyph.is-live .tg-focus { animation: tg-focus 2.4s ease-in-out infinite alternate; }
-.tool-glyph.is-live .tg-shift { animation: tg-nudge 1.8s ease-in-out infinite; }
+.tool-glyph .tx-focus { animation: tg-focus var(--tx-d) ease-in-out infinite alternate; }
+.tool-glyph .tx-nudge { animation: tg-nudge var(--tx-d) ease-in-out infinite; }
+.tool-glyph .tx-draw { stroke-dasharray: 48; animation: tg-draw var(--tx-d) linear infinite; }
+.tool-glyph .tx-turn { transform-box: fill-box; transform-origin: center; animation: tx-turn var(--tx-d) linear infinite; }
+@keyframes tx-turn { to { transform: rotate(360deg); } }
 .tool-glyph.is-off .tg-shift { opacity: 0; }
 .tool-glyph.is-maint .tg-shift { stroke: var(--warning); }
 @keyframes tg-focus { from { transform: scale(.96); } to { transform: scale(1.04); } }
