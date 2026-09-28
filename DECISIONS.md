@@ -16,6 +16,14 @@ record the change here with the date.
 ## People & roles
 - **Q17 / Q52** Roles are ticks, several per person: Engineer, Operator, Manager, Admin.
   Admin actions also need the PIN.
+- **Changed 2026-09-28, Prince (RBAC):** new role **Analyst** (sees all Completed and
+  Analyzed requests across tools; the only one who marks Analyzed). Roles are now Engineer,
+  Quality engineer, Analyst, Operator (read-only for now), Manager, Admin. Reason: closing
+  a request is an analysis sign-off, not the requester's "Results OK".
+- **Changed 2026-09-28, Prince (RBAC):** Q32 is superseded - engineers see only their own
+  requests; quality engineers see their tools' queue; analysts see Completed/Analyzed;
+  operators see all but read-only; admins see all. Reason: request data stays with its
+  people. A future Section Manager role that sees all is parked in OPEN_QUESTIONS.
 - **Q18** Identity via launcher `Metrology Tool.cmd`: passes the Windows `%USERNAME%`; admin maps
   Windows IDs to users; unknown ID → "Who are you?" once. (Supersedes "pick name" from Q1.)
 - **Q2** Each tool has a primary operator and a backup operator (Settings). New requests land in
@@ -66,6 +74,12 @@ record the change here with the date.
   operator may change it.
 - **Q34** After Completed the engineer may mark "Results OK" or "Reopen" (reason → back to the
   operator); auto-closes after 7 days; reopen rate in analytics.
+- **Changed 2026-09-28, Prince (RBAC):** Q9 and Q34 are superseded. Status is now Draft →
+  Submitted → Accepted → Panels Received → In progress → Completed → Analyzed (terminal).
+  Panels Received is a real QE handover state (was event-only). Completed closes only via
+  Analyzed by an Analyst; Results OK / auto-close are gone. Q14 is kept: the engineer may
+  still edit any time with a reason. Reason: one accountable sign-off per request. Live
+  data migrates with backup first and a dry run on a copy.
 - **Q35** Requester can cancel any time (reason); operator can cancel with a reason (engineer
   notified). Cancelled stays visible, never deleted.
 - **Q36** Working-time clock: admin sets lab days/hours + holidays (Europe/Vienna). Turnaround and
