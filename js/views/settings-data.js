@@ -18,6 +18,7 @@
 
   function render(body) {
     body.appendChild(ui.el('div', { class: 'settings-cols' }, [filePanel(), pinPanel()]));
+    body.appendChild(importPanel());
     body.appendChild(backupsPanel());
     body.appendChild(samplePanel());
     body.appendChild(testDataPanel());
@@ -153,6 +154,70 @@
       ui.el('p', { class: 'muted', text: 'The first change of each day copies the data file into ' + cfg.backup_dir + '\\ first. ' +
         'The last ' + cfg.backup_keep + ' days are kept, and every copy made before "Fill with demo data" or "Start empty".' }),
       host
+    ]);
+  }
+
+  /**
+   * Master Excel import: pick a file, see every row green or red, import
+   * only when all rows are green. The store saves all-or-nothing (a safety
+   * copy first, the file's revision must match the live one).
+   */
+  function importPanel() {
+    var k = K(), XB = window.MRT.excelBridge;
+    var picker = ui.el('input', { type: 'file', accept: '.xlsx', 'aria-label': 'Master Excel file to import' });
+    var reason = ui.field({ label: 'Reason (goes into the audit log)', placeholder: 'e.g. weekly priority review' });
+    var preview = ui.el('div', {});
+    var v = null, fileName = '';
+    function paint() {
+      if (!v) { ui.mount(preview, ui.el('p', { class: 'muted', text: 'No file picked yet.' })); return; }
+      if (v.fatal) { ui.mount(preview, ui.el('p', { class: 'form-error', text: v.fatal })); return; }
+      var bad = v.rows.filter(function (r) { return r.errors.length; });
+      var items = v.rows.filter(function (r) { return r.item; });
+      var ready = !v.stale && v.rows.length > 0 && !bad.length && items.length > 0;
+      var lines = [];
+      if (v.stale) lines.push(ui.el('p', { class: 'form-error',
+        text: 'This file is older than the live data (file revision ' + v.metaRevision + '). Export a fresh file and redo the edits there - an old file is never merged.' }));
+      lines.push(ui.el('p', { class: 'muted',
+        text: fileName + ': ' + v.rows.length + ' rows, ' + items.length + ' with changes' + (bad.length ? ', ' + bad.length + ' with problems' : '') + '.' }));
+      lines.push(ui.el('table', { class: 'grid' }, [
+        ui.el('thead', {}, ui.el('tr', {}, ['Request', 'Changes', 'Problems'].map(function (h) { return ui.el('th', { text: h }); }))),
+        ui.el('tbody', {}, v.rows.map(function (r) {
+          return ui.el('tr', { class: r.errors.length ? 'is-bad' : (r.changes.length ? 'is-change' : null) }, [
+            ui.el('td', { class: 'mono', text: r.key }),
+            ui.el('td', { text: r.changes.map(function (c) { return c.label + ': ' + c.from + ' → ' + c.to; }).join('; ') || '-' }),
+            ui.el('td', { text: r.errors.join(' ') || 'OK' })
+          ]);
+        }))
+      ]));
+      lines.push(ui.el('div', { class: 'form-actions' }, ui.button('Import ' + items.length + ' change' + (items.length === 1 ? '' : 's'), {
+        kind: 'primary', icon: 'upload',
+        title: ready ? 'Save all changes at once (a safety copy is kept first)' : 'Fix every red row first (all rows must be green)',
+        disabled: !ready,
+        onClick: function () {
+          var why = reason.value();
+          if (!why.trim()) { ui.toastError('Give a reason first - it goes into the audit log.'); reason.input.focus(); return; }
+          store.importRequests(items.map(function (r) { return r.item; }), v.metaRevision, why).then(function (r) {
+            ui.toast({ kind: 'success', timeout_ms: 9000, message: 'Imported ' + r.n + ' change' + (r.n === 1 ? '' : 's') + '. The previous data is kept in ' + r.safety_copy + '.' });
+            v = null; fileName = ''; picker.value = ''; paint();
+            if (window.MRT.app.recheckUser()) window.MRT.app.route();
+          }).catch(function (e) { ui.toastError('Could not import: ' + e.message, e); });
+        }
+      })));
+      ui.mount(preview, lines);
+    }
+    picker.addEventListener('change', function () {
+      var f = picker.files && picker.files[0];
+      if (!f) return;
+      fileName = f.name;
+      ui.mount(preview, ui.el('p', { class: 'muted', text: 'Reading ' + f.name + '…' }));
+      XB.readFile(f).then(function (sheets) { v = XB.validateSheets(sheets, store.data()); paint(); })
+        .catch(function (e) { v = { fatal: e.message, rows: [] }; paint(); });
+    });
+    paint();
+    return k.panel('Master Excel import', 'upload', [], [
+      ui.el('p', { class: 'muted', text: 'Upload a Master Excel file exported from this app. Only Priority, Assigned to, Needed by, Expected done and Purpose change; status moves and new requests stay in the app. ' +
+        'Nothing saves until every row is green - one red row stops the whole file, and the live file is copied to ' + cfg.backup_dir + '/ first.' }),
+      picker, reason.node, preview
     ]);
   }
 

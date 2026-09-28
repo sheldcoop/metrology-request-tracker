@@ -48,7 +48,7 @@ const REQUIRED = {
   analytics: ['.an-kpis', '.an-grid', '.kpi-tile.is-link', '.link-btn'],
   hirata: ['.cu-panel', '.cu-hole', '.hf-item', '.hg-cell.is-locked', 'print-color-adjust: exact', '.panel-zoom', 'button.panel-hirata-item'],
   help: ['.help-layout', '.help-steps li::marker', '.help-roles', '@media print'],
-  settings: ['.sample-tag', '.row-actions', 'tr.is-off', '.setup-note', '.lock-panel', '.settings-cols'],
+  settings: ['.sample-tag', '.row-actions', 'tr.is-off', '.setup-note', '.lock-panel', '.settings-cols', 'tr.is-bad', 'tr.is-change'],
   motion: ['[data-motion="reduce"]', '.offscreen']
 };
 for (const [comp, sels] of Object.entries(REQUIRED)) {
