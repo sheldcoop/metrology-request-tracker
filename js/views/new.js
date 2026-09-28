@@ -875,6 +875,27 @@ window.MRT.views['new'] = (function () {
       });
     }
 
+    /* Draft auto-save: 2 s after the last keystroke, quiet (no toast, no
+       navigation). Only for new drafts, never for editing a submitted request.
+       A detached form (already navigated away) stays silent. */
+    var autoT = null;
+    var autoNote = ui.el('span', { class: 'muted', 'aria-live': 'polite' });
+    function queueAutosave() {
+      if (editing) return;
+      clearTimeout(autoT);
+      autoT = setTimeout(autoSaveDraft, 2000);
+    }
+    function autoSaveDraft() {
+      if (editing || !document.contains(formCol)) return;
+      var f = fields();
+      if (!f.tool_id) return;
+      store.saveDraft({ id: draft ? draft.id : undefined, version: draft ? draft.version : undefined, fields: f }).then(function (r) {
+        if (!document.contains(formCol)) return;
+        draft = r;
+        autoNote.textContent = 'Draft auto-saved ' + window.MRT.exporter.stamp(Date.now()).slice(11) + '.';
+      }).catch(function () { /* stay silent: manual Save draft shows any problem */ });
+    }
+
     function submit() {
       var f = fields();
       var pr = Object.assign({ id: draft ? draft.id : null }, f);
@@ -930,6 +951,7 @@ window.MRT.views['new'] = (function () {
     ]) : ui.el('div', { class: 'req-actions' }, [
       draft ? ui.button('Delete draft', { kind: 'ghost', icon: 'trash', onClick: deleteDraft }) : null,
       ui.el('span', { class: 'spacer' }),
+      autoNote,
       ui.button('Save as template', { kind: 'ghost', icon: 'requests', title: 'Keep everything filled in for next time',
         onClick: function () {
           if (!st.tool_id) return ui.toast({ kind: 'warning', message: 'Pick the tool first - a template needs one.' });
@@ -941,6 +963,8 @@ window.MRT.views['new'] = (function () {
     ]));
 
     paintTool(); paintLot(); paintWhere(); paintUrgency(); paintDetails(); paintPreview();
+    formCol.addEventListener('input', queueAutosave);
+    formCol.addEventListener('change', queueAutosave);
     // where to start: the tool when there is none yet, a draft or copy opens at the first step that needs something
     if (src) {
       STEPS.forEach(function (s) { shown[s.key] = true; });

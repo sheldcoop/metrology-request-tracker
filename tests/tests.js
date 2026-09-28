@@ -808,6 +808,8 @@
        ['draft', null, 'pads', adminL, ['created']]);
     await refused('a draft without a tool is refused', ST.saveDraft({ fields: { purpose: 'x' } }), 'invalid');
     await refused('...saving it unchanged is "nothing changed"', ST.saveDraft({ id: d1.id, fields: { purpose: 'pads' } }), 'no_change');
+    var d1b = await ST.saveDraft({ id: d1.id, version: d1.version, fields: { tool_id: qvm.id, purpose: 'pads v2' } });
+    eq('...re-saving with the fresh version works (the autosave contract)', [d1b.purpose, ST.byId('requests', d1.id).purpose], ['pads v2', 'pads v2']);
     await refused('submit checks everything', ST.submitRequest({ id: d1.id, fields: {} }), 'invalid');
     eq('...and changes nothing', [ST.byId('requests', d1.id).status, ST.byId('requests', d1.id).request_no], ['draft', null]);
     var s1 = await ST.submitRequest({ id: d1.id, fields: { project_id: prjL.id, type_id: qType.id, lot_id: lx.id, panels: [3, 1, 3], priority_id: normal.id, panel_location: 'Rack B2', after: 'back_to_me', bkm_path: 'Z:\\bkm\\my.pptx' } });
