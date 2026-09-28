@@ -94,6 +94,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('start page is Lab status', win.location.hash === '#/lab', win.location.hash);
   check('five tool plates', $$('.tool-plate').length === 5, $$('.tool-plate').length);
   check('each plate draws its tool glyph', $$('.tool-plate').filter(p => p.querySelector('svg.tool-glyph')).length === 5);
+  check('the destructive FIB plate draws the cut variant at base rate', (function () { var g = $$('.tool-plate').filter(p => /FIB/.test(p.textContent))[0].querySelector('svg.tool-glyph'); return g.dataset.glyph === 'fib-destructive' && g.style['--tx-rate'] === 1; })());
   check('an admin may set every status', doc.getElementById('main').querySelectorAll('button').filter(b => /Set status/.test(b.textContent)).length === 5);
   check('sample entries are flagged', $$('.tool-plate-sample').length === 5);
 

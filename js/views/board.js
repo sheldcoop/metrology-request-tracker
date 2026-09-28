@@ -75,7 +75,8 @@ window.MRT.views.board = (function () {
       var open = mine.filter(function (r) { return D.isOpen(r); }).length;
       var running = mine.some(function (r) { return r.status === 'in_progress'; });
       var lane = ui.el('div', { class: 'board-lane is-' + t.status + (mine.length ? '' : ' is-empty') }, [
-        ui.toolGlyph(t.glyph, { size: mine.length ? 32 : 20, state: t.status === 'up' ? (running ? 'live' : 'idle') : t.status === 'down' ? 'off' : 'maint' }),
+        ui.toolGlyph(t.glyph, { size: mine.length ? 32 : 20, state: t.status === 'up' ? (running ? 'live' : 'idle') : t.status === 'down' ? 'off' : 'maint',
+          rate: 1 + Math.min(open, 8) / 4, alert: mine.some(function (r) { return D.isOpen(r) && D.isLate(r, now, cal); }), destructive: t.destructive }),
         ui.el('div', { class: 'board-lane-name' }, [ui.el('b', { class: 'mono', text: t.code }),
           ui.el('span', { class: 'board-lamp is-' + t.status, title: D.TOOL_STATUS_LABEL[t.status] }, [ui.el('i'), ui.el('span', { text: D.TOOL_STATUS_LABEL[t.status] })])]),
         mine.length ? ui.el('span', { class: 'muted board-lane-open', text: open + ' open' }) : null

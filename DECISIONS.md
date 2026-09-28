@@ -511,6 +511,13 @@ weighted 8/4/2/1 plus a baseline dot, never above 9, with a start column for ori
   shift, PRF via cut, FIB ion cut - each with a live behaviour tied to real
   request state, frozen frames under Reduce motion. No new libraries: hand-built
   SVG + CSS keeps the offline `file://` rule.
+- **Living icons v2, built (2026-09-28):** look over physics, max 3 moving
+  parts per icon, native SVG filters only (glow + holographic shimmer, no SMIL -
+  shimmer is a CSS opacity pulse). `toolGlyph` takes rate (queue speed),
+  alert (late pulse) and destructive (FIB shows the cut variant, automatic).
+  Lab plates and board lanes feed all three from real queue data. Node budget
+  under 100 per icon; hover fades in the reading; off-screen icons pause via
+  the existing observer; Reduce motion shows finished frames.
 - **Fourth theme** (2026-09-28, Prince; **to build**): one glass flagship theme
   alongside Deep Lab / Cleanroom / Signal, Apple-minimalist philosophy -
   restraint, whitespace, frosted surfaces, one accent, quiet type. The other
