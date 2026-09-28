@@ -52,15 +52,15 @@ window.MRT.domain = (function () {
    * ------------------------------------------------------------------ */
 
   /*
-   * engineer  requests measurements
+   * engineer  requests measurements (sees own requests only, 2026-09-28)
    * quality   Quality engineer: runs the measurements today (M1-12)
-   * operator  kept for later - no rights of its own until the rights per
-   *           role are designed (OPEN_QUESTIONS #14)
+   * analyst   marks Completed measurements Analyzed, closing them (2026-09-28)
+   * operator  read-only for now (2026-09-28, was OPEN_QUESTIONS #14)
    * manager   manager analytics (Q52)
-   * admin     Settings (+ PIN)
+   * admin     Settings (+ PIN), sees all
    */
-  var ROLES = ['engineer', 'quality', 'operator', 'manager', 'admin'];
-  var ROLE_LABEL = { engineer: 'Engineer', quality: 'Quality engineer', operator: 'Operator', manager: 'Manager', admin: 'Admin' };
+  var ROLES = ['engineer', 'quality', 'analyst', 'operator', 'manager', 'admin'];
+  var ROLE_LABEL = { engineer: 'Engineer', quality: 'Quality engineer', analyst: 'Analyst', operator: 'Operator', manager: 'Manager', admin: 'Admin' };
 
   function hasRole(user, role) {
     return !!(user && user.active !== false && Array.isArray(user.roles) && user.roles.indexOf(role) !== -1);
@@ -72,6 +72,9 @@ window.MRT.domain = (function () {
    * (OPEN_QUESTIONS #14). Every "measurer" right asks this.
    */
   function canMeasure(user) { return hasRole(user, 'quality'); }
+
+  /** Who closes measurements - analysts (or admins). The ONE place that decides it. */
+  function canAnalyze(user) { return hasRole(user, 'analyst') || hasRole(user, 'admin'); }
 
   /*
    * Away (DECISIONS M1-14): vacation, sick leave - one period per person,
@@ -801,10 +804,11 @@ window.MRT.domain = (function () {
    * Requests (Q4-Q14, Q29, Q33, Q44, DECISIONS M2-4..M2-17)
    * ------------------------------------------------------------------ */
 
-  /** Workflow (Q9). Draft is private; the rest are shared. */
-  var REQUEST_STATUSES = ['draft', 'submitted', 'accepted', 'in_progress', 'completed', 'clarification', 'on_hold', 'cancelled'];
+  /** Workflow (Q9, changed 2026-09-28: Panels Received + Analyzed). Draft is private. */
+  var REQUEST_STATUSES = ['draft', 'submitted', 'accepted', 'panels_received', 'in_progress', 'completed', 'analyzed', 'clarification', 'on_hold', 'cancelled'];
   var REQUEST_STATUS_LABEL = {
-    draft: 'Draft', submitted: 'Submitted', accepted: 'Accepted', in_progress: 'In progress', completed: 'Completed',
+    draft: 'Draft', submitted: 'Submitted', accepted: 'Accepted', panels_received: 'Panels received', in_progress: 'In progress',
+    completed: 'Completed', analyzed: 'Analyzed',
     clarification: 'Needs clarification', on_hold: 'On hold', cancelled: 'Cancelled'
   };
   /** Where the panels go after measuring (M2-12). */
@@ -815,11 +819,24 @@ window.MRT.domain = (function () {
   /** Engineers request measurements (Q17); admins too. */
   function canRequest(user) { return hasRole(user, 'engineer') || hasRole(user, 'admin'); }
 
-  /** A draft is its author's alone (Q33). */
-  function canSeeRequest(user, r) { return !!user && !!r && (r.status !== 'draft' || r.requester_id === user.id); }
+  /**
+   * Who sees a request (Q32 superseded 2026-09-28): drafts stay the author's
+   * alone; engineers see their own; quality engineers their tools'; analysts
+   * all Completed/Analyzed across tools; operators and managers read all
+   * (operators read-only); admins all.
+   */
+  function canSeeRequest(user, r, tool) {
+    if (!user || !r) return false;
+    if (r.status === 'draft') return r.requester_id === user.id;
+    if (hasRole(user, 'admin') || hasRole(user, 'manager') || hasRole(user, 'operator')) return true;
+    if (r.requester_id === user.id) return true;
+    if (hasRole(user, 'analyst') && (r.status === 'completed' || r.status === 'analyzed')) return true;
+    if (tool && (isToolMeasurer(user, tool) || r.assigned_to === user.id)) return true;
+    return false;
+  }
   function canEditDraft(user, r) { return !!user && !!r && r.status === 'draft' && r.requester_id === user.id; }
 
-  var OPEN_STATUSES = ['submitted', 'accepted', 'in_progress', 'clarification', 'on_hold'];
+  var OPEN_STATUSES = ['submitted', 'accepted', 'panels_received', 'in_progress', 'clarification', 'on_hold'];
   function isOpen(r) { return !!r && OPEN_STATUSES.indexOf(r.status) !== -1; }
 
   /** Everyone who can see a submitted request may comment (Q11). */
@@ -837,31 +854,30 @@ window.MRT.domain = (function () {
   }
 
   /*
-   * Workflow actions (Q9, Q43, DECISIONS M3-1..M3-9) - the ONE table of who
-   * may move a request where. "measurer": the tool's primary/backup quality
-   * engineer or an admin. "requester": the one who asked, or an admin.
+   * Workflow actions (Q9 changed 2026-09-28, Q43, DECISIONS M3-1..M3-9) - the
+   * ONE table of who may move a request where. "measurer": the tool's
+   * primary/backup quality engineer or an admin. "requester": the one who
+   * asked, or an admin. "analyst": an analyst or an admin.
    * back: true = returns to the status it had before (return_to).
    */
   var TRANSITIONS = {
-    accept:   { label: 'Accept',              from: ['submitted'],                             to: 'accepted',      who: 'measurer' },
-    start:    { label: 'Start',               from: ['submitted', 'accepted'],                 to: 'in_progress',   who: 'measurer' },
-    hold:     { label: 'Hold',                from: ['submitted', 'accepted', 'in_progress'],  to: 'on_hold',       who: 'measurer' },
-    resume:   { label: 'Resume',              from: ['on_hold'],                               back: true,          who: 'measurer' },
-    clarify:  { label: 'Needs clarification', from: ['submitted', 'accepted', 'in_progress'],  to: 'clarification', who: 'measurer' },
-    answer:   { label: 'Answered',            from: ['clarification'],                         back: true,          who: 'requester' },
-    complete: { label: 'Complete',            from: ['in_progress'],                           to: 'completed',     who: 'measurer' },
-    reopen:   { label: 'Reopen',              from: ['completed'],                             to: 'accepted',      who: 'requester' },
-    results_ok: { label: 'Results OK',        from: ['completed'],                             to: 'completed',     who: 'requester' }
+    accept:   { label: 'Accept',              from: ['submitted'],                                            to: 'accepted',        who: 'measurer' },
+    receive:  { label: 'Panels received',     from: ['accepted'],                                             to: 'panels_received', who: 'measurer' },
+    start:    { label: 'Start',               from: ['panels_received'],                                      to: 'in_progress',     who: 'measurer' },
+    hold:     { label: 'Hold',                from: ['submitted', 'accepted', 'panels_received', 'in_progress'], to: 'on_hold',       who: 'measurer' },
+    resume:   { label: 'Resume',              from: ['on_hold'],                                              back: true,            who: 'measurer' },
+    clarify:  { label: 'Needs clarification', from: ['submitted', 'accepted', 'panels_received', 'in_progress'], to: 'clarification', who: 'measurer' },
+    answer:   { label: 'Answered',            from: ['clarification'],                                        back: true,            who: 'requester' },
+    complete: { label: 'Complete',            from: ['in_progress'],                                          to: 'completed',       who: 'measurer' },
+    analyze:  { label: 'Mark analyzed',       from: ['completed'],                                            to: 'analyzed',        who: 'analyst' },
+    reopen:   { label: 'Reopen',              from: ['completed'],                                            to: 'accepted',        who: 'requester' }
   };
   var PANEL_OUTCOMES = ['returned', 'scrapped', 'other'];
   var PANEL_OUTCOME_LABEL = { returned: 'Returned to the requester / line', scrapped: 'Scrapped', other: 'Other' };
-  var CLOSE_AFTER_DAYS = 7;
 
-  /** Completed and either marked Results OK or completed 7+ days ago (Q34). */
+  /** Analyzed requests are closed (Q34 superseded 2026-09-28: no Results OK, no auto-close). */
   function isClosed(r, nowTs) {
-    if (!r || r.status !== 'completed') return false;
-    if (r.results_ok_ts) return true;
-    return !!r.completed_ts && nowTs - Date.parse(r.completed_ts) >= CLOSE_AFTER_DAYS * 86400000;
+    return !!r && r.status === 'analyzed';
   }
 
   function isMeasurerOf(user, tool) { return hasRole(user, 'admin') || isToolMeasurer(user, tool); }
@@ -870,9 +886,8 @@ window.MRT.domain = (function () {
   function canAct(user, action, r, tool, nowTs) {
     var t = TRANSITIONS[action];
     if (!t || !user || !r || t.from.indexOf(r.status) === -1) return false;
-    if ((action === 'reopen' || action === 'results_ok') && isClosed(r, nowTs || 0)) return false;
-    if (action === 'results_ok' && r.results_ok_ts) return false;
     if (t.who === 'measurer') return isMeasurerOf(user, tool);
+    if (t.who === 'analyst') return canAnalyze(user);
     return r.requester_id === user.id || hasRole(user, 'admin');
   }
 
@@ -881,8 +896,8 @@ window.MRT.domain = (function () {
     return Object.keys(TRANSITIONS).filter(function (a) { return canAct(user, a, r, tool, nowTs); });
   }
 
-  /** Panels received (Q25): the tool's quality engineers, while open, once. */
-  function canReceive(user, r, tool) { return isOpen(r) && !r.received_ts && isMeasurerOf(user, tool); }
+  /** Panels received (Q25, a real state since 2026-09-28): use the 'receive' action. */
+  function canReceive(user, r, tool) { return canAct(user, 'receive', r, tool); }
 
   /** "Take it" (M3-7): the tool's other quality engineer takes the request over. */
   function canTake(user, r, tool) { return isOpen(r) && isToolMeasurer(user, tool) && r.assigned_to !== user.id; }
@@ -1357,9 +1372,7 @@ window.MRT.domain = (function () {
         if (e.from === 'draft' && measurer) text = 'New request ' + r.request_no + ' from ' + name(e.user_id);
         else if (e.from !== 'draft' && (mine || measurer)) text = r.request_no + ': ' + REQUEST_STATUS_LABEL[e.to] + ' - ' + name(e.user_id) + (e.text ? ' (' + String(e.text).slice(0, 60) + ')' : '');
       } else if (e.kind === 'edit' && (mine || measurer)) text = r.request_no + ' was changed by ' + name(e.user_id);
-      else if (e.kind === 'results_ok' && measurer) text = r.request_no + ': results OK - ' + name(e.user_id);
       else if (e.kind === 'assign' && e.to === user.id) text = r.request_no + ' is assigned to you' + (e.text ? ' - ' + e.text : '');
-      else if (e.kind === 'panels' && mine) text = r.request_no + ': panels received by the lab';
       if (text) out.push({ id: e.id, ts: e.ts, request_id: r.id, text: text, kind: e.kind, mention: mention });
     });
     if (hasRole(user, 'admin')) {
@@ -1374,7 +1387,7 @@ window.MRT.domain = (function () {
   }
 
   /** The start page for a person (Q16, M3-12): quality engineers -> My queue, engineers -> My requests, else Lab status. */
-  function homeFor(user) { return canMeasure(user) ? 'queue' : hasRole(user, 'engineer') ? 'requests' : 'lab'; }
+  function homeFor(user) { return canMeasure(user) ? 'queue' : (hasRole(user, 'engineer') || hasRole(user, 'analyst')) ? 'requests' : 'lab'; }
 
   /**
    * @mentions in a comment (Q11): "@Anna Berger" (full name) or "@aberger"
@@ -1753,6 +1766,7 @@ window.MRT.domain = (function () {
 
     hasRole: hasRole,
     canMeasure: canMeasure,
+    canAnalyze: canAnalyze,
     awayState: awayState,
     isAway: isAway,
     validateAway: validateAway,
