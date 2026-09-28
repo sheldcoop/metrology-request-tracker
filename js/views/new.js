@@ -278,6 +278,7 @@ window.MRT.views['new'] = (function () {
       if (types.length === 1 && !st.type_id && !st.new_type) st.type_id = types[0].id;
       var typeNow = byId('measurement_types', st.type_id);
       var typeF = ui.field({ label: 'Measurement type', cls: 'half', value: typeNow ? typeNow.name : (st.new_type ? st.new_type.name : ''),
+        combo: true,
         placeholder: 'Type or pick a measurement type', list: types.map(function (m) { return { value: m.name }; }) });
       function readType() {
         var typed = typeF.value().trim();
@@ -453,14 +454,14 @@ window.MRT.views['new'] = (function () {
       var stepNow = byId('process_steps', st.process_step_id);
 
       var projF = ui.field({ label: 'Project', cls: 'lot-proj', value: projNow ? projNow.code : (st.new_project ? st.new_project.code : ''), placeholder: 'Type or pick project',
-        list: projects.map(function (p) { return { value: p.code, label: p.name || '' }; }) });
+        combo: true, list: projects.map(function (p) { return { value: p.code, label: p.name || '' }; }) });
       var pnF = ui.field({ label: 'Part number', cls: 'lot-pn', mono: true, value: pnNow ? pnNow.code : (st.new_part_number ? st.new_part_number.code : ''),
-        placeholder: 'e.g. PN-10234-A', list: partNumbers.map(function (p) { return { value: p.code, label: p.description || '' }; }) });
+        combo: true, placeholder: 'e.g. PN-10234-A', list: partNumbers.map(function (p) { return { value: p.code, label: p.description || '' }; }) });
       var lotF = ui.field({ label: 'Lot', cls: 'lot-lot', mono: true, value: lotNumber || '', placeholder: 'e.g. 18178.01', inputmode: 'decimal',
-        list: lots.map(function (l) { return { value: l.lot_number, label: l.note || null }; }) });
+        combo: true, list: lots.map(function (l) { return { value: l.lot_number, label: l.note || null }; }) });
       var buNow = byId('buildups', st.buildup_id);
       var buF = ui.field({ label: 'Build-up', cls: 'lot-bu', value: buNow ? buNow.code : (st.new_buildup ? st.new_buildup.code : ''), placeholder: 'Type or pick build-up',
-        list: bus.map(function (b) { return { value: b.code, label: b.name || '' }; }) });
+        combo: true, list: bus.map(function (b) { return { value: b.code, label: b.name || '' }; }) });
 
       var modeSeg = ui.segmented({ label: 'Hirata IDs / How many', value: panelMode, options: [{ value: 'ids', label: 'Hirata IDs' }, { value: 'count', label: 'How many' }],
         onChange: function (v) { panelMode = v; paintPanelEntry(); readPanels(); } });
@@ -468,6 +469,7 @@ window.MRT.views['new'] = (function () {
       var chipsHost = ui.el('div', { class: 'panel-chips', 'aria-live': 'polite' });
       var idsF, countF;
       var stepF = ui.field({ label: 'Panels are after', cls: 'panels-step', value: stepNow ? stepNow.name : (st.process_step_other || ''),
+        combo: true,
         placeholder: 'e.g. after desmear', list: stepRows.map(function (s) { return { value: s.name }; }) });
 
       function readProject() {
@@ -623,14 +625,17 @@ window.MRT.views['new'] = (function () {
       var tool = byId('tools', st.tool_id);
 
       var whereNowF = ui.field({ label: 'Where the panels are now', cls: 'half', value: st.panel_location || '',
+        combo: true,
         placeholder: 'e.g. with Anna / in MES / top shelf', list: locs.map(function (x) { return { value: x }; }) });
       var afterChoices = distinctValues(D.AFTER_OPTIONS.filter(function (a) { return a !== 'other'; }).map(function (a) { return D.AFTER_LABEL[a]; }).concat(locs));
       var afterF = ui.field({ label: 'Where the panels go after measuring', cls: 'half', value: afterTextValue(),
+        combo: true,
         placeholder: 'e.g. Back to me / Back to the line / with Anna', list: afterChoices.map(function (x) { return { value: x }; }),
         disabled: !!(tool && tool.destructive), hint: tool && tool.destructive ? tool.code + ' destroys the panels: always scrap.' : null });
 
       var magNow = byId('magazines', st.magazine_id);
       var magF = ui.field({ label: 'Magazine', cls: 'half', value: magNow ? magNow.code : (st.new_magazine ? st.new_magazine.code : ''),
+        combo: true,
         placeholder: 'Type or pick magazine', list: mags.map(function (m) { return { value: m.code, label: (m.slots || 24) + ' slots' }; }) });
       var slotsHost = ui.el('div', { class: 'wz-mag' });
       var fit = ui.el('p', { class: 'muted', 'aria-live': 'polite' });

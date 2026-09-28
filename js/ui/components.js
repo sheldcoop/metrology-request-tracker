@@ -133,8 +133,181 @@
    *                    options:[{value,label}], multiline, cls,
    *                    list:[{value,label}] - suggestions to type from (a datalist)}
    */
+  /**
+   * Combo box: a text input with a custom filter popup (replaces datalist).
+   * Free text stays allowed: typing a new value is a new entry, Enter keeps it.
+   * Keyboard: Down opens, Up/Down move, Enter picks (or keeps typed text),
+   * Escape closes. Returns the same shape as field().
+   * @param {Object} o {label, value, placeholder, hint, mono, cls, items:[{value,label}], id, name}
+   */
+  var comboOpen = null;   // the one open popup; one shared outside-click closer
+  var comboDocArmed = false;
+  function comboArmDoc() {
+    if (comboDocArmed) return;
+    comboDocArmed = true;
+    document.addEventListener('click', function (ev) {
+      if (comboOpen && comboOpen.isOpen() && !comboOpen.inside(ev.target)) comboOpen.close();
+    });
+  }
+
+  function comboBox(o) {
+    o = o || {};
+    comboArmDoc();
+    var id = o.id || uid('combo');
+    var msgId = id + '-msg';
+    var items = (o.items || []).map(function (x) {
+      return { value: String(x.value !== undefined && x.value !== null ? x.value : ''),
+               label: x.label !== undefined && x.label !== null ? String(x.label) : '' };
+    });
+    var input = el('input', {
+      id: id, name: o.name || null, type: 'text',
+      class: 'ifield-input combo-input' + (o.mono ? ' mono' : ''),
+      value: o.value !== undefined && o.value !== null ? String(o.value) : null,
+      placeholder: o.placeholder || null, autocomplete: 'off',
+      role: 'combobox', 'aria-expanded': 'false', 'aria-autocomplete': 'list',
+      'aria-controls': id + '-pop', 'aria-describedby': msgId
+    });
+    input.setAttribute('autocapitalize', 'off');
+    input.setAttribute('spellcheck', 'false');
+    var pop = el('div', { class: 'combo-pop', id: id + '-pop', role: 'listbox', hidden: true });
+    var wrap = el('div', { class: 'combo-wrap' }, [input, pop]);
+    var msg = el('div', { class: 'ifield-msg', id: msgId, 'aria-live': 'polite' }, o.hint || null);
+    var node = el('div', { class: 'ifield combo' + (o.cls ? ' ' + o.cls : '') }, [
+      el('label', { class: 'ifield-label', for: id }, [o.label || '']),
+      el('div', { class: 'ifield-box combo-box' }, [wrap]),
+      msg
+    ]);
+    var open = false, active = -1, shown = [];
+
+    function norm(s) { return String(s || '').toLowerCase(); }
+    function matches(it, q) {
+      if (!q) return true;
+      return norm(it.value).indexOf(q) !== -1 || norm(it.label).indexOf(q) !== -1;
+    }
+    function paint() {
+      clear(pop);
+      var q = norm(input.value.trim());
+      var exact = false;
+      shown = items.filter(function (it) { return matches(it, q); }).slice(0, 50);
+      shown.forEach(function (it) { if (norm(it.value) === q || norm(it.label) === q) exact = true; });
+      if (!shown.length) {
+        pop.appendChild(el('div', { class: 'combo-none', text: q ? 'No match - press Enter to add as new' : 'No entries' }));
+      } else {
+        shown.forEach(function (it, i) {
+          var opt = el('div', {
+            class: 'combo-opt' + (i === active ? ' is-active' : ''),
+            role: 'option', id: id + '-opt-' + i,
+            'aria-selected': i === active ? 'true' : 'false'
+          }, [
+            el('span', { class: 'combo-val' + (o.mono ? ' mono' : ''), text: it.value }),
+            it.label ? el('span', { class: 'combo-sub', text: it.label }) : null
+          ]);
+          opt.addEventListener('mousedown', function (ev) {
+            ev.preventDefault();
+            pick(i);
+          });
+          opt.addEventListener('mousemove', function () { setActive(i); });
+          pop.appendChild(opt);
+        });
+      }
+      if (q && !exact) {
+        pop.appendChild(el('div', { class: 'combo-new', text: 'New: ' + input.value.trim() }));
+      }
+    }
+    function setActive(i) {
+      active = i;
+      var kids = pop.querySelectorAll('.combo-opt');
+      for (var k = 0; k < kids.length; k++) {
+        var on = k === i;
+        kids[k].classList.toggle('is-active', on);
+        kids[k].setAttribute('aria-selected', on ? 'true' : 'false');
+      }
+      if (i >= 0) {
+        input.setAttribute('aria-activedescendant', id + '-opt-' + i);
+        var sel = pop.querySelectorAll('.combo-opt')[i];
+        if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
+      } else {
+        input.removeAttribute('aria-activedescendant');
+      }
+    }
+    function setOpen(v) {
+      open = v;
+      if (v) {
+        if (comboOpen && comboOpen !== api) comboOpen.close();
+        comboOpen = api;
+        active = -1; paint(); pop.hidden = false;
+      } else {
+        pop.hidden = true; setActive(-1);
+        if (comboOpen === api) comboOpen = null;
+      }
+      input.setAttribute('aria-expanded', v ? 'true' : 'false');
+    }
+    function fire(name) {
+      var ev;
+      try { ev = new Event(name, { bubbles: true }); }
+      catch (e) { ev = document.createEvent('Event'); ev.initEvent(name, true, true); }
+      input.dispatchEvent(ev);
+    }
+    function pick(i) {
+      var it = shown[i];
+      if (!it) return;
+      input.value = it.value;
+      setOpen(false);
+      fire('input');
+      fire('change');
+    }
+    input.addEventListener('focus', function () { setOpen(true); });
+    input.addEventListener('input', function () { if (!open) setOpen(true); else paint(); });
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowDown' || ev.key === 'Down') {
+        ev.preventDefault();
+        if (!open) setOpen(true);
+        setActive(Math.min(active + 1, shown.length - 1));
+      } else if (ev.key === 'ArrowUp' || ev.key === 'Up') {
+        ev.preventDefault();
+        setActive(Math.max(active - 1, -1));
+      } else if (ev.key === 'Enter') {
+        if (open && active >= 0) { ev.preventDefault(); pick(active); }
+        else if (open) setOpen(false);
+      } else if (ev.key === 'Escape' || ev.key === 'Esc') {
+        if (open) { ev.preventDefault(); setOpen(false); }
+      }
+    });
+    input.addEventListener('blur', function () {
+      window.setTimeout(function () { if (open) setOpen(false); }, 120);
+    });
+
+    function setState(state, message) {
+      node.classList.toggle('is-valid', state === 'valid');
+      node.classList.toggle('is-invalid', state === 'invalid');
+      input.setAttribute('aria-invalid', state === 'invalid' ? 'true' : 'false');
+      clear(msg);
+      if (message) {
+        append(msg, [icon(state === 'invalid' ? 'alert' : 'check', 14), el('span', { text: message })]);
+      } else if (o.hint) {
+        msg.textContent = o.hint;
+      }
+    }
+    var api = { node: node, input: input, setState: setState,
+             value: function () { return input.value; },
+             isOpen: function () { return open; },
+             inside: function (t) { return wrap.contains(t); },
+             close: function () { setOpen(false); },
+             setItems: function (list) {
+               items = (list || []).map(function (x) {
+                 return { value: String(x.value !== undefined && x.value !== null ? x.value : ''),
+                          label: x.label !== undefined && x.label !== null ? String(x.label) : '' };
+               });
+               if (open) paint();
+             } };
+    if (o.disabled) { input.disabled = true; node.classList.add('is-disabled'); }
+    return api;
+  }
+
   function field(o) {
     o = o || {};
+    if (o.list && o.combo) return comboBox({ label: o.label, value: o.value, placeholder: o.placeholder,
+      hint: o.hint, mono: o.mono !== undefined ? o.mono : true, cls: o.cls, items: o.list, id: o.id, name: o.name, disabled: o.disabled });
     var id = o.id || uid('fld');
     var msgId = id + '-msg';
     var mono = o.mono !== undefined ? o.mono : (o.type === 'number' || !!o.unit);
@@ -439,6 +612,7 @@
 
   ui.form = form;
   ui.button = button;
+  ui.combo = comboBox;
   ui.emptyState = emptyState;
   ui.field = field;
   ui.kpiTile = kpiTile;

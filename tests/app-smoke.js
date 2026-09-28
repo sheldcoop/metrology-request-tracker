@@ -976,7 +976,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         MRT.store.data().requests.length > 200 && MRT.store.currentUser().id === 'usr_demo_prince' && MRT.store.currentUser().windows_id === 'pkhurana' &&
         JSON.parse(folder.files['mrt_data.json']).requests.length > 200 && /Prince Khurana/.test(text('userName')));
   win.setHash('#/new'); await settle();
-  check('...the form works on it: the demo magazines are offered', (function () { var l = doc.getElementById(fieldIn(M(), 'Magazine').getAttribute('list')); return !!l && l.querySelectorAll('option').length === 20; })());
+  check('...the form works on it: the demo magazines are offered', (function () { var inp = fieldIn(M(), 'Magazine'); inp.dispatch('focus'); var box = inp.closest('.ifield'); return !!box && box.querySelectorAll('.combo-opt').length === 20; })());
+  check('...the combo filters as you type', (function () { var inp = fieldIn(M(), 'Magazine'); var code = MRT.store.list('magazines')[0].code; inp.value = code.slice(0, 3); inp.dispatch('input'); var box = inp.closest('.ifield'); var opts = box.querySelectorAll('.combo-opt'); return opts.length >= 1 && opts.every(function (o) { return (o.textContent.toLowerCase().indexOf(code.slice(0, 3).toLowerCase()) !== -1); }); })());
+  check('...arrow + Enter picks the filtered magazine', (function () { var inp = fieldIn(M(), 'Magazine'); var code = MRT.store.list('magazines')[0].code; inp.value = code.slice(0, 3); inp.dispatch('input'); inp.dispatch('keydown', { key: 'ArrowDown' }); inp.dispatch('keydown', { key: 'Enter' }); return inp.value === code; })());
+  check('...free text stays (a new magazine)', (function () { var inp = fieldIn(M(), 'Magazine'); setVal(inp, 'MAG-NEW-99'); return inp.value === 'MAG-NEW-99'; })());
+  check('...Escape closes the popup', (function () { var inp = fieldIn(M(), 'Magazine'); inp.dispatch('focus'); inp.dispatch('keydown', { key: 'Escape' }); return inp.closest('.ifield').querySelector('.combo-pop').hidden === true; })());
   await tab('data');
   check('...the Backups list offers the copy made before', /before demo data/.test(mainText()));
   buttonByText(M(), 'Start empty').click(); await settle();
