@@ -637,6 +637,14 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...Accept all accepts both', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'accepted'));
   const qRowA = $$('#main .q-row')[0].textContent;
   check('...row order: Panels received, then Hold and Clarify', ['Panels received', 'Hold', 'Needs clarification'].every((t, i, a) => !i || qRowA.indexOf(a[i - 1]) < qRowA.indexOf(t)));
+  const qLRow = $$('#main .q-row').filter(tr => tr.textContent.indexOf(qL.request_no) !== -1)[0];
+  { const cb = qLRow.querySelector('input'); cb.checked = true; cb.dispatch('change'); }
+  await settle();
+  check('...ticking one accepted offers Receive all (1)', !!buttonByText($('#main .queue-bulk'), 'Receive all (1)'));
+  buttonByText($('#main .queue-bulk'), 'Receive all (1)').click(); await settle();
+  setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Receive all').click(); await settle(); await settle();
+  check('...Receive all asks one shared place and receives only it', MRT.store.byId('requests', qL.id).status === 'panels_received' &&
+        MRT.store.byId('requests', qL.id).received_where === 'FIB cabinet' && MRT.store.byId('requests', qN.id).status === 'accepted');
   MRT.store.setCurrentUser(meP); await MRT.store.saveEntry('users', { id: meP, fields: { email: 'prince@example.com' } }); MRT.store.setCurrentUser(olga.id);
   const offer = MRT.requestActions.emailOffer(MRT.store.byId('requests', qN.id), 'clarify');
   check('Clarify offers a ready Outlook draft to the requester (M4-4)', !!offer && /^Email Prince/.test(offer.label));
@@ -666,24 +674,25 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   // --- the board (M3 step 4)
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
-  check('Board: a lane per tool, six columns, the two accepted FIB cards', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 6 &&
-        $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 2);
+  check('Board: a lane per tool, six columns, one accepted + one received FIB card', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 6 &&
+        $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1 &&
+        $$('#main .board-cell').filter(c => c.dataset.col === 'panels_received' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
   const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
   check('...the Line stop card pulses, has a needed-by gauge, nothing is draggable', lsCard.classList.contains('is-urgent') && !!lsCard.querySelector('.bgauge') &&
         $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
   lsCard.dispatch('click'); await settle();
   const drw = win.document.querySelector('dialog.drawer');
-  check('...a click opens the side panel with the traveller and Panels received (P5-3)', !!drw && /Panels received/.test(drw.textContent) && /Open full page/.test(drw.textContent));
-  buttonByText(drw, 'Panels received').click(); await settle();
-  buttonByText(openDialog(), 'Save').click(); await settle();
-  check('...received into Panels received', MRT.store.byId('requests', qL.id).status === 'panels_received' &&
-        $$('#main .board-cell').filter(c => c.dataset.col === 'panels_received' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
-  $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0].dispatch('click'); await settle();
-  const drw2 = win.document.querySelector('dialog.drawer');
-  check('...reopen the panel: Start is there now', !!drw2 && !!buttonByText(drw2, 'Start'));
-  buttonByText(drw2, 'Start').click(); await settle();
-  check('...and the card moves, the panel closes', MRT.store.byId('requests', qL.id).status === 'in_progress' && !win.document.querySelector('dialog.drawer') &&
+  check('...a click opens the side panel with the traveller and Start (P5-3)', !!drw && !!buttonByText(drw, 'Start') && /Open full page/.test(drw.textContent));
+  buttonByText(drw, 'Start').click(); await settle();
+  check('...Start moves the card, the panel closes', MRT.store.byId('requests', qL.id).status === 'in_progress' && !win.document.querySelector('dialog.drawer') &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
+  $$('#main .bcard').filter(c => c.dataset.id === qN.id)[0].dispatch('click'); await settle();
+  const drw2 = win.document.querySelector('dialog.drawer');
+  check('...the accepted card offers Panels received in the panel', !!drw2 && !!buttonByText(drw2, 'Panels received'));
+  buttonByText(drw2, 'Panels received').click(); await settle();
+  buttonByText(openDialog(), 'Save').click(); await settle();
+  check('...received into Panels received', MRT.store.byId('requests', qN.id).status === 'panels_received' &&
+        $$('#main .board-cell').filter(c => c.dataset.col === 'panels_received' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
   check('...tools with nothing on them fold to one line', $$('#main .board-fold').length === $$('#main .board-lane.is-empty').length);
   const fibPick = $$('#main .tool-pick').filter(b => b.dataset.pick === fib().id)[0];
   fibPick.click(); await settle();
