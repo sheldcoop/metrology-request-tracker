@@ -103,6 +103,35 @@
   }
   [data-concept="deep-lab"] .cx-hero-card { border-color: var(--line-hi); }
   [data-concept="deep-lab"] .traveller.is-urgent { box-shadow: 0 0 24px rgba(249, 115, 22, .25), var(--shadow); }
+
+  /* --- Direction B: Cleanroom (light, airy) ---
+     Status tokens stay Carbon White (AA-verified); only the room changes.
+     Glass only on the bar and strip; popups, menus and dialogs stay solid. */
+  [data-concept="cleanroom"] {
+    --bg: #EDF0F5; --surface: #FFFFFF; --surface-2: #FFFFFF; --surface-3: #E7EBF2; --inset: #F4F6FA;
+    --fg: #101828; --fg-muted: #475467; --fg-faint: #556074;
+    --line: #D9DFE8; --line-strong: #B6BFCF; --line-hi: #0F62FE; --bracket: #B6BFCF;
+    --accent: #0F62FE; --accent-fill: #0F62FE; --accent-fg: #FFFFFF; --accent-soft: #E3EDFF;
+    --accent-glow: 0 0 0 1px #0F62FE;
+    --radius: 10px; --radius-panel: 16px;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 8px 24px rgba(16, 24, 40, .08);
+    --shadow-pop: 0 4px 8px rgba(16, 24, 40, .08), 0 16px 40px rgba(16, 24, 40, .16);
+    --scrim: rgba(16, 24, 40, .45);
+  }
+  [data-concept="cleanroom"] .kit-bar,
+  [data-concept="cleanroom"] .cx-kpi-strip {
+    background: color-mix(in srgb, var(--surface-2) 78%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  [data-concept="cleanroom"] .panel,
+  [data-concept="cleanroom"] .cx-hero-card,
+  [data-concept="cleanroom"] dialog.modal { border-color: var(--line); box-shadow: var(--shadow); }
+  [data-concept="cleanroom"] .cx-hero-card { padding: 22px; }
+  [data-concept="cleanroom"] .kit-sec .table-wrap table.grid th {
+    text-transform: uppercase; letter-spacing: .08em; font-size: 11px; color: var(--fg-faint);
+    border-bottom: 2px solid var(--line-strong);
+  }
+  [data-concept="cleanroom"] .traveller.is-urgent { border-left: 6px solid var(--critical); }
 </style>
 </head>
 <body>
