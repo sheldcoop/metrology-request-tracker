@@ -565,6 +565,7 @@
           multiline: sp.kind === 'longtext', required: !!sp.required, step: sp.kind === 'number' ? 'any' : undefined,
           options: sp.kind === 'select' ? sp.options : undefined,
           list: sp.kind === 'text' && sp.list ? sp.list : undefined,
+          combo: sp.kind === 'text' && !!sp.list,
           value: v === null || v === undefined ? (sp.kind === 'select' && sp.options && sp.options[0] ? sp.options[0].value : '') : v
         });
         part = { node: f.node, input: f.input, setState: f.setState,
