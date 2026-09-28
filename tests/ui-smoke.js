@@ -169,7 +169,7 @@ if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.rea
     root.querySelector('.kit-contrast').querySelectorAll('th').length===2+live.length);
   const sel=doc.getElementById('kitTheme');sel.value='deep-lab';sel.dispatch('change');flush();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
-  expect('the kit builds every section (25, with the theme gallery)',secs.length===25);
+  expect('the kit builds every section (26, with the theme gallery)',secs.length===26);
   expect('the kit shows 7 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===28);
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
   sel.value='all';sel.dispatch('change');flush();

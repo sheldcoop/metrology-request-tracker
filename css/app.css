@@ -1467,11 +1467,19 @@ table.grid tbody tr { scroll-margin: 80px; }
 .tl-text { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .mention { padding: 0 3px; border-radius: 3px; background: var(--accent-soft); color: var(--fg); font-weight: 600; }
 
-/* My queue (M3-10): priority stripe on the row, late rows red */
+/* My queue (M3-10): your shift in one glance, then the work in order. Priority stripe on the row, late rows red. */
 .queue-status { flex: 0 1 240px; }
 .queue-bulk { display: flex; align-items: center; gap: 10px; margin: 6px 0; padding: 8px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); }
 .queue-bulk[hidden] { display: none; }
-.queue-sep td { padding-top: 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); }
+/* The shift strip: three numerals that say the morning. Red only when something is late. */
+.queue-shift { display: flex; align-items: baseline; gap: 32px; margin: 16px 0 6px; }
+.queue-shift .qs { display: grid; gap: 2px; }
+.queue-shift .qs-n { font: 800 26px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.queue-shift .qs-l { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--fg-muted); }
+.queue-shift .qs.is-bad .qs-n { color: var(--expired-fg); }
+.queue-shift .qs.is-bad .qs-l { color: var(--expired-fg); }
+.queue-sep td { padding-top: 16px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-muted); border-top: 2px solid var(--line-strong); }
+.queue-sep td .num { color: var(--fg); }
 .q-row > td:first-child { border-left: 4px solid var(--ok); }
 .q-row.prio-1 > td:first-child { border-left-color: var(--critical); }
 .q-row.prio-2 > td:first-child { border-left-color: var(--warning); }

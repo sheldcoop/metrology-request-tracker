@@ -85,9 +85,8 @@ window.MRT.views.queue = (function () {
       var list = all.slice(0, view.shown);
       var late = all.filter(function (r) { return D.isLate(r, now, cal); }).length;
       ui.mount(holder, [
-        ui.el('p', { class: 'muted' }, [all.length + ' open', late ? ui.statusBadge('critical', late + ' late') : null,
-          mine.length ? '  ·  ' + mine.length + ' assigned to you' : null]),
-        all.length ? table(list, me, mine.length) : ui.emptyState({ icon: 'inbox', title: 'Nothing waiting', text: 'No open requests match.' }),
+        shiftStrip(all.length, late, mine.length),
+        all.length ? table(list, me, mine.length, all.length) : ui.emptyState({ icon: 'inbox', title: 'Nothing waiting', text: 'No open requests match.' }),
         all.length > view.shown ? ui.button('Show ' + Math.min(PAGE, all.length - view.shown) + ' more', { size: 'sm', onClick: function () { view.shown += PAGE; draw(); } }) : null
       ]);
       paintBulk();
@@ -120,11 +119,29 @@ window.MRT.views.queue = (function () {
       }).then(function () { picked = {}; window.MRT.app.route(); });
     }
 
-    function table(list, me, mineCount) {
+    /** Your shift in one glance: open, late (red only when nonzero), yours. */
+    function shiftStrip(n, late, mine) {
+      function stat(v, label, bad) {
+        return ui.el('div', { class: 'qs' + (bad ? ' is-bad' : '') }, [
+          ui.el('span', { class: 'qs-n num', text: String(v) }), ui.el('span', { class: 'qs-l', text: label })]);
+      }
+      return ui.el('div', { class: 'queue-shift', 'aria-live': 'polite' }, [
+        stat(n, 'open'),
+        late ? stat(late, 'late', true) : null,
+        mine ? stat(mine, 'yours') : null
+      ]);
+    }
+
+    function sep(label, n) {
+      return ui.el('tr', { class: 'queue-sep' }, ui.el('td', { colspan: '10' },
+        [ui.el('span', { text: label + '  ·  ' }), ui.el('span', { class: 'num', text: String(n) })]));
+    }
+
+    function table(list, me, mineCount, allCount) {
       var tb = ui.el('tbody');
       list.forEach(function (r, i) {
-        if (i === 0 && mineCount) tb.appendChild(ui.el('tr', { class: 'queue-sep' }, ui.el('td', { colspan: '10', text: 'Assigned to you' })));
-        if (i === mineCount && i > 0) tb.appendChild(ui.el('tr', { class: 'queue-sep' }, ui.el('td', { colspan: '10', text: 'Others of your tools' })));
+        if (i === 0 && mineCount) tb.appendChild(sep('Assigned to you', mineCount));
+        if (i === mineCount && i > 0) tb.appendChild(sep('Others of your tools', allCount - mineCount));
         tb.appendChild(row(r, me));
       });
       return ui.el('div', { class: 'table-wrap' }, ui.el('table', { class: 'grid queue-table' }, [
