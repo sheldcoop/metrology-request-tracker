@@ -8,9 +8,9 @@
  *   MRT.requestActions.buttons(r, {size: 'sm', only: ['accept', ...]}) -> [button]
  *   MRT.requestActions.run(action, r) -> Promise (resolves when saved, null when cancelled)
  *
- * Actions: accept, start, hold, resume, clarify, answer, complete, reopen,
- * results_ok (domain.TRANSITIONS), plus 'received' (Panels received) and
- * 'take' (Take it). Who may do what is decided in domain.js, never here.
+ * Actions: accept, receive, start, hold, resume, clarify, answer, complete,
+ * analyze, reopen (domain.TRANSITIONS), plus 'take' (Take it). Who may do
+ * what is decided in domain.js, never here.
  */
 window.MRT = window.MRT || {};
 window.MRT.requestActions = (function () {
@@ -20,9 +20,9 @@ window.MRT.requestActions = (function () {
   var store = window.MRT.store;
   var D = window.MRT.domain;
 
-  var ICON = { accept: 'check', start: 'activity', hold: 'clock', resume: 'refresh', clarify: 'help', answer: 'edit',
-               complete: 'check', reopen: 'restore', results_ok: 'check', received: 'inbox', take: 'user' };
-  var PRIMARY = { accept: true, start: true, complete: true, answer: true, results_ok: true };
+  var ICON = { accept: 'check', receive: 'inbox', start: 'activity', hold: 'clock', resume: 'refresh', clarify: 'help', answer: 'edit',
+               complete: 'check', analyze: 'check', reopen: 'restore', take: 'user' };
+  var PRIMARY = { accept: true, receive: true, start: true, complete: true, answer: true, analyze: true };
 
   function toolOf(r) { return store.byId('tools', r.tool_id); }
 
@@ -45,13 +45,12 @@ window.MRT.requestActions = (function () {
   function available(r) {
     var me = store.currentUser(), tool = toolOf(r);
     var list = D.actionsFor(me, r, tool, Date.now());
-    if (D.canReceive(me, r, tool)) list.push('received');
     if (D.canTake(me, r, tool)) list.push('take');
     return list;
   }
 
   function label(action) {
-    return action === 'received' ? 'Panels received' : action === 'take' ? 'Take it' : D.TRANSITIONS[action].label;
+    return action === 'take' ? 'Take it' : D.TRANSITIONS[action].label;
   }
 
   function buttons(r, o) {
@@ -76,7 +75,7 @@ window.MRT.requestActions = (function () {
     var to = event === 'submit' ? toQE : event === 'cancel' && r.requester_id === me.id ? toQE : [person(r.requester_id)];
     to = to.filter(function (u) { return u && u.id !== me.id && u.email; });
     if (!to.length) return null;
-    var what = { submit: 'New request', clarify: 'Question about', complete: 'Completed', cancel: 'Cancelled' }[event];
+    var what = { submit: 'New request', clarify: 'Question about', complete: 'Completed', analyze: 'Analyzed', cancel: 'Cancelled' }[event];
     var last = store.requestEvents(r.id).slice(-1)[0];
     var body = [
       what + ': ' + r.request_no + (tool.code ? ' (' + tool.code + ')' : ''),
@@ -137,13 +136,13 @@ window.MRT.requestActions = (function () {
           .then(function (res) { return res ? done(res, 'accepted.') : null; });
         break;
       case 'start':
-        if (r.received_ts) { p = act(r, 'start', {}, 'started.'); break; }
-        p = ask('Start ' + r.request_no, 'activity', [
-          { key: 'received', label: 'Panels received', kind: 'check' },
-          { key: 'received_where', label: 'Kept where in the lab (optional)', kind: 'text', placeholder: 'e.g. FIB cabinet, shelf 2',
-            showIf: function (v) { return v.received; } }
-        ], { received: true }, function (v) { return store.requestAction(r.id, 'start', v); })
-          .then(function (res) { return res ? done(res, 'started.') : null; });
+        p = act(r, 'start', {}, 'started.');
+        break;
+      case 'receive':
+        p = ask('Panels received - ' + r.request_no, 'inbox', [
+          { key: 'where', label: 'Kept where in the lab (optional)', kind: 'text', placeholder: 'e.g. FIB cabinet, shelf 2' }
+        ], {}, function (v) { return store.requestAction(r.id, 'receive', { received_where: v.where }); })
+          .then(function (res) { return res ? done(res, 'panels received.') : null; });
         break;
       case 'hold':
         var holdRows = store.list('hold_reasons');
@@ -213,14 +212,8 @@ window.MRT.requestActions = (function () {
       case 'resume':
         p = act(r, 'resume', {}, 'resumed.');
         break;
-      case 'results_ok':
-        p = act(r, 'results_ok', {}, 'results OK - closed.');
-        break;
-      case 'received':
-        p = ask('Panels received - ' + r.request_no, 'inbox', [
-          { key: 'where', label: 'Kept where in the lab (optional)', kind: 'text', placeholder: 'e.g. FIB cabinet, shelf 2' }
-        ], {}, function (v) { return store.receivePanels(r.id, v.where); })
-          .then(function (res) { return res ? done(res, 'panels received.') : null; });
+      case 'analyze':
+        p = store.requestAction(r.id, 'analyze', {}).then(function (res) { return done(res, 'analyzed - closed.', 'analyze'); });
         break;
       case 'take':
         p = store.takeRequest(r.id).then(function (res) { return done(res, 'yours now.'); });

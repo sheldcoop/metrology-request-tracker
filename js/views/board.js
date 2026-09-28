@@ -3,8 +3,8 @@
  *
  * The lab board (#/board, Q22, M3-8, redesign P5): a lab rack. One lane per
  * tool (glyph, lamp, open count); lanes with nothing on them fold to a thin
- * line. Columns are the status slots Submitted | Accepted | In progress |
- * Waiting (on hold, needs clarification) | Completed (last 7 days). Cards are
+ * line. Columns are the status slots Submitted | Accepted | Panels received |
+ * In progress | Waiting (on hold, needs clarification) | Completed (last 7 days). Cards are
  * compact mini travellers: priority stripe, ID, lot, panels, a needed-by
  * gauge and the quality engineer's initials.
  * Click only (P5-3): a click opens a side panel with the full traveller and
@@ -24,6 +24,7 @@ window.MRT.views.board = (function () {
   var COLS = [
     { key: 'submitted', label: 'Submitted', has: ['submitted'] },
     { key: 'accepted', label: 'Accepted', has: ['accepted'] },
+    { key: 'panels_received', label: 'Panels received', has: ['panels_received'] },
     { key: 'in_progress', label: 'In progress', has: ['in_progress'] },
     { key: 'waiting', label: 'Waiting', has: ['on_hold', 'clarification'] },
     { key: 'completed', label: 'Completed (7 days)', has: ['completed'] }

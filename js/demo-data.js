@@ -43,6 +43,7 @@ window.MRT.demoData = (function () {
     ['felix', 'Felix Bauer', 'fbauer', ['operator', 'quality']],
     ['olga', 'Olga Brandt', 'obrandt', ['quality']],
     ['otto', 'Otto Kern', 'okern', ['quality']],
+    ['ruth', 'Ruth Adler', 'radler', ['analyst']],
     ['nina', 'Nina Koch', 'nkoch', ['quality', 'engineer']],
     ['max', 'Max Leitner', 'mleitner', ['manager']],
     ['clara', 'Clara Wolf', 'cwolf', ['manager', 'engineer']],
@@ -259,7 +260,7 @@ window.MRT.demoData = (function () {
       var created = labTs(plan.daysAgo);
       var noBkm = chance(0.12);
       var counted = chance(0.2);                            // 1 in 5 only says how many (F-1)
-      var ends = ['closed', 'cancelled', 'cancelled_lab', 'completed', 'draft'].indexOf(plan.fate) !== -1;
+      var ends = ['analyzed', 'cancelled', 'cancelled_lab', 'completed', 'draft'].indexOf(plan.fate) !== -1;
       var place = chance(0.65) ? slotsFor(ends ? magOld : magOpen, k, !ends) : null;
       var bu = chance(0.75) ? pick(d.buildups) : null;       // the build-up is optional; one lot runs through all of them (F-6)
       var pnsP = d.part_numbers.filter(function (x) { return x.project_ids.indexOf(lot.proj) !== -1; });
@@ -328,11 +329,13 @@ window.MRT.demoData = (function () {
         step(2, qeKey, 'status', 'accepted', 'clarification', 'Which via row?');
         step(3, who, 'status', 'clarification', 'accepted', 'Row 3, the dense area');
       }
-      // panels received + start
+      // panels received, then start
+      r.status = 'panels_received';
       r.received_ts = iso(later(t, 2)); r.received_by = qe.id; r.received_where = pick(['FIB cabinet shelf 2', 'Metrology rack A', 'QVM bench', '']);
-      step(2, qeKey, 'panels', null, null, r.received_where ? 'Kept at ' + r.received_where : null);
+      step(2, qeKey, 'status', 'accepted', 'panels_received', r.received_where ? 'Kept at ' + r.received_where : null);
+      if (plan.fate === 'panels_received') return r;
       r.status = 'in_progress'; r.started_ts = iso(later(t, 1));
-      step(1, qeKey, 'status', 'accepted', 'in_progress');
+      step(1, qeKey, 'status', 'panels_received', 'in_progress');
       if (plan.fate === 'in_progress') return r;
       if (plan.fate === 'on_hold') {
         var hr = plan.holdReason || pick(d.hold_reasons);
@@ -360,10 +363,18 @@ window.MRT.demoData = (function () {
       if (plan.fate === 'reopened') {
         r.status = 'accepted'; r.reopened = 1; r.completed_ts = null;
         step(4, who, 'status', 'completed', 'accepted', 'Values look off - please remeasure ' + (r.panels.length ? 'panel ' + r.panels[0] : 'one panel'));
-        if (chance(0.5)) { r.status = 'in_progress'; step(3, qeKey, 'status', 'accepted', 'in_progress'); }
+        if (chance(0.5)) {
+          r.status = 'panels_received';
+          step(3, qeKey, 'status', 'accepted', 'panels_received', r.received_where ? 'Kept at ' + r.received_where : null);
+          r.status = 'in_progress';
+          step(1, qeKey, 'status', 'panels_received', 'in_progress');
+        }
         return r;
       }
-      if (plan.fate === 'closed' && chance(0.6)) { r.results_ok_ts = iso(later(t, 6)); step(6, who, 'results_ok', 'completed', 'completed'); }
+      if (plan.fate === 'analyzed') {
+        r.status = 'analyzed'; r.analyzed_ts = iso(later(t, 6)); r.analyzed_by = U.ruth.id;
+        step(6, 'ruth', 'status', 'completed', 'analyzed', 'Reviewed - values plausible');
+      }
       return r;
     }
 
@@ -373,14 +384,14 @@ window.MRT.demoData = (function () {
     for (var dAgo = 178; dAgo >= 10; dAgo -= 1) {
       var count = chance(0.6) ? 1 : chance(0.5) ? 2 : 0;
       for (var c = 0; c < count; c++) {
-        var f = chance(0.08) ? 'cancelled' : chance(0.04) ? 'cancelled_lab' : chance(0.05) ? 'reopened' : 'closed';
+        var f = chance(0.08) ? 'cancelled' : chance(0.04) ? 'cancelled_lab' : chance(0.05) ? 'reopened' : 'analyzed';
         plans.push({ tool: pick(TOOLS), daysAgo: dAgo + R() * 0.5, fate: f, edited: chance(0.08), taken: chance(0.05) });
       }
     }
     // The present: every open state on every tool
     TOOLS.forEach(function (code) {
-      [['submitted', 1.5], ['submitted', 0.3], ['accepted', 3], ['accepted', 2], ['in_progress', 4], ['on_hold', 6], ['clarification', 3],
-       ['completed', 2], ['completed', 5], ['closed', 9], ['cancelled', 2], ['draft', 1]].forEach(function (x) {
+      [['submitted', 1.5], ['submitted', 0.3], ['accepted', 3], ['accepted', 2], ['panels_received', 2.5], ['in_progress', 4], ['on_hold', 6], ['clarification', 3],
+       ['completed', 2], ['completed', 5], ['analyzed', 9], ['cancelled', 2], ['draft', 1]].forEach(function (x) {
         plans.push({ tool: code, daysAgo: x[1] + R() * 0.3, fate: x[0] });
       });
       plans.push({ tool: code, daysAgo: 12, fate: 'accepted', late: true, expectedLater: true });           // late, and the lab expects later still

@@ -21,8 +21,8 @@ window.MRT.views.request = (function () {
   var D = window.MRT.domain;
   var X = window.MRT.extraFields;
 
-  var RAIL = ['submitted', 'accepted', 'in_progress', 'completed'];
-  var STAMP = { draft: 'neutral', submitted: 'accent', accepted: 'ok', in_progress: 'ok', completed: 'ok',
+  var RAIL = ['submitted', 'accepted', 'panels_received', 'in_progress', 'completed', 'analyzed'];
+  var STAMP = { draft: 'neutral', submitted: 'accent', accepted: 'ok', panels_received: 'ok', in_progress: 'ok', completed: 'ok', analyzed: 'neutral',
                 clarification: 'warning', on_hold: 'warning', cancelled: 'expired' };
   var live = { r: null, node: null, gauge: null };
   var seen = {};                                // request id -> the status last drawn (P3: stamp on change)          // what tick() updates
@@ -39,14 +39,15 @@ window.MRT.views.request = (function () {
     var me = store.currentUser();
     var r = byId('requests', ctx.subpath);
     live.r = null;
-    if (!r || !D.canSeeRequest(me, r)) {
+    var tool = r ? byId('tools', r.tool_id) : null;
+    if (!r || !D.canSeeRequest(me, r, tool)) {
       main.appendChild(ui.pageHead('Request'));
-      main.appendChild(ui.emptyState({ icon: 'requests', title: r ? 'This draft is private' : 'Request not found',
+      main.appendChild(ui.emptyState({ icon: 'requests', title: !r ? 'Request not found' : r.status === 'draft' ? 'This draft is private' : 'Not yours to see',
         text: 'Search for a request ID at the top, e.g. FIB-2609.' }));
       return;
     }
     if (r.status === 'draft') { location.hash = '#/new/' + r.id; return; }
-    var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id);
+    var lot = byId('lots', r.lot_id);
 
     var actions = [
       D.canEditSubmitted(me, r) ? ui.button('Edit request', { icon: 'edit', onClick: function () { location.hash = '#/new/' + r.id; } }) : null,
@@ -152,9 +153,9 @@ window.MRT.views.request = (function () {
     if (g) g.set(dialUsed(r, c), c.paused && !c.late ? 'paused' : state);
   }
 
-  /** The panels' state on the card (P4): scrapped / measured after completion, in the lab tray once received. */
+  /** The panels' state on the card (P4): scrapped / measured once completed, in the lab tray once received. */
   function panelState(r) {
-    if (r.status === 'completed') return r.panels_outcome === 'scrapped' ? 'scrapped' : 'measured';
+    if (r.status === 'completed' || r.status === 'analyzed') return r.panels_outcome === 'scrapped' ? 'scrapped' : 'measured';
     if (D.isOpen(r) && r.received_ts) return 'received';
     return null;
   }

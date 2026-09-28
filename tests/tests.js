@@ -213,15 +213,16 @@
        D.canCancel({ id: 'e1', roles: ['engineer'] }, { status: 'completed', requester_id: 'e1' }, toolQ)], [true, true, false, false]);
     var toolW = { primary_operator_id: 'q1', backup_operator_id: 'q2' };
     var qe1 = { id: 'q1', roles: ['quality'], active: true }, qe2 = { id: 'q2', roles: ['quality'], active: true }, eng1 = { id: 'e1', roles: ['engineer'], active: true };
-    eq('workflow: a quality engineer on Submitted - Accept, Start, Hold, Clarify (M3-9)', D.actionsFor(qe1, { status: 'submitted', requester_id: 'e1' }, toolW, 0), ['accept', 'start', 'hold', 'clarify']);
+    eq('workflow: a quality engineer on Submitted - Accept, Hold, Clarify (RBAC)', D.actionsFor(qe1, { status: 'submitted', requester_id: 'e1' }, toolW, 0), ['accept', 'hold', 'clarify']);
+    eq('...Accepted - Receive, Hold, Clarify; Panels received - Start, Hold, Clarify', [D.actionsFor(qe1, { status: 'accepted', requester_id: 'e1' }, toolW, 0),
+       D.actionsFor(qe1, { status: 'panels_received', requester_id: 'e1' }, toolW, 0)], [['receive', 'hold', 'clarify'], ['start', 'hold', 'clarify']]);
     eq('...In progress - Hold, Clarify, Complete', D.actionsFor(qe2, { status: 'in_progress', requester_id: 'e1' }, toolW, 0), ['hold', 'clarify', 'complete']);
     eq('...the requester has nothing to do while it runs', D.actionsFor(eng1, { status: 'in_progress', requester_id: 'e1' }, toolW, 0), []);
-    eq('...but answers a clarification, and checks completed results', [D.actionsFor(eng1, { status: 'clarification', requester_id: 'e1' }, toolW, 0),
-       D.actionsFor(eng1, { status: 'completed', requester_id: 'e1', completed_ts: '2026-09-24T10:00:00Z' }, toolW, Date.parse('2026-09-25T10:00:00Z'))], [['answer'], ['reopen', 'results_ok']]);
+    eq('...but answers a clarification, and may reopen completed results', [D.actionsFor(eng1, { status: 'clarification', requester_id: 'e1' }, toolW, 0),
+       D.actionsFor(eng1, { status: 'completed', requester_id: 'e1' }, toolW, 0)], [['answer'], ['reopen']]);
     ok('...a quality engineer of another tool can do nothing', !D.actionsFor({ id: 'q9', roles: ['quality'], active: true }, { status: 'submitted' }, toolW, 0).length);
-    ok('closed: Results OK, or 7 days after completion (Q34)', D.isClosed({ status: 'completed', results_ok_ts: 'x' }, 0) &&
-       D.isClosed({ status: 'completed', completed_ts: '2026-09-01T10:00:00Z' }, Date.parse('2026-09-08T10:00:00Z')) && !D.isClosed({ status: 'completed', completed_ts: '2026-09-01T10:00:00Z' }, Date.parse('2026-09-07T10:00:00Z')));
-    ok('...then no Reopen any more', !D.canAct(eng1, 'reopen', { status: 'completed', requester_id: 'e1', results_ok_ts: 'x' }, toolW, 0));
+    ok('closed means Analyzed (Q34 superseded 2026-09-28)', D.isClosed({ status: 'analyzed' }, 0) && !D.isClosed({ status: 'completed' }, 0));
+    ok('...then no Reopen any more', !D.canAct(eng1, 'reopen', { status: 'analyzed', requester_id: 'e1' }, toolW, 0));
     var peopleA = [{ id: 'q1', name: 'Olga', away_from: '2026-09-20', away_until: '2026-09-30' }, { id: 'q2', name: 'Otto' }];
     eq('assigned at submit: the primary, or the backup when the primary is away (M3-7)', [D.assignOnSubmit(toolW, peopleA, '2026-10-01').id, D.assignOnSubmit(toolW, peopleA, '2026-09-24').id], ['q1', 'q2']);
     ok('...with a note for the timeline', /Olga is away/.test(D.assignOnSubmit(toolW, peopleA, '2026-09-24').note));
@@ -334,7 +335,8 @@
     rq.requests[0].status = 'completed';
     eq('...not once it is completed', D.submitWarnings(full, rq), []);
     var engU = { id: 'e1', roles: ['engineer'], active: true };
-    eq('drafts are private (Q33)', [D.canSeeRequest(engU, { status: 'draft', requester_id: 'e1' }), D.canSeeRequest(engU, { status: 'draft', requester_id: 'x' }), D.canSeeRequest(engU, { status: 'submitted', requester_id: 'x' })], [true, false, true]);
+    eq('drafts are private (Q33)', [D.canSeeRequest(engU, { status: 'draft', requester_id: 'e1' }), D.canSeeRequest(engU, { status: 'draft', requester_id: 'x' }), D.canSeeRequest(engU, { status: 'submitted', requester_id: 'e1' })], [true, false, true]);
+    eq('...engineers see only their own (Q32 superseded 2026-09-28)', D.canSeeRequest(engU, { status: 'submitted', requester_id: 'x' }), false);
     eq('several lot numbers: commas, spaces, lines, runs, each once', D.parseLotNumbers('18178, 18179\n18181-18183 18178 18178.01'),
        { numbers: ['18178', '18179', '18181', '18182', '18183', '18178.01'], errors: [] });
     eq('...bad ones are named; a run goes up, at most 100', D.parseLotNumbers('L1, 18180-18170, 1-200').errors.length, 3);
@@ -820,7 +822,7 @@
     eq('the tool, type and priority count as used', [ST.entryUsage('tools', qvm.id).text.indexOf('2 requests') !== -1, ST.entryUsage('priorities', normal.id).text], [true, '2 requests']);
     var d2 = await ST.saveDraft({ fields: { tool_id: qvm.id } });
     ST.setCurrentUser(tomL.id);
-    eq('someone else sees the submitted requests, not the draft', ST.visibleRequests().map(function (r) { return r.request_no; }).sort(), [s1.request_no, s2.request_no].sort());
+    eq('someone else sees none of them (own requests only), not even the draft', ST.visibleRequests().map(function (r) { return r.request_no; }), []);
     await refused('...cannot change it', ST.saveDraft({ id: d2.id, fields: { purpose: 'x' } }), 'not_allowed');
     await refused('...or delete it', ST.deleteDraft(d2.id), 'not_allowed');
     ST.setCurrentUser(qeL.id);
@@ -892,8 +894,11 @@
     var d3 = await ST.saveDraft({ fields: { tool_id: qvm.id } });
     await refused('no comments on a draft', ST.addComment(d3.id, 'x'), 'not_allowed');
     ST.setCurrentUser(tomL.id);
+    await refused('someone else cannot comment on it either', ST.addComment(s1.id, 'seen'), 'not_allowed');
+    ST.setCurrentUser(adminL);
     await ST.addComment(s1.id, 'seen');
     eq('anyone who can see it may comment', ST.requestEvents(s1.id).filter(function (e) { return e.kind === 'comment'; }).length, 2);
+    ST.setCurrentUser(tomL.id);
     await refused('someone else cannot cancel it', ST.cancelRequest(s1.id, 'x'), 'not_allowed');
     ST.setCurrentUser(adminL);
     await refused('cancel needs a reason', ST.cancelRequest(s1.id, ' '), 'invalid');
@@ -903,20 +908,20 @@
     await refused('...only once', ST.cancelRequest(s1.id, 'again'), 'not_allowed');
     await ST.deleteDraft(d3.id);
 
-    group('Store: the workflow (M3 step 1)');
+    group('Store: the workflow (RBAC, 2026-09-28)');
     await ST.saveEntry('tools', { id: qvm.id, fields: { primary_operator_id: qeL.id } });
+    var anL = await ST.saveEntry('users', { fields: { name: 'Ana Lyst', roles: ['analyst'] } });
     var w = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [4], priority_id: normal.id,
       panel_location: 'Rack B2', after: 'back_to_me', purpose: 'pads' } });
     eq('assigned to the primary at submit', w.assigned_to, qeL.id);
     ST.setCurrentUser(tomL.id);
     await refused('an engineer cannot accept', ST.requestAction(w.id, 'accept', {}), 'not_allowed');
+    await refused('...nor receive panels', ST.requestAction(w.id, 'receive', {}), 'not_allowed');
     ST.setCurrentUser(qeL.id);
     await refused('...nor can anyone complete before Start', ST.requestAction(w.id, 'complete', { results_path: 'Z:\\r', panels_outcome: 'returned' }), 'not_allowed');
+    await refused('...nor start before the panels arrive', ST.requestAction(w.id, 'start', {}), 'not_allowed');
     w = await ST.requestAction(w.id, 'accept', { expected_done: '2026-10-09' });
     eq('Accept with an expected done date (M3-1)', [w.status, w.expected_done], ['accepted', '2026-10-09']);
-    await ST.receivePanels(w.id, 'QVM shelf 1');
-    eq('Panels received: who, when, where (Q25)', [ST.byId('requests', w.id).received_by, ST.byId('requests', w.id).received_where], [qeL.id, 'QVM shelf 1']);
-    await refused('...only once', ST.receivePanels(w.id, 'x'), 'not_allowed');
     var holdR = ST.list('hold_reasons')[1];
     await refused('Hold needs a reason from the list', ST.requestAction(w.id, 'hold', {}), 'invalid');
     w = await ST.requestAction(w.id, 'hold', { hold_reason_id: holdR.id, note: 'stage error' });
@@ -928,29 +933,64 @@
    var holdTyped = ST.list('hold_reasons').filter(function (x) { return x.name === 'Sample prep delay'; })[0];
    eq('typed hold reason is created and linked', [!!holdTyped, w.hold_reason_id], [true, (holdTyped || {}).id]);
    w = await ST.requestAction(w.id, 'resume', {});
+    await ST.receivePanels(w.id, 'QVM shelf 1');
+    eq('Panels received: a state, with who, when, where (Q25)', [ST.byId('requests', w.id).status, ST.byId('requests', w.id).received_by, ST.byId('requests', w.id).received_where], ['panels_received', qeL.id, 'QVM shelf 1']);
+    await refused('...only once', ST.receivePanels(w.id, 'x'), 'not_allowed');
     w = await ST.requestAction(w.id, 'clarify', { text: 'Which pads?' });
     ST.setCurrentUser(adminL);
     w = await ST.requestAction(w.id, 'answer', { text: 'Corner pads' });
-    eq('Needs clarification -> Answered goes back to where it was (M3-2)', w.status, 'accepted');
+    eq('Needs clarification -> Answered goes back to where it was (M3-2)', w.status, 'panels_received');
     ST.setCurrentUser(qeL.id);
     w = await ST.requestAction(w.id, 'start', {});
+    eq('Start runs from Panels received', w.status, 'in_progress');
     await refused('Complete needs a results share path', ST.requestAction(w.id, 'complete', { results_path: 'results', panels_outcome: 'returned' }), 'invalid');
     w = await ST.requestAction(w.id, 'complete', { results_path: 'Z:\\lab\\QVM\\x', panels_outcome: 'returned' });
     eq('Complete: results path, panels returned (M3-6)', [w.status, w.results_path, w.panels_outcome, w.completed_by], ['completed', 'Z:\\lab\\QVM\\x', 'returned', qeL.id]);
+    await refused('a quality engineer cannot analyze', ST.requestAction(w.id, 'analyze', {}), 'not_allowed');
+    ST.setCurrentUser(tomL.id);
+    await refused('...nor can the engineer', ST.requestAction(w.id, 'analyze', {}), 'not_allowed');
     ST.setCurrentUser(adminL);
     await refused('Reopen needs a reason', ST.requestAction(w.id, 'reopen', {}), 'invalid');
     w = await ST.requestAction(w.id, 'reopen', { text: 'values look off' });
-    eq('Reopen -> Accepted, counted (Q34)', [w.status, w.reopened, w.completed_ts], ['accepted', 1, null]);
+    eq('Reopen -> Accepted, counted', [w.status, w.reopened, w.completed_ts], ['accepted', 1, null]);
     ST.setCurrentUser(qeL.id);
+    await ST.requestAction(w.id, 'receive', { received_where: 'QVM shelf 1' });
     await ST.requestAction(w.id, 'start', {});
     await ST.requestAction(w.id, 'complete', { results_path: 'Z:\\lab\\QVM\\x', panels_outcome: 'returned' });
-    ST.setCurrentUser(adminL);
-    w = await ST.requestAction(w.id, 'results_ok', {});
-    ok('Results OK closes it', !!w.results_ok_ts && D.isClosed(w, Date.now()));
+    ST.setCurrentUser(anL.id);
+    w = await ST.requestAction(w.id, 'analyze', {});
+    ok('Analyzed closes it, by the analyst', w.status === 'analyzed' && D.isClosed(w, Date.now()) && w.analyzed_by === anL.id);
+    await refused('...only once, and no reopen after', ST.requestAction(w.id, 'analyze', {}), 'not_allowed');
+    await refused('...no reopen after analyze', ST.requestAction(w.id, 'reopen', { text: 'x' }), 'not_allowed');
     eq('...the timeline tells the whole story', ST.requestEvents(w.id).map(function (e) { return e.kind === 'status' ? e.to : e.kind; }),
-       ['created', 'submitted', 'accepted', 'panels', 'on_hold', 'accepted', 'on_hold', 'accepted', 'clarification', 'accepted', 'in_progress', 'completed', 'accepted', 'in_progress', 'completed', 'results_ok']);
+       ['created', 'submitted', 'accepted', 'on_hold', 'accepted', 'on_hold', 'accepted', 'panels_received', 'clarification', 'panels_received', 'in_progress', 'completed', 'accepted', 'panels_received', 'in_progress', 'completed', 'analyzed']);
+
+    group('RBAC: who sees what (Q32 superseded 2026-09-28)');
+    var vEng = { id: 've', roles: ['engineer'], active: true };
+    var vQe = { id: 'vq', roles: ['quality'], active: true };
+    var vAn = { id: 'va', roles: ['analyst'], active: true };
+    var vOp = { id: 'vo', roles: ['operator'], active: true };
+    var vMgr = { id: 'vm', roles: ['manager'], active: true };
+    var vTool = { id: 'vt', primary_operator_id: 'vq' };
+    var ownSub = { status: 'submitted', requester_id: 've' };
+    var alien = { status: 'in_progress', requester_id: 'zx' };
+    var doneC = { status: 'completed', requester_id: 'zx' };
+    var doneA = { status: 'analyzed', requester_id: 'zx' };
+    eq('engineer: own only', [D.canSeeRequest(vEng, ownSub), D.canSeeRequest(vEng, alien), D.canSeeRequest(vEng, doneC)], [true, false, false]);
+    eq('analyst: completed + analyzed across tools, nothing open', [D.canSeeRequest(vAn, doneC), D.canSeeRequest(vAn, doneA), D.canSeeRequest(vAn, alien)], [true, true, false]);
+    eq('quality engineer: own tools queue', [D.canSeeRequest(vQe, alien, vTool), D.canSeeRequest(vQe, alien, { id: 'other' })], [true, false]);
+    eq('operator and manager read all; drafts stay private', [D.canSeeRequest(vOp, alien), D.canSeeRequest(vMgr, alien), D.canSeeRequest(vOp, { status: 'draft', requester_id: 'zx' })], [true, true, false]);
+    eq('rights: engineer and operator do no workflow, analyst only analyzes', [
+      D.canAct(vEng, 'accept', ownSub, vTool), D.canAct(vOp, 'start', alien, vTool),
+      D.canAct(vAn, 'analyze', doneC, vTool), D.canAct(vQe, 'analyze', doneC, vTool)], [false, false, true, false]);
+    eq('...quality engineers run the whole lab path', [
+      D.canAct(vQe, 'accept', { status: 'submitted', requester_id: 'zx' }, vTool),
+      D.canAct(vQe, 'receive', { status: 'accepted', requester_id: 'zx' }, vTool),
+      D.canAct(vQe, 'start', { status: 'panels_received', requester_id: 'zx' }, vTool),
+      D.canAct(vQe, 'complete', { status: 'in_progress', requester_id: 'zx' }, vTool)], [true, true, true, true]);
 
     group('Store: magazine slots, a new lot, put back, scrapped (F-3, F-5, M3-13)');
+    ST.setCurrentUser(adminL);
     var mq = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, new_lot: { lot_number: '40002' }, buildup_id: buL.id,
       panels: ['3252', '3253'], layers: ['1fco', '2F'], priority_id: normal.id, magazine_id: m1.id, slots: [4, 3], after: 'back_to_me', purpose: 'pads' } });
     var newLot = ST.data().lots.filter(function (x) { return x.lot_number === '40002'; })[0];
@@ -973,13 +1013,17 @@
     await refused('a layer not of the build-up is refused', ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: mq.lot_id, panel_count: 1,
       priority_id: normal.id, panel_location: 'x', layers: ['9F'], after: 'back_to_me', purpose: 'x' } }), 'invalid');
     ST.setCurrentUser(qeL.id);
-    await ST.requestAction(mq.id, 'start', { received: true });
+    await ST.requestAction(mq.id, 'accept', {});
+    await ST.requestAction(mq.id, 'receive', { received_where: 'QVM shelf 1' });
+    await ST.requestAction(mq.id, 'start', {});
     var m3 = ST.list('magazines')[2];
     await ST.requestAction(mq.id, 'complete', { results_path: 'Z:\\r', panels_outcome: 'returned', put_back: { magazine_id: m3.id, slots: [1, 2] } });
     eq('Complete: put back into another magazine\'s slots', ST.byId('requests', mq.id).put_back, { magazine_id: m3.id, slots: [1, 2] });
     ST.setCurrentUser(adminL);
     var fq = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: tool('FIB').id, type_id: typesOf('FIB')[0].id, lot_id: mq.lot_id, panels: ['3252'], priority_id: normal.id,
       panel_location: 'bench', destructive_ok: true, after: 'scrap', purpose: 'x' } });
+    await ST.requestAction(fq.id, 'accept', {});
+    await ST.requestAction(fq.id, 'receive', { received_where: 'FIB cabinet' });
     await ST.requestAction(fq.id, 'start', {});
     await ST.requestAction(fq.id, 'complete', { results_path: 'Z:\\r', panels_outcome: 'scrapped' });
     eq('FIB: the panel is marked scrapped on the lot', ST.byId('lots', mq.lot_id).scrapped, ['3252']);
@@ -1228,7 +1272,7 @@
     group('Demo data: every record keeps the app\'s rules');
     var DD = window.MRT.demoData({ now_ts: Date.parse('2026-09-24T09:30:00Z') });
     var badUsers = DD.users.filter(function (u) { return D.validateEntry('users', u, DD).length; });
-    eq('17 people, all valid: admin, 7 engineers, 2 operators, 3 QEs, 2 managers + a new one + a switched-off one', [DD.users.length, badUsers.length], [17, 0]);
+    eq('18 people, all valid: admin, 7 engineers, 2 operators, 3 QEs, 1 analyst, 2 managers + a new one + a switched-off one', [DD.users.length, badUsers.length], [18, 0]);
     var roleCount = function (r) { return DD.users.filter(function (u) { return u.active !== false && D.hasRole(u, r); }).length; };
     ok('...roles present: engineers, operators, quality engineers, managers, admin', roleCount('engineer') >= 7 && roleCount('operator') === 2 && roleCount('quality') >= 5 && roleCount('manager') === 2 && roleCount('admin') === 1);
     var badLots = DD.lots.map(function (l) { return [l.lot_number, D.validateEntry('lots', l, DD)]; }).filter(function (x) { return x[1].length; });

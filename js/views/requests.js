@@ -2,9 +2,9 @@
  * Metrology Request Tracker - views/requests.js
  *
  * My requests (#/requests, Q16, Q20, DECISIONS M3-11): the engineer's own
- * requests. "Waiting on you" on top (a clarification to answer, completed
- * results to check - Results OK / Reopen, Q34), then open ones, then the
- * rest, newest first; drafts in their own part. Status, needed-by with the
+ * requests, plus a "To analyze" part for analysts. "Waiting on you" on top
+ * (a clarification to answer, completed results to check - Reopen), then
+ * open ones, then the rest, newest first; drafts in their own part. Status, needed-by with the
  * lab-time countdown, expected done, who has it. Filter by status, tool or
  * a lot / request number ("where is my lot"). The 1 s tick updates the
  * countdown text only.
@@ -25,7 +25,7 @@ window.MRT.views.requests = (function () {
 
   var STATUS_FILTER = [
     { value: 'active', label: 'Waiting on me + open' }, { value: 'mine', label: 'Waiting on me' }, { value: 'open', label: 'Open' },
-    { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' }, { value: 'drafts', label: 'Drafts' }, { value: 'all', label: 'All' },
+    { value: 'completed', label: 'Completed' }, { value: 'analyzed', label: 'Analyzed' }, { value: 'cancelled', label: 'Cancelled' }, { value: 'drafts', label: 'Drafts' }, { value: 'all', label: 'All' },
     { value: 'templates', label: 'My templates' }
   ];
 
@@ -43,11 +43,12 @@ window.MRT.views.requests = (function () {
     var me = store.currentUser();
     clocks = [];
     var shownRows = [];      // the list as filtered now - what Download writes (Q48)
-    main.appendChild(ui.pageHead('My requests', 'Everything you asked the lab for. Waiting on you comes first.', [
+    var mineAll = store.visibleRequests(function (r) { return r.requester_id === me.id; });
+    var toAnalyze = D.canAnalyze(me) ? store.visibleRequests(function (r) { return r.status === 'completed' && r.requester_id !== me.id; }) : [];
+    main.appendChild(ui.pageHead('My requests', mineAll.length ? 'Everything you asked the lab for. Waiting on you comes first.' : 'Completed measurements waiting for analysis.', [
       window.MRT.exporter.rowsButton('Download', 'My requests', function () { return window.MRT.exporter.requestRows(shownRows); }),
       D.canRequest(me) ? ui.button('New request', { kind: 'primary', icon: 'plus', onClick: function () { location.hash = '#/new'; } }) : null]));
-    var mineAll = store.visibleRequests(function (r) { return r.requester_id === me.id; });
-    if (!mineAll.length) {
+    if (!mineAll.length && !toAnalyze.length) {
       main.appendChild(ui.emptyState({ icon: 'requests', title: 'No requests yet', text: 'Start with New request - register the lot first if it is new.',
         actionLabel: D.canRequest(me) ? 'New request' : null, onAction: function () { location.hash = '#/new'; } }));
       return;
@@ -79,6 +80,7 @@ window.MRT.views.requests = (function () {
           case 'mine': return waitingOnMe(r, now);
           case 'open': return D.isOpen(r);
           case 'completed': return r.status === 'completed';
+          case 'analyzed': return r.status === 'analyzed';
           case 'cancelled': return r.status === 'cancelled';
           case 'drafts': return r.status === 'draft';
           default: return true;
@@ -96,6 +98,9 @@ window.MRT.views.requests = (function () {
         list.length ? table(list.slice(0, view.shown), now) : ui.emptyState({ icon: 'requests', title: 'Nothing matches', text: 'Try "All" or clear the filter.' }),
         list.length > view.shown ? ui.button('Show ' + Math.min(PAGE, list.length - view.shown) + ' more', { size: 'sm', onClick: function () { view.shown += PAGE; draw(); } }) : null
       ]);
+      if (toAnalyze.length) holder.appendChild(ui.panel({ title: 'To analyze (all tools)', icon: 'check',
+        body: [ui.el('p', { class: 'muted', text: toAnalyze.length + ' completed measurement' + (toAnalyze.length === 1 ? '' : 's') + ' waiting for sign-off.' }),
+          table(toAnalyze, now)] }).node);
       tick();
     }
 
@@ -114,7 +119,7 @@ window.MRT.views.requests = (function () {
       var clock = ui.el('span', { class: 'q-clock' });
       clocks.push({ node: clock, r: r });
       var link = r.status === 'draft' ? '#/new/' + r.id : '#/request/' + r.id;
-      var acts = A.buttons(r, { size: 'sm', only: ['answer', 'results_ok', 'reopen'] });
+      var acts = A.buttons(r, { size: 'sm', only: ['answer', 'analyze', 'reopen'] });
       if (r.status === 'draft') acts.push(ui.button('Carry on', { size: 'sm', icon: 'edit', onClick: function () { location.hash = link; } }));
       return ui.el('tr', { id: 'row-' + r.id, class: 'q-row prio-' + (prio ? prio.level : 3) + (late ? ' is-late' : '') + (waitingOnMe(r, now) ? ' is-mine' : '') }, [
         ui.el('td', {}, ui.el('span', { class: 'cell-tool' }, [tool ? ui.toolGlyph(tool.glyph, { size: 24 }) : null,

@@ -47,7 +47,7 @@ window.MRT.exporter = (function () {
 
   var REQUEST_HEAD = ['Request ID', 'Status', 'Tool', 'Measurement type', 'Project', 'Part number', 'Lot', 'Build-up', 'Layers',
     'Panels', 'Panel count', 'Priority', 'Requester', 'Assigned to', 'Needed by', 'Expected done', 'Submitted', 'Accepted',
-    'Started', 'Completed', 'Results OK', 'Turnaround (lab h, hold out)', 'On hold (lab h)', 'Calendar (h)', 'On time',
+    'Started', 'Completed', 'Analyzed', 'Turnaround (lab h, hold out)', 'On hold (lab h)', 'Calendar (h)', 'On time',
     'Clarifications', 'Reopened', 'Results folder', 'Purpose'];
 
   /** One row per request (Q48 "current table view", the history, the pack). */
@@ -61,7 +61,7 @@ window.MRT.exporter = (function () {
         (r.layers || []).join(' '), (r.panels || []).join(', '), D.panelCountOf ? D.panelCountOf(r) : (r.panels || []).length,
         nameOf('priorities', r.priority_id), nameOf('users', r.requester_id), nameOf('users', r.assigned_to),
         r.needed_by || '', r.expected_done || '', stamp(r.submitted_ts), stamp(r.accepted_ts), stamp(r.started_ts),
-        stamp(t.completed_ts), stamp(r.results_ok_ts), hours(t.turnaround_ms), hours(t.hold_ms || null), hours(t.calendar_ms),
+        stamp(t.completed_ts), stamp(r.analyzed_ts), hours(t.turnaround_ms), hours(t.hold_ms || null), hours(t.calendar_ms),
         t.on_time === null ? '' : t.on_time ? 'yes' : 'no', t.clarifications, t.reopens, r.results_path || '', r.purpose || ''];
     }));
   }

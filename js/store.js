@@ -1485,7 +1485,7 @@ window.MRT.store = (function () {
       assert(t, 'Unknown action: ' + action);
       assert(D.canAct(me, action, r, tool, Date.now()), t.from.indexOf(r.status) === -1
         ? t.label + ' is not possible while the request is ' + D.REQUEST_STATUS_LABEL[r.status]
-        : 'Only ' + (t.who === 'measurer' ? 'the tool\'s quality engineers or an admin' : 'the requester or an admin') + ' can do this', 'not_allowed');
+        : 'Only ' + (t.who === 'measurer' ? 'the tool\'s quality engineers or an admin' : t.who === 'analyst' ? 'an analyst or an admin' : 'the requester or an admin') + ' can do this', 'not_allowed');
       x = x || {};
       if (action === 'hold') {
         var typedReason = String(x.hold_reason || '').trim();
@@ -1513,6 +1513,10 @@ window.MRT.store = (function () {
       var now = nowIso();
 
       if (action === 'accept') { r.expected_done = x.expected_done || null; r.accepted_ts = now; if (!r.assigned_to) r.assigned_to = me.id; }
+      if (action === 'receive') {
+        r.received_ts = now; r.received_by = me.id; r.received_where = String(x.received_where || '').trim();
+        if (r.received_where) text = 'Kept at ' + r.received_where;
+      }
       if (action === 'start') {
         r.started_ts = now;
         if (x.received && !r.received_ts) { r.received_ts = now; r.received_by = me.id; r.received_where = String(x.received_where || '').trim(); }
@@ -1530,12 +1534,12 @@ window.MRT.store = (function () {
         putBack(r, x.panels_outcome, x.put_back);
         text = D.PANEL_OUTCOME_LABEL[x.panels_outcome] + (r.panels_outcome_note ? ': ' + r.panels_outcome_note : '') + ' - results in ' + r.results_path;
       }
-      if (action === 'reopen') { r.reopened = (r.reopened || 0) + 1; r.completed_ts = null; r.results_ok_ts = null; }
-      if (action === 'results_ok') r.results_ok_ts = now;
+      if (action === 'reopen') { r.reopened = (r.reopened || 0) + 1; r.completed_ts = null; }
+      if (action === 'analyze') { r.analyzed_ts = now; r.analyzed_by = me.id; }
 
       r.status = to;
       r.version += 1;
-      event(r.id, action === 'results_ok' ? 'results_ok' : 'status', from, to, text);
+      event(r.id, 'status', from, to, text);
       if (action === 'accept' && r.expected_done) state.data.request_events[state.data.request_events.length - 1].expected_done = r.expected_done;
       // the reason as an ID too, so analytics can count on-hold reasons (Q20, M5)
       if (action === 'hold') state.data.request_events[state.data.request_events.length - 1].hold_reason_id = r.hold_reason_id;
@@ -1544,18 +1548,9 @@ window.MRT.store = (function () {
     });
   }
 
-  /** Panels received (Q25): who, when, kept where. */
+  /** Panels received (Q25, a real state since 2026-09-28): through the workflow engine. */
   function receivePanels(requestId, where) {
-    return guard(function () {
-      var me = requireUser();
-      var r = need('requests', requestId, 'Request');
-      assert(D.canReceive(me, r, byId('tools', r.tool_id)), r.received_ts ? 'The panels are marked received already' : 'Only the tool\'s quality engineers or an admin', 'not_allowed');
-      r.received_ts = nowIso(); r.received_by = me.id; r.received_where = String(where || '').trim();
-      r.version += 1;
-      event(r.id, 'panels', null, null, r.received_where ? 'Kept at ' + r.received_where : null);
-      audit('request', r.id, 'panels_received', 'received_where', null, r.received_where || '-', null);
-      return commit().then(function () { return r; });
-    });
+    return requestAction(requestId, 'receive', { received_where: where });
   }
 
   /** "Take it" (M3-7): the tool's other quality engineer takes the request over. */
@@ -1660,10 +1655,10 @@ window.MRT.store = (function () {
     });
   }
 
-  /** Requests the signed-in person may see (drafts only their own), newest first. */
+  /** Requests the signed-in person may see (RBAC, 2026-09-28), newest first. */
   function visibleRequests(filter) {
     var me = currentUser();
-    return (state.data.requests || []).filter(function (r) { return D.canSeeRequest(me, r) && (!filter || filter(r)); })
+    return (state.data.requests || []).filter(function (r) { return D.canSeeRequest(me, r, byId('tools', r.tool_id)) && (!filter || filter(r)); })
       .sort(function (a, b) { var x = a.submitted_ts || a.created_ts, y = b.submitted_ts || b.created_ts; return x < y ? 1 : x > y ? -1 : 0; });
   }
 
