@@ -1486,25 +1486,33 @@ table.grid tbody tr { scroll-margin: 80px; }
 .q-clock.is-soon { color: var(--warning-fg); }
 .q-clock.is-late { color: var(--expired-fg); font-weight: 700; }
 
-/* Board (M3-8): tool lanes x status columns, cards are mini travellers */
+/* Board (M3-8): the wall. Machine nameplates x a station rail; tickets flow left to right.
+   Colour stays quiet until it matters: neutral edges everywhere, red/amber only on attention. */
 .board-wrap { overflow-x: auto; }
-.board { display: grid; gap: 6px; min-width: 1010px; align-items: stretch; }
-.board-corner { display: flex; align-items: end; padding: 0 8px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-.board-colhead { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+.board { display: grid; gap: 8px 6px; min-width: 1010px; align-items: stretch; }
+.board-corner { display: flex; align-items: end; padding: 0 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--fg-faint); }
+/* Stations: a ghost numeral, the name, a tally. The top edge names the state. */
+.board-colhead { position: sticky; top: 0; z-index: 1; display: flex; align-items: baseline; gap: 10px; padding: 10px 12px 9px;
   border: 1px solid var(--line); border-top: 3px solid var(--line-strong); border-radius: var(--radius) var(--radius) 0 0;
   background: var(--surface-2); font-size: 13px; }
+.board-colhead.is-submitted { border-top-color: var(--fg-faint); }
 .board-colhead.is-in_progress { border-top-color: var(--accent); }
 .board-colhead.is-waiting { border-top-color: var(--warning); }
 .board-colhead.is-completed { border-top-color: var(--ok); }
-.board-step { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line-strong);
-  font-size: 10px; color: var(--fg-muted); }
+.board-step { font: 700 22px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg-faint); }
+.board-colhead.is-in_progress .board-step { color: var(--accent); }
+.board-colhead.is-waiting .board-step { color: var(--warning-fg); }
+.board-colhead.is-completed .board-step { color: var(--ok-fg); }
 .board-count { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 10px; background: var(--surface-3); text-align: center; font-weight: 700; font-size: 12px; }
 .board-count.is-zero { background: none; color: var(--fg-faint); font-weight: 400; }
-.board-lane { display: grid; grid-template-columns: auto 1fr; align-content: start; align-items: center; column-gap: 8px; row-gap: 4px; padding: 10px;
-  border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: var(--radius); background: var(--surface-2); }
-.board-lane.is-maintenance { border-left-color: var(--warning); }
-.board-lane.is-down { border-left-color: var(--critical); }
+/* Nameplates: engraved code, lamp with the state word, open tally. Colour only on attention. */
+.board-lane { display: grid; grid-template-columns: auto 1fr; align-content: start; align-items: center; column-gap: 10px; row-gap: 4px; padding: 10px 12px;
+  border: 1px solid var(--line-strong); border-left: 4px solid var(--line-strong); border-radius: var(--radius); background: var(--surface-2);
+  box-shadow: inset 0 1px 0 var(--accent-soft); }
+.board-lane.is-maintenance { border-left-color: var(--warning); background: color-mix(in srgb, var(--warning) 7%, var(--surface-2)); }
+.board-lane.is-down { border-left-color: var(--critical); background: color-mix(in srgb, var(--critical) 8%, var(--surface-2)); }
 .board-lane-name { display: grid; gap: 2px; min-width: 0; }
+.board-lane-name .mono { font-size: 15px; font-weight: 800; letter-spacing: .08em; }
 .board-lane-open { grid-column: 1 / -1; font-size: 11px; }
 .board-lamp { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--fg-muted); }
 .board-lamp i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft, transparent); }
@@ -1536,8 +1544,8 @@ dialog.drawer::backdrop { background: rgba(0,0,0,.28); }
 .drawer-foot { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--surface-2); }
 .drawer-foot .btn:last-child { margin-left: auto; }
 .bcard { position: relative; display: grid; gap: 3px; padding: 7px 8px 7px 12px; border: 1px solid var(--line-strong); border-radius: 4px;
-  background: var(--surface); color: var(--fg); text-decoration: none; font-size: 12px; transition: transform var(--t-fast) var(--ease); }
-.bcard:hover { transform: translateY(-1px); }
+  background: var(--surface); color: var(--fg); text-decoration: none; font-size: 12px; transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease); }
+.bcard:hover { transform: translateY(-1px); border-color: var(--accent); }
 .bcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .bcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 4px 0 0 4px; background: var(--ok); }
 .bcard.prio-1::before { background: var(--critical); }
@@ -1545,7 +1553,7 @@ dialog.drawer::backdrop { background: rgba(0,0,0,.28); }
 .bcard.prio-4::before { background: var(--fg-faint); }
 .bcard.is-urgent::after { content: ""; position: absolute; inset: -1px; border-radius: 4px; box-shadow: 0 0 10px 1px var(--critical); opacity: .2;
   animation: stripe-pulse 1.6s ease-in-out infinite; pointer-events: none; }
-.bcard.is-late { border-color: var(--expired); }
+.bcard.is-late { border-color: var(--expired); background: color-mix(in srgb, var(--expired) 9%, var(--surface)); }
 .bcard-top { display: flex; justify-content: space-between; gap: 6px; }
 .bcard-prio { font-weight: 700; }
 .bcard-line { display: flex; align-items: center; gap: 6px; color: var(--fg-muted); }
