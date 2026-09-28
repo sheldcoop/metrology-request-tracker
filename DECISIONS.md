@@ -449,6 +449,10 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
 - **T-3** Parts hidden since (type, BKM, project, part number, build-up, layers, priority, extra
   fields) are left empty with a note; a template whose tool is out of use cannot be started, only
   deleted. Rules: `domain.templateFieldsOf / templateNameProblems / templateCheck`, with tests.
+- **Changed 2026-09-28, Prince:** a template keeps **everything** filled in on the form - lot,
+  panels, process step, magazine slots, place, needed-by date and priority reason too.
+  Unavailable parts (lot gone, magazine/process step hidden, new names that exist by now)
+  are left empty with a note, as in T-3.
 
 ## Hirata code (2026-09-25, Prince) - PLANNED, ask before building
 Prince's Hirata tool (decoder + pattern finder) is built into the app, rebuilt to our rules

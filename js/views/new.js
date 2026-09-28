@@ -929,7 +929,7 @@ window.MRT.views['new'] = (function () {
     ]) : ui.el('div', { class: 'req-actions' }, [
       draft ? ui.button('Delete draft', { kind: 'ghost', icon: 'trash', onClick: deleteDraft }) : null,
       ui.el('span', { class: 'spacer' }),
-      ui.button('Save as template', { kind: 'ghost', icon: 'requests', title: 'Keep what stays the same for next time (not the lot, panels, place or dates)',
+      ui.button('Save as template', { kind: 'ghost', icon: 'requests', title: 'Keep everything filled in for next time',
         onClick: function () {
           if (!st.tool_id) return ui.toast({ kind: 'warning', message: 'Pick the tool first - a template needs one.' });
           var t = byId('tools', st.tool_id), ty = byId('measurement_types', st.type_id);

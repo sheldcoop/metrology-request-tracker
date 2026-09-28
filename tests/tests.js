@@ -831,9 +831,9 @@
 
     group('Personal request templates (Q28, T-1..T-3)');
     var tf = D.templateFieldsOf(s1);
-    eq('a template keeps what stays the same', Object.keys(tf).sort(), D.TEMPLATE_FIELDS.slice().sort());
-    ok('...never the lot, panels, place, dates or priority reason', ['lot_id', 'panels', 'panel_location', 'magazine_id', 'slots', 'needed_by', 'priority_reason', 'request_no']
-       .every(function (k) { return !(k in tf); }));
+    eq('a template keeps everything in the form', Object.keys(tf).sort(), D.TEMPLATE_FIELDS.slice().sort());
+    eq('...lot, panels and place kept (changed 2026-09-28)', [tf.lot_id, tf.panels, tf.panel_location], [s1.lot_id, s1.panels, s1.panel_location]);
+    ok('...never the request itself', ['request_no', 'duplicated_from'].every(function (k) { return !(k in tf); }));
     eq('names: required, not twice (any case)', [D.templateNameProblems('  ', []).length, D.templateNameProblems('QVM pads', [{ name: 'qvm  PADS' }]).length, D.templateNameProblems('QVM pads', []).length], [1, 1, 0]);
     await refused('a quality engineer alone keeps no templates', (ST.setCurrentUser(qeL.id), ST.saveTemplate({ name: 'x', request_id: s1.id })), 'not_allowed');
     ST.setCurrentUser(adminL);
@@ -842,7 +842,7 @@
        [qvm.id, qType.id, 'Z:\\bkm\\my.pptx', adminL, 'template']);
     await refused('the same name twice is refused', ST.saveTemplate({ name: 'qvm pads', request_id: s2.id }), 'invalid');
     var tp2 = await ST.saveTemplate({ name: 'From the form', fields: { tool_id: qvm.id, purpose: 'x', lot_id: lx.id, panels: ['1'] } });
-    ok('...from the form\'s fields too (and the lot is dropped)', !('lot_id' in tp2.fields) && tp2.fields.purpose === 'x');
+    eq('...from the form\'s fields too (lot and panels kept)', [tp2.fields.lot_id, tp2.fields.panels, tp2.fields.purpose], [lx.id, ['1'], 'x']);
     ST.setCurrentUser(tomL.id);
     eq('templates are personal: someone else sees none of them', ST.myTemplates(tomL.id).length, 0);
     await refused('...and cannot rename or delete one', ST.deleteTemplate(tp1.id), 'not_allowed');
@@ -857,6 +857,26 @@
     eq('a hidden type is left empty, with a note (T-3)', [ck2.usable, ck2.fields.type_id, ck2.notes], [true, null, ['The measurement type of this template is hidden - pick another']]);
     hid.tools.forEach(function (t) { if (t.id === qvm.id) t.active = false; });
     eq('its tool out of use: cannot be started, only deleted', [D.templateCheck(tp1, hid).usable, D.templateCheck(tp1, hid).reason], [false, 'Its tool is no longer in use']);
+    var magL = ST.list('magazines')[0];
+    var tp3 = await ST.saveTemplate({ name: 'Full', fields: { tool_id: qvm.id, lot_id: lx.id, panels: ['3252'], panel_count: 1,
+      process_step_id: ps1.id, magazine_id: magL.id, slots: [3], panel_location: 'Rack B2', needed_by: '2026-10-09',
+      priority_id: normal.id, priority_reason: 'Audit Friday', after: 'back_to_me', purpose: 'x' } });
+    var ck3 = D.templateCheck(tp3, ST.data());
+    eq('a full template starts as-is: usable, no notes', [ck3.usable, ck3.notes, ck3.fields.lot_id, ck3.fields.panels, ck3.fields.slots, ck3.fields.needed_by, ck3.fields.priority_reason],
+       [true, [], lx.id, ['3252'], [3], '2026-10-09', 'Audit Friday']);
+    var gone = JSON.parse(JSON.stringify(ST.data()));
+    gone.magazines.forEach(function (m) { if (m.id === magL.id) m.active = false; });
+    gone.lots = gone.lots.filter(function (l) { return l.id !== lx.id; });
+    var ck4 = D.templateCheck(tp3, gone);
+    eq('a hidden magazine is left empty with slots cleared; a gone lot too', [ck4.fields.magazine_id, ck4.fields.slots, ck4.fields.lot_id, ck4.notes],
+       [null, [], null, ['The lot of this template is gone - pick another', 'The magazine of this template is hidden - pick another']]);
+    await ST.deleteTemplate(tp3.id);
+    var prjCode = ST.list('projects')[0].code;
+    var tp4 = await ST.saveTemplate({ name: 'New names', fields: { tool_id: qvm.id, new_project: { code: prjCode }, new_type: { name: '  ' } } });
+    var ck5 = D.templateCheck(tp4, ST.data());
+    eq('a new name that exists by now is left empty, with a note; a blank one dropped quietly', [ck5.fields.new_project, ck5.fields.new_type, ck5.notes],
+       [null, null, ['Project ' + prjCode + ' exists already - pick it from suggestions']]);
+    await ST.deleteTemplate(tp4.id);
     await ST.deleteTemplate(tp2.id);
     eq('delete, audited', [ST.myTemplates(adminL).length, ST.data().audit_log.slice(-1)[0].action], [1, 'delete']);
     var v10 = ST._pure.seedData(); v10.schema_version = 10; delete v10.templates;
@@ -928,7 +948,7 @@
     w = await ST.requestAction(w.id, 'results_ok', {});
     ok('Results OK closes it', !!w.results_ok_ts && D.isClosed(w, Date.now()));
     eq('...the timeline tells the whole story', ST.requestEvents(w.id).map(function (e) { return e.kind === 'status' ? e.to : e.kind; }),
-       ['created', 'submitted', 'accepted', 'panels', 'on_hold', 'accepted', 'clarification', 'accepted', 'in_progress', 'completed', 'accepted', 'in_progress', 'completed', 'results_ok']);
+       ['created', 'submitted', 'accepted', 'panels', 'on_hold', 'accepted', 'on_hold', 'accepted', 'clarification', 'accepted', 'in_progress', 'completed', 'accepted', 'in_progress', 'completed', 'results_ok']);
 
     group('Store: magazine slots, a new lot, put back, scrapped (F-3, F-5, M3-13)');
     var mq = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, new_lot: { lot_number: '40002' }, buildup_id: buL.id,
