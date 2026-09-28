@@ -55,6 +55,7 @@
     ['Main', 'Personal'].forEach(function (g) {
       var list = T.list.filter(function (t) { return t.group === g; });
       if (!list.length) return;
+      if (!list.length) return;
       groups.push(el('div', { class: 'tg-group-title', text: g }));
       groups.push(el('div', { class: 'tg-grid' }, list.map(card)));
     });
