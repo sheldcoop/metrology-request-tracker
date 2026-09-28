@@ -461,7 +461,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('the request page shows each panel as copper with its decoded fields (H-3)', $$('#main .traveller .cu-panel').length === req1.panels.length &&
         /Lot per day/.test($('#main .traveller .hf-list').textContent));
   check('...no date: "the priority says how urgent it is"', /priority says how urgent/.test($('#main .tr-clock').textContent));
-  check('the status rail: Submitted now, by whom and when', $$('#main .rail-step').length === 4 && $('#main .rail-step.is-now').textContent.indexOf('Submitted') === 0 && /Prince Khurana/.test($('#main .rail-step.is-now').textContent));
+  check('the status rail: Submitted now, by whom and when', $$('#main .rail-step').length === 6 && $('#main .rail-step.is-now').textContent.indexOf('Submitted') === 0 && /Prince Khurana/.test($('#main .rail-step.is-now').textContent));
   check('the results folder is proposed from the tool root (Q30)', mainText().indexOf('\\\\srv\\lab\\FIB\\') !== -1 && mainText().indexOf(req1.request_no + '\\') !== -1);
   setVal(fieldIn(doc.getElementById('main'), 'Add a comment'), 'Please cut near via 3, @olga');
   buttonByText(doc.getElementById('main'), 'Add comment').click(); await settle();
@@ -538,16 +538,18 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
       check('...saved with a reason, the timeline says what changed', MRT.store.byId('requests', req2.id).layers.join() === '2F,2B' && /layers 2F -> 2F, 2B\. Reason: Core too/.test(mainText()));
   const meP = MRT.store.currentUser().id;
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
-  check('Olga sees Accept, Start, Hold, Needs clarification, Panels received', ['Accept', 'Start', 'Hold', 'Needs clarification', 'Panels received'].every(t => !!buttonByText($('#main .req-actbar'), t)));
+  check('Olga sees Accept, Hold, Needs clarification - Start waits for the panels', ['Accept', 'Hold', 'Needs clarification'].every(t => !!buttonByText($('#main .req-actbar'), t)) && !buttonByText($('#main .req-actbar'), 'Start'));
   buttonByText($('#main .req-actbar'), 'Accept').click(); await settle();
   setVal(fieldIn(openDialog(), 'Expected done'), '2030-01-10'); buttonByText(openDialog(), 'Save').click(); await settle();
   check('Accept with an expected done date: stamp Accepted, date on the card', MRT.store.byId('requests', req2.id).status === 'accepted' && $('#main .tr-stamp').textContent === 'Accepted' && /Expected done/.test($('#main .traveller').textContent));
   check('...the new stamp presses on and the rail fills (P3)', $('#main .tr-stamp').classList.contains('is-stamping') && $('#main .status-rail').classList.contains('is-filling'));
-  buttonByText($('#main .req-actbar'), 'Start').click(); await settle();
-  check('Start asks "Panels received?" once, ticked (M3-3)', !!openDialog() && tickIn(openDialog(), 'Panels received').checked === true);
+  check('...now Panels received, still no Start', !!buttonByText($('#main .req-actbar'), 'Panels received') && !buttonByText($('#main .req-actbar'), 'Start'));
+  buttonByText($('#main .req-actbar'), 'Panels received').click(); await settle();
   setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Save').click(); await settle();
+  check('...Panels received with the place, then Start in one click', MRT.store.byId('requests', req2.id).status === 'panels_received' && /FIB cabinet/.test($('#main .traveller').textContent) && !!buttonByText($('#main .req-actbar'), 'Start'));
+  buttonByText($('#main .req-actbar'), 'Start').click(); await settle();
   const r2 = MRT.store.byId('requests', req2.id);
-  check('...In progress, panels received with the place', r2.status === 'in_progress' && r2.received_where === 'FIB cabinet' && /FIB cabinet/.test($('#main .traveller').textContent));
+  check('...In progress', r2.status === 'in_progress');
   const hasCu = !!$('#main .panel-hirata');
   check('...the panels slide into the lab tray (P4)' + (hasCu ? '' : ' [no Hirata IDs here]'), !hasCu || (!!$('#main .panel-tray.is-animating') && /lab tray/i.test($('#main .panel-tray').textContent)));
   let filedToast = null; const realToast = MRT.ui.toast;
@@ -562,9 +564,13 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Complete: the toast files the folder and offers Copy results path (P6)', !!filedToast && filedToast.cls === 'is-filed' && filedToast.icon === 'folder' &&
         filedToast.actions.some(a => a.label === 'Copy results path'));
   MRT.store.setCurrentUser(meP); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
-  check('the requester now sees Results OK and Reopen (Q34)', !!buttonByText($('#main .req-actbar'), 'Results OK') && !!buttonByText($('#main .req-actbar'), 'Reopen'));
-  buttonByText($('#main .req-actbar'), 'Results OK').click(); await settle();
-  check('...Results OK: stamp Closed', $('#main .tr-stamp').textContent === 'Closed' && !$('#main .req-actbar'));
+  check('the requester now sees Reopen (Analyze is the analyst\'s, admins excepted)', !!buttonByText($('#main .req-actbar'), 'Reopen'));
+  const ruth = await MRT.store.saveEntry('users', { fields: { name: 'Ruth Adler', roles: ['analyst'] } });
+  MRT.store.setCurrentUser(ruth.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
+  check('the analyst sees Mark analyzed across tools', !!buttonByText($('#main .req-actbar'), 'Mark analyzed'));
+  buttonByText($('#main .req-actbar'), 'Mark analyzed').click(); await settle();
+  check('...Analyzed: stamp Closed', MRT.store.byId('requests', req2.id).status === 'analyzed' && $('#main .tr-stamp').textContent === 'Closed' && !$('#main .req-actbar'));
+  MRT.store.setCurrentUser(meP); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
   buttonByText(doc.getElementById('main'), 'Print slip').click(); await settle();
   check('Print slip: the A6 traveller slip with the ID, its barcode and the panels (Q38)', !!$('#main .slip') && $('#main .slip-id').textContent === req2.request_no &&
         $('#main .barcode').querySelectorAll('rect').length > 30 && /DESTROYS THESE PANELS/.test($('#main .slip').textContent));
@@ -589,7 +595,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('..."Mark all as read" clears the count', !visible('bellCount'));
   const qRows = $$('#main .q-row');
   check('My queue: Olga\'s FIB requests, the Line stop on top (M2-5)', qRows.length === 2 && qRows[0].textContent.indexOf(qL.request_no) !== -1 && qRows[0].classList.contains('prio-1'));
-  check('..."assigned to you" first, one-click Accept / Start on the row', /Assigned to you/.test(mainText()) && !!buttonByText(qRows[0], 'Accept') && !!buttonByText(qRows[0], 'Start'));
+  check('..."assigned to you" first, one-click Accept on the row (Start waits for the panels)', /Assigned to you/.test(mainText()) && !!buttonByText(qRows[0], 'Accept') && !buttonByText(qRows[0], 'Start'));
   qRows.forEach(tr => { const cb = tr.querySelector('input'); cb.checked = true; cb.dispatch('change'); });
   await settle();
   check('...ticking two offers Accept all (2)', !!buttonByText($('#main .queue-bulk'), 'Accept all (2)'));
@@ -616,17 +622,22 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   // --- the board (M3 step 4)
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
-  check('Board: a lane per tool, five columns, the two accepted FIB cards', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 5 &&
+  check('Board: a lane per tool, six columns, the two accepted FIB cards', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 6 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 2);
   const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
   check('...the Line stop card pulses, has a needed-by gauge, nothing is draggable', lsCard.classList.contains('is-urgent') && !!lsCard.querySelector('.bgauge') &&
         $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
   lsCard.dispatch('click'); await settle();
   const drw = win.document.querySelector('dialog.drawer');
-  check('...a click opens the side panel with the traveller and Start (P5-3)', !!drw && /Start/.test(drw.textContent) && /Open full page/.test(drw.textContent));
-  buttonByText(drw, 'Start').click(); await settle();
-  check('...Start from the panel asks "Panels received?"', !!openDialog() && !!tickIn(openDialog(), 'Panels received'));
+  check('...a click opens the side panel with the traveller and Panels received (P5-3)', !!drw && /Panels received/.test(drw.textContent) && /Open full page/.test(drw.textContent));
+  buttonByText(drw, 'Panels received').click(); await settle();
   buttonByText(openDialog(), 'Save').click(); await settle();
+  check('...received into Panels received', MRT.store.byId('requests', qL.id).status === 'panels_received' &&
+        $$('#main .board-cell').filter(c => c.dataset.col === 'panels_received' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
+  $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0].dispatch('click'); await settle();
+  const drw2 = win.document.querySelector('dialog.drawer');
+  check('...reopen the panel: Start is there now', !!drw2 && !!buttonByText(drw2, 'Start'));
+  buttonByText(drw2, 'Start').click(); await settle();
   check('...and the card moves, the panel closes', MRT.store.byId('requests', qL.id).status === 'in_progress' && !win.document.querySelector('dialog.drawer') &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
   check('...tools with nothing on them fold to one line', $$('#main .board-fold').length === $$('#main .board-lane.is-empty').length);
@@ -645,7 +656,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   bs.value = ''; bs.dispatch('input');
   const doneSw = $$('#main input').filter(i => i.getAttribute('role') === 'switch')[0];
   doneSw.checked = false; doneSw.dispatch('change'); await settle();
-  check('Board: the Completed column can be hidden (P5-7)', $$('#main .board-colhead').length === 4 && !$$('#main .board-cell').some(c => c.dataset.col === 'completed'));
+  check('Board: the Completed column can be hidden (P5-7)', $$('#main .board-colhead').length === 5 && !$$('#main .board-cell').some(c => c.dataset.col === 'completed'));
   const doneSw2 = $$('#main input').filter(i => i.getAttribute('role') === 'switch')[0];
   doneSw2.checked = true; doneSw2.dispatch('change'); await settle();
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
@@ -653,7 +664,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const fibPlateQ = $$('#main .tool-plate').filter(p => /FIB/.test(p.textContent))[0];
   check('Lab status shows each tool\'s queue: open, oldest open, typical wait (Q46)', /2 open/.test(fibPlateQ.textContent) && /Oldest open/.test(fibPlateQ.textContent) && /lab time \(last/.test(fibPlateQ.textContent));
   win.setHash('#/board'); await settle();
-  check('an engineer reads the board, drags nothing', $$('#main .bcard').length >= 2 && !$$('#main .bcard').some(c => c.getAttribute('draggable') === 'true'));
+  check('an engineer with no own requests sees no cards (own only)', $$('#main .bcard').length === 0);
   MRT.store.setCurrentUser(meP);
 
   win.setHash('#/lots'); await settle();
@@ -694,6 +705,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const qvmT = MRT.store.list('tools').filter(t => t.code === 'QVM')[0];
   await MRT.store.saveEntry('tools', { id: qvmT.id, fields: { primary_operator_id: olga.id } });
   MRT.store.setCurrentUser(olga.id);
+  await MRT.store.requestAction(qvmReq.id, 'accept', {});
+  await MRT.store.requestAction(qvmReq.id, 'receive', { received_where: 'QVM bench' });
   await MRT.store.requestAction(qvmReq.id, 'start', {});
   win.setHash('#/lab'); await settle(); win.setHash('#/request/' + qvmReq.id); await settle();
   buttonByText($('#main .req-actbar'), 'Complete').click(); await settle();
