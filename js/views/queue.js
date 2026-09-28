@@ -102,7 +102,7 @@ window.MRT.views.queue = (function () {
       ui.mount(bulk, ids.length ? [
         ui.el('span', { text: ids.length + ' ticked' }),
         ui.button('Accept all (' + canAccept.length + ')', { size: 'sm', kind: 'primary', icon: 'check', disabled: !canAccept.length, onClick: function () { runAll(canAccept, 'accept', {}); } }),
-        ui.button('Start all (' + canStart.length + ')', { size: 'sm', icon: 'activity', disabled: !canStart.length, onClick: function () { runAll(canStart, 'start', { received: true }); } }),
+        ui.button('Start all (' + canStart.length + ')', { size: 'sm', icon: 'activity', disabled: !canStart.length, onClick: function () { runAll(canStart, 'start', {}); } }),
         ui.button('Clear', { size: 'sm', kind: 'ghost', onClick: function () { picked = {}; draw(); } })
       ] : null);
       bulk.hidden = !ids.length;
@@ -144,7 +144,7 @@ window.MRT.views.queue = (function () {
       var clock = ui.el('span', { class: 'q-clock' });
       clocks.push({ node: clock, r: r });
       var who = byId('users', r.requester_id), assigned = byId('users', r.assigned_to);
-      var actions = A.buttons(r, { size: 'sm', only: ['accept', 'start', 'complete', 'resume', 'received', 'take'] });
+      var actions = A.buttons(r, { size: 'sm', only: ['accept', 'receive', 'start', 'complete', 'resume', 'take'] });
       if (bkmPath) actions.push(ui.button('', { kind: 'ghost', size: 'sm', icon: 'copy', ariaLabel: 'Copy BKM path of ' + r.request_no, title: 'Copy BKM path',
         onClick: function () { ui.copyText(bkmPath, 'BKM path copied'); } }));
       return ui.el('tr', { id: 'row-' + r.id, class: 'q-row prio-' + (prio ? prio.level : 3) + (late ? ' is-late' : '') }, [

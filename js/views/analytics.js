@@ -222,7 +222,7 @@ window.MRT.views.analytics = (function () {
     var now = Date.now(), cal = store.calendar();
     var mine = store.visibleRequests(function (r) { return r.requester_id === me.id && r.status !== 'draft'; });
     var open = mine.filter(D.isOpen);
-    var waiting = mine.filter(function (r) { return r.status === 'clarification' || (r.status === 'completed' && !r.results_ok_ts && !D.isClosed(r, now)); });
+    var waiting = mine.filter(function (r) { return r.status === 'clarification' || r.status === 'completed'; });
     var an = A.get(state.filter);
     var doneMine = an.ids.done.filter(function (id) { var r = byId('requests', id); return r && r.requester_id === me.id; });
     function idsOf(rows) { return rows.map(function (r) { return r.id; }); }

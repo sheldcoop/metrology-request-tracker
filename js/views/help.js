@@ -98,7 +98,7 @@ window.MRT.views.help = (function () {
       steps: [
         'The traveller card on top: request ID, tool, status stamp, lot, priority (the coloured stripe: red Line stop, amber Hot, green Normal, grey Low), needed-by, the panels (Hirata IDs or how many), layers, and the magazine with its slots.',
         'The countdown counts lab time only (lab days and hours, minus holidays): "13 h lab time left (3 days)". Outside lab hours it says "clock paused". Late requests turn red.',
-        'The status rail shows each step - Submitted, Accepted, In progress, Completed - with who and when.',
+        'The status rail shows each step - Submitted, Accepted, Panels received, In progress, Completed, Analyzed - with who and when.',
         'On the right: the BKM path and the proposed results folder, each with a Copy button, the details and the people.',
         'Timeline: every status change and comment. Write @Name (or @windowsid) to point someone at a comment - they are notified from M4.',
         'Cancel request (requester, the tool\'s quality engineers, admins): give a reason. A cancelled request stays visible, never deleted.'
@@ -110,7 +110,7 @@ window.MRT.views.help = (function () {
     { id: 'my-requests', title: 'My requests (engineers)', icon: 'requests',
       intro: 'Everything you asked the lab for - your start page as an engineer.',
       steps: [
-        'Waiting on you comes first (yellow): a question to answer (Answered), or completed results to check (Results OK or Reopen with a reason).',
+        'Waiting on you comes first (yellow): a question to answer (Answered), or completed results to check (Reopen with a reason - an analyst closes them as Analyzed).',
         'Then your open requests: status, needed-by with the lab-time countdown, the expected done date (bold when later than you need it) and who has it.',
         'Show: waiting on me, open, completed, cancelled, drafts or all. Type a lot number to see where your lot is across all tools.',
         'Click a request ID for its page; a draft opens in the form. Drafts untouched for 30 days are marked "30+ days" - submit or delete them.'
@@ -120,7 +120,7 @@ window.MRT.views.help = (function () {
     { id: 'board', title: 'The board', icon: 'board',
       intro: 'Every open request at a glance: one lane per tool, one column per status.',
       steps: [
-        'Columns: Submitted, Accepted, In progress, Waiting (on hold or a question to the engineer), Completed in the last 7 days.',
+        'Columns: Submitted, Accepted, Panels received, In progress, Waiting (on hold or a question to the engineer), Completed in the last 7 days.',
         'Cards: request ID, priority, lot and panels, the countdown and who has it. An open Line stop pulses red.',
         'Click a card: a side panel opens with the full traveller and the buttons you may use (Accept, Start, Hold, Complete ...), with the same small dialogs as the request page. Ctrl+click opens the full page. Tools with nothing on them fold to one line; the bar on each card shows how much time is left until Needed by.',
         'Everyone else reads the board. Click a card for the full request; every action is also a button there.'
@@ -143,14 +143,14 @@ window.MRT.views.help = (function () {
       intro: 'The buttons under the traveller card show what you may do now. Only the tool\'s primary and backup quality engineers (and admins) see them.',
       steps: [
         'Accept - optionally with an "expected done" date; the engineer sees it.',
-        'Panels received - who, when and where they are kept in the lab. Start asks for it once if you have not clicked it yet.',
+        'Panels received - who, when and where they are kept in the lab. Nothing starts before the panels arrive.',
         'Start - the request is In progress; the tool drawing on the card comes alive.',
         'Hold - pick why (Settings > Lists > On-hold reasons) and add a note; the clock pauses. Resume brings it back to where it was.',
         'Needs clarification - say what is missing; it goes back to the engineer. When they click Answered it returns to where it was.',
         'Complete - the results folder is proposed from the tool\'s results root (change it if needed); say what happened to the panels (FIB: scrapped).',
         'Take it - the backup takes over a request assigned to the primary. New requests go to the backup when the primary is away.'
       ],
-      tips: ['The engineer then clicks Results OK or Reopen (with a reason). A completed request closes by itself after 7 days.'] },
+      tips: ['The engineer may Reopen completed results (with a reason). An analyst then marks them Analyzed, which closes the request.'] },
 
     { id: 'bell', title: 'Notifications (the bell)', icon: 'bell',
       intro: 'The bell at the top shows what is new for you - a red number counts the unread ones.',
@@ -179,7 +179,7 @@ window.MRT.views.help = (function () {
       intro: 'For requests you make again and again: keep what stays the same, add only the lot, panels, place and date.',
       steps: [
         'On one of your requests (or the form\'s last step), click "Save as template" and give it a name.',
-        'New request: pick it under "Start from a template". Tool, type, BKM, project, part number, build-up, layers, afterwards, priority, purpose and extra fields are filled in.',
+        'New request: pick it under "Start from a template". Everything saved is filled in - including lot, panels, magazine, place, date and priority reason; change what differs.',
         'My requests > filter "My templates": use, rename or delete your templates. Only you see them.'
       ],
       tips: ['If something a template uses was hidden since (a BKM, a type ...), that part stays empty with a note - pick it again.',
@@ -285,7 +285,7 @@ window.MRT.views.help = (function () {
       steps: [
         'Settings > Data & PIN > Try it out: "Add 3 sample lots" adds made-up lots (tagged Sample) to try the app. Delete them on the Lots page before real use.',
         'Settings > Data & PIN shows the data file, lets you download a copy now, and lists the daily backups.',
-        'Test data (Settings > Data & PIN): "Fill with demo data" puts the made-up demo (17 people, ~260 requests) into this folder - you become its Prince Khurana (admin) with your own Windows ID and keep your PIN. "Start empty" starts again like a first run with only you. Both keep the current file in the backups first; restore it from the Backups list ("before demo data").',
+        'Test data (Settings > Data & PIN): "Fill with demo data" puts the made-up demo (18 people, ~260 requests) into this folder - you become its Prince Khurana (admin) with your own Windows ID and keep your PIN. "Start empty" starts again like a first run with only you. Both keep the current file in the backups first; restore it from the Backups list ("before demo data").',
         'Restore puts everything back to that day for everyone. The current file is kept as a safety copy first, and the audit log keeps every entry. A reason is required.',
         'Settings > Audit log: every change - who, when, what, old and new value, reason. Type in Filter to search.',
         'Change the admin PIN under Data & PIN. Tell the other admins.',

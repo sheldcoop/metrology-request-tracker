@@ -80,7 +80,7 @@ window.MRT.views.lab = (function () {
     var samples = types.filter(function (m) { return m.sample; }).length + bkms.filter(function (b) { return b.sample; }).length;
     var canSet = D.canSetToolStatus(me, t);
     var today = D.viennaYmd(Date.now());
-    var q = D.toolQueueStats(store.visibleRequests(), t.id, Date.now(), store.calendar(), D.holidaySet(store.data().holidays));
+    var q = D.toolQueueStats(store.data().requests || [], t.id, Date.now(), store.calendar(), D.holidaySet(store.data().holidays));
     function hrs(ms) { return ui.formatDurationH(ms / 3600000); }
 
     function row(label, value, cls) {

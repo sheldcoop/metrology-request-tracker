@@ -105,7 +105,7 @@ window.MRT.views['new'] = (function () {
     }
     var src = draft ? JSON.parse(JSON.stringify(draft)) : null;
     var from = q.from ? byId('requests', q.from) : null;
-    if (!src && from && D.canSeeRequest(me, from)) src = copyOf(from);
+    if (!src && from && D.canSeeRequest(me, from, byId('tools', from.tool_id))) src = copyOf(from);
     // start from a personal template (Q28): what is no longer available is left empty, with a note (T-3)
     var tpl = !src && q.template ? byId('templates', q.template) : null, tplNotes = [];
     if (tpl && tpl.owner_id === me.id) {

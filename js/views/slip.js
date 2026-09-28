@@ -21,7 +21,7 @@ window.MRT.views.slip = (function () {
   function render(main, ctx) {
     var me = store.currentUser();
     var r = byId('requests', ctx.subpath);
-    if (!r || !D.canSeeRequest(me, r) || r.status === 'draft') {
+    if (!r || !D.canSeeRequest(me, r, byId('tools', r.tool_id)) || r.status === 'draft') {
       main.appendChild(ui.emptyState({ icon: 'requests', title: 'No slip', text: 'Only submitted requests have a traveller slip.' }));
       return;
     }
