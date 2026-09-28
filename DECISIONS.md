@@ -693,3 +693,8 @@ never the only signal - the text/label says the same thing.
 - **A-1** (2026-09-28, Prince: "report only") Holistic audit `AUDIT.md`: 56
   items, EXISTS/PARTIAL/MISSING with file refs; severity summary in chat.
   Fixes tracked as the "fix all" goal (2026-09-29).
+- **F-7** (2026-09-29, Prince: one lot is one project + one part number) Revises
+  F-6: lots may link `project_id` + `part_number_id` (optional, validated,
+  migration 11->12). The request form inherits them when its own are unset (and
+  drops them again when another lot is picked); explicit request choices always
+  win. Lots page shows the lot's own links, else the projects of its requests.

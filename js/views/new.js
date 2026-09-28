@@ -405,13 +405,30 @@ window.MRT.views['new'] = (function () {
       return D.layersFor(null);
     }
 
+    var projF = null, pnF = null;   // assigned in paintLot; lotTyped fills them when it inherits
+    var lotLinked = null;          // the lot the project/part number came from (never saved)
     function lotTyped(num, lotField) {
       var hit = (store.data().lots || []).filter(function (l) { return l.lot_number === num; })[0];
       lotNumber = num;
       st.lot_id = hit ? hit.id : null;
       st.new_lot = !hit && num && D.isLotNumber(num) ? { lot_number: num } : null;
       var lot = byId('lots', st.lot_id);
+      if (lotLinked && (!lot || lot.id !== lotLinked)) {   // another lot (or none): drop what the old one gave
+        if (st.projFromLot) { st.project_id = null; st.projFromLot = null; }
+        if (st.pnFromLot) { st.part_number_id = null; st.pnFromLot = null; }
+        lotLinked = null;
+      }
       if (lot) {
+        if (!st.project_id && !st.new_project && lot.project_id) {
+          st.project_id = lot.project_id; st.projFromLot = true; lotLinked = lot.id;
+          var pc = byId('projects', lot.project_id);
+          if (projF && pc) projF.input.value = pc.code;
+        }
+        if (!st.part_number_id && !st.new_part_number && lot.part_number_id) {
+          st.part_number_id = lot.part_number_id; st.pnFromLot = true; lotLinked = lot.id;
+          var nc = byId('part_numbers', lot.part_number_id);
+          if (pnF && nc) pnF.input.value = nc.code;
+        }
         var owner = byId('users', lot.owner_id);
         ui.mount(lotNote, [ui.statusBadge('ok', 'Lot found'), '  ',
           lot.panel_count ? lot.panel_count + ' panels  ·  ' : null,
@@ -467,9 +484,9 @@ window.MRT.views['new'] = (function () {
       var pnNow = byId('part_numbers', st.part_number_id);
       var stepNow = byId('process_steps', st.process_step_id);
 
-      var projF = ui.field({ label: 'Project', cls: 'lot-proj', value: projNow ? projNow.code : (st.new_project ? st.new_project.code : ''), placeholder: 'Type or pick project',
+      projF = ui.field({ label: 'Project', cls: 'lot-proj', value: projNow ? projNow.code : (st.new_project ? st.new_project.code : ''), placeholder: 'Type or pick project',
         combo: true, list: projects.map(function (p) { return { value: p.code, label: p.name || '' }; }) });
-      var pnF = ui.field({ label: 'Part number', cls: 'lot-pn', mono: true, value: pnNow ? pnNow.code : (st.new_part_number ? st.new_part_number.code : ''),
+      pnF = ui.field({ label: 'Part number', cls: 'lot-pn', mono: true, value: pnNow ? pnNow.code : (st.new_part_number ? st.new_part_number.code : ''),
         combo: true, placeholder: 'e.g. PN-10234-A', list: partNumbers.map(function (p) { return { value: p.code, label: p.description || '' }; }) });
       var lotF = ui.field({ label: 'Lot', cls: 'lot-lot', mono: true, value: lotNumber || '', placeholder: 'e.g. 18178.01', inputmode: 'decimal',
         combo: true, list: lots.map(function (l) { return { value: l.lot_number, label: l.note || null }; }) });

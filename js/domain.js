@@ -665,6 +665,8 @@ window.MRT.domain = (function () {
         break;
 
       case 'lots':
+        if (r.project_id && !exists('projects', r.project_id)) p.push('Project not found');
+        if (r.part_number_id && !exists('part_numbers', r.part_number_id)) p.push('Part number not found');
         if (!isLotNumber(r.lot_number)) p.push('Lot number: digits, a split lot adds .01 - e.g. 18178 or 18178.01');
         else if (dupBy(d.lots, r.id, 'lot_number', r.lot_number)) p.push('Lot ' + r.lot_number + ' is already registered');
         if (r.panel_count !== null && r.panel_count !== undefined &&
