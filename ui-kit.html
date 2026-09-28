@@ -102,6 +102,9 @@
     border-color: var(--line-strong);
   }
   [data-concept="deep-lab"] .cx-hero-card { border-color: var(--line-hi); }
+  /* Polish: same hero breathing room in every direction. */
+  [data-concept="deep-lab"] .cx-hero-card,
+  [data-concept="signal"] .cx-hero-card { padding: 22px; }
   [data-concept="deep-lab"] .traveller.is-urgent { box-shadow: 0 0 24px rgba(249, 115, 22, .25), var(--shadow); }
 
   /* --- Direction B: Cleanroom (light, airy) ---
@@ -157,6 +160,39 @@
   [data-concept="signal"] .kit-sec .table-wrap table.grid td:first-child { font-family: var(--font-mono); font-weight: 650; }
   [data-concept="signal"] .traveller.is-urgent { border-left: 8px solid var(--critical); box-shadow: var(--shadow); }
   [data-concept="signal"] .btn-primary { background: var(--accent-fill); border-color: var(--accent-fill); }
+
+  /* --- Direction D: Frost (glass flagship, Apple-minimalist) ---
+     Restraint: hairlines, whitespace, one blue, quiet type. Frosted chrome
+     (bar, strip, hero, toasts, tips); popups, menus and dialogs stay solid. */
+  [data-concept="frost"] {
+    --bg: #F5F5F7; --surface: #FFFFFF; --surface-2: #FFFFFF; --surface-3: #ECECF0; --inset: #F5F5F7;
+    --fg: #1D1D1F; --fg-muted: #515154; --fg-faint: #636366;
+    --line: #E5E5EA; --line-strong: #C7C7CC; --line-hi: #0071E3; --bracket: #C7C7CC;
+    --accent: #0071E3; --accent-fill: #0071E3; --accent-fg: #FFFFFF; --accent-soft: #E8F1FC;
+    --accent-glow: 0 0 0 3px rgba(0, 113, 227, .25);
+    --radius: 12px; --radius-panel: 20px;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 12px 32px rgba(0, 0, 0, .08);
+    --shadow-pop: 0 8px 16px rgba(0, 0, 0, .08), 0 24px 64px rgba(0, 0, 0, .16);
+    --scrim: rgba(245, 245, 247, .6);
+  }
+  [data-concept="frost"] .kit-bar,
+  [data-concept="frost"] .cx-kpi-strip,
+  [data-concept="frost"] .cx-hero-card,
+  [data-concept="frost"] .toast,
+  [data-concept="frost"] .tip-card {
+    background: color-mix(in srgb, var(--surface-2) 68%, transparent);
+    backdrop-filter: blur(22px) saturate(1.6);
+    border-color: rgba(255, 255, 255, .6);
+    box-shadow: var(--shadow);
+  }
+  [data-concept="frost"] .panel,
+  [data-concept="frost"] .cx-kpi-strip,
+  [data-concept="frost"] dialog.modal { border: 0; box-shadow: var(--shadow); }
+  [data-concept="frost"] .cx-hero-card { border: 0; box-shadow: var(--shadow); padding: 24px; }
+  [data-concept="frost"] .kit-sec > h2 { text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--fg); }
+  [data-concept="frost"] .kit-label { text-transform: none; letter-spacing: 0; font-size: 12px; }
+  [data-concept="frost"] .kit-sec .table-wrap table.grid th { text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--fg-faint); border-bottom: 1px solid var(--line); }
+  [data-concept="frost"] .traveller.is-urgent { border-left: 4px solid var(--critical); }
 </style>
 </head>
 <body>
