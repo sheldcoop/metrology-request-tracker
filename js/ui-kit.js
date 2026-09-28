@@ -47,9 +47,7 @@
   }
   function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
 
-  /** Reads the real computed tokens of each theme, so the table cannot drift from the CSS.
-      Entries are [theme key, name] or [base key, name, concept key]: a concept
-      probe draws its base theme plus its data-concept scope. */
+  /** Reads the real computed tokens of each theme, so the table cannot drift from the CSS. */
   function contrastTable(themes) {
     var THEMES_T = themes || THEMES;
     var pairs = [
@@ -64,7 +62,6 @@
     var probes = THEMES_T.map(function (t) {
       var host = el('div', { style: { position: 'absolute', visibility: 'hidden' } });
       TH.setOn(host, t[0]);
-      if (t[2]) host.setAttribute('data-concept', t[2]);
       document.body.appendChild(host);
       return host;
     });
@@ -516,39 +513,29 @@
 
   var root = document.getElementById('kitRoot');
   var mode = 'dark';
-  var concept = (location.search.match(/[?&]concept=([\w-]+)/) || [])[1] || null;
+  /** Themes carrying kit-only structural treatments (glass chrome, hero padding) on top of their tokens. */
+  var TREATED = ['deep-lab', 'cleanroom', 'signal', 'frost'];
 
   function render() {
     root.className = 'kit-root' + (mode === 'all' ? ' all' : '');
-    if (concept) document.documentElement.setAttribute('data-concept', concept); else document.documentElement.removeAttribute('data-concept');
-    var head = concept ? [el('p', { class: 'cx-concept-note', text: 'Concept preview: ' + concept + ' on top of ' + mode + '. Still a sketch - flip with ?concept=deep-lab | cleanroom | signal | frost.' })] : [];
     if (mode === 'all') {
       TH.setOn(document.documentElement, TH.DEFAULT);
       document.documentElement.removeAttribute('data-concept');
-      var conceptCols = CONCEPTS.map(function (c) {
-        var scope = el('div', { class: 'theme-scope concept-scope' }, [el('div', { class: 'kit-col-title', text: c.name })].concat(gallery()));
-        TH.setOn(scope, c.base);
-        scope.setAttribute('data-concept', c.key);
-        return scope;
-      });
       ui.mount(root, [el('div', { style: { gridColumn: '1 / -1', padding: '20px 20px 0' } }, [
         el('p', { class: 'muted', text: 'Every theme of js/themes.js side by side: AT&S (default), Deep Lab, Cleanroom, Signal, Frost, Minimal. Status = icon + word in every theme.' }),
-        contrastTable(),
-        el('div', { class: 'kit-col-title', style: { marginTop: '16px' }, text: 'Redesign concepts (WCAG AA, computed from the live tokens)' }),
-        contrastTable(CONCEPTS.map(function (c) { return [c.base, c.name, c.key]; }))
+        contrastTable()
       ])].concat(THEMES.map(function (t) {
         var scope = el('div', { class: 'theme-scope' }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));
         TH.setOn(scope, t[0]);
+        if (TREATED.indexOf(t[0]) !== -1) scope.setAttribute('data-concept', t[0]);
         return scope;
-      })).concat(conceptCols));
+      })));
     } else {
       TH.setOn(document.documentElement, mode);
-      var contrastSec = sectionRange.length ? [] : [concept
-        ? section('Contrast: ' + conceptOf(concept).name + ' against its base (WCAG AA, live tokens)',
-            contrastTable([[conceptOf(concept).base, 'Base: ' + (TH.byKey(conceptOf(concept).base) || {}).name, null],
-                           [conceptOf(concept).base, conceptOf(concept).name, concept]]))
-        : section('Contrast (WCAG AA, computed from the live tokens)', contrastTable())];
-      ui.mount(root, head.concat(contrastSec).concat(gallery()));
+      if (TREATED.indexOf(mode) !== -1) document.documentElement.setAttribute('data-concept', mode);
+      else document.documentElement.removeAttribute('data-concept');
+      var contrastSec = sectionRange.length ? [] : [section('Contrast (WCAG AA, computed from the live tokens)', contrastTable())];
+      ui.mount(root, contrastSec.concat(gallery()));
     }
     ui.stagger(root);
     ui.linkLabels(root);
@@ -559,14 +546,6 @@
     else document.documentElement.removeAttribute('data-motion');
     try { localStorage.setItem(KEY + 'motion', reduce ? 'reduce' : 'full'); } catch (e) { /* private mode */ }
   }
-
-  var CONCEPTS = [
-    { key: 'deep-lab', name: 'Deep Lab (dark glass)', base: 'deep-lab' },
-    { key: 'cleanroom', name: 'Cleanroom (light airy)', base: 'cleanroom' },
-    { key: 'signal', name: 'Signal (dark solid)', base: 'signal' },
-    { key: 'frost', name: 'Frost (glass flagship)', base: 'frost' }
-  ];
-  function conceptOf(key) { return CONCEPTS.filter(function (c) { return c.key === key; })[0] || null; }
 
   function bar() {
     var themeCombo = ui.combo({ id: 'kitTheme', label: 'Theme', value: mode === 'all' ? 'All themes side by side' : (TH.byKey(mode) || {}).name || mode,
@@ -580,23 +559,11 @@
       try { localStorage.setItem(KEY + 'mode', mode); } catch (e) { /* */ }
       render();
     });
-    var conceptCombo = ui.combo({ id: 'kitConcept', label: 'Concept', value: concept ? conceptOf(concept).name : 'None (registered themes)',
-      items: [{ value: '', label: 'None (registered themes)' }].concat(CONCEPTS.map(function (c) { return { value: c.key, label: c.name }; })) });
-    conceptCombo.input.addEventListener('change', function () {
-      var v = conceptCombo.value().trim();
-      var hit = v === '' || v === 'None (registered themes)' ? null : conceptOf(v) ? v : 'bad';
-      if (hit === 'bad') { conceptCombo.input.value = concept ? conceptOf(concept).name : 'None (registered themes)'; return; }
-      concept = hit;
-      conceptCombo.input.value = concept ? conceptOf(concept).name : 'None (registered themes)';
-      try { localStorage.setItem(KEY + 'concept', concept || ''); } catch (e) { /* */ }
-      render();
-    });
     var reduce = document.documentElement.getAttribute('data-motion') === 'reduce';
     ui.mount(document.getElementById('kitBar'), [
       el('h1', {}, [ui.icon('logo', 20), el('span', { text: 'Metrology Request Tracker · UI kit' })]),
       el('div', { class: 'spacer' }),
       themeCombo.node,
-      conceptCombo.node,
       ui.toggle({ kind: 'switch', label: 'Reduce motion', checked: reduce, onChange: setMotion }).node,
       el('a', { class: 'btn btn-sm', href: 'index.html', text: 'Open app' })
     ]);
@@ -607,9 +574,8 @@
     var qm = (location.search.match(/[?&]mode=([\w-]+)/) || [])[1];
     if (qm) mode = qm;
     if (mode !== 'all' && !TH.byKey(mode)) mode = 'all';
-    if (concept && !conceptOf(concept)) concept = null;
-    if (!concept) concept = localStorage.getItem(KEY + 'concept') || null;
-    if (concept && !conceptOf(concept)) concept = null;
+    var qc = (location.search.match(/[?&]concept=([\w-]+)/) || [])[1];   // old concept links land on the theme
+    if (qc && TH.byKey(qc)) mode = TH.byKey(qc).key;
     if (/[?&]motion=reduce/.test(location.search) || localStorage.getItem(KEY + 'motion') === 'reduce') {
       document.documentElement.setAttribute('data-motion', 'reduce');
     }
