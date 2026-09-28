@@ -97,10 +97,12 @@ window.MRT.views.queue = (function () {
       var ids = Object.keys(picked);
       var rs = ids.map(function (id) { return byId('requests', id); }).filter(Boolean);
       var canAccept = rs.filter(function (r) { return D.canAct(me, 'accept', r, byId('tools', r.tool_id), Date.now()); });
+      var canReceive = rs.filter(function (r) { return D.canAct(me, 'receive', r, byId('tools', r.tool_id), Date.now()); });
       var canStart = rs.filter(function (r) { return D.canAct(me, 'start', r, byId('tools', r.tool_id), Date.now()); });
       ui.mount(bulk, ids.length ? [
         ui.el('span', { text: ids.length + ' ticked' }),
         ui.button('Accept all (' + canAccept.length + ')', { size: 'sm', kind: 'primary', icon: 'check', disabled: !canAccept.length, onClick: function () { runAll(canAccept, 'accept', {}); } }),
+        ui.button('Receive all (' + canReceive.length + ')', { size: 'sm', icon: 'inbox', disabled: !canReceive.length, onClick: function () { receiveAll(canReceive); } }),
         ui.button('Start all (' + canStart.length + ')', { size: 'sm', icon: 'activity', disabled: !canStart.length, onClick: function () { runAll(canStart, 'start', {}); } }),
         ui.button('Clear', { size: 'sm', kind: 'ghost', onClick: function () { picked = {}; draw(); } })
       ] : null);
@@ -113,10 +115,23 @@ window.MRT.views.queue = (function () {
       list.reduce(function (p, r) {
         return p.then(function () { return store.requestAction(r.id, action, x).then(function () { n++; }); });
       }, Promise.resolve()).then(function () {
-        ui.toast({ kind: 'success', message: n + ' request' + (n === 1 ? '' : 's') + ' ' + (action === 'accept' ? 'accepted' : 'started') + '.' });
+        ui.toast({ kind: 'success', message: n + ' request' + (n === 1 ? '' : 's') + ' ' +
+          (action === 'accept' ? 'accepted' : action === 'receive' ? 'received' : 'started') + '.' });
       }).catch(function (e) {
         ui.toastError(n + ' done, then: ' + e.message, e);
       }).then(function () { picked = {}; window.MRT.app.route(); });
+    }
+
+    /** Shift start: several lots arrive together, one shared place in the lab. */
+    function receiveAll(list) {
+      var where = ui.field({ label: 'Kept where in the lab (optional, same for all)', placeholder: 'e.g. FIB cabinet, shelf 2' });
+      ui.dialog({ title: 'Panels received - ' + list.length + ' requests', icon: 'inbox', body: where.node, actions: [
+        { label: 'Cancel', value: null },
+        { label: 'Receive all', kind: 'primary', value: function () { return where.value(); } }
+      ] }).then(function (v) {
+        if (v === null || v === undefined) return;
+        runAll(list, 'receive', { received_where: v });
+      }).catch(function (e) { ui.toastError(e.message, e); });
     }
 
     /** Your shift in one glance: open, late (red only when nonzero), yours. */
