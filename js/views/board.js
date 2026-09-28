@@ -67,7 +67,7 @@ window.MRT.views.board = (function () {
     grid.appendChild(ui.el('div', { class: 'board-corner' }, ui.el('span', { class: 'muted', text: 'Tool' })));
     cols.forEach(function (c, i) {
       var n = reqs.filter(function (r) { return c.has.indexOf(r.status) !== -1 && lanes.some(function (t) { return t.id === r.tool_id; }); }).length;
-      grid.appendChild(ui.el('div', { class: 'board-colhead is-' + c.key }, [ui.el('span', { class: 'board-step mono', text: String(i + 1) }),
+      grid.appendChild(ui.el('div', { class: 'board-colhead is-' + c.key }, [ui.el('span', { class: 'board-step', text: ('0' + (i + 1)).slice(-2) }),
         ui.el('b', { text: c.label }), ui.el('span', { class: 'board-count num' + (n ? '' : ' is-zero'), text: String(n) })]));
     });
     lanes.forEach(function (t) {

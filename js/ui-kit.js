@@ -328,6 +328,39 @@
     ]);
   }
 
+  /** The Board wall in isolation: station headers, tool nameplates, one late ticket. */
+  function boardDemo() {
+    function station(n, label, cls, count) {
+      return el('div', { class: 'board-colhead ' + cls }, [
+        el('span', { class: 'board-step', text: n }),
+        el('b', { text: label }),
+        el('span', { class: 'board-count num' + (count ? '' : ' is-zero'), text: String(count) })]);
+    }
+    function lane(code, state, stateWord, glyphKey, glyphState, openText, alert) {
+      return el('div', { class: 'board-lane is-' + state }, [
+        ui.toolGlyph(glyphKey, { size: 32, state: glyphState, label: code, rate: 2, alert: !!alert }),
+        el('div', { class: 'board-lane-name' }, [el('b', { class: 'mono', text: code }),
+          el('span', { class: 'board-lamp is-' + state, title: stateWord }, [el('i'), el('span', { text: stateWord })])]),
+        el('span', { class: 'muted board-lane-open', text: openText })
+      ]);
+    }
+    var PRIOS = { name: 'Normal', code: 'P3' };
+    return el('div', {}, [
+      labelled('Station rail', el('div', { class: 'kit-row' }, [
+        station('01', 'Submitted', 'is-submitted', 3),
+        station('04', 'In progress', 'is-in_progress', 5),
+        station('05', 'Waiting', 'is-waiting', 0)
+      ])),
+      labelled('Nameplates: running, idle, down', el('div', { class: 'kit-row' }, [
+        lane('FIB', 'up', 'Up', 'fib', 'live', '4 open', true),
+        lane('QVM', 'up', 'Up', 'qvm', 'idle', '1 open', false),
+        lane('HRM', 'down', 'Down', 'hrm', 'off', '', false)
+      ])),
+      labelled('Late ticket', ui.traveller({ id: 'HRM-260925-02', level: 3, late: true, prio: PRIOS, href: '#',
+        lines: [['18180  ·  2 panels'], [el('span', { class: 'q-clock is-late', text: 'late 1 d' })]] }, { size: 'card' }))
+    ]);
+  }
+
   function travellerDemo() {
     var PRIOS = [null, { name: 'Line stop', code: 'P1' }, { name: 'Hot', code: 'P2' }, { name: 'Normal', code: 'P3' }, { name: 'Low', code: 'P4' }];
     var STAMPS = [['Submitted', 'neutral'], ['Accepted', 'accent'], ['In progress', 'ok'], ['On hold', 'warning'], ['Completed', 'ok'], ['Cancelled', 'neutral']];
@@ -494,6 +527,7 @@
       section('Panel map (unused - kept for OPEN_QUESTIONS #22)', panelMapDemo(), 'No screen uses it since form v2 (Hirata IDs). Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
       section('Hirata code (ui.copperPanel, ui.hirataFields, ui.hirataGrid)', hirataDemo(), 'Copper stays copper in every theme. The grid blocks any dot that would take a column above 9; the bottom row is the baseline.'),
       section('Traveller card (ui.traveller)', travellerDemo(), 'One drawing, four sizes: full (request page), mini (form preview), card (board), slip (print). Priority stripe per level; Line stop pulses while open.'),
+      section('Board wall (stations + nameplates)', boardDemo(), 'The lab wall: ghost station numerals with a state edge and tally, machine nameplates with lamp and open count. Colour only on attention; the late ticket carries the red wash.'),
       section('Magazine slots', el('div', { class: 'kit-grid' }, [
           labelled('Pick: press and drag over slots; slots 9-10 taken by another request', ui.magazineSlots({ magazine: { code: 'M70345', slots: 24 }, picked: [3, 4],
             labels: { 3: '3252', 4: '3253' }, taken: { 9: 'FIB-260924-01', 10: 'FIB-260924-01' } }).node),
