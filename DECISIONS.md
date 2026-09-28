@@ -698,3 +698,8 @@ never the only signal - the text/label says the same thing.
   migration 11->12). The request form inherits them when its own are unset (and
   drops them again when another lot is picked); explicit request choices always
   win. Lots page shows the lot's own links, else the projects of its requests.
+- **P-1** (2026-09-29, Prince data rule: one lot -> one PN, one project -> many
+  PNs, PN never shared) `part_numbers.project_ids[]` -> single `project_id`
+  (required, validated, migration 12->13 keeps first). Suggest still lists all
+  PNs but flags cross-project ones; lot/request/template/health checks compare
+  single IDs; a project with PNs cannot be deleted.

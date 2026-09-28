@@ -516,7 +516,7 @@ window.MRT.views['new'] = (function () {
           projF.setState('valid', 'New project. It will be added when you submit.');
         }
         var pn = byId('part_numbers', st.part_number_id);
-        if (pn && st.project_id && (pn.project_ids || []).indexOf(st.project_id) === -1) st.part_number_id = null;
+        if (pn && st.project_id && pn.project_id && pn.project_id !== st.project_id) st.part_number_id = null;
         changed();
       }
 
@@ -543,7 +543,7 @@ window.MRT.views['new'] = (function () {
         if (hit) {
           st.part_number_id = hit.id;
           st.new_part_number = null;
-          if (st.project_id && (hit.project_ids || []).indexOf(st.project_id) === -1) pnF.setState('invalid', 'Part number exists, but not under this project.');
+          if (st.project_id && hit.project_id && hit.project_id !== st.project_id) pnF.setState('invalid', 'Part number exists, but not under this project.');
           else pnF.setState('valid');
           changed();
           return;

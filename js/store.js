@@ -22,7 +22,7 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 12;
+  var SCHEMA_VERSION = 13;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
@@ -164,9 +164,9 @@ window.MRT.store = (function () {
     var prjIds = {};
     data.projects.forEach(function (p) { prjIds[p.code] = p.id; });
     data.part_numbers = (S.part_numbers || []).map(function (x) {
-      (x.projects || []).forEach(function (c) { assert(prjIds[c], 'seed.js: part number "' + x.code + '" names an unknown project "' + c + '"', 'bad_seed'); });
+      assert(x.project && prjIds[x.project], 'seed.js: part number "' + x.code + '" needs its one project code', 'bad_seed');
       return sampleFlag({ id: newId('pn'), code: x.code, description: x.description || '',
-                          project_ids: (x.projects || []).map(function (c) { return prjIds[c]; }), active: true, version: 1 }, x);
+                          project_id: prjIds[x.project], active: true, version: 1 }, x);
     });
     data.lot_fields = lotFieldsFromSeed(S);
     data.hold_reasons = holdReasonsFromSeed(S);
@@ -383,7 +383,12 @@ window.MRT.store = (function () {
     // 10 -> 11: personal request templates (Q28, DECISIONS T-1). Old files have none.
     10: function (d) { if (!Array.isArray(d.templates)) d.templates = []; },
     // 11 -> 12: lots link their project + part number again (F-7 revises F-6). Old files have neither.
-    11: function (d) { (d.lots || []).forEach(function (l) { if (!('project_id' in l)) l.project_id = null; if (!('part_number_id' in l)) l.part_number_id = null; }); }
+    11: function (d) { (d.lots || []).forEach(function (l) { if (!('project_id' in l)) l.project_id = null; if (!('part_number_id' in l)) l.part_number_id = null; }); },
+    // 12 -> 13: a part number belongs to exactly one project (P-1). Multi-project links keep the first.
+    12: function (d) { (d.part_numbers || []).forEach(function (p) {
+      if (!('project_id' in p)) p.project_id = (p.project_ids && p.project_ids[0]) || null;
+      delete p.project_ids;
+    }); }
   };
 
   function magazinesFromSeed(S) {
@@ -1007,7 +1012,7 @@ window.MRT.store = (function () {
     tool_fields:       { prefix: 'fld',   label: 'field',            fields: ['tool_id', 'label', 'type', 'required', 'help', 'unit', 'min', 'max', 'choices', 'type_ids', 'active', 'sort'] },
     bkms:              { prefix: 'bkm',   label: 'BKM',              fields: ['tool_id', 'type_id', 'name', 'path', 'doc_version', 'active'] },
     projects:          { prefix: 'prj',   label: 'project',          fields: ['code', 'name', 'active'] },
-    part_numbers:      { prefix: 'pn',    label: 'part number',      fields: ['code', 'description', 'project_ids', 'active'] },
+    part_numbers:      { prefix: 'pn',    label: 'part number',      fields: ['code', 'description', 'project_id', 'active'] },
     buildups:          { prefix: 'bld',   label: 'build-up',         fields: ['code', 'name', 'layers', 'active'] },
     process_steps:     { prefix: 'pstep', label: 'process step',     fields: ['name', 'active', 'sort'] },
     hold_reasons:      { prefix: 'hold',  label: 'on-hold reason',   fields: ['name', 'active', 'sort'] },
@@ -1026,7 +1031,7 @@ window.MRT.store = (function () {
     lot_fields: { required: false, help: '', unit: '', min: null, max: null, choices: [], active: true },
     bkms: { type_id: null, doc_version: '', active: true },
     projects: { name: '', active: true },
-    part_numbers: { description: '', project_ids: [], active: true },
+    part_numbers: { description: '', project_id: null, active: true },
     buildups: { name: '', active: true },
     process_steps: { active: true },
     hold_reasons: { active: true },
@@ -1051,7 +1056,7 @@ window.MRT.store = (function () {
       if (o[k] === '') o[k] = null;
     });
     ['min', 'max'].forEach(function (k) { if (o[k] === '') o[k] = null; });
-    if (Array.isArray(o.project_ids)) o.project_ids = o.project_ids.filter(function (id, i) { return id && o.project_ids.indexOf(id) === i; });
+    if (o.project_id === '') o.project_id = null;
     if (Array.isArray(o.choices)) {
       o.choices = o.choices.map(function (c) {
         return { id: c.id || newId('ch'), label: String(c.label || '').trim(), active: c.active !== false };
@@ -1157,7 +1162,7 @@ window.MRT.store = (function () {
   var USES = {
     tools: [['measurement_types', 'tool_id', 'measurement type'], ['tool_fields', 'tool_id', 'field'], ['bkms', 'tool_id', 'BKM'], ['requests', 'tool_id', 'request']],
     measurement_types: [['bkms', 'type_id', 'BKM'], ['tool_fields', 'type_ids', 'field'], ['requests', 'type_id', 'request']],
-    projects: [['part_numbers', 'project_ids', 'part number'], ['requests', 'project_id', 'request']],
+    projects: [['part_numbers', 'project_id', 'part number'], ['requests', 'project_id', 'request']],
     part_numbers: [['requests', 'part_number_id', 'request']],
     buildups: [['requests', 'buildup_id', 'request']],
     lot_fields: [['lots', 'extra', 'lot']],
@@ -1429,7 +1434,7 @@ window.MRT.store = (function () {
     var hit = (state.data.part_numbers || []).filter(function (x) { return String(x.code || '').toUpperCase() === code; })[0];
     if (hit) { r.part_number_id = hit.id; r.new_part_number = null; return; }
     assert(r.project_id, 'Pick the project before adding a new part number', 'invalid');
-    var pn = { id: newId('pn'), code: code, description: '', project_ids: [r.project_id], active: true, version: 1 };
+    var pn = { id: newId('pn'), code: code, description: '', project_id: r.project_id, active: true, version: 1 };
     var pp = D.validateEntry('part_numbers', pn, state.data);
     assert(!pp.length, pp.join('. '), 'invalid', pp);
     state.data.part_numbers.push(pn);

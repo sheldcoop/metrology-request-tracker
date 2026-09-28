@@ -63,7 +63,7 @@ window.MRT.demoData = (function () {
   };
   var STEPS = ['After lamination', 'After drilling', 'After desmear', 'After Cu plating', 'After solder resist', 'After final finish'];
   var PNS = [['PN-4711-A', 'C4F test board', ['C4F']], ['PN-4711-B', 'C4F daisy chain', ['C4F']], ['PN-4712', 'C4F thermal', ['C4F']],
-             ['PN-5100', 'SHIFT interposer', ['SHIFT']], ['PN-5101', 'SHIFT coupon', ['SHIFT', 'HORUS']], ['PN-6200-X', 'HORUS main', ['HORUS']]];
+             ['PN-5100', 'SHIFT interposer', ['SHIFT']], ['PN-5101', 'SHIFT coupon', ['SHIFT']], ['PN-6200-X', 'HORUS main', ['HORUS']]];
 
   /** A small seeded random generator: the same file every time for the same `now`. */
   function rng(seed) {
@@ -152,7 +152,7 @@ window.MRT.demoData = (function () {
     /* --- lists ------------------------------------------------------------------ */
     var P = {};
     d.projects.forEach(function (p) { P[p.code] = p; });
-    d.part_numbers = PNS.map(function (x) { return { id: id('pn'), code: x[0], description: x[1], project_ids: x[2].map(function (c) { return P[c].id; }), active: true, version: 1 }; });
+    d.part_numbers = PNS.map(function (x) { return { id: id('pn'), code: x[0], description: x[1], project_id: P[x[2][0]].id, active: true, version: 1 }; });
     d.process_steps = STEPS.map(function (n, i) { return { id: id('pstep'), name: n, active: true, sort: i + 1, version: 1 }; });
     var prio = {};
     d.priorities.forEach(function (p) { prio[p.code] = p; });
@@ -171,7 +171,7 @@ window.MRT.demoData = (function () {
       var lot = { id: id('lot'), lot_number: num, panel_count: panels, owner_id: parent ? parent.owner_id : owner.id,
         note: chance(0.2) ? pick(['Panels 3-4 have a known scratch', 'Handle with gloves - thin core', 'Split for the DOE', 'Customer lot - priority']) : '',
         extra: {}, scrapped: [], created_ts: iso(labTs(daysAgo)), version: 1 };
-      lot.proj = proj;                                     // the project its requests are usually for (F-6: the request says it), dropped before saving
+      lot.proj = proj;                                     // P-1/F-7: the lot's own project, kept as project_id before saving
       lot.ids = [];                                        // the panels' Hirata IDs (F-1), dropped before the lot is saved
       for (var h = 0; h < panels; h++) lot.ids.push(String(hirata + h));
       hirata += panels + between(5, 40);
@@ -263,7 +263,7 @@ window.MRT.demoData = (function () {
       var ends = ['analyzed', 'cancelled', 'cancelled_lab', 'completed', 'draft'].indexOf(plan.fate) !== -1;
       var place = chance(0.65) ? slotsFor(ends ? magOld : magOpen, k, !ends) : null;
       var bu = chance(0.75) ? pick(d.buildups) : null;       // the build-up is optional; one lot runs through all of them (F-6)
-      var pnsP = d.part_numbers.filter(function (x) { return x.project_ids.indexOf(lot.proj) !== -1; });
+      var pnsP = d.part_numbers.filter(function (x) { return x.project_id === lot.proj; });
       var lys = D.layersFor(bu);
       var layers = bu && chance(0.6) ? [pick(lys)].concat(chance(0.4) ? [pick(lys)] : []).filter(function (x, i4, a) { return a.indexOf(x) === i4; })
         .sort(function (a, b) { return lys.indexOf(a) - lys.indexOf(b); }) : [];
@@ -413,7 +413,12 @@ window.MRT.demoData = (function () {
       if (r) made.push(r);
     });
 
-    lots.forEach(function (x) { delete x.ids; delete x.proj; });
+    lots.forEach(function (x) {
+      delete x.ids;
+      x.project_id = x.proj; delete x.proj;
+      var pns = d.part_numbers.filter(function (p) { return p.project_id === x.project_id; });
+      x.part_number_id = pns.length && chance(0.9) ? pick(pns).id : null;   // the lot's own part number (P-1)
+    });
     d.requests = requests;
     d.request_events = events.sort(function (a, b) { return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0; });
     d.audit_log = audit.concat(d.users.filter(function (u) { return u.self_added; }).map(function (u) {
