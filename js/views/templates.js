@@ -22,7 +22,7 @@ window.MRT.templates = (function () {
   /** Ask for a name and save; the dialog stays open on an error (e.g. the name is taken). */
   function save(suggest, payload) {
     var name = ui.field({ label: 'Template name', value: suggest || '', placeholder: 'e.g. FIB via cross-section, BU-03',
-      hint: 'Kept: tool, type, BKM, project, part number, build-up, layers, afterwards, priority, purpose, extra fields. Not kept: lot, panels, place, dates.' });
+      hint: 'Keeps everything filled in: tool, type, BKM, project, part, build-up, lot, panels, layers, magazine, place, afterwards, priority and reason, date, purpose, extra fields.' });
     return ui.dialog({ title: 'Save as template', icon: 'save', body: name.node, actions: [
       { label: 'Cancel', value: null },
       { label: 'Save template', kind: 'primary', value: function () { return name.value(); },
@@ -41,7 +41,7 @@ window.MRT.templates = (function () {
     if (!mine.length) return null;
     var data = store.data();
     return ui.panel({ title: 'Start from a template', icon: 'requests', cls: 'tpl-chooser', body: [
-      ui.el('p', { class: 'muted', text: 'Fills everything that stays the same; you add the lot, panels, place and date. Or just fill the form below.' }),
+      ui.el('p', { class: 'muted', text: 'Fills everything saved; change what differs for this request. Or just fill the form below.' }),
       ui.el('div', { class: 'tpl-list' }, mine.map(function (t) {
         var ck = D.templateCheck(t, data), tool = store.byId('tools', t.fields.tool_id);
         return ui.el('button', { type: 'button', class: 'tpl-pick', disabled: !ck.usable, title: ck.usable ? 'Start from "' + t.name + '"' : ck.reason,

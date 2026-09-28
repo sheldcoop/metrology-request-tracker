@@ -809,8 +809,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   let tdlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   setVal(fieldIn(tdlg, 'Template name'), 'Smoke template'); buttonByText(tdlg, 'Save template').click(); await settle();
   const tpl = MRT.store.myTemplates(MRT.store.currentUser().id).filter(t => t.name === 'Smoke template')[0];
-  check('request page > Save as template: saved with the request\'s tool and type, no lot or panels', !!tpl && tpl.fields.tool_id === tplReq.tool_id &&
-        tpl.fields.type_id === tplReq.type_id && !('lot_id' in tpl.fields) && !('panels' in tpl.fields));
+  check('request page > Save as template: saved with everything, lot and panels included', !!tpl && tpl.fields.tool_id === tplReq.tool_id &&
+        tpl.fields.type_id === tplReq.type_id && tpl.fields.lot_id === tplReq.lot_id && (tpl.fields.panels || []).join() === (tplReq.panels || []).join());
   buttonByText(doc.getElementById('main'), 'Save as template').click(); await settle();
   tdlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   setVal(fieldIn(tdlg, 'Template name'), 'smoke TEMPLATE'); buttonByText(tdlg, 'Save template').click(); await settle();
@@ -819,8 +819,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   win.setHash('#/new'); await settle();
   check('New request (empty) offers "Start from a template"', /Start from a template/.test(mainText()) && $$('#main .tpl-pick').some(b => /Smoke template/.test(b.textContent)));
   $$('#main .tpl-pick').filter(b => /Smoke template/.test(b.textContent))[0].click(); await settle();
-  check('...picking it fills tool and type; lot and panels stay empty', /from "Smoke template"/.test(mainText()) &&
-        /Pick the lot|Lot/.test(mainText()) && win.location.hash.indexOf('template=' + tpl.id) !== -1);
+  check('...picking it fills everything saved, lot and panels too', /from "Smoke template"/.test(mainText()) &&
+        fieldIn(M(), 'Lot').value === (MRT.store.byId('lots', tpl.fields.lot_id) || {}).lot_number && win.location.hash.indexOf('template=' + tpl.id) !== -1);
   // T-3: a part hidden since is left empty, with a note
   const tType = MRT.store.byId('measurement_types', tpl.fields.type_id);
   if (tType) { tType.active = false; win.setHash('#/lab'); await settle(); win.setHash('#/new?template=' + tpl.id); await settle(); }

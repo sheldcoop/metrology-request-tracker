@@ -1201,14 +1201,18 @@ window.MRT.domain = (function () {
   }
 
   /* ------------------------------------------------------------------ *
-   * Personal request templates (Q28, DECISIONS T-1..T-3): what stays the
-   * same between similar requests - never the lot, panels, place, dates or
-   * the priority reason. A template whose parts were hidden since still
-   * works: the missing parts are left empty with a note (T-3).
+   * Personal request templates (Q28, DECISIONS T-1..T-3, changed 2026-09-28):
+   * everything filled in on the form is kept - lot, panels, process step,
+   * magazine slots, place, needed-by date and priority reason included.
+   * A template whose parts were hidden since still works: the missing parts
+   * are left empty with a note (T-3).
    * ------------------------------------------------------------------ */
 
   var TEMPLATE_FIELDS = ['tool_id', 'type_id', 'bkm_id', 'bkm_path', 'project_id', 'part_number_id', 'buildup_id', 'layers',
-                         'after', 'after_other', 'priority_id', 'purpose', 'extra'];
+                         'after', 'after_other', 'priority_id', 'priority_reason', 'needed_by', 'purpose', 'extra',
+                         'lot_id', 'new_lot', 'panels', 'panel_count', 'process_step_id', 'process_step_other',
+                         'panel_location', 'magazine_id', 'new_magazine', 'slots', 'destructive_ok',
+                         'new_project', 'new_part_number', 'new_buildup', 'new_type', 'new_priority'];
   var TEMPLATE_NAME_MAX = 60;
 
   /** The template part of a request or draft: TEMPLATE_FIELDS only, copied. */
@@ -1216,7 +1220,8 @@ window.MRT.domain = (function () {
     var out = {};
     TEMPLATE_FIELDS.forEach(function (k) {
       var v = r ? r[k] : undefined;
-      out[k] = v === undefined ? (k === 'layers' ? [] : k === 'extra' ? {} : null) : JSON.parse(JSON.stringify(v));
+      if (v !== undefined) out[k] = JSON.parse(JSON.stringify(v));
+      else out[k] = k === 'layers' || k === 'panels' || k === 'slots' ? [] : k === 'extra' ? {} : k === 'destructive_ok' ? false : null;
     });
     return out;
   }
@@ -1241,7 +1246,7 @@ window.MRT.domain = (function () {
     function live(x) { return !!x && x.active !== false; }
     var tool = row('tools', f.tool_id);
     if (!live(tool)) return { usable: false, reason: 'Its tool is no longer in use', fields: f, notes: [] };
-    function drop(key, text) { if (f[key]) { f[key] = key === 'layers' ? [] : null; notes.push(text); } }
+    function drop(key, text) { if (f[key] && (f[key].length === undefined || f[key].length)) { f[key] = key === 'layers' || key === 'panels' || key === 'slots' ? [] : null; notes.push(text); } }
     var type = row('measurement_types', f.type_id);
     if (f.type_id && (!live(type) || type.tool_id !== tool.id)) drop('type_id', 'The measurement type of this template is hidden - pick another');
     var bkm = row('bkms', f.bkm_id);
@@ -1255,6 +1260,49 @@ window.MRT.domain = (function () {
     var keptLayers = (f.layers || []).filter(function (x) { return allowed.indexOf(x) !== -1; });
     if (keptLayers.length !== (f.layers || []).length) { f.layers = keptLayers; notes.push('Some layers of this template do not exist in its build-up any more'); }
     if (f.priority_id && !live(row('priorities', f.priority_id))) drop('priority_id', 'The priority of this template is hidden - the default is used');
+    if (f.lot_id && !row('lots', f.lot_id)) drop('lot_id', 'The lot of this template is gone - pick another');
+    if (f.new_lot) {
+      var nlNum = trim(f.new_lot.lot_number || '');
+      if (!isLotNumber(nlNum)) f.new_lot = null;
+      else if ((d.lots || []).some(function (x) { return x.lot_number === nlNum; })) { f.new_lot = null; notes.push('Lot ' + nlNum + ' is registered already - pick it'); }
+    }
+    if (f.process_step_id && !live(row('process_steps', f.process_step_id))) drop('process_step_id', 'The process step of this template is hidden - pick another');
+    if (f.magazine_id && !live(row('magazines', f.magazine_id))) { drop('magazine_id', 'The magazine of this template is hidden - pick another'); f.slots = []; }
+    if (!tool.destructive) f.destructive_ok = false;
+    if (f.new_project) {
+      var npjCode = trim(f.new_project.code || '').toUpperCase();
+      if (!isCode(npjCode, 12)) f.new_project = null;
+      else if ((d.projects || []).some(function (x) { return String(x.code || '').toUpperCase() === npjCode; })) { f.new_project = null; notes.push('Project ' + npjCode + ' exists already - pick it from suggestions'); }
+      else f.new_project = { code: npjCode };
+    }
+    if (f.new_part_number) {
+      var npnCode = trim(f.new_part_number.code || '').toUpperCase();
+      if (!isPartNumber(npnCode)) f.new_part_number = null;
+      else if ((d.part_numbers || []).some(function (x) { return String(x.code || '').toUpperCase() === npnCode; })) { f.new_part_number = null; notes.push('Part number ' + npnCode + ' exists already - pick it from suggestions'); }
+      else f.new_part_number = { code: npnCode };
+    }
+    if (f.new_buildup) {
+      var nbuCode = trim(f.new_buildup.code || '').toUpperCase();
+      if (!isCode(nbuCode, 12)) f.new_buildup = null;
+      else if ((d.buildups || []).some(function (x) { return String(x.code || '').toUpperCase() === nbuCode; })) { f.new_buildup = null; notes.push('Build-up ' + nbuCode + ' exists already - pick it from suggestions'); }
+      else f.new_buildup = { code: nbuCode };
+    }
+    if (f.new_magazine) {
+      var nmgCode = trim(f.new_magazine.code || '').toUpperCase();
+      if (!isMagazineCode(nmgCode)) f.new_magazine = null;
+      else if ((d.magazines || []).some(function (x) { return String(x.code || '').toUpperCase() === nmgCode; })) { f.new_magazine = null; notes.push('Magazine ' + nmgCode + ' exists already - pick it from suggestions'); }
+      else f.new_magazine = { code: nmgCode };
+    }
+    if (f.new_type) {
+      var ntName = trim(f.new_type.name || '');
+      if (!isStr(ntName)) f.new_type = null;
+      else if ((d.measurement_types || []).some(function (x) { return x.tool_id === tool.id && normalizeName(x.name) === normalizeName(ntName); })) { f.new_type = null; notes.push('Measurement type ' + ntName + ' exists already - pick it from suggestions'); }
+    }
+    if (f.new_priority) {
+      var nprName = trim(f.new_priority.name || '');
+      if (!isStr(nprName)) f.new_priority = null;
+      else if ((d.priorities || []).some(function (x) { return normalizeName(x.name) === normalizeName(nprName); })) { f.new_priority = null; notes.push('Priority ' + nprName + ' exists already - pick it from suggestions'); }
+    }
     var extra = {};
     Object.keys(f.extra || {}).forEach(function (fid) {
       var fld = row('tool_fields', fid);
@@ -1500,7 +1548,7 @@ window.MRT.domain = (function () {
     var gone = lot ? (r.panels || []).filter(function (n) { return (lot.scrapped || []).indexOf(n) !== -1; }) : [];
     if (gone.length && !(o && o.allowScrapped)) add('panel_scrapped', 'Panel ' + gone.join(', ') + (gone.length > 1 ? ' are' : ' is') + ' scrapped', 'lot');
     if (!prio && !nprio) add('priority_required', 'Pick a priority', 'urgency');
-    else if (prio.needs_reason && !isStr(r.priority_reason)) add('priority_reason_required', prio.name + ' needs a reason', 'urgency');
+    else if (prio && prio.needs_reason && !isStr(r.priority_reason)) add('priority_reason_required', prio.name + ' needs a reason', 'urgency');
     if (!bkm && !r.bkm_path && !isStr(r.purpose)) add('purpose_required_without_bkm', 'Without a BKM, the purpose must say what to measure', 'details');
     if (!(r.magazine_id && (r.slots || []).length) && !isStr(r.panel_location)) add('panel_location_required', 'Say where the panels are now: the magazine slots, or a note', 'where');
     if (tool.destructive && r.destructive_ok !== true) add('destructive_ack_required', tool.code + ' destroys the panels - tick that they may be scrapped', 'where');
