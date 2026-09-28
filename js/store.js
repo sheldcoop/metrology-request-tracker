@@ -37,7 +37,8 @@ window.MRT.store = (function () {
     currentUserId: null,
     pendingSave: false,   // true when a save failed and the change is only in memory
     lastError: null,
-    upgradedFrom: null    // schema version the file had before this load upgraded it
+    upgradedFrom: null,   // schema version the file had before this load upgraded it
+    recoveredFromPrev: false   // true when the live file was torn and the previous copy was loaded
   };
 
   /* ------------------------------------------------------------------ *
@@ -266,9 +267,24 @@ window.MRT.store = (function () {
     }
   }
 
+  /** The rotating previous copy: every save parks the file it replaced here, so a
+      torn write (crash mid-save) can be recovered even with no backup yet. */
+  function prevPath() { return cfg.data_file.replace(/\.json$/, '') + '.prev.json'; }
+
   function readDataFile() {
     return adapter().read(cfg.data_file).then(function (text) {
-      return text === null ? null : { text: text, data: parseFile(text) };
+      if (text === null) return null;
+      try { return { text: text, data: parseFile(text) }; }
+      catch (e) { return readPrev(e); }
+    });
+  }
+
+  /** The live file is torn: fall back to the previous copy, else the original error. */
+  function readPrev(origErr) {
+    return adapter().read(prevPath()).then(function (text) {
+      if (text === null) throw origErr;
+      try { return { text: text, data: validateAndFill(parseFile(text)), recovered: true }; }
+      catch (e2) { throw origErr; }
     });
   }
 
@@ -405,6 +421,7 @@ window.MRT.store = (function () {
         state.data = seedData();
         state.loadedRevision = 0;
         state.upgradedFrom = null;
+        state.recoveredFromPrev = false;
         resetUndo();
         return adapter().write(cfg.data_file, JSON.stringify(state.data, null, 2)).then(function () { return state.data; });
       }
@@ -418,6 +435,7 @@ window.MRT.store = (function () {
         state.data = migrate(raw);
         state.loadedRevision = state.data.revision;
         state.upgradedFrom = from < SCHEMA_VERSION ? from : null;
+        state.recoveredFromPrev = !!onDisk.recovered;
         state.pendingSave = false;
         state.lastError = null;
         resetUndo();
@@ -443,7 +461,8 @@ window.MRT.store = (function () {
           ' at ' + (onDisk.data.saved_ts || 'an unknown time') + '. Reload?', 'revision_conflict',
           { saved_by: onDisk.data.saved_by, saved_ts: onDisk.data.saved_ts, revision: onDisk.data.revision });
       }
-      return dailyBackup(onDisk ? onDisk.text : null);
+      var prev = onDisk ? adapter().write(prevPath(), onDisk.text) : Promise.resolve();
+      return prev.then(function () { return dailyBackup(onDisk ? onDisk.text : null); });
     }).then(function () {
       state.data.revision = state.loadedRevision + 1;
       state.data.saved_ts = nowIso();
@@ -2069,6 +2088,7 @@ window.MRT.store = (function () {
       savedBy: state.data ? state.data.saved_by || null : null,
       pendingSave: state.pendingSave,
       upgradedFrom: state.upgradedFrom,
+      recoveredFromPrev: !!state.recoveredFromPrev,
       currentUserId: state.currentUserId,
       lastError: state.lastError
     };
