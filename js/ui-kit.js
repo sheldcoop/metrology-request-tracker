@@ -257,8 +257,8 @@
           }));
         })
       ]),
-      note('Working (P1): FIB beam rasters and the cross-section face mills open; QVM crosshair locks onto the pad edge and the measuring line snaps; ' +
-           'PRF stylus glides over the step and draws the profile; HRM probe taps while the surface slides; AOI scan frame sweeps, defect boxes blink. ' +
+      note('Working (P1): FIB beam rasters and the cross-section face mills open; QVM crosshair locks the pad and the shift arrow nudges; ' +
+           'PRF stylus glides over the via cut and draws the profile; HRM lens breathes while the caliper draws in; AOI scan frame sweeps, defect boxes blink. ' +
            'With Reduce motion each shows its last frame. Sizes: 18 (search), 24 (queue), 28 (Settings table), 40 (gate), 56 (Lab status nameplate).'),
       el('div', { class: 'kit-row', style: { marginTop: '8px' } }, ui.GLYPHS.map(function (g) { return ui.toolGlyph(g.key, { size: 96, state: 'live', label: g.label + ', working' }); })),
       el('div', { class: 'kit-row', style: { marginTop: '8px' } }, [18, 28, 40, 56, 72].map(function (n) { return ui.toolGlyph('fib', { size: n }); })),
@@ -492,7 +492,7 @@
       section('Chips, tags, setup note', chips()),
       section('KPI tiles', kpis()),
       section('Theme gallery', ui.themeGallery({ themes: TH, value: TH.DEFAULT }).node, 'js/themes.js holds every theme; each card is a live sample drawn in its own theme (user menu > Theme..., Settings > Look).'),
-      section('Tool glyphs', glyphs(), 'One drawing per tool: probe (HRM), camera (AOI), stylus (PRF), optics (QVM), ion column (FIB), reticle (any other).'),
+      section('Tool glyphs', glyphs(), 'One drawing per tool: microscope field (HRM), golden vs scan (AOI), via cut (PRF), layer shift (QVM), ion trench (FIB), reticle (any other).'),
       section('Charts (Chart.js, shared theme)', charts(), 'One theme config in js/ui/charts.js: token colours, gradients, draw-in, panel-style tooltip, full screen.'),
       section('Panel map (unused - kept for OPEN_QUESTIONS #22)', panelMapDemo(), 'No screen uses it since form v2 (Hirata IDs). Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
       section('Hirata code (ui.copperPanel, ui.hirataFields, ui.hirataGrid)', hirataDemo(), 'Copper stays copper in every theme. The grid blocks any dot that would take a column above 9; the bottom row is the baseline.'),
