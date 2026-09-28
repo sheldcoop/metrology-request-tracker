@@ -277,10 +277,13 @@ window.MRT.views.request = (function () {
     var list = ui.el('ol', { class: 'timeline' }, events.map(function (e) {
       var icon = { comment: 'edit', created: 'plus', assign: 'user', panels: 'inbox', edit: 'edit' }[e.kind] ||
         (e.to === 'cancelled' ? 'close' : e.to === 'on_hold' ? 'clock' : e.to === 'clarification' ? 'help' : 'check');
+      var editable = e.kind === 'comment' && (e.user_id === me.id || D.hasRole(me, 'admin'));
       return ui.el('li', { class: 'tl-item is-' + e.kind + (e.to ? ' to-' + e.to : '') }, [
         ui.el('span', { class: 'tl-icon', 'aria-hidden': 'true' }, ui.icon(icon, 14)),
         ui.el('div', {}, [
-          ui.el('div', { class: 'tl-meta' }, [ui.el('b', { text: userName(e.user_id) }), ' ', muted(ui.formatTs(e.ts))]),
+          ui.el('div', { class: 'tl-meta' }, [ui.el('b', { text: userName(e.user_id) }), ' ', muted(ui.formatTs(e.ts) + (e.edited_ts ? ' · edited' : '')),
+            editable ? ui.button('', { kind: 'ghost', size: 'sm', icon: 'edit', ariaLabel: 'Edit comment', title: 'Edit comment',
+              onClick: function () { editBox(e); } }) : null]),
           e.kind === 'comment' ? commentBody(e) : ui.el('p', { class: 'tl-text', text: eventText(e) })
         ])
       ]);
@@ -294,6 +297,18 @@ window.MRT.views.request = (function () {
       } });
     }
     return ui.panel({ title: 'Timeline', icon: 'activity', body: [list, box ? box.node : null, add ? ui.el('div', { class: 'form-actions' }, add) : null] }).node;
+  }
+
+  function editBox(e) {
+    var box = ui.field({ label: 'Edit comment', multiline: true, value: e.text });
+    ui.dialog({ title: 'Edit comment', icon: 'edit',
+      body: [box.node, ui.el('p', { class: 'muted', text: 'The edit is stamped and kept in the audit log.' })], actions: [
+      { label: 'Cancel', value: null },
+      { label: 'Save', kind: 'primary', value: function () { return box.value(); },
+        submit: function (v) { return store.editComment(e.id, v).catch(function (err) { if (err && err.code === 'no_change') return null; throw err; }); } }
+    ] }).then(function (res) {
+      if (res) { ui.toast({ kind: 'success', message: 'Comment updated.' }); window.MRT.app.route(); }
+    }).catch(function (err) { ui.toastError(err.message, err); });
   }
 
   function cancel(r) {

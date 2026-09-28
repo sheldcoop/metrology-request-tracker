@@ -1518,6 +1518,25 @@ window.MRT.store = (function () {
     });
   }
 
+  /** Fix your own comment (admins may fix any); the edit is stamped and audited, never silent. No deletion: the timeline stays append-only. */
+  function editComment(eventId, text) {
+    return guard(function () {
+      var me = requireUser();
+      var e = (state.data.request_events || []).filter(function (x) { return x.id === eventId && x.kind === 'comment'; })[0];
+      assert(e, 'Comment not found', 'not_found');
+      var r = need('requests', e.request_id, 'Request');
+      assert(e.user_id === me.id || D.hasRole(me, 'admin'), 'Only the author or an admin can edit this comment', 'not_allowed');
+      var t = String(text || '').trim();
+      assert(t, 'Write something first', 'invalid');
+      assert(t.length <= D.COMMENT_MAX, 'Keep a comment under ' + D.COMMENT_MAX + ' characters', 'invalid');
+      assert(t !== e.text, 'Nothing was changed.', 'no_change');
+      var old = e.text;
+      e.text = t; e.mentions = D.findMentions(t, state.data.users); e.edited_ts = nowIso(); e.edited_by = me.id;
+      audit('request', r.id, 'comment_edit', null, old.length > 80 ? old.slice(0, 80) + '...' : old, t.length > 80 ? t.slice(0, 80) + '...' : t, null);
+      return commit().then(function () { return r; });
+    });
+  }
+
   /** Cancel with a reason (Q35). A cancelled request stays, never deleted. */
   function cancelRequest(requestId, reason) {
     return guard(function () {
@@ -2131,6 +2150,7 @@ window.MRT.store = (function () {
     submitRequest: submitRequest,
     deleteDraft: deleteDraft,
     addComment: addComment,
+    editComment: editComment,
     cancelRequest: cancelRequest,
     requestAction: requestAction,
     receivePanels: receivePanels,

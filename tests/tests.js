@@ -899,6 +899,17 @@
     ST.setCurrentUser(adminL);
     await ST.addComment(s1.id, 'seen');
     eq('anyone who can see it may comment', ST.requestEvents(s1.id).filter(function (e) { return e.kind === 'comment'; }).length, 2);
+    var cmId = ST.requestEvents(s1.id).filter(function (e) { return e.kind === 'comment'; })[0].id;
+    var auditBefore = auditCount();
+    await ST.editComment(cmId, 'please check pad 3 and 4, @tlot');
+    var cm2 = ST.requestEvents(s1.id).filter(function (e) { return e.id === cmId; })[0];
+    eq('the author edits her comment: new text, edited stamp, audited',
+      [cm2.text, !!cm2.edited_ts, auditCount() > auditBefore], ['please check pad 3 and 4, @tlot', true, true]);
+    await refused('same text is nothing changed', ST.editComment(cmId, 'please check pad 3 and 4, @tlot'), 'no_change');
+    await refused('an empty edit is refused', ST.editComment(cmId, '  '), 'invalid');
+    ST.setCurrentUser(tomL.id);
+    await refused('someone else cannot edit it', ST.editComment(cmId, 'hijacked'), 'not_allowed');
+    ST.setCurrentUser(adminL);
     ST.setCurrentUser(tomL.id);
     await refused('someone else cannot cancel it', ST.cancelRequest(s1.id, 'x'), 'not_allowed');
     ST.setCurrentUser(adminL);
