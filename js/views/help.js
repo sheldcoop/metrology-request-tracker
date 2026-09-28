@@ -294,6 +294,15 @@ window.MRT.views.help = (function () {
       ],
       link: ['Open Settings > Data & PIN', '#/settings/data'] },
 
+    { id: 'admin-excel', title: 'Admin: Master Excel (edit requests in Excel)', icon: 'download', admin: true,
+      steps: [
+        'Settings > Data & PIN > Export Master Excel: one workbook with the Requests sheet (keyed by request number, e.g. HRM-260928-01), six reference sheets (Tools, Measurement types, Priorities, Projects, Build-ups, BKM) and a meta sheet with the file revision.',
+        'Edit only Priority, Assigned to, Needed by, Expected done and Purpose. An emptied cell means "no change", never "clear". Status moves and new requests stay in the app - a touched Status cell stops the row.',
+        'Settings > Data & PIN > Master Excel import: pick the file, read every row (green clean, red with the reason), give a reason for the audit log. Nothing saves until every row is green - one red row stops the whole file.',
+        'An older export is refused, never merged: export fresh and redo the edits. The live file is copied to the backups first ("before-import"), every change lands in the audit log and on the timeline.'
+      ],
+      link: ['Open Settings > Data & PIN', '#/settings/data'] },
+
     { id: 'update', title: 'Updating the app', icon: 'download', admin: true,
       intro: 'Only program files are replaced. The folder "data" is never touched.',
       steps: [
