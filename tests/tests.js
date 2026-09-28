@@ -496,7 +496,7 @@
 
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 11, revision 0', [seed.schema_version, seed.revision], [11, 0]);
+    eq('schema 12, revision 0', [seed.schema_version, seed.revision], [12, 0]);
     eq('20 sample magazines M70345-M70364, 24 slots each (M2-23)', [seed.magazines.length, seed.magazines[0].code, seed.magazines[19].code, seed.magazines.every(function (m) { return m.slots === 24 && m.sample; })],
        [20, 'M70345', 'M70364', true]);
     eq('on-hold reasons (M3-4)', seed.hold_reasons.map(function (h) { return h.name; }), ['Waiting for panels', 'Tool down', 'Waiting for engineer info', 'Higher priority first', 'Other']);
@@ -730,7 +730,10 @@
     await refused('the same lot number twice is refused', ST.saveLot({ fields: { lot_number: '18178', panel_count: 2 } }), 'invalid');
     var lot2 = await ST.saveLot({ id: lot.id, version: 1, fields: { panel_count: 16 } });
     eq('an edit: new count, version 2', [lot2.panel_count, lot2.version], [16, 2]);
-    await refused('a lot has no project or build-up any more (F-6)', ST.saveLot({ id: lot.id, fields: { project_id: prjL.id } }), 'validation');
+    var lotP = await ST.saveLot({ id: lot.id, version: 2, fields: { project_id: prjL.id, part_number_id: pnL.id } });
+    eq('a lot links its project + part number (F-7, optional)', [lotP.project_id, lotP.part_number_id, lotP.version], [prjL.id, pnL.id, 3]);
+    await refused('...not a missing project', ST.saveLot({ id: lot.id, version: 3, fields: { project_id: 'prj_nope' } }), 'invalid');
+    await refused('...not a missing part number', ST.saveLot({ id: lot.id, version: 3, fields: { part_number_id: 'pn_nope' } }), 'invalid');
     await refused('...an old version is refused', ST.saveLot({ id: lot.id, version: 1, fields: { panel_count: 20 } }), 'stale_version');
     await refused('...no change is "nothing changed"', ST.saveLot({ id: lot.id, fields: { panel_count: 16 } }), 'no_change');
     var tomL = await ST.saveEntry('users', { fields: { name: 'Tom Lot', roles: ['engineer'] } });
@@ -888,7 +891,13 @@
     eq('delete, audited', [ST.myTemplates(adminL).length, ST.data().audit_log.slice(-1)[0].action], [1, 'delete']);
     var v10 = ST._pure.seedData(); v10.schema_version = 10; delete v10.templates;
     ST._pure.migrate(v10);
-    eq('schema 10 -> 11: templates start empty', [v10.schema_version, v10.templates], [11, []]);
+    eq('schema 10 -> 11 (-> 12): templates start empty', [v10.schema_version, v10.templates], [12, []]);
+    var v11 = ST._pure.seedData(); v11.schema_version = 11;
+    v11.lots = [{ id: 'lot_old', lot_number: '11111' }, { id: 'lot_new', lot_number: '22222', project_id: 'prj_x', part_number_id: 'pn_x' }];
+    ST._pure.migrate(v11);
+    eq('schema 11 -> 12: lots gain empty project + part-number links, kept ones survive',
+      [v11.schema_version, v11.lots[0].project_id, v11.lots[0].part_number_id, v11.lots[1].project_id],
+      [12, null, null, 'prj_x']);
 
     group('Store: comments and cancel (M2 step 5)');
     await ST.saveEntry('users', { id: tomL.id, fields: { windows_id: 'tlot' } });
@@ -1465,7 +1474,7 @@
     P.migrate(v1);
     eq('schema 1 -> 3: part numbers and process steps start empty', [v1.part_numbers, v1.process_steps], [[], []]);
     eq('...FIB becomes destructive, the others not', v1.tools.map(function (t) { return t.code + ':' + t.destructive; }), ['HRM:false', 'AOI:false', 'PRF:false', 'QVM:false', 'FIB:true']);
-    eq('...and the file says schema 11, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [11, [], [], []]);
+    eq('...and the file says schema 12, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [12, [], [], []]);
     eq('...schema 7 -> 8 brings the magazines', v1.magazines.length, 20);
     eq('...schema 6 -> 7 brings the on-hold reasons', v1.hold_reasons.length, 5);
     eq('...schema 4 -> 5 brings the sample lot fields', v1.lot_fields.map(function (f) { return f.label; }).length, 7);
@@ -1478,10 +1487,10 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v11_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v12_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [11, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [12, true]);
     // 8 -> 9 (form v2): panel numbers become IDs; the lot's old loading map gives the request its slots
     var v8 = ST._pure.seedData(); v8.schema_version = 8;
     v8.lots = [{ id: 'L', lot_number: '1', project_id: v8.projects[0].id, buildup_id: v8.buildups[0].id, panel_count: 4, owner_id: 'u', scrapped: [2],
@@ -1497,9 +1506,9 @@
     v9.lots = [{ id: 'L', lot_number: '1', project_id: 'P', part_number_id: 'N', buildup_id: 'B', panel_count: 4, owner_id: 'u', scrapped: [] }];
     v9.requests = [{ id: 'R', lot_id: 'L' }, { id: 'S', lot_id: null, new_lot: { lot_number: '2', project_id: 'P2', buildup_id: null } }];
     P.migrate(v9);
-    eq('schema 9 -> 10: requests take project, part number, build-up from their lot (or the new lot); lots drop them',
-       [v9.requests[0].project_id, v9.requests[0].part_number_id, v9.requests[0].buildup_id, v9.requests[1].project_id, v9.requests[1].new_lot, 'project_id' in v9.lots[0], 'buildup_id' in v9.lots[0]],
-       ['P', 'N', 'B', 'P2', { lot_number: '2' }, false, false]);
+    eq('schema 9 -> 10 (-> 12): requests take project, part number, build-up from their lot (or the new lot); lots first drop them, then regain empty links (F-7)',
+       [v9.requests[0].project_id, v9.requests[0].part_number_id, v9.requests[0].buildup_id, v9.requests[1].project_id, v9.requests[1].new_lot, v9.lots[0].project_id, 'buildup_id' in v9.lots[0]],
+       ['P', 'N', 'B', 'P2', { lot_number: '2' }, null, false]);
     var v9b = ST._pure.seedData(); v9b.schema_version = 9; v9b.magazines = [];
     P.migrate(v9b);
     eq('...a file whose magazine list stayed empty gets the 20 sample magazines', v9b.magazines.length, 20);

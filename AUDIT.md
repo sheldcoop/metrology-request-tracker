@@ -160,7 +160,7 @@ MISSING = absent.
     (`js/excel-bridge.js` FileReader), launcher `?who=` (`js/identity.js`),
     `mailto:` (`js/adapters/mail.js`). Swap = new `storage-api.js` + one
     `js/config.js` flag; no view/domain/store change needed.
-56. Lot linked to Project + Part Number — MISSING. A lot carries no
+56. Lot linked to Project + Part Number — EXISTS (fixed 2026-09-29, F-7). A lot carries no
     project/part-number of its own (a migration deleted direct links:
     `js/store.js:363`); `lotProjects()` derives them from the lot's requests
     (`js/views/lots.js:31,153`). A lot is project-less until its first request.

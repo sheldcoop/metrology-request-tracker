@@ -22,7 +22,7 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 11;
+  var SCHEMA_VERSION = 12;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
@@ -381,7 +381,9 @@ window.MRT.store = (function () {
       if (!Array.isArray(d.magazines) || !d.magazines.length) d.magazines = magazinesFromSeed(window.MRT.seed);
     },
     // 10 -> 11: personal request templates (Q28, DECISIONS T-1). Old files have none.
-    10: function (d) { if (!Array.isArray(d.templates)) d.templates = []; }
+    10: function (d) { if (!Array.isArray(d.templates)) d.templates = []; },
+    // 11 -> 12: lots link their project + part number again (F-7 revises F-6). Old files have neither.
+    11: function (d) { (d.lots || []).forEach(function (l) { if (!('project_id' in l)) l.project_id = null; if (!('part_number_id' in l)) l.part_number_id = null; }); }
   };
 
   function magazinesFromSeed(S) {
@@ -1759,7 +1761,9 @@ window.MRT.store = (function () {
    * or an admin changes or deletes it (delete only while no request uses it).
    * ------------------------------------------------------------------ */
 
-  var LOT_FIELDS = ['lot_number', 'panel_count', 'note', 'extra'];     // project, part number, build-up: on the request (F-6)
+  var LOT_FIELDS = ['lot_number', 'panel_count', 'note', 'extra', 'project_id', 'part_number_id'];
+  // F-7 (revises F-6): a lot is one project + one part number in this shop, so the lot
+  // may link them (optional); requests still carry their own and inherit when unset.
 
   /** Tidy the answers to lot fields: text trimmed, empty answers dropped. */
   function tidyExtra(ex) {
