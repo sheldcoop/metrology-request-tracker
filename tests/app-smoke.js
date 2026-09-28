@@ -396,6 +396,19 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Next opens step 2; step 1 folds into one line with the tool and type, ticked', isOpenStep('lot') && !isOpenStep('tool') &&
         /^FIB/.test(stepOf('tool').querySelector('.wz-sum').textContent) && stepOf('tool').classList.contains('is-done'));
   check('step 2 leads to "Where panels are", not straight to priority', !!buttonByText(M(), 'Next: Where panels are'));
+  stepOf('urgency').querySelector('.wz-head').click(); await settle();
+  const prioSeg = M().querySelectorAll('.seg').filter(x => x.getAttribute('aria-label') === 'Priority')[0];
+  const normalId = MRT.store.list('priorities').filter(p => p.is_default)[0].id, hotId = MRT.store.list('priorities').filter(p => p.code === 'P2')[0].id;
+  check('priority is tabs, one per priority, Normal picked by default', prioSeg.querySelectorAll('input').length === 4 &&
+        prioSeg.querySelectorAll('input').filter(i => i.checked).map(i => i.value).join() === normalId);
+  segPick('Priority', hotId); await settle();
+  check('...picking Hot asks why, and the preview stripe follows at once', !!fieldIn(M(), 'Why Hot?') &&
+        $('#main .traveller-mini').classList.contains('prio-2'));
+  setVal(fieldIn(M(), 'Why Hot?'), 'line 2 down'); await settle();
+  segPick('Priority', normalId); await settle();
+  check('...back to Normal: no reason asked, stripe back', !fieldIn(M(), 'Why Hot?') && !fieldIn(M(), 'Why Line stop?') &&
+        $('#main .traveller-mini').classList.contains('prio-3'));
+  stepOf('lot').querySelector('.wz-head').click(); await settle();
   setVal(fieldIn(M(), 'Lot'), '18178'); await settle();
   check('typing a registered lot finds it - and fills in nothing: project, lot, build-up are separate (F-6)', /Lot found/.test(mainText()) &&
         !fieldIn(M(), 'Project').disabled && fieldIn(M(), 'Build-up').value === '');

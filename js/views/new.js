@@ -707,37 +707,43 @@ window.MRT.views['new'] = (function () {
     // (step 3 is paintWhere above)
     function paintUrgency() {
       var prios = store.list('priorities');
-      var prioF = ui.field({ label: 'Priority', value: (byId('priorities', st.priority_id) || {}).name || (st.new_priority ? st.new_priority.name : ''),
-        placeholder: 'Type or pick priority', list: prios.map(function (p) { return { value: p.name, label: p.code }; }) });
-      function readPriority() {
-        var typed = prioF.value().trim();
-        var before = st.priority_id;
-        var hit = null;
-        if (typed) {
+      var prio = byId('priorities', st.priority_id);
+      var seg = ui.segmented({ label: 'Priority', value: st.priority_id,
+        options: prios.map(function (p) { return { value: p.id, label: p.name + ' · ' + (p.code || '') }; }),
+        onChange: function (v) {
+          st.priority_id = v; st.new_priority = null;
+          paintUrgency(); changed();
+        } });
+      var newF = ui.field({ label: 'Or a new priority', value: st.new_priority ? st.new_priority.name : '',
+        placeholder: 'Type a name to add one', hint: 'Added to the priorities when you submit.' });
+      function readNewPriority() {
+        var typed = newF.value().trim();
+        var before = st.priority_id, hadReason = !!(prio && prio.needs_reason);
+        if (!typed) {
+          st.new_priority = null;
+          newF.setState(null);
+        } else {
           var key = D.normalizeName(typed);
-          hit = (prios || []).filter(function (p) {
+          var hit = (prios || []).filter(function (p) {
             return D.normalizeName(p.name) === key || String(p.code || '').toUpperCase() === typed.toUpperCase();
           })[0] || null;
+          if (hit) {
+            st.priority_id = hit.id;
+            st.new_priority = null;
+            newF.setState('valid');
+          } else {
+            st.priority_id = null;
+            st.new_priority = { name: typed };
+            newF.setState('valid', 'New priority. It will be added when you submit.');
+          }
         }
-        if (!typed) {
-          st.priority_id = null;
-          st.new_priority = null;
-          prioF.setState(null);
-        } else if (hit) {
-          st.priority_id = hit.id;
-          st.new_priority = null;
-          prioF.setState('valid');
-        } else {
-          st.priority_id = null;
-          st.new_priority = { name: typed };
-          prioF.setState('valid', 'New priority. It will be added when you submit.');
-        }
-        if (before !== st.priority_id) paintUrgency();
+        var now = byId('priorities', st.priority_id);
+        if (before !== st.priority_id || hadReason !== !!(now && now.needs_reason)) { paintUrgency(); changed(); return; }
+        seg.set(st.priority_id);   // typing kept focus: only the tabs follow
         changed();
       }
-      prioF.input.addEventListener('input', readPriority);
-      prioF.input.addEventListener('change', readPriority);
-      var prio = byId('priorities', st.priority_id);
+      newF.input.addEventListener('input', readNewPriority);
+      newF.input.addEventListener('change', readNewPriority);
       var reasonF = prio && prio.needs_reason ? ui.field({ label: 'Why ' + prio.name + '?', value: st.priority_reason || '',
         placeholder: 'e.g. line 2 stopped, customer audit on Friday', hint: 'Required for ' + prio.name + '; managers see it.' }) : null;
       if (reasonF) reasonF.input.addEventListener('input', function () { st.priority_reason = reasonF.value().trim(); changed(); });
@@ -745,7 +751,8 @@ window.MRT.views['new'] = (function () {
       var neededF = ui.field({ label: 'Needed by (optional)', type: 'date', cls: 'half', value: st.needed_by || '',
         hint: 'With a date there is a countdown; without one the priority says how urgent it is.' });
       neededF.input.addEventListener('change', function () { st.needed_by = neededF.value() || null; changed(); });
-      ui.mount(steps.urgency.body, [prioF.node,
+      ui.mount(steps.urgency.body, [
+        ui.el('div', { class: 'ifield-label', text: 'Priority' }), seg.node, newF.node,
         prio && prio.description ? ui.el('p', { class: 'muted', text: prio.description }) : null,
         reasonF ? reasonF.node : null, neededF.node, next('urgency')]);
     }
