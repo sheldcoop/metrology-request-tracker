@@ -376,8 +376,8 @@ a { color: var(--accent); }
 .combo-pop {
   position: absolute; top: calc(100% + 4px); left: -1px; right: -1px; z-index: 60;
   max-height: 248px; overflow-y: auto;
-  background: var(--panel); border: 1px solid var(--line-hi);
-  border-radius: var(--radius); box-shadow: var(--shadow-pop, 0 8px 24px rgba(0, 0, 0, .45));
+  background: var(--surface-2); border: 1px solid var(--line-hi);
+  border-radius: var(--radius); box-shadow: var(--shadow-pop);
   padding: 4px;
 }
 .combo-opt {
