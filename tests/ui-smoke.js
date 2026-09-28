@@ -110,10 +110,11 @@ check('magazine slots',()=>{let got=null;
   expect('formatSlots: runs of 3+',ui.formatSlots([9,3,4,5,1])==='1, 3-5, 9'&&ui.formatSlots([1,2])==='1, 2');
   const ro=put(ui.magazineSlots({magazine:{code:'M1',slots:4},picked:[2],readOnly:true}));expect('read-only: no buttons',!ro.node.querySelector('button')&&ro.node.querySelectorAll('.mz-slot.is-picked').length===1)});
 check('heatmap',()=>{put(ui.heatmap({rows:['Mon','Tue'],cols:['07','08','09'],values:[[0,2,5],[1,0,0]],label:'Load',unit:'Requests',colour:'teal'}));put(ui.heatmap({rows:['a'],cols:['b'],values:[[0]]}))});
-check('glyphs',()=>{expect('six glyphs',ui.GLYPHS.length===6);
+check('glyphs',()=>{expect('seven glyphs',ui.GLYPHS.length===7);
   ui.GLYPHS.forEach(g=>['idle','live','maint','off'].forEach(s=>{const n=ui.toolGlyph(g.key,{size:40,state:s,label:g.label});root.appendChild(n);
     expect('glyph '+g.key+' '+s,n.classList.contains('is-'+s)&&n.innerHTML.indexOf('tg-body')!==-1&&n.getAttribute('role')==='img')}));
-  const parts={hrm:['tg-focus','tg-trace'],aoi:['tg-scan','tg-defect'],prf:['tg-stylus','tg-trace'],qvm:['tg-reticle','tg-shift'],fib:['tx-raster','tx-mill','tx-blink','tx-shimmer','tx-alert','tx-detail'],generic:['tg-spin']};
+  const parts={hrm:['tg-focus','tg-trace'],aoi:['tx-sweep','tg-defect','tx-blink','tx-alert','tx-detail'],prf:['tg-stylus','tg-trace'],qvm:['tg-reticle','tg-shift'],fib:['tx-raster','tx-mill','tx-blink','tx-shimmer','tx-alert','tx-detail'],'fib-destructive':['tx-raster','tx-mill','tx-blink','tx-shimmer','tx-alert','tx-detail'],generic:['tg-spin']};
+  expect('destructive FIB maps to the cut variant',ui.toolGlyph('fib',{destructive:true}).dataset.glyph==='fib-destructive'&&ui.toolGlyph('fib',{}).dataset.glyph==='fib');
   const live=ui.toolGlyph('fib',{state:'live',rate:2,alert:true});expect('rate/alert opts land on the node',live.style['--tx-rate']===2&&live.classList.contains('is-alert'));
   ui.GLYPHS.forEach(g=>{const h=ui.toolGlyph(g.key).innerHTML;const nodes=(h.match(/<[a-z]+/g)||[]).length;
     expect('node budget under 100: '+g.key,nodes<=100&&(h.indexOf('tx-detail')!==-1||h.indexOf('tg-lamp')!==-1))});
@@ -169,7 +170,7 @@ if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.rea
   const sel=doc.getElementById('kitTheme');sel.value='deep-lab';sel.dispatch('change');flush();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
   expect('the kit builds every section (24, with the theme gallery)',secs.length===24);
-  expect('the kit shows 6 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===24);
+  expect('the kit shows 7 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===28);
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
   sel.value='all';sel.dispatch('change');flush();
   expect('the kit renders every theme of the app side by side',root.querySelectorAll('.theme-scope').length===live.length);

@@ -848,6 +848,8 @@ kbd {
 .tool-glyph .tx-mill { animation: mill var(--tx-d) ease-in-out infinite alternate; }
 .tool-glyph .tx-blink { animation: blink var(--tx-d) steps(2, jump-none) infinite; }
 .tool-glyph .tx-shimmer { opacity: .55; animation: tx-shimmer var(--tx-d) ease-in-out infinite alternate; }
+.tool-glyph .tx-sweep { animation: tx-sweep var(--tx-d) ease-in-out infinite alternate; }
+@keyframes tx-sweep { from { transform: translateX(6px); } to { transform: translateX(-6px); } }
 /* paused unless live/maint (after the animation shorthands above, which reset play-state) */
 .tool-glyph .tx { animation-play-state: paused; }
 .tool-glyph.is-live .tx, .tool-glyph.is-maint .tx { animation-play-state: running; }

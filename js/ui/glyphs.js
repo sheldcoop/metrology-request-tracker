@@ -55,17 +55,48 @@
          '<path class="tg-sample" d="M20 33h20M20 40h20"/>' +
          '<path class="tg-beam tg-trace" d="M40 31v11M38 31h4M38 42h4"/>' + LAMP,
 
-    // AOI: golden reference on the left, scanned panel with defects on the
-    // right; the scan frame sweeps, defect boxes light up
+    // AOI, living: golden reference vs scanned panel - the scan bar sweeps
+    // the scan half, defect boxes blink, the camera recording dot pulses.
+    // Hover names the defect count; the red ring only pulses on alert/Down.
     aoi: '<rect class="tg-body" x="14" y="4" width="20" height="10" rx="2"/>' +
          '<circle class="tg-detail" cx="30" cy="9" r="1.5"/>' +
+         '<circle class="tg-dot tx tx-blink" style="--tx-base:.5s" cx="18" cy="9" r="1.4"/>' +
          '<path class="tg-beam" d="M20 14l-6 12M28 14l6 12" stroke-dasharray="3 3"/>' +
          '<rect class="tg-sample" x="4" y="30" width="40" height="12" rx="1"/>' +
          '<path class="tg-sample" d="M24 30v12" stroke-opacity=".5"/>' +
          '<path class="tg-detail" d="M8 34h8M8 38h8"/>' +
-         '<rect class="tg-defect" x="28" y="33" width="4" height="3"/>' +
-         '<rect class="tg-defect tg-d2" x="35" y="37" width="3" height="3"/>' +
-         '<rect class="tg-scan" x="30" y="28" width="10" height="16" rx="1"/>' + LAMP,
+         '<g class="tx-work">' +
+         '<rect class="tg-defect tx tx-blink" style="--tx-base:1s" x="28" y="33" width="4" height="3"/>' +
+         '<rect class="tg-defect tg-d2 tx tx-blink" style="--tx-base:1s" x="35" y="37" width="3" height="3"/>' +
+         '<rect class="tg-scan tx tx-sweep" style="--tx-base:2.4s" x="29" y="28" width="10" height="16" rx="1"/>' +
+         '</g>' +
+         '<circle class="tx-alert" cx="34" cy="36" r="9"/>' +
+         '<g class="tx-detail"><rect class="tg-detail" x="27" y="32" width="14" height="9" rx="1"/>' +
+         '<text class="tx-text" x="29" y="39">2 DEF</text></g>' + LAMP,
+
+    // FIB-destructive, living: the wide deep trench - banks flying, the face
+    // fully open with hatch, heavier shimmer. Auto-picked for destructive FIB.
+    'fib-destructive': '<defs><filter id="txg-fibx" x="-40%" y="-40%" width="180%" height="180%">' +
+         '<feGaussianBlur stdDeviation="1.1"/></filter>' +
+         '<filter id="txh-fibx" x="0" y="0" width="100%" height="100%">' +
+         '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="n"/>' +
+         '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0.35 0 0 0 0 0.69 0 0 0 0 1 0 0 0 0.5 0"/></filter></defs>' +
+         '<path class="tg-body" d="M13 4h22l-6 13h-10z"/>' +
+         '<path class="tg-detail" d="M16 9h16"/>' +
+         '<rect class="tx tx-shimmer" style="--tx-base:2.2s" x="15" y="5" width="18" height="11" filter="url(#txh-fibx)"/>' +
+         '<g class="tx-work">' +
+         '<path class="tg-beam tx tx-raster" style="--tx-base:.9s" d="M24 17v13" filter="url(#txg-fibx)" stroke-width="3.5"/>' +
+         '<path class="tg-beam tx tx-raster" style="--tx-base:.9s" d="M24 17v13"/>' +
+         '<g class="tx tx-blink" style="--tx-base:.5s"><circle class="tg-dot" cx="14" cy="28" r="1.4"/>' +
+         '<circle class="tg-dot" cx="34" cy="26" r="1.4"/><circle class="tg-dot" cx="31" cy="30" r="1.2"/></g>' +
+         '<path class="tg-block" d="M4 30h40v10H4z"/>' +
+         '<path class="tg-sample" d="M16 30v12M32 30v12"/>' +
+         '<path class="tg-face tx tx-mill" style="--tx-base:.9s" d="M16 33h16M16 36h16M16 39h16"/>' +
+         '<path class="tg-detail" d="M18 33l4 9M24 33l4 9" stroke-opacity=".6"/>' +
+         '</g>' +
+         '<circle class="tx-alert" cx="24" cy="36" r="10"/>' +
+         '<g class="tx-detail"><path class="tg-detail" d="M35 32v9M33.5 32h3M33.5 41h3"/>' +
+         '<text class="tx-text" x="26" y="30">12.4</text></g>' + LAMP,
 
     // PRF: a stylus gliding over a via cut in profile - top diameter and
     // depth arrows, the tapered walls, the profile drawing behind the tip
@@ -125,6 +156,7 @@
     { key: 'prf', label: 'Via profiler (PRF)' },
     { key: 'qvm', label: 'Overlay optics (QVM)' },
     { key: 'fib', label: 'Ion cutter (FIB)' },
+    { key: 'fib-destructive', label: 'Ion cut, destructive (FIB)' },
     { key: 'generic', label: 'Measuring reticle (any tool)' }
   ];
 
