@@ -5,7 +5,7 @@
  * 7 engineers, 2 operators who also measure, 3 quality engineers, 2
  * managers - plus one who added themselves and one switched off), all five
  * tools with extra fields, part numbers, process steps, lots and split lots
- * in magazine slots, and ~260 requests over the last six months in EVERY state
+ * in magazine slots, and ~100 requests over the last six weeks in EVERY state
  * on EVERY tool: drafts (one 30+ days old), submitted, accepted (expected
  * done, some later than needed), in progress, on hold (each reason), needs
  * clarification, completed, closed, reopened, cancelled (by the engineer and
@@ -186,9 +186,9 @@ window.MRT.demoData = (function () {
       lots.push(lot);
       return lot;
     }
-    // 36 lots over six months; some split lots (18xxx.01/.02); a few without a panel count (it is optional)
-    for (var i = 0; i < 36; i++) {
-      var ago = Math.round(180 - i * 5 + R() * 3);
+    // 12 lots over six weeks; some split lots (18xxx.01/.02); a few without a panel count (it is optional)
+    for (var i = 0; i < 12; i++) {
+      var ago = Math.round(55 - i * 4 + R() * 3);
       var l = addLot(String(18100 + i * 7), Math.max(ago, 1), pick([6, 8, 12, 12, 16, 24, 30, 36, 48]), null);
       if (i % 6 === 2) addLot(l.lot_number + '.01', Math.max(ago - 2, 1), Math.min(l.panel_count, 8), l);
       if (i % 12 === 2) addLot(l.lot_number + '.02', Math.max(ago - 3, 1), 4, l);
@@ -381,25 +381,25 @@ window.MRT.demoData = (function () {
     // History, oldest first, so the request numbers and scrapped panels come out right
     var plans = [];
     var TOOLS = ['HRM', 'AOI', 'PRF', 'QVM', 'FIB'];
-    for (var dAgo = 178; dAgo >= 10; dAgo -= 1) {
-      var count = chance(0.6) ? 1 : chance(0.5) ? 2 : 0;
+    for (var dAgo = 45; dAgo >= 10; dAgo -= 1) {
+      var count = chance(0.55) ? 1 : chance(0.35) ? 2 : 0;
       for (var c = 0; c < count; c++) {
         var f = chance(0.08) ? 'cancelled' : chance(0.04) ? 'cancelled_lab' : chance(0.05) ? 'reopened' : 'analyzed';
         plans.push({ tool: pick(TOOLS), daysAgo: dAgo + R() * 0.5, fate: f, edited: chance(0.08), taken: chance(0.05) });
       }
     }
-    // The present: every open state on every tool
-    TOOLS.forEach(function (code) {
-      [['submitted', 1.5], ['submitted', 0.3], ['accepted', 3], ['accepted', 2], ['panels_received', 2.5], ['in_progress', 4], ['on_hold', 6], ['clarification', 3],
-       ['completed', 2], ['completed', 5], ['analyzed', 9], ['cancelled', 2], ['draft', 1]].forEach(function (x) {
+    // The present: every state on every tool (one on-hold reason each, rotating so all five show)
+    TOOLS.forEach(function (code, ti) {
+      [['submitted', 1.5], ['accepted', 3], ['panels_received', 2.5], ['in_progress', 4], ['clarification', 3],
+       ['completed', 2], ['analyzed', 9], ['cancelled', 2], ['draft', 1]].forEach(function (x) {
         plans.push({ tool: code, daysAgo: x[1] + R() * 0.3, fate: x[0] });
       });
+      plans.push({ tool: code, daysAgo: 6, fate: 'on_hold', holdReason: d.hold_reasons[ti % d.hold_reasons.length] });
       plans.push({ tool: code, daysAgo: 12, fate: 'accepted', late: true, expectedLater: true });           // late, and the lab expects later still
       plans.push({ tool: code, daysAgo: 9, fate: 'in_progress', late: true });                             // late, in progress
       plans.push({ tool: code, daysAgo: 0.6, fate: 'submitted', prio: 'P1' });                             // an open Line stop
       plans.push({ tool: code, daysAgo: 1.2, fate: 'accepted', prio: 'P2', edited: true });                // Hot, edited with a reason
-      plans.push({ tool: code, daysAgo: 2.5, fate: 'in_progress', taken: true });                          // taken over by the backup
-      d.hold_reasons.forEach(function (h, i3) { if (i3 < 3) plans.push({ tool: code, daysAgo: 7 + i3, fate: 'on_hold', holdReason: h }); });
+      if (code === 'QVM') plans.push({ tool: code, daysAgo: 2.5, fate: 'in_progress', taken: true });      // taken over by the backup
     });
     plans.push({ tool: 'QVM', daysAgo: 45, fate: 'draft', oldDraft: true, who: 'prince' });                 // a draft to clean up (Q33)
     plans.push({ tool: 'HRM', daysAgo: 3, fate: 'draft', who: 'prince' });

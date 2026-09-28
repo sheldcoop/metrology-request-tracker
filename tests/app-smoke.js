@@ -973,8 +973,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(M(), 'Fill with demo data').click(); await settle();
   let rdlg2 = openDialog(); setVal(rdlg2.querySelector('textarea'), 'try everything'); buttonByText(rdlg2, 'Fill with demo data').click(); await settle();
   check('Data: "Fill with demo data" - the big demo is in this folder, I am its Prince (admin) with my Windows ID',
-        MRT.store.data().requests.length > 200 && MRT.store.currentUser().id === 'usr_demo_prince' && MRT.store.currentUser().windows_id === 'pkhurana' &&
-        JSON.parse(folder.files['mrt_data.json']).requests.length > 200 && /Prince Khurana/.test(text('userName')));
+        MRT.store.data().requests.length > 60 && MRT.store.currentUser().id === 'usr_demo_prince' && MRT.store.currentUser().windows_id === 'pkhurana' &&
+        JSON.parse(folder.files['mrt_data.json']).requests.length > 60 && /Prince Khurana/.test(text('userName')));
   win.setHash('#/new'); await settle();
   check('...the form works on it: the demo magazines are offered', (function () { var inp = fieldIn(M(), 'Magazine'); inp.dispatch('focus'); var box = inp.closest('.ifield'); return !!box && box.querySelectorAll('.combo-opt').length === 20; })());
   check('...the combo filters as you type', (function () { var inp = fieldIn(M(), 'Magazine'); var code = MRT.store.list('magazines')[0].code; inp.value = code.slice(0, 3); inp.dispatch('input'); var box = inp.closest('.ifield'); var opts = box.querySelectorAll('.combo-opt'); return opts.length >= 1 && opts.every(function (o) { return (o.textContent.toLowerCase().indexOf(code.slice(0, 3).toLowerCase()) !== -1); }); })());

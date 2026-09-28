@@ -58,7 +58,7 @@ async function boot(query, hash) {
 
   d = await boot('?demo=big');
   check('?demo=big: Prince on My requests of the big demo file', /My requests/.test(d.doc.getElementById('main').textContent) &&
-        d.win.MRT.store.data().requests.length > 200 && d.win.MRT.store.currentUser().name === 'Prince Khurana');
+        d.win.MRT.store.data().requests.length > 60 && d.win.MRT.store.currentUser().name === 'Prince Khurana');
   d = await boot('?demo=big&as=mia', '#/queue');
   check('?demo=big&as=mia: Mia\'s queue is full (FIB backup while Olga is away)', d.win.MRT.store.currentUser().name === 'Mia Gruber' &&
         d.doc.getElementById('main').querySelectorAll('.q-row').length >= 10);
