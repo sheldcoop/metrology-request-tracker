@@ -523,6 +523,9 @@ table.grid tbody tr:hover { background: var(--accent-soft); }
 table.grid tbody tr:last-child td { border-bottom: 0; }
 table.grid tbody tr.is-selected { background: var(--accent-soft); }
 table.grid tbody tr.is-selected > td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+/* Master Excel import preview: bad rows carry the danger wash, rows with changes a green edge. */
+table.grid tbody tr.is-bad > td { background: var(--danger-bg); }
+table.grid tbody tr.is-change > td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
 table.grid tbody tr[tabindex]:focus-visible { outline-offset: -2px; }
 
 /* --- Tabs with a sliding underline ---------------------------------- */

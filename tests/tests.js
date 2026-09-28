@@ -1338,6 +1338,58 @@
     eq('meta carries the live revision, schema and request count',
       [metaVal('Revision'), metaVal('Schema'), metaVal('Requests')], [ST.status().revision, ST.data().schema_version, ST.data().requests.length]);
 
+    group('Excel bridge: import (validate + all-or-nothing save)');
+    var X = window.XLSX;
+    ok('SheetJS is loaded for the round-trip', !!X);
+    function masterBytes(edit) {
+      var sh = XB.masterSheets();
+      edit(sh[0].rows, sh[1].rows);
+      var wb = X.utils.book_new();
+      sh.forEach(function (s) { X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet(s.rows), s.name); });
+      return X.write(wb, { type: 'array' });
+    }
+    function colIdx(rows, name) { return rows[0].indexOf(name); }
+    var untouched = XB.validateSheets(XB.workbookOf(masterBytes(function () {})), ST.data());
+    eq('an untouched export validates clean: no items, errors only on draft rows (made in the app, not Excel)',
+      [untouched.fatal, untouched.stale, untouched.rows.length, untouched.rows.some(function (r) { return r.item; }),
+       untouched.rows.filter(function (r) { return r.errors.length; }).every(function (r) { return r.key === '(draft)'; })],
+      [null, false, ST.data().requests.length, false, true]);
+    var prioList = ST.list('priorities', { all: true });
+    var target = ST.data().requests.filter(function (r) { return r.request_no; })[0];
+    var origPrio = target.priority_id;
+    var otherPrio = prioList.filter(function (p) { return p.id !== origPrio && !p.needs_reason; })[0].name;
+    var edited = XB.validateSheets(XB.workbookOf(masterBytes(function (req) {
+      var i = req.slice(1).filter(function (r) { return String(r[0]) === target.request_no; })[0];
+      i[colIdx(req, 'Priority')] = otherPrio; i[colIdx(req, 'Needed by')] = '2026-10-01';
+    })), ST.data());
+    var goodItems = edited.rows.filter(function (r) { return r.item; }).map(function (r) { return r.item; });
+    eq('two edited cells become one clean item', [edited.rows.some(function (r) { return r.errors.length && r.key !== '(draft)'; }), goodItems.length,
+      goodItems[0] && goodItems[0].fields.priority_id === ST.list('priorities', { all: true }).filter(function (p) { return p.name === otherPrio; })[0].id,
+      goodItems[0] && goodItems[0].fields.needed_by], [false, 1, true, '2026-10-01']);
+    var statusHit = XB.validateSheets(XB.workbookOf(masterBytes(function (req) {
+      req[1][colIdx(req, 'Status')] = 'Almost done';
+    })), ST.data());
+    ok('a touched Status cell is a row error, never a move', statusHit.rows.some(function (r) { return r.errors.join(' ').indexOf('Status moves happen in the app') >= 0; }));
+    var noName = XB.validateSheets(XB.workbookOf(masterBytes(function (req) {
+      req[1][colIdx(req, 'Priority')] = 'Turbo hyper urgent';
+    })), ST.data());
+    ok('an unknown priority name is a row error', noName.rows.some(function (r) { return r.errors.join(' ').indexOf('Unknown priority') >= 0; }));
+    var rev0 = ST.status().revision, audit0 = ST.data().audit_log.length;
+    ST.setCurrentUser('usr_demo_prince');
+    await refused('a stale file never saves', ST.importRequests(goodItems, rev0 - 1, 'stale test'), 'stale_import');
+    var badMix = goodItems.concat([{ request_no: target.request_no, fields: { priority_id: 'prio_nope' } }]);
+    await refused('one bad item stops the whole file', ST.importRequests(badMix, rev0, 'mixed test'), 'invalid');
+    eq('...and nothing was written by the refused saves', [ST.byId('requests', target.id).priority_id === origPrio, ST.status().revision, ST.data().audit_log.length],
+      [true, rev0, audit0]);
+    ST.setCurrentUser('usr_demo_mia');
+    await refused('only admins import', ST.importRequests(goodItems, rev0, 'not admin'), 'not_admin');
+    ST.setCurrentUser('usr_demo_prince');
+    var done = await ST.importRequests(goodItems, rev0, 'excel import test');
+    eq('the import saves, bumps the revision, keeps a safety copy, audits',
+      [done.n, ST.byId('requests', target.id).priority_id !== origPrio, ST.status().revision,
+       Object.keys(ad.files).some(function (k) { return k.indexOf('before-import_') >= 0; }), ST.data().audit_log.length > audit0],
+      [1, true, rev0 + 1, true, true]);
+
     group('Store: file checks and schema upgrades');
     var P = ST._pure;
     ok('a missing collection is filled in, not fatal', Array.isArray(P.validateAndFill({ schema_version: 1, revision: 3 }).tools));

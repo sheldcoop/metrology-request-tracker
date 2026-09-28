@@ -592,6 +592,55 @@ window.MRT.store = (function () {
   }
 
   /**
+   * Admin: apply Master Excel edits (js/excel-bridge.js validateSheets).
+   * All-or-nothing: every item is re-checked here, and nothing is written
+   * until all pass. The workbook's meta revision must equal the live one -
+   * an older export is refused, never merged. A safety copy goes to
+   * backups/ first (restorable, never pruned); commit() then re-reads the
+   * file itself, so a change from another PC still stops the save.
+   */
+  function importRequests(items, metaRevision, reason) {
+    return guard(function () {
+      var me = requireAdmin();
+      assert(isStr(reason), 'A reason is required', 'invalid');
+      assert(Array.isArray(items) && items.length, 'Nothing to import', 'invalid');
+      assert(isNum(metaRevision), 'This file has no revision on its meta sheet - export a fresh Master Excel', 'stale_import');
+      if (metaRevision !== state.loadedRevision)
+        throw StoreError('This Excel file is older than the live data (file: revision ' + metaRevision + ', live: revision ' +
+          state.loadedRevision + '). Export a fresh file and redo the edits there.', 'stale_import',
+          { file_revision: metaRevision, live_revision: state.loadedRevision });
+      var planned = items.map(function (it) {
+        var key = it && it.request_no;
+        var r = (state.data.requests || []).filter(function (x) { return x.request_no === key; })[0];
+        assert(r, 'No request ' + (key || '(blank)') + ' exists any more', 'invalid');
+        var cand = clone(r);
+        ['priority_id', 'assigned_to', 'needed_by', 'expected_done', 'purpose'].forEach(function (f) {
+          if (it.fields && it.fields[f] !== undefined) cand[f] = it.fields[f];
+        });
+        var problems = D.requestProblems(cand, state.data, { submit: cand.status !== 'draft', allowScrapped: true });
+        assert(!problems.length, key + ': ' + problems.join('. '), 'invalid', problems);
+        var touched = ['priority_id', 'assigned_to', 'needed_by', 'expected_done', 'purpose'].filter(function (f) { return cand[f] !== r[f]; });
+        return { r: r, cand: cand, touched: touched };
+      }).filter(function (p) { return p.touched.length; });
+      assert(planned.length, 'Nothing changed - every row already matches the app', 'no_change');
+      var safety = cfg.backup_prefix + 'before-import_' + stamp() + '.json';
+      var LABEL = { priority_id: 'Priority', assigned_to: 'Assigned to', needed_by: 'Needed by', expected_done: 'Expected done', purpose: 'Purpose' };
+      return adapter().write(cfg.backup_dir + '/' + safety, JSON.stringify(state.data, null, 2)).then(function () {
+        var now = nowIso();
+        planned.forEach(function (p) {
+          p.touched.forEach(function (f) { p.r[f] = p.cand[f]; });
+          p.r.version = (p.r.version || 1) + 1;
+          var what = p.touched.map(function (f) { return LABEL[f]; }).join(', ');
+          state.data.request_events.push({ id: newId('rev'), request_id: p.r.id, ts: now, user_id: me.id, kind: 'edit',
+                                           from: null, to: null, text: 'Master Excel import: ' + what, mentions: [] });
+          audit('request', p.r.id, 'edit', null, null, what, reason.trim());
+        });
+        return commit({ undo: false });   // a bulk import is restored from its safety copy, not Ctrl+Z
+      }).then(function () { return { n: planned.length, safety_copy: cfg.backup_dir + '/' + safety }; });
+    });
+  }
+
+  /**
    * Admin: the theme everyone starts with (Settings > Look). Each person can still pick their
    * own in the user menu. key: a theme key of js/themes.js, or null for the app's default.
    */
@@ -2072,6 +2121,7 @@ window.MRT.store = (function () {
     addSampleLots: addSampleLots,
     addSampleMagazines: addSampleMagazines,
     replaceData: replaceData,
+    importRequests: importRequests,
     setDefaultTheme: setDefaultTheme,
     addLots: addLots,
     setLotOwner: setLotOwner,
