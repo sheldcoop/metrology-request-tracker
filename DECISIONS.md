@@ -491,6 +491,30 @@ weighted 8/4/2/1 plus a baseline dot, never above 9, with a start column for ori
   and kept when printing. Panel IDs now take 1-9 digits (the full code fits); the minimum of 4 is
   not enforced yet so existing panels (e.g. "23") stay valid - open question. Not built yet:
   attaching decoded panels to a lot, a PNG download.
+- **H-4** (2026-09-28, Prince; **to build**) The New Request form takes **exactly 4 digits**
+  per Hirata ID and refuses anything longer at the field with a plain message.
+  Reason: the lab matches by the last 4 (`HIRATA_TAIL`); longer entries can never
+  match. Full 9-digit codes stay decodable on the Hirata tools page. Existing
+  records (e.g. "23") stay valid - only new entries are strict. A request hardly
+  ever has more than 2-3 panels (2026-09-28, Prince).
+- **H-5** (2026-09-28, Prince; **to build**) Panel previews stay inline (2-3 max, no
+  lens): ID chip + one small copper mini beside it; tapping either opens the big
+  view (full copper, decoded digits, scrapped warning) in a dialog.
+- **Tool physics** (2026-09-28, Prince; for the glyph redesign): HRM is a
+  microscope - trace width, space, pad diameter. AOI is automated optical
+  inspection - golden reference vs scanned panel, finds defects. QVM checks
+  shift between two layers - pad-to-via and via-to-pad. PRF is the
+  profilometer - drilling, roughness, mostly ABF thickness, taper ratio, top
+  and bottom diameter. FIB stays the ion column + cross-section.
+- **Glyph redesign** (2026-09-28, Prince; **to build**): all five glyphs redrawn
+  from the physics above - HRM microscope field, AOI golden-vs-scan, QVM layer
+  shift, PRF via cut, FIB ion cut - each with a live behaviour tied to real
+  request state, frozen frames under Reduce motion. No new libraries: hand-built
+  SVG + CSS keeps the offline `file://` rule.
+- **Fourth theme** (2026-09-28, Prince; **to build**): one glass flagship theme
+  alongside Deep Lab / Cleanroom / Signal, Apple-minimalist philosophy -
+  restraint, whitespace, frosted surfaces, one accent, quiet type. The other
+  three get a polish pass from the same inspiration.
 
 ## Rollout plan (2026-09-24, Prince)
 - **R1** After M3: one quality engineer (the "operator" of the plan, M1-12) and one engineer test

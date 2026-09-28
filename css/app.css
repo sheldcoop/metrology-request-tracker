@@ -830,6 +830,14 @@ kbd {
 .tool-glyph.is-live .tg-sparks  { animation: pulse .4s ease-in-out infinite; }
 .tool-glyph.is-live .tg-face    { animation: tg-mill 4s steps(4, end) infinite; }
 .tool-glyph.is-live .tg-spin    { animation: spin 6s linear infinite; }
+.tool-glyph .tg-focus { transform-box: fill-box; transform-origin: center; }
+.tool-glyph .tg-shift { fill: none; stroke: var(--accent); transform-box: fill-box; transform-origin: center; }
+.tool-glyph.is-live .tg-focus { animation: tg-focus 2.4s ease-in-out infinite alternate; }
+.tool-glyph.is-live .tg-shift { animation: tg-nudge 1.8s ease-in-out infinite; }
+.tool-glyph.is-off .tg-shift { opacity: 0; }
+.tool-glyph.is-maint .tg-shift { stroke: var(--warning); }
+@keyframes tg-focus { from { transform: scale(.96); } to { transform: scale(1.04); } }
+@keyframes tg-nudge  { 0%, 100% { transform: none; } 50% { transform: translate(1.5px, -1.5px); } }
 @keyframes tg-tap    { 50% { transform: translateY(2px); } }
 @keyframes tg-scroll { from { transform: translateX(-8px); } to { transform: none; } }
 @keyframes tg-scan   { from { transform: translateX(-24px); } to { transform: none; } }

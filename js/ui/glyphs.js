@@ -23,67 +23,75 @@
   'use strict';
 
   /*
-   * Drawn on a 48 x 48 grid, stroke 2, sample surface near the bottom.
-   * Working parts (design plan P1) move only while the tool is working
-   * (state 'live'); the still drawing IS the last frame, so Reduce motion
-   * and idle tools show a complete picture:
-   *   tg-probe   HRM probe tapping       tg-scroll  HRM surface sliding under it
+   * Drawn on a 48 x 48 grid, stroke 2. Each glyph draws what its tool
+   * really does (2026-09-28): HRM the microscope field, AOI golden
+   * reference vs scan, QVM the shift between two layers, PRF the via cut
+   * in profile, FIB the ion beam milling its trench. Working parts move
+   * only while the tool is working (state 'live'); the still drawing IS
+   * the last frame, so Reduce motion and idle tools show a complete picture:
+   *   tg-focus   HRM lens breathing      tg-trace   HRM caliper drawing in
    *   tg-scan    AOI scan frame sweeping tg-defect  AOI defect boxes blinking
    *   tg-stylus  PRF stylus gliding      tg-trace   PRF profile drawn behind it
-   *   tg-reticle QVM crosshair locking   tg-measure QVM measuring line snapping
+   *   tg-reticle QVM crosshair locking   tg-shift   QVM shift arrow nudging
    *   tg-raster  FIB beam rastering      tg-face    FIB cross-section face growing
    *   tg-spin    reticle turning (any other tool)
    *   tg-lamp    warning lamp, shown and blinking only when the tool is Down
    */
   var LAMP = '<circle class="tg-lamp" cx="42" cy="6" r="3"/>';
   var DRAW = {
-    // HRM: a roughness probe tapping a rough surface that slides by
-    hrm: '<g class="tg-probe"><rect class="tg-body" x="19" y="4" width="10" height="14" rx="2"/>' +
-         '<path class="tg-detail" d="M22 8h4M22 12h4"/>' +
-         '<path class="tg-body" d="M21 18l3 13 3-13z"/>' +
-         '<path class="tg-beam" d="M24 31v3"/>' +
-         '<circle class="tg-dot" cx="24" cy="35" r="1.6"/></g>' +
-         '<path class="tg-sample tg-scroll" d="M-8 38l4-2 4 2 4-2 4 2 4-2 4 2 4-2 4 2 4-2 4 2 4-2 4 2 4-2 4 2 4-2 4 2"/>' +
-         '<path class="tg-sample" d="M4 44h40" stroke-opacity=".5"/>' + LAMP,
+    // HRM: a microscope field - lens ring and reticle over traces, a pad,
+    // and a caliper across the trace width; the lens breathes, the caliper draws in
+    hrm: '<circle class="tg-body tg-focus" cx="24" cy="15" r="11"/>' +
+         '<circle class="tg-detail" cx="24" cy="15" r="6.5"/>' +
+         '<path class="tg-detail" d="M24 6.5V10M24 20v3.5M15.5 15h3.5M29 15h3.5"/>' +
+         '<circle class="tg-sample" cx="10" cy="36" r="4.5"/>' +
+         '<path class="tg-detail" d="M6.8 32.8l6.4 6.4"/>' +
+         '<path class="tg-sample" d="M20 33h20M20 40h20"/>' +
+         '<path class="tg-beam tg-trace" d="M40 31v11M38 31h4M38 42h4"/>' + LAMP,
 
-    // AOI: a camera over a panel; the scan frame sweeps, defect boxes light up
-    aoi: '<rect class="tg-body" x="13" y="4" width="22" height="11" rx="2"/>' +
-         '<circle class="tg-detail" cx="31" cy="9.5" r="1.5"/>' +
-         '<path class="tg-body" d="M19 15h10l-2 6h-6z"/>' +
-         '<path class="tg-beam" d="M21 21L9 35M27 21l12 14" stroke-dasharray="3 3"/>' +
-         '<rect class="tg-sample" x="5" y="35" width="38" height="7" rx="1"/>' +
-         '<path class="tg-sample" d="M12 35v7M19 35v7M26 35v7M33 35v7M40 35v7" stroke-opacity=".5"/>' +
-         '<rect class="tg-defect" x="14.5" y="37" width="3" height="3"/>' +
-         '<rect class="tg-defect tg-d2" x="35.5" y="37" width="3" height="3"/>' +
-         '<rect class="tg-scan" x="30" y="33" width="10" height="11" rx="1"/>' + LAMP,
+    // AOI: golden reference on the left, scanned panel with defects on the
+    // right; the scan frame sweeps, defect boxes light up
+    aoi: '<rect class="tg-body" x="14" y="4" width="20" height="10" rx="2"/>' +
+         '<circle class="tg-detail" cx="30" cy="9" r="1.5"/>' +
+         '<path class="tg-beam" d="M20 14l-6 12M28 14l6 12" stroke-dasharray="3 3"/>' +
+         '<rect class="tg-sample" x="4" y="30" width="40" height="12" rx="1"/>' +
+         '<path class="tg-sample" d="M24 30v12" stroke-opacity=".5"/>' +
+         '<path class="tg-detail" d="M8 34h8M8 38h8"/>' +
+         '<rect class="tg-defect" x="28" y="33" width="4" height="3"/>' +
+         '<rect class="tg-defect tg-d2" x="35" y="37" width="3" height="3"/>' +
+         '<rect class="tg-scan" x="30" y="28" width="10" height="16" rx="1"/>' + LAMP,
 
-    // PRF: a stylus on an arm gliding over a step, drawing the profile above it
-    prf: '<rect class="tg-body" x="32" y="5" width="12" height="10" rx="2"/>' +
-         '<path class="tg-detail" d="M8 10h21"/>' +
-         '<circle class="tg-body" cx="30" cy="10" r="2.5"/>' +
-         '<path class="tg-beam tg-trace" d="M4 22h13v6h12v-6h11" stroke-dasharray="3 3"/>' +
-         '<g class="tg-stylus"><path class="tg-detail" d="M8 10v14"/><circle class="tg-dot" cx="8" cy="25.5" r="1.6"/></g>' +
-         '<path class="tg-sample" d="M4 27h13v6h12v-6h15"/>' +
-         '<path class="tg-sample" d="M4 42h40" stroke-opacity=".5"/>' + LAMP,
+    // PRF: a stylus gliding over a via cut in profile - top diameter and
+    // depth arrows, the tapered walls, the profile drawing behind the tip
+    prf: '<path class="tg-detail" d="M6 8h18"/>' +
+         '<circle class="tg-body" cx="24" cy="8" r="2"/>' +
+         '<g class="tg-stylus"><path class="tg-detail" d="M8 8v17"/><circle class="tg-dot" cx="8" cy="26.5" r="1.6"/></g>' +
+         '<path class="tg-beam tg-trace" d="M4 26h14l3 10h6l3-10h14"/>' +
+         '<path class="tg-block" d="M4 32h40v10H4z"/>' +
+         '<path class="tg-sample" d="M19 32l2.5 10h5L29 32"/>' +
+         '<path class="tg-detail" d="M19 28.5h10M19 27v3M29 27v3"/>' +
+         '<path class="tg-detail" d="M43 32v10M41.5 32h3M41.5 42h3"/>' + LAMP,
 
-    // QVM: optics over a pad; the crosshair locks onto its edge, a measuring line snaps across
-    qvm: '<rect class="tg-body" x="18" y="3" width="12" height="13" rx="2"/>' +
-         '<path class="tg-detail" d="M18 8h12"/>' +
-         '<path class="tg-body" d="M20 16h8l-2 7h-4z"/>' +
-         '<path class="tg-beam" d="M22 23l-3 9M26 23l3 9"/>' +
-         '<rect class="tg-sample" x="24" y="38" width="12" height="6"/>' +
-         '<g class="tg-reticle"><circle class="tg-beam" cx="24" cy="37" r="5"/>' +
-         '<path class="tg-beam" d="M24 30v3M24 41v3M17 37h3M28 37h3"/></g>' +
-         '<path class="tg-measure" d="M24 46.5h12M24 45v3M36 45v3"/>' +
-         '<path class="tg-sample" d="M4 44h40"/>' + LAMP,
+    // QVM: two stacked layers, shifted - pad on one, via on the other, a
+    // shift arrow between them; the crosshair locks the pad, the arrow nudges
+    qvm: '<rect class="tg-body" x="18" y="3" width="12" height="9" rx="2"/>' +
+         '<path class="tg-beam" d="M21 12l-4 12M27 12l4 12" stroke-dasharray="3 3"/>' +
+         '<rect class="tg-sample" x="6" y="34" width="26" height="7"/>' +
+         '<rect class="tg-sample" x="12" y="27" width="26" height="7"/>' +
+         '<circle class="tg-sample" cx="15" cy="37.5" r="3"/>' +
+         '<circle class="tg-dot" cx="23" cy="30.5" r="1.8"/>' +
+         '<path class="tg-beam tg-shift" d="M15 37.5l7-6M19.5 31.5h2.5M22 34v-2.5"/>' +
+         '<circle class="tg-beam tg-reticle" cx="15" cy="37.5" r="6"/>' + LAMP,
 
-    // FIB: an ion column rastering into the sample, the cross-section face opening up
+    // FIB: the ion column milling its trench - beam rastering, banks flying,
+    // the cross-section face opening between the trench walls
     fib: '<path class="tg-body" d="M15 4h18l-5 13h-8z"/>' +
          '<path class="tg-detail" d="M17.5 9h13"/>' +
-         '<path class="tg-beam tg-raster" d="M24 17v17"/>' +
-         '<path class="tg-beam tg-sparks" d="M20 30l-3-2M28 30l3-2" stroke-opacity=".7"/>' +
-         '<path class="tg-block" d="M4 33h15l2 6h6l2-6h15v11H4z"/>' +
-         '<path class="tg-face" d="M21.5 39.5h5M21.5 41.5h5M21.5 43h5"/>' + LAMP,
+         '<path class="tg-beam tg-raster" d="M24 17v15"/>' +
+         '<path class="tg-beam tg-sparks" d="M20 32l-3-2M28 32l3-2" stroke-opacity=".7"/>' +
+         '<path class="tg-block" d="M4 32h40v10H4z"/>' +
+         '<path class="tg-sample" d="M20 32v10M28 32v10"/>' +
+         '<path class="tg-face" d="M20 34.5h8M20 37.5h8M20 40.5h8"/>' + LAMP,
 
     // any other tool: a measuring reticle
     generic: '<circle class="tg-body" cx="24" cy="24" r="14"/>' +
@@ -93,11 +101,11 @@
   };
 
   var GLYPHS = [
-    { key: 'hrm', label: 'Roughness probe (HRM)' },
+    { key: 'hrm', label: 'Microscope (HRM)' },
     { key: 'aoi', label: 'Inspection camera (AOI)' },
-    { key: 'prf', label: 'Profilometer stylus (PRF)' },
-    { key: 'qvm', label: 'Vision optics (QVM)' },
-    { key: 'fib', label: 'Ion beam (FIB)' },
+    { key: 'prf', label: 'Via profiler (PRF)' },
+    { key: 'qvm', label: 'Overlay optics (QVM)' },
+    { key: 'fib', label: 'Ion cutter (FIB)' },
     { key: 'generic', label: 'Measuring reticle (any tool)' }
   ];
 
