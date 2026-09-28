@@ -73,7 +73,7 @@
       fields: [
         { key: 'name', label: 'Name', kind: 'text', placeholder: 'First and last name' },
         { key: 'windows_id', label: 'Windows user name', kind: 'text', mono: true, cls: 'half', hint: 'Lowercase, no domain, e.g. pkhurana' },
-        { key: 'domain', label: 'Domain (optional)', kind: 'text', mono: true, cls: 'half', hint: 'e.g. CORP' },
+        { key: 'domain', label: 'Domain (optional)', kind: 'text', mono: true, cls: 'half', hint: 'e.g. ATS' },
         { key: 'email', label: 'Company email (optional)', kind: 'email', hint: 'For email and single sign-on later.' },
         { key: 'roles', label: 'Roles', kind: 'checks', options: roleOptions(),
           hint: 'Several allowed. Engineers request; quality engineers measure. Operator has no rights yet. Admins also need the PIN.' },

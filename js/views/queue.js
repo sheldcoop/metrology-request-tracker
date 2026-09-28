@@ -144,7 +144,7 @@ window.MRT.views.queue = (function () {
       var clock = ui.el('span', { class: 'q-clock' });
       clocks.push({ node: clock, r: r });
       var who = byId('users', r.requester_id), assigned = byId('users', r.assigned_to);
-      var actions = A.buttons(r, { size: 'sm', only: ['accept', 'receive', 'start', 'complete', 'resume', 'take'] });
+      var actions = A.buttons(r, { size: 'sm', only: ['start', 'accept', 'receive', 'hold', 'clarify', 'complete', 'resume', 'take'] });
       if (bkmPath) actions.push(ui.button('', { kind: 'ghost', size: 'sm', icon: 'copy', ariaLabel: 'Copy BKM path of ' + r.request_no, title: 'Copy BKM path',
         onClick: function () { ui.copyText(bkmPath, 'BKM path copied'); } }));
       return ui.el('tr', { id: 'row-' + r.id, class: 'q-row prio-' + (prio ? prio.level : 3) + (late ? ' is-late' : '') }, [

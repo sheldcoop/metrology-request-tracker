@@ -48,7 +48,7 @@
     var now = Date.now();
     d.users = Object.keys(PEOPLE).map(function (k) {
       var p = PEOPLE[k];
-      return Object.assign({ domain: 'CORP', email: p.windows_id + '@example.com', active: true, self_added: false,
+      return Object.assign({ domain: 'ATS', email: p.windows_id + '@example.com', active: true, self_added: false,
                              needs_review: false, created_ts: new Date(now - 30 * DAY).toISOString(), version: 1 }, p);
     });
     function tool(code) { return d.tools.filter(function (t) { return t.code === code; })[0]; }
@@ -151,7 +151,7 @@
   }
   var theme = (q.match(/[?&]theme=([\w-]+)/) || [])[1];
   try {
-    localStorage.setItem('mrt.identity', JSON.stringify({ windows_id: me.windows_id, domain: 'CORP' }));
+    localStorage.setItem('mrt.identity', JSON.stringify({ windows_id: me.windows_id, domain: 'ATS' }));
     if (/[?&]empty=1/.test(q)) localStorage.removeItem('mrt.identity');
     if (theme) localStorage.setItem('mrt.theme.' + me.id, theme);
     localStorage.setItem('mrt.motion.' + me.id, /[?&]motion=reduce/.test(q) ? 'reduce' : 'full');

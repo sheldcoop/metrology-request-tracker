@@ -15,7 +15,7 @@ const ROOT = path.join(__dirname, '..');
 const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'brandVer', 'saveLed', 'undoBtn', 'searchIcon', 'search',
   'bellBtn', 'bellIcon', 'bellCount', 'helpBtn', 'keysBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
   'navItems', 'navFolder', 'navRev', 'navCollapse', 'main', 'toasts', 'dialogHost'];
-const { win, doc, flush, tick, storage, El } = require('./fake-dom')({ ids: IDS, url: 'file:///Z:/Lab/MRT/index.html?who=CORP%5CPKhurana' });
+const { win, doc, flush, tick, storage, El } = require('./fake-dom')({ ids: IDS, url: 'file:///Z:/Lab/MRT/index.html?who=ATS%5CPKhurana' });
 // the data-action hooks index.html puts on the top bar
 [['saveLed', 'save-state'], ['undoBtn', 'undo'], ['keysBtn', 'show-keys'], ['bellBtn', 'bell'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
   .forEach(p => { doc.getElementById(p[0]).dataset.action = p[1]; });
@@ -72,7 +72,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('the identity is remembered on this PC', /pkhurana/.test(storage['mrt.identity'] || ''));
   let inp = gateInputs();
   check('five fields: name, Windows ID, email, PIN, PIN again', inp.length === 5, inp.length);
-  check('Windows ID prefilled from the launcher', inp[1].value === 'CORP\\pkhurana', inp[1].value);
+  check('Windows ID prefilled from the launcher', inp[1].value === 'ATS\\pkhurana', inp[1].value);
   inp[0].value = 'Prince Khurana'; inp[3].value = '2468'; inp[4].value = '2469';
   submitGate(); await settle();
   check('different PINs are refused at the field', /not the same/.test(text('gateCard')) && !visible('shell'));
@@ -622,6 +622,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...ticking two offers Accept all (2)', !!buttonByText($('#main .queue-bulk'), 'Accept all (2)'));
   buttonByText($('#main .queue-bulk'), 'Accept all (2)').click(); await settle(); await settle();
   check('...Accept all accepts both', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'accepted'));
+  const qRowA = $$('#main .q-row')[0].textContent;
+  check('...row order: Panels received, then Hold and Clarify', ['Panels received', 'Hold', 'Needs clarification'].every((t, i, a) => !i || qRowA.indexOf(a[i - 1]) < qRowA.indexOf(t)));
   MRT.store.setCurrentUser(meP); await MRT.store.saveEntry('users', { id: meP, fields: { email: 'prince@example.com' } }); MRT.store.setCurrentUser(olga.id);
   const offer = MRT.requestActions.emailOffer(MRT.store.byId('requests', qN.id), 'clarify');
   check('Clarify offers a ready Outlook draft to the requester (M4-4)', !!offer && /^Email Prince/.test(offer.label));

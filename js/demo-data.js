@@ -115,7 +115,7 @@ window.MRT.demoData = (function () {
     /* --- people --------------------------------------------------------------- */
     var U = {};
     d.users = PEOPLE.map(function (p) {
-      var u = Object.assign({ id: 'usr_demo_' + p[0], name: p[1], windows_id: p[2], domain: 'CORP', email: p[2] + '@example.com', roles: p[3],
+      var u = Object.assign({ id: 'usr_demo_' + p[0], name: p[1], windows_id: p[2], domain: 'ATS', email: p[2] + '@example.com', roles: p[3],
         active: true, self_added: false, needs_review: false, created_ts: iso(now - between(150, 400) * DAY), version: 1 }, p[4] || {});
       if (p[0] === 'nora') u.created_ts = iso(now - 2 * DAY);
       if (p[0] === 'jonas') u.email = null;             // someone without an email: no Outlook draft for him
