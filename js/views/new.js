@@ -541,14 +541,14 @@ window.MRT.views['new'] = (function () {
 
       function paintPanelEntry() {
         if (panelMode === 'ids') {
-          idsF = ui.field({ label: 'Panel entry', mono: true, value: st.panels.join(', '), placeholder: 'e.g. 3252, 3253 or 3252-3255',
+          idsF = ui.field({ label: 'Hirata IDs', mono: true, value: st.panels.join(', '), placeholder: 'e.g. 3252, 3253 or 3252-3255',
             hint: 'Commas or spaces between them; a dash for a run.' });
           idsF.input.addEventListener('input', readPanels);
           ui.mount(entryHost, [idsF.node, chipsHost]);
           countF = null;
         } else {
-          countF = ui.field({ label: 'Panel entry', type: 'number', min: 1, max: 99, step: 1, value: st.panel_count || 2,
-            hint: 'Usually 2. The quality engineer notes the IDs.' });
+          countF = ui.field({ label: 'Number of panels', type: 'number', min: 1, max: 99, step: 1, value: st.panel_count || 2,
+            hint: 'Usually 2. The quality engineer notes which panels.' });
           countF.input.addEventListener('input', readPanels);
           ui.mount(entryHost, countF.node);
           idsF = null;
