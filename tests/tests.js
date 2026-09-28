@@ -1323,6 +1323,21 @@
     eq('...and can accept one', ST.byId('requests', sub1.id).status, 'accepted');
     ok('...the bell has something for Olga, for Erik, for Prince', ['usr_demo_olga', 'usr_demo_erik', 'usr_demo_prince'].every(function (uid) { return D.notificationsFor(ST.byId('users', uid), ST.data(), {}).length > 0; }));
 
+    group('Excel bridge: export (Requests + meta)');
+    var XB = window.MRT.excelBridge;
+    var sheets = XB.masterSheets();
+    eq('two sheets: Requests and meta', sheets.map(function (s) { return s.name; }), ['Requests', 'meta']);
+    var reqRows = sheets[0].rows, metaSheet = sheets[1].rows;
+    eq('Requests header starts with the readable Request ID', reqRows[0].slice(0, 3), ['Request ID', 'Status', 'Tool']);
+    var liveNos = ST.data().requests.map(function (r) { return r.request_no || '(draft)'; });
+    var gotIds = reqRows.slice(1).map(function (r) { return r[0]; });
+    eq('one row per request, keyed by request number - no random internal id leaks into the key column',
+      [reqRows.length - 1, gotIds.every(function (x) { return liveNos.indexOf(x) >= 0; }), gotIds.some(function (x) { return /_/.test(x); })],
+      [liveNos.length, true, false]);
+    function metaVal(k) { var row = metaSheet.filter(function (r) { return r[0] === k; })[0]; return row && row[1]; }
+    eq('meta carries the live revision, schema and request count',
+      [metaVal('Revision'), metaVal('Schema'), metaVal('Requests')], [ST.status().revision, ST.data().schema_version, ST.data().requests.length]);
+
     group('Store: file checks and schema upgrades');
     var P = ST._pure;
     ok('a missing collection is filled in, not fatal', Array.isArray(P.validateAndFill({ schema_version: 1, revision: 3 }).tools));
