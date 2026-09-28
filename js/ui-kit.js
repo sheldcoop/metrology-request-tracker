@@ -517,7 +517,7 @@
 
   function render() {
     root.className = 'kit-root' + (mode === 'all' ? ' all' : '');
-    if (concept) root.setAttribute('data-concept', concept); else root.removeAttribute('data-concept');
+    if (concept) document.documentElement.setAttribute('data-concept', concept); else document.documentElement.removeAttribute('data-concept');
     var head = concept ? [el('p', { class: 'cx-concept-note', text: 'Concept preview: ' + concept + ' on top of ' + mode + '. Still a sketch - flip with ?concept=deep-lab | cleanroom | signal.' })] : [];
     if (mode === 'all') {
       TH.setOn(document.documentElement, TH.DEFAULT);
