@@ -196,6 +196,8 @@
        ['2026-10-02T16:00:00.000Z', '2026-12-02T17:00:00.000Z']);
     eq('lab time skips the weekend: Fri 16:00 -> Mon 09:00 = 4 h (Q36)', D.workingMs(D.viennaTs('2026-10-02', '16:00'), D.viennaTs('2026-10-05', '09:00'), calW, {}) / H, 4);
     eq('...across the October clock change: Fri 17:00 -> Mon 08:00 = 2 h', D.workingMs(D.viennaTs('2026-10-23', '17:00'), D.viennaTs('2026-10-26', '08:00'), calW, {}) / H, 2);
+    eq('...across the March clock change (23-hour Sunday): Fri 16:00 -> Mon 09:00 = 4 h', D.workingMs(D.viennaTs('2026-03-27', '16:00'), D.viennaTs('2026-03-30', '09:00'), calW, {}) / H, 4);
+    eq('Vienna date at the spring jump (02:00 -> 03:00)', [D.viennaYmd(Date.parse('2026-03-29T00:30:00Z')), D.viennaYmd(Date.parse('2026-03-29T01:30:00Z'))], ['2026-03-29', '2026-03-29']);
     eq('...and holidays: Mon 26 Oct (national day) counts nothing', D.workingMs(D.viennaTs('2026-10-26', '07:00'), D.viennaTs('2026-10-26', '18:00'), calW, D.holidaySet([{ date: '2026-10-26' }])) / H, 0);
     eq('...nights and early mornings do not count', D.workingMs(D.viennaTs('2026-10-01', '19:00'), D.viennaTs('2026-10-02', '06:00'), calW, {}), 0);
     var cd = D.countdown(D.viennaTs('2026-10-02', '16:00'), '2026-10-05', calW, {});
