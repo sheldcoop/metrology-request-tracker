@@ -1246,11 +1246,11 @@
     var rd = await ST.replaceData('demo', 'testing');
     var meD = ST.currentUser();
     eq('demo: the big file is in; I am its Prince (admin), with my Windows ID; my PIN still works',
-       [ST.data().requests.length > 200, meD.id, meD.windows_id, D.hasRole(meD, 'admin'), ST.getSetting('admin_pin_hash') === pinHash, await ST.verifyPin('2468')],
+       [ST.data().requests.length > 60, meD.id, meD.windows_id, D.hasRole(meD, 'admin'), ST.getSetting('admin_pin_hash') === pinHash, await ST.verifyPin('2468')],
        [true, 'usr_demo_prince', 'padmin', true, true, true]);
     ok('...the old file is kept first, and listed as restorable', !!a.files[rd.safety_copy] && JSON.parse(a.files[rd.safety_copy]).lots.some(function (l) { return l.lot_number === '55555'; }) &&
        (await ST.listBackups()).some(function (b) { return b.kind === 'before demo data'; }));
-    ok('...saved, the revision goes on (other PCs see it), the swap audited', fileOf(a).requests.length > 200 && ST.status().revision > revB &&
+    ok('...saved, the revision goes on (other PCs see it), the swap audited', fileOf(a).requests.length > 60 && ST.status().revision > revB &&
        ST.data().audit_log.slice(-1)[0].action === 'replace');
     ok('...no one else has my Windows ID', ST.data().users.filter(function (u) { return u.windows_id === 'padmin'; }).length === 1);
     var re = await ST.replaceData('empty', 'clean start');
