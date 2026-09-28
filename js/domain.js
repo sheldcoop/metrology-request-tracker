@@ -455,6 +455,21 @@ window.MRT.domain = (function () {
   }
   function panelCountOf(r) { return (r.panels || []).length || r.panel_count || 0; }
 
+  /**
+   * This request's place in the tool's work queue, by submitted time: the
+   * open requests on the same tool that the QE works through (accepted,
+   * received, in progress - on hold and clarification wait on someone, not
+   * the queue). Null when the request itself is not queued.
+   */
+  var QUEUED_STATUS = { accepted: 1, panels_received: 1, in_progress: 1 };
+  function queuePosition(all, r) {
+    if (!r || !QUEUED_STATUS[r.status]) return null;
+    var q = (all || []).filter(function (x) { return x.tool_id === r.tool_id && QUEUED_STATUS[x.status]; })
+      .sort(function (a, b) { return String(a.submitted_ts || '') < String(b.submitted_ts || '') ? -1 : 1; });
+    var i = q.map(function (x) { return x.id; }).indexOf(r.id);
+    return i === -1 ? null : { pos: i + 1, total: q.length };
+  }
+
   /** How many build-up layers a build-up has: its setting, else the number in BU-04 (4), else 4 (up to 5F/5B). */
   function buildupLayers(bu) {
     if (!bu) return 4;
@@ -1804,7 +1819,7 @@ window.MRT.domain = (function () {
     hirataFields: hirataFields,
     hirataCheck: hirataCheck,
     hirataList: hirataList,
-    panelsText: panelsText,
+    panelsText: panelsText, queuePosition: queuePosition,
     panelCountOf: panelCountOf,
     buildupLayers: buildupLayers,
     layersFor: layersFor,

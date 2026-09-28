@@ -114,6 +114,7 @@ window.MRT.views.request = (function () {
         r.expected_done ? cell('Expected done', ui.el('b', { class: 'num', text: ui.formatDate(r.expected_done + 'T12:00:00Z') }),
           r.needed_by && r.expected_done > r.needed_by ? 'later than needed' : null) : null,
         cell('Assigned to', r.assigned_to ? userName(r.assigned_to) : muted('nobody yet')),
+        queueCell(r, tool),
         r.received_ts ? cell('Panels received', userName(r.received_by) + ', ' + ui.formatTs(r.received_ts), r.received_where || null) : null,
         r.status === 'on_hold' ? cell('On hold', ((byId('hold_reasons', r.hold_reason_id) || {}).name || '?'), r.hold_note || null) : null
       ],
@@ -133,6 +134,15 @@ window.MRT.views.request = (function () {
 
   /** One fact on the card (drawn by ui.traveller). */
   function cell(label, value, sub, extra) { return { label: label, value: value, sub: sub || null, extra: extra || null }; }
+
+  /** This request's place in the tool's queue, so the requester knows when their turn comes. */
+  function ord(n) { return n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'); }
+  function queueCell(r, tool) {
+    var q = D.queuePosition(store.data().requests, r);
+    if (!q) return null;
+    return cell('Queue', ui.el('b', { class: 'num', text: ord(q.pos) + ' of ' + q.total }),
+      'open on ' + (tool ? tool.code : 'this tool') + ', by submitted time');
+  }
 
   /** The countdown text; the 1 s tick repaints only this (text only). */
   function paintClock() {
