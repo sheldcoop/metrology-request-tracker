@@ -107,16 +107,23 @@
          '<g class="tx-detail"><path class="tg-detail" d="M35 32v9M33.5 32h3M33.5 41h3"/>' +
          '<text class="tx-text" x="26" y="30">12.4</text></g>' + LAMP,
 
-    // PRF: a stylus gliding over a via cut in profile - top diameter and
-    // depth arrows, the tapered walls, the profile drawing behind the tip
+    // PRF, living: the stylus gliding over the via cut - top diameter and
+    // depth arrows, tapered walls, the profile drawing behind the tip.
+    // Hover reads the depth; the red ring only pulses on alert/Down.
     prf: '<path class="tg-detail" d="M6 8h18"/>' +
-         '<circle class="tg-body" cx="24" cy="8" r="2"/>' +
-         '<g class="tg-stylus"><path class="tg-detail" d="M8 8v17"/><circle class="tg-dot" cx="8" cy="26.5" r="1.6"/></g>' +
-         '<path class="tg-beam tg-trace" d="M4 26h14l3 10h6l3-10h14"/>' +
+         '<circle class="tg-body tx tx-blink" style="--tx-base:.9s" cx="24" cy="8" r="2"/>' +
+         '<g class="tx tx-glide" style="--tx-base:2.6s"><path class="tg-detail" d="M8 8v17"/>' +
+         '<circle class="tg-dot" cx="8" cy="26.5" r="1.6"/></g>' +
+         '<path class="tg-beam tx tx-draw" style="--tx-base:2.6s" d="M4 26h14l3 10h6l3-10h14"/>' +
+         '<g class="tx-work">' +
          '<path class="tg-block" d="M4 32h40v10H4z"/>' +
          '<path class="tg-sample" d="M19 32l2.5 10h5L29 32"/>' +
          '<path class="tg-detail" d="M19 28.5h10M19 27v3M29 27v3"/>' +
-         '<path class="tg-detail" d="M43 32v10M41.5 32h3M41.5 42h3"/>' + LAMP,
+         '<path class="tg-detail" d="M43 32v10M41.5 32h3M41.5 42h3"/>' +
+         '</g>' +
+         '<circle class="tx-alert" cx="24" cy="37" r="10"/>' +
+         '<g class="tx-detail"><rect class="tg-detail" x="2" y="30" width="15" height="9" rx="1"/>' +
+         '<text class="tx-text" x="4" y="37">2.1</text></g>' + LAMP,
 
     // QVM, living: two shifted layers - pad below, via above, the shift
     // arrow nudging between them, the lock ring turning, the via pulsing.
@@ -160,11 +167,20 @@
          '<g class="tx-detail"><path class="tg-detail" d="M31 33v9M29.5 33h3M29.5 42h3"/>' +
          '<text class="tx-text" x="34" y="39">8.2</text></g>' + LAMP,
 
-    // any other tool: a measuring reticle
-    generic: '<circle class="tg-body" cx="24" cy="24" r="14"/>' +
+    // generic, living: the measuring reticle - slow-turning ring, pulsing
+    // centre, quiet shimmer. Fallback for any other tool.
+    generic: '<defs><filter id="txh-gen" x="0" y="0" width="100%" height="100%">' +
+             '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="n"/>' +
+             '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0.35 0 0 0 0 0.69 0 0 0 0 1 0 0 0 0.5 0"/></filter></defs>' +
+             '<circle class="tg-body" cx="24" cy="24" r="14"/>' +
+             '<circle class="tx tx-shimmer" style="--tx-base:3.4s;fill:var(--accent-soft)" cx="24" cy="24" r="14" filter="url(#txh-gen)" stroke="none"/>' +
              '<path class="tg-detail" d="M24 5v9M24 34v9M5 24h9M34 24h9"/>' +
-             '<circle class="tg-beam tg-spin" cx="24" cy="24" r="6" stroke-dasharray="4 3"/>' +
-             '<circle class="tg-dot" cx="24" cy="24" r="1.8"/>' + LAMP
+             '<g class="tx-work">' +
+             '<circle class="tg-beam tx tx-turn" style="--tx-base:6s" cx="24" cy="24" r="6" stroke-dasharray="4 3"/>' +
+             '<circle class="tg-dot tx tx-blink" style="--tx-base:1.4s" cx="24" cy="24" r="1.8"/>' +
+             '</g>' +
+             '<circle class="tx-alert" cx="24" cy="24" r="11"/>' +
+             '<g class="tx-detail"><circle class="tg-detail" cx="24" cy="24" r="10" stroke-dasharray="2 2"/></g>' + LAMP
   };
 
   var GLYPHS = [

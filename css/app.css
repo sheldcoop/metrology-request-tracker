@@ -817,18 +817,7 @@ kbd {
 .tool-glyph .tg-reticle, .tool-glyph .tg-raster, .tool-glyph .tg-spin { transform-box: view-box; }
 .tool-glyph .tg-measure, .tool-glyph .tg-face { transform-box: fill-box; transform-origin: left top; }
 .tool-glyph .tg-spin { transform-origin: 24px 24px; }
-.tool-glyph.is-live .tg-probe   { animation: tg-tap .9s ease-in-out infinite; }
-.tool-glyph.is-live .tg-scroll  { animation: tg-scroll 1.8s linear infinite; }
-.tool-glyph.is-live .tg-scan    { animation: tg-scan 2.6s ease-in-out infinite alternate; }
-.tool-glyph.is-live .tg-defect  { animation: tg-blink 2.6s steps(1) infinite; }
 .tool-glyph.is-live .tg-d2      { animation-delay: -1.3s; }
-.tool-glyph.is-live .tg-stylus  { animation: tg-glide 3.2s linear infinite; }
-.tool-glyph.is-live .tg-trace   { stroke-dasharray: 48; animation: tg-draw 3.2s linear infinite; }
-.tool-glyph.is-live .tg-reticle { animation: tg-lock 3s cubic-bezier(.2, .8, .2, 1) infinite; }
-.tool-glyph.is-live .tg-measure { animation: tg-snap 3s ease-out infinite; }
-.tool-glyph.is-live .tg-raster  { animation: tg-raster .8s ease-in-out infinite alternate; }
-.tool-glyph.is-live .tg-sparks  { animation: pulse .4s ease-in-out infinite; }
-.tool-glyph.is-live .tg-face    { animation: tg-mill 4s steps(4, end) infinite; }
 .tool-glyph.is-live .tg-spin    { animation: spin 6s linear infinite; }
 
 /* --- Living icons v2: rate/alert vars, hover detail, alert pulse ---
@@ -845,7 +834,12 @@ kbd {
 .tool-glyph:hover { transform: scale(1.15); }
 .tool-glyph .tx-text { fill: var(--fg-muted); font-family: var(--font-mono); font-size: 6px; }
 .tool-glyph .tx-raster { animation: raster var(--tx-d) ease-in-out infinite alternate; }
-.tool-glyph .tx-mill { animation: mill var(--tx-d) ease-in-out infinite alternate; }
+.tool-glyph .tx-mill { transform-box: fill-box; transform-origin: left top; animation: tx-mill var(--tx-d) ease-in-out infinite; }
+.tool-glyph .tx-draw { stroke-dasharray: 48; animation: tx-draw var(--tx-d) linear infinite; }
+.tool-glyph .tx-glide { animation: tx-glide var(--tx-d) ease-in-out infinite; }
+@keyframes tx-mill { 0%, 100% { transform: none; } 50% { transform: scaleY(.6); } }
+@keyframes tx-draw { 0%, 82% { stroke-dashoffset: 0; opacity: 1; } 92% { stroke-dashoffset: 48; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
+@keyframes tx-glide { 0%, 100% { transform: none; } 50% { transform: translate(15px, 5px); } }
 .tool-glyph .tx-blink { animation: blink var(--tx-d) steps(2, jump-none) infinite; }
 .tool-glyph .tx-shimmer { opacity: .55; animation: tx-shimmer var(--tx-d) ease-in-out infinite alternate; }
 .tool-glyph .tx-sweep { animation: tx-sweep var(--tx-d) ease-in-out infinite alternate; }
