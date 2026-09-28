@@ -119,10 +119,19 @@ window.MRT.views.hirata = (function () {
       ui.mount(problems, bad.length ? ui.el('p', { class: 'form-error', role: 'alert', text: 'Skipped: ' + bad.map(function (x) { return '"' + x.digits + '" (' + x.problem.toLowerCase() + ')'; }).join(', ') }) : null);
       count.textContent = ok.length ? ok.length + ' pattern' + (ok.length === 1 ? '' : 's') : '';
       ui.mount(sheet, ok.length ? ok.map(function (x) {
-        return ui.el('div', { class: 'hirata-item' }, [copper(x.digits, 'lg'), ui.el('div', { class: 'mono', text: x.digits }),
+        // medium coppers so a row fills before it wraps; tapping one shows it large
+        var b = ui.el('button', { type: 'button', class: 'panel-hirata-item', 'aria-label': 'Pattern ' + x.digits + ' - show large' },
+          [copper(x.digits, 'md'), ui.el('div', { class: 'mono', text: x.digits })]);
+        b.addEventListener('click', function () {
+          ui.dialog({ title: 'Pattern ' + x.digits, icon: 'hirata', body: ui.el('div', { class: 'panel-zoom' }, [
+            copper(x.digits, 'lg'), ui.el('div', { class: 'panel-zoom-id', text: x.digits }),
+            ui.hirataFields(D.hirataFields(x.digits), { compact: true })
+          ]), actions: [{ label: 'Close', value: null }] });
+        });
+        return ui.el('div', { class: 'hirata-item' }, [b,
           ui.hirataFields(D.hirataFields(x.digits), { compact: true }),
           x.kind === 'short' ? ui.el('span', { class: 'muted', text: '4 digits (lot + panel) match the drilled pattern' }) : null]);
-      }) : ui.emptyState({ icon: 'hirata', title: 'Type one or more codes', text: 'Each is drawn as the copper panel it is drilled into.' }));
+      }) : ui.emptyState({ icon: 'hirata', title: 'Type one or more codes', text: 'Each is drawn as the copper panel it is drilled into - tap one to see it large.' }));
     }
     input.input.addEventListener('input', draw);
     body.appendChild(ui.panel({ title: 'Codes', icon: 'search', body: [input.node, problems] }).node);

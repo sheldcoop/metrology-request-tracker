@@ -861,6 +861,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   win.setHash('#/hirata/find'); await settle();
   const codes = fieldIn(doc.getElementById('main'), 'Hirata codes'); setVal(codes, '3407, 0119 161234507, 12x'); await settle();
   check('Find a pattern: one copper panel per good code, the bad one named', $$('.hirata-sheet')[0].querySelectorAll('.cu-panel').length === 3 && /Skipped: "12x"/.test(mainText()));
+  $$('.hirata-sheet')[0].querySelectorAll('.panel-hirata-item')[0].click(); await settle();
+  check('...tapping a pattern shows it large', !!openDialog() && !!openDialog().querySelector('.panel-zoom') &&
+        /3407/.test(openDialog().querySelector('.panel-zoom-id').textContent));
+  buttonByText(openDialog(), 'Close').click(); await settle();
   check('...and the 0-9 reference', $$('#main .hirata-ref-item').length === 10);
 
   // --- personal request templates (Q28, T-1..T-3)
