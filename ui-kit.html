@@ -132,6 +132,31 @@
     border-bottom: 2px solid var(--line-strong);
   }
   [data-concept="cleanroom"] .traveller.is-urgent { border-left: 6px solid var(--critical); }
+
+  /* --- Direction C: Signal (dark, solid, lamp-forward) ---
+     No transparency anywhere: no blur, no translucent layers, popups solid.
+     Amber accent (bench-equipment lamps); status tokens stay Carbon g100. */
+  [data-concept="signal"] {
+    --bg: #05070C; --surface: #0C1119; --surface-2: #131A26; --surface-3: #1B2434; --inset: #05070C;
+    --fg: #FFFFFF; --fg-muted: #C3CAD6; --fg-faint: #9AA3B5;
+    --line: #3A4356; --line-strong: #8B94A7; --line-hi: #FFB224; --bracket: #8B94A7;
+    --accent: #FFB224; --accent-fill: #FFB224; --accent-fg: #231300; --accent-soft: #2A2111;
+    --accent-glow: 0 0 0 2px #FFB224;
+    --radius: 4px; --radius-panel: 6px;
+    --shadow: 0 0 0 1px #000000, 0 10px 28px rgba(0, 0, 0, .55);
+    --shadow-pop: 0 0 0 1px #8B94A7, 0 16px 44px rgba(0, 0, 0, .65);
+    --scrim: rgba(3, 5, 9, .8);
+    --focus-w: 3px;
+  }
+  [data-concept="signal"] .panel,
+  [data-concept="signal"] .cx-hero-card,
+  [data-concept="signal"] .cx-kpi-strip,
+  [data-concept="signal"] dialog.modal { border-width: 2px; }
+  [data-concept="signal"] .cx-display { font-size: 34px; }
+  [data-concept="signal"] .cx-hero-facts { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  [data-concept="signal"] .kit-sec .table-wrap table.grid td:first-child { font-family: var(--font-mono); font-weight: 650; }
+  [data-concept="signal"] .traveller.is-urgent { border-left: 8px solid var(--critical); box-shadow: var(--shadow); }
+  [data-concept="signal"] .btn-primary { background: var(--accent-fill); border-color: var(--accent-fill); }
 </style>
 </head>
 <body>
