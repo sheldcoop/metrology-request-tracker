@@ -554,6 +554,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText($('#main .req-actbar'), 'Accept').click(); await settle();
   setVal(fieldIn(openDialog(), 'Expected done'), '2030-01-10'); buttonByText(openDialog(), 'Save').click(); await settle();
   check('Accept with an expected done date: stamp Accepted, date on the card', MRT.store.byId('requests', req2.id).status === 'accepted' && $('#main .tr-stamp').textContent === 'Accepted' && /Expected done/.test($('#main .traveller').textContent));
+  check('...the card shows the queue place (1st of 1 on FIB)', /Queue/.test($('#main .traveller').textContent) && /1st of 1/.test($('#main .traveller').textContent));
   check('...the new stamp presses on and the rail fills (P3)', $('#main .tr-stamp').classList.contains('is-stamping') && $('#main .status-rail').classList.contains('is-filling'));
   check('...now Panels received, still no Start', !!buttonByText($('#main .req-actbar'), 'Panels received') && !buttonByText($('#main .req-actbar'), 'Start'));
   buttonByText($('#main .req-actbar'), 'Panels received').click(); await settle();
@@ -654,6 +655,14 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('..."All": cancelled and closed ones too, the closed one stamped Closed', $$('#main .q-row').length === 5 && /Closed/.test(mainText()) && /Cancelled/.test(mainText()));
   setVal(fieldIn(doc.getElementById('main'), 'Lot or request number'), req2.request_no); await settle();
   check('...find by request number', $$('#main .q-row').length === 1);
+  const rowDraft = await MRT.store.saveDraft({ fields: { tool_id: fib().id } });
+  win.setHash('#/lab'); await settle(); win.setHash('#/requests/drafts'); await settle();
+  setVal(fieldIn(doc.getElementById('main'), 'Lot or request number'), ''); await settle();
+  const rowDel = doc.getElementById('main').querySelectorAll('button').filter(b => (b.getAttribute('aria-label') || '').indexOf('Delete draft') === 0)[0];
+  check('...a draft row has a delete button', !!rowDel && $$('#main .q-row').length === 1);
+  rowDel.click(); await settle();
+  buttonByText(openDialog(), 'Delete').click(); await settle();
+  check('...delete from the row removes the draft', !MRT.store.data().requests.some(r => r.id === rowDraft.id) && $$('#main .q-row').length === 0);
 
   // --- the board (M3 step 4)
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();

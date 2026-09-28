@@ -253,6 +253,14 @@
     eq('old drafts (Q33): a draft untouched for 30+ days', [D.isOldDraft({ status: 'draft', created_ts: '2026-08-01T00:00:00Z' }, Date.parse('2026-09-24T00:00:00Z')),
        D.isOldDraft({ status: 'draft', created_ts: '2026-08-01T00:00:00Z', updated_ts: '2026-09-20T00:00:00Z' }, Date.parse('2026-09-24T00:00:00Z')),
        D.isOldDraft({ status: 'submitted', created_ts: '2026-01-01T00:00:00Z' }, Date.parse('2026-09-24T00:00:00Z'))], [true, false, false]);
+    var QQ = [{ id: 'a', tool_id: 't', status: 'in_progress', submitted_ts: '2026-09-20T08:00:00Z' },
+      { id: 'b', tool_id: 't', status: 'accepted', submitted_ts: '2026-09-21T08:00:00Z' },
+      { id: 'c', tool_id: 't', status: 'on_hold', submitted_ts: '2026-09-19T08:00:00Z' },
+      { id: 'd', tool_id: 't', status: 'submitted', submitted_ts: '2026-09-18T08:00:00Z' },
+      { id: 'e', tool_id: 'x', status: 'accepted', submitted_ts: '2026-09-17T08:00:00Z' }];
+    eq('queue place: 2nd of 2 on the tool, by submitted time; holds, unaccepted and other tools out',
+      [D.queuePosition(QQ, QQ[1]), D.queuePosition(QQ, QQ[2]), D.queuePosition(QQ, QQ[3]), D.queuePosition(QQ, QQ[4])],
+      [{ pos: 2, total: 2 }, null, null, { pos: 1, total: 1 }]);
     var ND = { users: [{ id: 'e1', name: 'Erik', roles: ['engineer'], active: true }, { id: 'q1', name: 'Olga', roles: ['quality'], active: true },
         { id: 'a1', name: 'Ada', roles: ['admin'], active: true }, { id: 'n1', name: 'Nora', roles: ['engineer'], active: true, self_added: true, needs_review: true, created_ts: '2026-09-24T08:00:00Z' }],
       tools: [{ id: 't1', code: 'FIB', primary_operator_id: 'q1' }],

@@ -132,7 +132,11 @@ window.MRT.views.requests = (function () {
       clocks.push({ node: clock, r: r });
       var link = r.status === 'draft' ? '#/new/' + r.id : '#/request/' + r.id;
       var acts = A.buttons(r, { size: 'sm', only: ['answer', 'analyze', 'reopen'] });
-      if (r.status === 'draft') acts.push(ui.button('Carry on', { size: 'sm', icon: 'edit', onClick: function () { location.hash = link; } }));
+      if (r.status === 'draft') {
+        acts.push(ui.button('Carry on', { size: 'sm', icon: 'edit', onClick: function () { location.hash = link; } }));
+        acts.push(ui.button('', { size: 'sm', kind: 'ghost', icon: 'trash', ariaLabel: 'Delete draft ' + (r.request_no || ''), title: 'Delete this draft',
+          onClick: function () { deleteDraft(r); } }));
+      }
       return ui.el('tr', { id: 'row-' + r.id, class: 'q-row prio-' + (prio ? prio.level : 3) + (late ? ' is-late' : '') + (waitingOnMe(r, now) ? ' is-mine' : '') }, [
         ui.el('td', {}, ui.el('span', { class: 'cell-tool' }, [tool ? ui.toolGlyph(tool.glyph, { size: 24 }) : null,
           ui.el('a', { class: 'mono', href: link, text: r.request_no || ((tool ? tool.code : '?') + ' draft') }),
@@ -148,6 +152,14 @@ window.MRT.views.requests = (function () {
     }
 
     draw();
+  }
+
+  function deleteDraft(r) {
+    ui.confirm({ title: 'Delete this draft?', message: 'The draft is removed for good. Nobody else has seen it.', confirmLabel: 'Delete', danger: true })
+      .then(function (ok) {
+        if (!ok) return;
+        return store.deleteDraft(r.id).then(function () { ui.toast({ kind: 'success', message: 'Draft deleted.' }); window.MRT.app.route(); });
+      }).catch(function (e) { ui.toastError(e.message, e); });
   }
 
   function chip(r, closed) {
