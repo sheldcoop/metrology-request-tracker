@@ -593,6 +593,27 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...opening it lists them, with the new request from Prince', !!bellMenu && bellMenu.textContent.indexOf('New request ' + qL.request_no) !== -1);
   buttonByText(bellMenu, 'Mark all as read').click(); await settle();
   check('..."Mark all as read" clears the count', !visible('bellCount'));
+  // --- Pure engineer: Edit, Cancel, Copy, Print (+ Answer only when asked)
+  MRT.store.setCurrentUser(meP);
+  const ed = await MRT.store.saveEntry('users', { fields: { name: 'Ed Engineer', roles: ['engineer'] } });
+  MRT.store.setCurrentUser(ed.id);
+  const edReq = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [7], priority_id: prioBy('P3') }) });
+  win.setHash('#/request/' + edReq.id); await settle();
+  check('engineer on own request: Edit, Cancel, Copy, Print - and no workflow bar at all',
+    ['Edit request', 'Print slip', 'Copy this request', 'Cancel request'].every(t => !!buttonByText(M(), t)) && !$('#main .req-actbar'));
+  MRT.store.setCurrentUser(olga.id);
+  await MRT.store.requestAction(edReq.id, 'clarify', { text: 'Which panels?' });
+  MRT.store.setCurrentUser(ed.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + edReq.id); await settle();
+  const edBar = () => $('#main .req-actbar');
+  check('...asked a question: only Answered appears',
+    !!edBar() && !!buttonByText(edBar(), 'Answered') && edBar().querySelectorAll('button').length === 1);
+  buttonByText(edBar(), 'Answered').click(); await settle();
+  setVal(fieldIn(openDialog(), 'Your answer'), 'Panel 7'); buttonByText(openDialog(), 'Save').click(); await settle();
+  check('...answered: back with the lab, workflow bar gone again', MRT.store.byId('requests', edReq.id).status === 'submitted' && !$('#main .req-actbar'));
+  buttonByText(M(), 'Cancel request').click(); await settle();
+  setVal(openDialog().querySelector('textarea'), 'ordered twice'); buttonByText(openDialog(), 'Cancel request').click(); await settle();
+  check('...cancel works, request closed for the engineer', MRT.store.byId('requests', edReq.id).status === 'cancelled');
+  MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
   const qRows = $$('#main .q-row');
   check('My queue: Olga\'s FIB requests, the Line stop on top (M2-5)', qRows.length === 2 && qRows[0].textContent.indexOf(qL.request_no) !== -1 && qRows[0].classList.contains('prio-1'));
   check('..."assigned to you" first, one-click Accept on the row (Start waits for the panels)', /Assigned to you/.test(mainText()) && !!buttonByText(qRows[0], 'Accept') && !buttonByText(qRows[0], 'Start'));
