@@ -161,7 +161,7 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const live=win.MRT.themes.list;
-  expect('the kit opens on all 9 themes side by side, with their contrast table',live.length===10&&root.querySelectorAll('.theme-scope').length===10+4&&
+  expect('the kit opens on all 9 themes side by side, with their contrast table',live.length===11&&root.querySelectorAll('.theme-scope').length===11+4&&
     root.querySelector('.kit-contrast').querySelectorAll('th').length===2+live.length);
   const sel=doc.getElementById('kitTheme');sel.value='carbon-g100';sel.dispatch('change');flush();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
