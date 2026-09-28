@@ -65,9 +65,9 @@
     function prj(code) { return d.projects.filter(function (p) { return p.code === code; })[0].id; }
     function bu(code) { return d.buildups.filter(function (b) { return b.code === code; })[0].id; }
     d.part_numbers = [
-      { id: 'pn_demo_1', code: 'PN-DEMO-100', description: 'Demo board', project_ids: [prj('C4F')], active: true, version: 1 },
-      { id: 'pn_demo_2', code: 'PN-DEMO-200', description: '', project_ids: [prj('SHIFT'), prj('HORUS')], active: true, version: 1 },
-      { id: 'pn_demo_3', code: 'PN-DEMO-201', description: '', project_ids: [prj('SHIFT')], active: true, version: 1 }
+      { id: 'pn_demo_1', code: 'PN-DEMO-100', description: 'Demo board', project_id: prj('C4F'), active: true, version: 1 },
+      { id: 'pn_demo_2', code: 'PN-DEMO-200', description: '', project_id: prj('SHIFT'), active: true, version: 1 },
+      { id: 'pn_demo_3', code: 'PN-DEMO-201', description: '', project_id: prj('SHIFT'), active: true, version: 1 }
     ];
     d.process_steps = ['After desmear', 'After Cu plating', 'After solder resist'].map(function (n, i) {
       return { id: 'pstep_demo_' + i, name: n, active: true, sort: i + 1, version: 1 };

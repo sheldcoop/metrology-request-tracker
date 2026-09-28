@@ -99,22 +99,19 @@
     return K().fieldDialog({ collection: 'lot_fields', f: f, titleNew: 'Add a lot field' }).catch(oops);
   }
 
-  function projectCodes(ids) {
-    return (ids || []).map(function (id) { var p = store.byId('projects', id); return p ? p.code : '?'; });
-  }
-
   function partNumbersPanel() {
     var k = K();
     var rows = store.list('part_numbers', { all: true });
     var canAdd = store.list('projects').length > 0;
     return k.panel('Part numbers', 'tag', [ui.button('Add', { size: 'sm', icon: 'plus', disabled: !canAdd,
       title: canAdd ? null : 'Add a project first', onClick: function () { partNumberDialog(null); } })], [
-      ui.el('p', { class: 'muted', text: 'Each part number is stored once and linked to one or more projects. ' +
-        'From M2 a lot picks a project, then one of its part numbers.' }),
-      k.table(['Part number', 'Description', 'Projects', 'Status', { label: '', cls: 'actions' }], rows.map(function (r) {
+      ui.el('p', { class: 'muted', text: 'Each part number is stored once and belongs to exactly one project (P-1). ' +
+        'A lot picks that project, then the part number.' }),
+      k.table(['Part number', 'Description', 'Project', 'Status', { label: '', cls: 'actions' }], rows.map(function (r) {
+        var pc = r.project_id ? store.byId('projects', r.project_id) : null;
         return { id: 'row-' + r.id, cls: r.active === false ? 'is-off' : null, cells: [
           ui.el('b', { class: 'mono', text: r.code }), r.description || k.muted('-'),
-          ui.el('span', { class: 'chip-row' }, projectCodes(r.project_ids).map(function (c) { return k.chip(c, 'neutral'); })),
+          pc ? k.chip(pc.code, 'neutral') : k.muted('-'),
           activeChip(r),
           ui.el('span', { class: 'row-actions' }, [k.editButton(r.code, function () { partNumberDialog(r); }), k.deleteButton('part_numbers', r, r.code)])
         ] };
@@ -124,22 +121,23 @@
 
   function partNumberDialog(r) {
     var edit = !!r;
-    var linked = edit ? r.project_ids || [] : [];
-    // active projects, plus hidden ones this part number already uses (so saving keeps them)
-    var options = store.list('projects', { all: true }).filter(function (p) { return p.active !== false || linked.indexOf(p.id) !== -1; })
-      .map(function (p) { return { value: p.id, label: p.code + (p.active === false ? ' (hidden)' : '') }; });
+    var linked = edit ? r.project_id || '' : '';
+    // active projects, plus the hidden one this part number already uses (so saving keeps it)
+    var options = [{ value: '', label: 'Pick the project' }].concat(store.list('projects', { all: true })
+      .filter(function (p) { return p.active !== false || p.id === linked; })
+      .map(function (p) { return { value: p.id, label: p.code + (p.active === false ? ' (hidden)' : '') }; }));
     return K().editDialog({
       title: edit ? 'Edit ' + r.code : 'Add a part number', icon: 'edit',
-      values: edit ? { code: r.code, description: r.description || '', project_ids: linked.slice(), active: r.active !== false } : { project_ids: [], active: true },
+      values: edit ? { code: r.code, description: r.description || '', project_id: linked, active: r.active !== false } : { project_id: '', active: true },
       fields: [
         { key: 'code', label: 'Part number', kind: 'text', mono: true, cls: 'half', placeholder: 'e.g. PN-10234-A', hint: 'Capitals, digits and - . _ /' },
         { key: 'description', label: 'Description (optional)', kind: 'text', cls: 'half' },
-        { key: 'project_ids', label: 'Projects (one or more)', kind: 'checks', options: options },
+        { key: 'project_id', label: 'Project (exactly one)', kind: 'select', options: options },
         { key: 'active', label: 'Active (untick to hide it from the pickers; lots using it keep it)', kind: 'check' }
       ],
       check: function (v) {
         if (!D.isPartNumber(String(v.code || '').trim().toUpperCase())) return ['code', 'Capitals, digits and - . _ / (up to 30), e.g. PN-10234-A'];
-        if (!v.project_ids.length) return ['project_ids', 'Tick at least one project'];
+        if (!v.project_id) return ['project_id', 'Pick the one project this part number belongs to'];
         return null;
       },
       save: function (v) { return store.saveEntry('part_numbers', { id: edit ? r.id : undefined, version: edit ? r.version : undefined, fields: v, reason: 'Settings' }); },

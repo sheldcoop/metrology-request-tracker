@@ -282,11 +282,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Lists has a Part numbers panel, empty at first', !!pnPanel && /None yet/.test(pnPanel.textContent));
   buttonByText(pnPanel, 'Add').click(); await settle();
   dlg2 = openDialog(); setVal(fieldIn(dlg2, 'Part number'), 'pn-77'); buttonByText(dlg2, 'Save').click(); await settle();
-  check('a part number without a project is refused in the dialog', openDialog() === dlg2 && /at least one project/.test(dlg2.textContent));
-  tickIn(dlg2, 'C4F').checked = true; tickIn(dlg2, 'NOVA').checked = true; buttonByText(dlg2, 'Save').click(); await settle();
+  check('a part number without a project is refused in the dialog', openDialog() === dlg2 && /one project/.test(dlg2.textContent));
+  const c4fId = MRT.store.list('projects').filter(p => p.code === 'C4F')[0].id;
+  setVal(fieldIn(dlg2, 'Project'), c4fId); buttonByText(dlg2, 'Save').click(); await settle();
   const pn77 = MRT.store.list('part_numbers').filter(x => x.code === 'PN-77')[0];
-  check('...with two projects it is added (M1-13)', !!pn77 && pn77.project_ids.length === 2 && !openDialog());
-  check('...and shown with its project codes', /PN-77/.test(mainText()) && /NOVA/.test(mainText()));
+  check('...with its one project it is added (P-1)', !!pn77 && pn77.project_id === c4fId && !openDialog());
+  check('...and shown with its project code', /PN-77/.test(mainText()) && /C4F/.test(mainText()));
   const psPanel = doc.getElementById('main').querySelectorAll('section').filter(x => /Process steps/.test(x.textContent))[0];
   check('Lists has a Process steps panel (M2-7)', !!psPanel && /None yet/.test(psPanel.textContent));
   buttonByText(psPanel, 'Add').click(); await settle();

@@ -26,7 +26,7 @@
  *                         yesno | date | path), required, help, unit, min, max,
  *                         choices: ['A', 'B'], only_for: [type names] }
  *   lot_fields[]: extra fields on every lot, same shape as a tool's fields[] (no only_for)
- *   part_numbers[]: { code (capitals, digits, - . _ /), description, projects: [project codes] }
+ *   part_numbers[]: { code (capitals, digits, - . _ /), description, project: the one project code (P-1) }
  *             (DECISIONS M1-13: one part number may belong to several projects)
  *   closing_days[]: { date: 'YYYY-MM-DD', name }  - company closing days (not public holidays)
  *   public_holidays: Austrian public holidays are added for this year and next, by rule.

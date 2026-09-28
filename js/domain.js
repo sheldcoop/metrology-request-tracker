@@ -657,16 +657,17 @@ window.MRT.domain = (function () {
       case 'part_numbers':
         if (!isPartNumber(r.code)) p.push('Part number: capitals, digits and - . _ / (up to 30), e.g. PN-10234-A');
         else if (dupBy(d.part_numbers, r.id, 'code', r.code)) p.push('Part number ' + r.code + ' already exists');
-        if (!Array.isArray(r.project_ids) || !r.project_ids.length) p.push('Tick at least one project');
-        else {
-          if (r.project_ids.some(function (id) { return !exists('projects', id); })) p.push('A ticked project no longer exists');
-          if (r.project_ids.some(function (id, i) { return r.project_ids.indexOf(id) !== i; })) p.push('A project is ticked twice');
-        }
+        if (!r.project_id) p.push('Pick the one project this part number belongs to');   // P-1: a part number has exactly one project
+        else if (!exists('projects', r.project_id)) p.push('The project no longer exists');
         break;
 
       case 'lots':
         if (r.project_id && !exists('projects', r.project_id)) p.push('Project not found');
         if (r.part_number_id && !exists('part_numbers', r.part_number_id)) p.push('Part number not found');
+        if (r.project_id && r.part_number_id) {
+          var lpn = (d.part_numbers || []).filter(function (x) { return x.id === r.part_number_id; })[0];
+          if (lpn && lpn.project_id && lpn.project_id !== r.project_id) p.push('Part number ' + lpn.code + ' belongs to another project');   // P-1
+        }
         if (!isLotNumber(r.lot_number)) p.push('Lot number: digits, a split lot adds .01 - e.g. 18178 or 18178.01');
         else if (dupBy(d.lots, r.id, 'lot_number', r.lot_number)) p.push('Lot ' + r.lot_number + ' is already registered');
         if (r.panel_count !== null && r.panel_count !== undefined &&
@@ -1270,7 +1271,7 @@ window.MRT.domain = (function () {
     if (f.bkm_id && (!live(bkm) || bkm.tool_id !== tool.id)) drop('bkm_id', 'The BKM of this template is hidden - pick another');
     if (f.project_id && !live(row('projects', f.project_id))) { drop('project_id', 'The project of this template is hidden - pick another'); f.part_number_id = null; }
     var pn = row('part_numbers', f.part_number_id);
-    if (f.part_number_id && (!live(pn) || (f.project_id && (pn.project_ids || []).indexOf(f.project_id) === -1))) drop('part_number_id', 'The part number of this template is hidden - pick another');
+    if (f.part_number_id && (!live(pn) || (f.project_id && pn.project_id && pn.project_id !== f.project_id))) drop('part_number_id', 'The part number of this template is hidden - pick another');
     var bu = row('buildups', f.buildup_id);
     if (f.buildup_id && !live(bu)) drop('buildup_id', 'The build-up of this template is hidden - pick another');
     var allowed = layersFor(f.buildup_id ? bu : null);
@@ -1482,7 +1483,7 @@ window.MRT.domain = (function () {
     if (r.project_id && r.new_project) add('project_conflict', 'Pick an existing project or type a new one, not both', 'lot');
     var pnR = byId('part_numbers', r.part_number_id);
     if (r.part_number_id && !pnR) add('part_number_not_found', 'Part number not found', 'lot');
-    else if (pnR && r.project_id && (pnR.project_ids || []).indexOf(r.project_id) === -1) add('part_number_wrong_project', 'Part number ' + pnR.code + ' does not belong to this project', 'lot');
+    else if (pnR && r.project_id && pnR.project_id && pnR.project_id !== r.project_id) add('part_number_wrong_project', 'Part number ' + pnR.code + ' does not belong to this project', 'lot');
     var np = r.new_part_number;
     if (np) {
       var npCode = trim(np.code || '').toUpperCase();
@@ -1737,10 +1738,10 @@ window.MRT.domain = (function () {
       add('warning', 'no_magazines', 'No magazines: the request form cannot offer any - add them in Settings > Lists, or "Add the sample magazines" in Settings > Data', 'lists', null);
     }
     (data.part_numbers || []).forEach(function (pn) {
-      if ((pn.project_ids || []).some(function (id) { return !projects[id]; })) {
+      if (pn.project_id && !projects[pn.project_id]) {
         add('problem', 'pn_bad_project', 'Part number ' + pn.code + ' is linked to a project that no longer exists', 'lists', pn.id);
-      } else if (pn.active !== false && (pn.project_ids || []).length && pn.project_ids.every(function (id) { return projects[id].active === false; })) {
-        add('warning', 'pn_hidden_projects', 'Part number ' + pn.code + ' is active, but all its projects are hidden', 'lists', pn.id);
+      } else if (pn.active !== false && pn.project_id && projects[pn.project_id] && projects[pn.project_id].active === false) {
+        add('warning', 'pn_hidden_projects', 'Part number ' + pn.code + ' is active, but its project is hidden', 'lists', pn.id);
       }
     });
     (data.users || []).forEach(function (u) {
