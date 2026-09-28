@@ -324,11 +324,25 @@ window.MRT.views['new'] = (function () {
     var slotPicker = null;
     var shownPanels = [];   // P4: a panel typed just now lights up once
 
+    /** One panel: ID chip + small copper, tapping either shows it large (H-5). */
     function panelChip(id, dead, fresh) {
-      return ui.el('span', { class: 'panel-hirata-item' + (fresh ? ' is-new' : '') }, [
-        ui.el('span', { class: 'panel-chip mono' + (dead ? ' is-scrapped' : ''), title: dead ? 'Scrapped' : null, text: id }),
+      var b = ui.el('button', { type: 'button', class: 'panel-hirata-item' + (fresh ? ' is-new' : ''),
+        title: dead ? 'Scrapped - show large' : 'Show large', 'aria-label': 'Panel ' + id + (dead ? ', scrapped' : '') + ' - show large' }, [
+        ui.el('span', { class: 'panel-chip mono' + (dead ? ' is-scrapped' : ''), text: id }),
         window.MRT.views.hirata.copper(id, 'sm')
       ]);
+      b.addEventListener('click', function () { showPanel(id, dead); });
+      return b;
+    }
+
+    function showPanel(id, dead) {
+      var lot = byId('lots', st.lot_id);
+      ui.dialog({ title: 'Panel ' + id, icon: 'hirata', body: ui.el('div', { class: 'panel-zoom' }, [
+        window.MRT.views.hirata.copper(id, 'lg'),
+        ui.el('div', { class: 'panel-zoom-id', text: id }),
+        dead ? ui.el('span', { class: 'chip expired', text: 'Scrapped' + (lot ? ' in lot ' + lot.lot_number : '') })
+             : ui.el('span', { class: 'muted', text: lot ? 'Lot ' + lot.lot_number : 'New lot - saved on submit' })
+      ]), actions: [{ label: 'Close', value: null }] });
     }
 
     function pickByText(rows, text, key) {
@@ -544,7 +558,7 @@ window.MRT.views['new'] = (function () {
       function paintPanelEntry() {
         if (panelMode === 'ids') {
           idsF = ui.field({ label: 'Hirata IDs', mono: true, value: st.panels.join(', '), placeholder: 'e.g. 3252, 3253 or 3252-3255',
-            hint: 'Commas or spaces between them; a dash for a run.' });
+            hint: 'Exactly 4 digits each; commas or spaces between them, a dash for a run.' });
           idsF.input.addEventListener('input', readPanels);
           ui.mount(entryHost, [idsF.node, chipsHost]);
           countF = null;
@@ -561,15 +575,17 @@ window.MRT.views['new'] = (function () {
       function readPanels() {
         if (panelMode === 'ids') {
           var p = D.parsePanelIds(idsF.value());
-          st.panels = p.ids;
-          st.panel_count = p.ids.length || null;
+          var bad4 = p.ids.filter(function (x) { return x.length !== 4; });   // H-4: only the last 4 match anything
+          st.panels = p.ids.filter(function (x) { return x.length === 4; });
+          st.panel_count = st.panels.length || null;
           var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
-          ui.mount(chipsHost, p.ids.map(function (id) {
+          ui.mount(chipsHost, st.panels.map(function (id) {
             var dead = gone.indexOf(id) !== -1;
             return panelChip(id, dead, shownPanels.indexOf(id) === -1);
-          }).concat(p.ids.length ? [ui.el('span', { class: 'muted', text: p.ids.length + ' panel' + (p.ids.length === 1 ? '' : 's') })] : []));
-          shownPanels = p.ids.slice();
-          idsF.setState(p.errors.length ? 'invalid' : null, p.errors[0] || null);
+          }).concat(st.panels.length ? [ui.el('span', { class: 'muted', text: st.panels.length + ' panel' + (st.panels.length === 1 ? '' : 's') })] : []));
+          shownPanels = st.panels.slice();
+          var err4 = bad4.length ? '"' + bad4[0] + '" is not 4 digits - type the last 4 of the Hirata code' : null;
+          idsF.setState(p.errors.length || err4 ? 'invalid' : null, p.errors[0] || err4);
         } else {
           var n = Number(countF.value());
           st.panels = [];

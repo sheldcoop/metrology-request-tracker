@@ -1751,6 +1751,12 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .hirata-ref-item span { font-size: 10px; color: var(--fg-muted); }
 .panel-hirata { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 8px; }
 .panel-hirata-item { display: inline-flex; align-items: center; gap: 8px; }
+button.panel-hirata-item { background: none; border: 0; padding: 2px; font: inherit; color: inherit; cursor: pointer; border-radius: 6px; }
+button.panel-hirata-item:hover .panel-chip { border-color: var(--line-hi); }
+button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* H-5: the large panel view - copper, ID, state, centered */
+.panel-zoom { display: grid; gap: 12px; justify-items: center; text-align: center; padding: 8px 4px; }
+.panel-zoom-id { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 650; letter-spacing: -.01em; line-height: 1.1; }
 /* P4: panels light up as typed, slide into the lab tray, get their mark */
 .panel-hirata-item.is-new .cu-panel { animation: cu-light 700ms var(--ease-out) both; }
 @keyframes cu-light { 0% { opacity: 0; transform: translateY(-6px) scale(.9); } 60% { opacity: 1; transform: scale(1.06); } 100% { transform: none; } }
