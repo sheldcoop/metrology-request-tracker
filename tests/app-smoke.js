@@ -333,7 +333,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Lots is live, empty at first, with Register lot', /No lots yet/.test(mainText()) && !!buttonByText(doc.getElementById('main'), 'Register lot'));
   buttonByText(doc.getElementById('main'), 'Register lot').click(); await settle();
   dlg2 = openDialog();
-  check('...a lot is its number: no project, part number or build-up asked (F-6)', !fieldIn(dlg2, 'Project') && !fieldIn(dlg2, 'Part number') && !fieldIn(dlg2, 'Build-up'));
+  check('...a lot links project + part number (optional, F-7), still no build-up asked', !!fieldIn(dlg2, 'Project') && !!fieldIn(dlg2, 'Part number') && !fieldIn(dlg2, 'Build-up'));
   check('...the lot fields are asked too (Purpose, Started on, Lot status ...)', !!fieldIn(dlg2, 'Purpose of the lot') && !!fieldIn(dlg2, 'Started on') && !!fieldIn(dlg2, 'Lot status'));
   setVal(fieldIn(dlg2, 'Lot number'), '18178-A'); buttonByText(dlg2, 'Save').click(); await settle();
   check('...a bad lot number is refused in the dialog', openDialog() === dlg2 && /split lot adds .01/.test(dlg2.textContent));
@@ -343,10 +343,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   setVal(fieldIn(dlg2, 'Purpose of the lot'), purposeF.choices[1].id);
   buttonByText(dlg2, 'Save').click(); await settle();
   const lot1 = (MRT.store.data().lots || []).filter(l => l.lot_number === '18178')[0];
-  check('...lot 18178 is registered with 12 panels and its owner - no project or build-up on it',
-        !!lot1 && lot1.panel_count === 12 && !('project_id' in lot1) && !('buildup_id' in lot1) && lot1.owner_id === MRT.store.currentUser().id && !openDialog());
+  check('...lot 18178 is registered with 12 panels and its owner - empty links, no build-up on it',
+        !!lot1 && lot1.panel_count === 12 && lot1.project_id === null && lot1.part_number_id === null && !('buildup_id' in lot1) && lot1.owner_id === MRT.store.currentUser().id && !openDialog());
   check('...and listed', /18178/.test(mainText()) && /1 of 1 lots/.test(mainText()));
   check('...with its purpose (DOE) stored', lot1.extra[purposeF.id] === purposeF.choices[1].id);
+  await MRT.store.saveLot({ id: lot1.id, version: lot1.version, fields: { project_id: c4f.id } });
+  check('...linking its project (F-7)', MRT.store.byId('lots', lot1.id).project_id === c4f.id);
   $$('#main a.lot-link').filter(a => a.textContent === '18178')[0].click(); await settle();
   check('the lot number opens all its details, lot fields included', !!openDialog() && /Purpose of the lot/.test(openDialog().textContent) && /DOE/.test(openDialog().textContent));
   buttonByText(openDialog(), 'Close').click(); await settle();
@@ -415,8 +417,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   segPick('Priority', normalId); await settle();
   stepOf('lot').querySelector('.wz-head').click(); await settle();
   setVal(fieldIn(M(), 'Lot'), '18178'); await settle();
-  check('typing a registered lot finds it - and fills in nothing: project, lot, build-up are separate (F-6)', /Lot found/.test(mainText()) &&
-        !fieldIn(M(), 'Project').disabled && fieldIn(M(), 'Build-up').value === '');
+  check('typing a registered lot finds it - and inherits its project (F-7), build-up stays separate', /Lot found/.test(mainText()) &&
+        !fieldIn(M(), 'Project').disabled && fieldIn(M(), 'Project').value === 'C4F' && fieldIn(M(), 'Build-up').value === '');
   setVal(fieldIn(M(), 'Project'), c4f.code); await settle();
   setVal(fieldIn(M(), 'Part number'), pn77.code); await settle();
   check('...part number is searchable and accepted', fieldIn(M(), 'Part number').value === pn77.code);
@@ -710,7 +712,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('..."Add several lots" adds 30001-30003 with 6 panels each', ['30001', '30002', '30003'].every(n => MRT.store.data().lots.some(l => l.lot_number === n && l.panel_count === 6)) && !openDialog());
   win.setHash('#/lots'); await settle();
   check('...and they show on the Lots page too', /30002/.test(mainText()));
-  check('...a lot lists the projects of its requests (F-6)', $$('#main tr').filter(r => /18178/.test(r.textContent) && !/18178\.01/.test(r.textContent))[0].textContent.indexOf('C4F') !== -1);
+  check('...a lot shows its own project link (F-7)', $$('#main tr').filter(r => /18178/.test(r.textContent) && !/18178\.01/.test(r.textContent))[0].textContent.indexOf('C4F') !== -1);
 
   // --- magazines and build-up layers (M2-23, F-2, F-3)
   await tab('data');
