@@ -532,8 +532,7 @@
         return scope;
       });
       ui.mount(root, [el('div', { style: { gridColumn: '1 / -1', padding: '20px 20px 0' } }, [
-        el('p', { class: 'muted', text: 'Every theme of js/themes.js side by side. Main: Carbon Gray 100 (default), Carbon White, Primer High Contrast; ' +
-          'personal: Catppuccin Mocha, Gruvbox Light. Status = icon + word in every theme.' }),
+        el('p', { class: 'muted', text: 'Every theme of js/themes.js side by side: AT&S (default), Deep Lab, Cleanroom, Signal, Frost, Minimal. Status = icon + word in every theme.' }),
         contrastTable(),
         el('div', { class: 'kit-col-title', style: { marginTop: '16px' }, text: 'Redesign concepts (WCAG AA, computed from the live tokens)' }),
         contrastTable(CONCEPTS.map(function (c) { return [c.base, c.name, c.key]; }))
@@ -562,10 +561,10 @@
   }
 
   var CONCEPTS = [
-    { key: 'deep-lab', name: 'Deep Lab (dark glass)', base: 'carbon-g100' },
-    { key: 'cleanroom', name: 'Cleanroom (light airy)', base: 'carbon-white' },
-    { key: 'signal', name: 'Signal (dark solid)', base: 'carbon-g100' },
-    { key: 'frost', name: 'Frost (glass flagship)', base: 'carbon-white' }
+    { key: 'deep-lab', name: 'Deep Lab (dark glass)', base: 'deep-lab' },
+    { key: 'cleanroom', name: 'Cleanroom (light airy)', base: 'cleanroom' },
+    { key: 'signal', name: 'Signal (dark solid)', base: 'signal' },
+    { key: 'frost', name: 'Frost (glass flagship)', base: 'frost' }
   ];
   function conceptOf(key) { return CONCEPTS.filter(function (c) { return c.key === key; })[0] || null; }
 
