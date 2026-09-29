@@ -74,11 +74,11 @@ window.MRT.store = (function () {
   function newId(prefix) {
     var rnd;
     if (window.crypto && window.crypto.getRandomValues) {
-      var a = new Uint32Array(1);
+      var a = new Uint32Array(2);
       window.crypto.getRandomValues(a);
-      rnd = a[0].toString(36);
+      rnd = a[0].toString(36) + a[1].toString(36);
     } else {
-      rnd = Math.floor(Math.random() * 0xffffffff).toString(36);
+      rnd = Math.floor(Math.random() * 0xffffffff).toString(36) + Math.floor(Math.random() * 0xffffffff).toString(36);
     }
     return prefix + '_' + Date.now().toString(36) + '_' + rnd;
   }
@@ -2207,7 +2207,7 @@ window.MRT.store = (function () {
     status: status,
 
     // pure helpers, exposed for tests/tests.js only
-    _pure: { seedData: seedData, migrate: migrate, validateAndFill: validateAndFill, MIGRATIONS: MIGRATIONS }
+    _pure: { seedData: seedData, migrate: migrate, validateAndFill: validateAndFill, MIGRATIONS: MIGRATIONS, newId: newId }
   };
   return api;
 })();

@@ -1701,6 +1701,7 @@ window.MRT.domain = (function () {
   }
 
   /** Everything that looks wrong in the file: broken links, odd states. Never writes. */
+  var AUDIT_LARGE = 20000, EVENTS_LARGE = 50000;
   function healthIssues(data, o) {
     var out = [];
     var today = (o && o.today_ymd) || '1970-01-01';
@@ -1765,6 +1766,9 @@ window.MRT.domain = (function () {
     validatePriorities(data.priorities || []).forEach(function (msg) { add('problem', 'priorities', msg, 'lists'); });
     var sample = (data.measurement_types || []).concat(data.bkms || [], data.tool_fields || [], data.magazines || []).filter(function (x) { return x.sample; }).length;
     if (sample) add('note', 'sample_entries', sample + ' sample entries are still in use (see the setup list)', 'tools');
+    var auditN = (data.audit_log || []).length, evN = (data.request_events || []).length;
+    if (auditN > AUDIT_LARGE) add('warning', 'audit_large', 'The audit log holds ' + auditN + ' entries - download it from Settings > Audit log so the history is safe outside the file (automatic archiving is not built yet)', 'audit');
+    if (evN > EVENTS_LARGE) add('warning', 'events_large', 'The timelines hold ' + evN + ' entries - the file keeps growing; archiving is not built yet (open question #27)', 'audit');
     return out;
   }
 
