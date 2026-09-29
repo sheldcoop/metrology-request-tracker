@@ -31,7 +31,7 @@ window.MRT.views.settings = (function () {
     var me = store.currentUser();
     main.appendChild(ui.pageHead('Settings', 'Tools, lists, people, lab calendar and the health of the data file'));
 
-    if (!D.hasRole(me, 'admin')) return renderNotAdmin(main);
+    if (!D.canUseSettings(me)) return renderNotAdmin(main);
     if (unlockedFor !== me.id) return renderLock(main);
 
     var all = tabs();
@@ -64,9 +64,9 @@ window.MRT.views.settings = (function () {
   }
 
   function renderNotAdmin(main) {
-    var admins = store.list('users').filter(function (u) { return D.hasRole(u, 'admin'); });
+    var admins = D.adminNames(store.list('users'));
     main.appendChild(ui.emptyState({ icon: 'lock', title: 'Settings are for admins',
-      text: 'Ask an admin to change tools, lists or people: ' + (admins.map(function (u) { return u.name; }).join(', ') || 'none set') + '.' }));
+      text: 'Ask an admin to change tools, lists or people: ' + (admins.join(', ') || 'none set') + '.' }));
   }
 
   function renderLock(main) {

@@ -1076,6 +1076,48 @@
     eq('analyst: completed + analyzed across tools, nothing open', [D.canSeeRequest(vAn, doneC), D.canSeeRequest(vAn, doneA), D.canSeeRequest(vAn, alien)], [true, true, false]);
     eq('quality engineer: own tools queue', [D.canSeeRequest(vQe, alien, vTool), D.canSeeRequest(vQe, alien, { id: 'other' })], [true, false]);
     eq('operator and manager read all; drafts stay private', [D.canSeeRequest(vOp, alien), D.canSeeRequest(vMgr, alien), D.canSeeRequest(vOp, { status: 'draft', requester_id: 'zx' })], [true, true, false]);
+    (function visibilityMatrix() {
+      // M4: role x status. Oracle from the documented rules, not from canSeeRequest.
+      var tool = { id: 'vt', primary_operator_id: 'vq1', backup_operator_id: 'vq2' };
+      var U = {
+        reqEng: { id: 've', roles: ['engineer'] }, otherEng: { id: 'vx', roles: ['engineer'] },
+        qe1: { id: 'vq1', roles: ['quality'] }, qeX: { id: 'vq9', roles: ['quality'] },
+        analyst: { id: 'va', roles: ['analyst'] }, operator: { id: 'vo', roles: ['operator'] },
+        manager: { id: 'vm', roles: ['manager'] }, admin: { id: 'vad', roles: ['admin'] } };
+      function want(name, st) {
+        var open = ['submitted', 'accepted', 'panels_received', 'in_progress', 'clarification', 'on_hold'].indexOf(st) !== -1;
+        var done = st === 'completed' || st === 'analyzed';
+        if (name === 'reqEng') return st !== 'draft' ? true : true; // own: everything incl. own draft
+        if (name === 'otherEng') return false;                      // another's: nothing (draft or not)
+        if (name === 'qe1') return st === 'draft' ? false : true;   // own tool: all but drafts
+        if (name === 'qeX') return false;                           // other tool: nothing
+        if (name === 'analyst') return done;                        // done only
+        if (name === 'operator' || name === 'manager' || name === 'admin') return st === 'draft' ? false : true;
+        return false;
+      }
+      var bad = [];
+      Object.keys(U).forEach(function (name) {
+        D.REQUEST_STATUSES.forEach(function (st) {
+          var r = { id: 'vr', status: st, requester_id: name === 'reqEng' ? 've' : 'vzzz' };
+          if (name === 'otherEng') r.requester_id = 've';
+          if (!!D.canSeeRequest(U[name], r, tool) !== want(name, st)) bad.push(name + '/' + st);
+        });
+      });
+      eq('M4: role x status visibility matrix (80 combos)', [bad.length, bad.slice(0, 3)], [0, []]);
+      eq('M4: requester vs other engineer isolation', [D.canSeeRequest(U.reqEng, { status: 'submitted', requester_id: 've' }),
+        D.canSeeRequest(U.otherEng, { status: 'submitted', requester_id: 've' })], [true, false]);
+    })();
+    eq('M4: settings/template/comment/management gates', [
+      D.canUseSettings({ roles: ['admin'] }), D.canUseSettings({ roles: ['engineer'] }),
+      D.canSaveTemplate({ id: 'a', roles: ['engineer'] }, { requester_id: 'a' }), D.canSaveTemplate({ id: 'a', roles: ['engineer'] }, { requester_id: 'b' }),
+      D.canSaveTemplate({ id: 'a', roles: ['admin'] }, { requester_id: 'b' }), D.canSaveTemplate({ id: 'a', roles: ['quality'] }, { requester_id: 'a' }),
+      D.canEditComment({ id: 'a', roles: ['engineer'] }, { kind: 'comment', user_id: 'a' }), D.canEditComment({ id: 'a', roles: ['engineer'] }, { kind: 'comment', user_id: 'b' }),
+      D.canEditComment({ id: 'a', roles: ['engineer'] }, { kind: 'status', user_id: 'a' }),
+      D.canSeeManagement({ roles: ['manager'] }), D.canSeeManagement({ roles: ['admin'] }), D.canSeeManagement({ roles: ['engineer'] }),
+      D.defaultAnalyticsTab({ roles: ['quality'] }, true), D.defaultAnalyticsTab({ roles: ['admin', 'manager'] }, true),
+      D.defaultAnalyticsTab({ roles: ['manager', 'quality'] }, false), D.defaultAnalyticsTab({ roles: ['engineer'] }, false),
+      D.adminNames([{ name: 'A', roles: ['admin'] }, { name: 'B', roles: ['engineer'] }])
+    ], [true, false, true, false, true, false, true, false, false, true, false, false, 'work', 'lab', 'lab', 'mine', ['A']]);
     (function matrix() {
       // M1: action x status x persona, oracle rebuilt from the TRANSITIONS table (not from canAct).
       var T = { id: 'vt', primary_operator_id: 'vq1', backup_operator_id: 'vq2' };
