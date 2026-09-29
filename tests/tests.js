@@ -559,8 +559,8 @@
       ST.COLLECTIONS.forEach(function (c) { seed[c].forEach(function (r) { if (r.id) { if (ids[r.id]) dup = true; ids[r.id] = 1; } }); });
       return !dup;
     })());
-    ok('new IDs: 20,000 unique, stable form', (function () {
-      var seen = {}, n = 20000, i, id, good = true;
+    ok('new IDs: 100,000 unique, stable form (M1)', (function () {
+      var seen = {}, n = 100000, i, id, good = true;
       for (i = 0; i < n; i++) { id = ST._pure.newId('req'); if (seen[id] || !/^req_[0-9a-z]+_[0-9a-z]+$/.test(id)) { good = false; break; } seen[id] = 1; }
       return good && Object.keys(seen).length === n;
     })());
@@ -1059,6 +1059,50 @@
     eq('analyst: completed + analyzed across tools, nothing open', [D.canSeeRequest(vAn, doneC), D.canSeeRequest(vAn, doneA), D.canSeeRequest(vAn, alien)], [true, true, false]);
     eq('quality engineer: own tools queue', [D.canSeeRequest(vQe, alien, vTool), D.canSeeRequest(vQe, alien, { id: 'other' })], [true, false]);
     eq('operator and manager read all; drafts stay private', [D.canSeeRequest(vOp, alien), D.canSeeRequest(vMgr, alien), D.canSeeRequest(vOp, { status: 'draft', requester_id: 'zx' })], [true, true, false]);
+    (function matrix() {
+      // M1: action x status x persona, oracle rebuilt from the TRANSITIONS table (not from canAct).
+      var T = { id: 'vt', primary_operator_id: 'vq1', backup_operator_id: 'vq2' };
+      var P = [
+        ['reqEngineer', { id: 've', roles: ['engineer'] }], ['otherEngineer', { id: 'vx', roles: ['engineer'] }],
+        ['primaryQE', { id: 'vq1', roles: ['quality'] }], ['backupQE', { id: 'vq2', roles: ['quality'] }],
+        ['otherQE', { id: 'vq9', roles: ['quality'] }], ['analyst', { id: 'va', roles: ['analyst'] }],
+        ['operator', { id: 'vo', roles: ['operator'] }], ['manager', { id: 'vm', roles: ['manager'] }],
+        ['admin', { id: 'vad', roles: ['admin'] }]];
+      function whoOk(who, u) {
+        if (who === 'measurer') return u.roles[0] === 'admin' || (u.roles[0] === 'quality' && (u.id === 'vq1' || u.id === 'vq2'));
+        if (who === 'analyst') return u.roles[0] === 'analyst' || u.roles[0] === 'admin';
+        return u.id === 've' || u.roles[0] === 'admin';
+      }
+      var bad = [];
+      D.REQUEST_STATUSES.forEach(function (st) {
+        var r = { id: 'wr', status: st, requester_id: 've' };
+        Object.keys(D.TRANSITIONS).forEach(function (a) {
+          var t = D.TRANSITIONS[a];
+          P.forEach(function (pu) {
+            var want = t.from.indexOf(st) !== -1 && whoOk(t.who, pu[1]);
+            if (!!D.canAct(pu[1], a, r, T) !== want) bad.push(a + '/' + st + '/' + pu[0]);
+          });
+        });
+      });
+      eq('M1: action x status x persona matrix, no gaps (900 combos)', [bad.length, bad.slice(0, 3)], [0, []]);
+      // M1: graph proof - every status reachable from draft; only analyzed + cancelled are terminal.
+      var edges = {};
+      D.REQUEST_STATUSES.forEach(function (s) { edges[s] = []; });
+      Object.keys(D.TRANSITIONS).forEach(function (a) {
+        var t = D.TRANSITIONS[a];
+        var tos = t.back ? ['submitted', 'accepted', 'panels_received', 'in_progress'] : [t.to];
+        t.from.forEach(function (f) { tos.forEach(function (x) { if (edges[f].indexOf(x) === -1) edges[f].push(x); }); });
+      });
+      edges.draft.push('submitted');
+      ['submitted', 'accepted', 'panels_received', 'in_progress', 'clarification', 'on_hold'].forEach(function (s) { edges[s].push('cancelled'); });
+      var seen = { draft: 1 }, q = ['draft'];
+      while (q.length) edges[q.pop()].forEach(function (x) { if (!seen[x]) { seen[x] = 1; q.push(x); } });
+      var terminal = D.REQUEST_STATUSES.filter(function (s) { return !edges[s].length; });
+      eq('M1: all statuses reachable, only analyzed + cancelled terminal', [Object.keys(seen).sort(), terminal], [D.REQUEST_STATUSES.slice().sort(), ['analyzed', 'cancelled']]);
+      // actionsFor lists exactly the allowed actions, in table order.
+      var af = D.actionsFor(P[2][1], { id: 'wr', status: 'submitted', requester_id: 've' }, T);
+      eq('M1: actionsFor order follows the table', af, ['accept', 'hold', 'clarify']);
+    })();
     eq('rights: engineer and operator do no workflow, analyst only analyzes', [
       D.canAct(vEng, 'accept', ownSub, vTool), D.canAct(vOp, 'start', alien, vTool),
       D.canAct(vAn, 'analyze', doneC, vTool), D.canAct(vQe, 'analyze', doneC, vTool)], [false, false, true, false]);
