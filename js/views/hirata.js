@@ -180,10 +180,9 @@ window.MRT.views.hirata = (function () {
     var MARK = { measured: { icon: 'check', text: 'Measured' }, scrapped: { icon: 'close', text: 'Scrapped' } }[o.state];
     var items = list.map(function (id) {
       var decoded = D.hirataFields(id);
-      var lot = decoded.filter(function (f) { return f.id === 'lot'; })[0];
+      // no header: the code list above and the Lot / Panel Number block carry it all;
+      // measured / scrapped still show as the badge on the copper
       return ui.el('div', { class: 'panel-hirata-item' + (o.state ? ' is-' + o.state : '') + (o.compact ? ' is-compact' : '') }, [
-        o.compact ? null : ui.el('div', { class: 'panel-lot-head' },
-          ['Lot per day ', ui.el('b', { class: 'mono', text: lot ? lot.value : '-' }), MARK ? '  ·  ' + MARK.text.toLowerCase() : null]),
         ui.el('div', { class: 'panel-hirata-body' }, [
           ui.el('span', { class: 'panel-cu' }, [copper(id, size || 'md'), MARK ? ui.el('span', { class: 'panel-mark', title: MARK.text }, ui.icon(MARK.icon, 14)) : null]),
           o.compact ? ui.el('div', { class: 'mono', text: id }) : infoBlock(decoded)])]);
