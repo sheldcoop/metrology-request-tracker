@@ -238,7 +238,10 @@ window.MRT.store = (function () {
   }
 
   function adapter() {
-    if (!state.adapter) state.adapter = window.MRT.adapters.storageFolder;
+    if (!state.adapter) {
+      var which = window.MRT.config && window.MRT.config.adapters.storage === 'api' ? 'storageApi' : 'storageFolder';
+      state.adapter = window.MRT.adapters[which];
+    }
     return state.adapter;
   }
 
