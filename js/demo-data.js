@@ -197,6 +197,14 @@ window.MRT.demoData = (function () {
     d.lots = lots;
     lots.sort(function (a, b) { return a.created_ts < b.created_ts ? -1 : 1; });
 
+    /* --- panel logistics lists (addendum 02) --------------------------------------- */
+    ['in MES', 'Cleanroom cabinet 2', 'Metrology inbox shelf'].forEach(function (n, i) {
+      d.panel_locations.push({ id: id('loc'), name: n, description: '', active: true, sort: i + 1, version: 1 });
+    });
+    d.destinations.push({ id: id('dst'), name: 'to SEM lab', description: '', active: true, sort: d.destinations.length + 1, version: 1 });
+    var LOCS = d.panel_locations.map(function (x) { return x.id; });
+    function dstId(name) { return d.destinations.filter(function (x) { return x.name === name; })[0].id; }
+
     /* --- requests ---------------------------------------------------------------- */
     var requests = [], events = [], audit = [];
     var taken = {};           // lot id -> panels already scrapped
@@ -274,12 +282,11 @@ window.MRT.demoData = (function () {
         bkm_id: !noBkm && bkms.length ? pick(bkms).id : null, bkm_path: noBkm && chance(0.5) ? '\\\\labserver\\users\\' + U[who].windows_id + '\\BKM_' + tool.code + '.pptx' : '',
         purpose: chance(0.7) || noBkm ? pick(['Check voids after the new plating recipe', 'Roughness before and after desmear', 'Pad size on the corner coupons', 'Step height of the SR opening', 'Defect review after AOI alarm', 'Cross-section of the stacked vias']) : '',
         process_step_id: chance(0.8) ? pick(d.process_steps).id : null, process_step_other: '', layers: layers,
-        panel_location: place ? '' : pick(['in MES', 'with ' + U[who].name.split(' ')[0], 'Cleanroom cabinet 2', 'Metrology inbox shelf']),
+        panel_location_id: place ? null : pick(LOCS), new_location: null,
         magazine_id: place ? place.magazine_id : null, slots: place ? place.slots : [], new_lot: null,
-        destructive_ok: !!tool.destructive, after: tool.destructive ? 'scrap' : pick(['back_to_me', 'back_to_me', 'back_to_line', 'other']), after_other: '',
+        destructive_ok: !!tool.destructive, destination_id: tool.destructive ? dstId('Lab may scrap them') : pick([dstId('Back to me'), dstId('Back to me'), dstId('Back to the line'), dstId('to SEM lab')]), new_destination: null,
         extra: toolFieldsAnswers(tool, type.id), duplicated_from: plan.copyOf ? plan.copyOf.id : null, requester_id: U[who].id, assigned_to: null,
         created_ts: iso(created), updated_ts: iso(created), submitted_ts: null, version: 1 };
-      if (r.after === 'other') r.after_other = 'to ' + U[pick(ENGINEERS)].name.split(' ')[0] + ' for SEM';
       if (r.process_step_id === null && chance(0.3)) r.process_step_other = 'after plasma clean';
       requests.push(r);
       ev(r, created, who, 'created', null, 'draft', plan.copyOf ? 'Copied from ' + plan.copyOf.request_no : null);
@@ -352,8 +359,8 @@ window.MRT.demoData = (function () {
       function complete(hours) {
         r.status = 'completed'; r.completed_ts = iso(later(t, hours)); r.completed_by = qe.id;
         r.results_path = tool.results_root + '\\' + r.submitted_ts.slice(0, 4) + '\\' + r.request_no + '\\';
-        r.panels_outcome = tool.destructive ? 'scrapped' : r.after === 'other' ? 'other' : 'returned';
-        r.panels_outcome_note = r.panels_outcome === 'other' ? r.after_other : '';
+        r.panels_outcome = tool.destructive ? 'scrapped' : chance(0.1) ? 'other' : 'returned';
+        r.panels_outcome_note = r.panels_outcome === 'other' ? 'to ' + U[pick(ENGINEERS)].name.split(' ')[0] + ' for SEM' : '';
         if (tool.destructive) {
           lot.scrapped = (lot.scrapped || []).concat(r.panels).filter(function (x, i2, a) { return a.indexOf(x) === i2; });
         } else if (r.magazine_id) r.put_back = { magazine_id: r.magazine_id, slots: r.slots.slice() };

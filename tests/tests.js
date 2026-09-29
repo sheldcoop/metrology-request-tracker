@@ -181,6 +181,9 @@
     eq('a process step', probs('process_steps', { name: 'After Cu plating', sort: 2 }), []);
     ok('process steps are listed once (case and spaces ignored)', probs('process_steps', { name: 'after  DESMEAR' }).length === 1);
     ok('...need a name and a whole position', probs('process_steps', { name: '', sort: 1.5 }).length === 2);
+    ok('panel locations and destinations: named once (addendum 02)', !probs('panel_locations', { name: 'Shelf 9' }).length &&
+       probs('panel_locations', { name: '' }).length === 1 &&
+       D.validateEntry('destinations', { name: 'Back to me' }, { destinations: [{ id: 'd', name: 'back  TO me' }] }).length === 1);
     ok('"destructive" is yes or no', probs('tools', Object.assign({}, goodTool, { destructive: 'yes' })).length === 1 && !probs('tools', Object.assign({}, goodTool, { destructive: true })).length);
     eq('panels typed as ranges (Q6)', D.parsePanels('1-5, 12', 12), { panels: [1, 2, 3, 4, 5, 12], errors: [] });
     eq('...spaces, semicolons, doubles and backwards ranges', D.parsePanels(' 3;1  5-4 3 ', 12).panels, [1, 3, 4, 5]);
@@ -291,7 +294,9 @@
     eq('layers from the build-up (F-2): core 1FCO/1BCO, BU-01 adds 2F/2B, BU-04 up to 5F/5B', [D.layersFor({ code: 'BU-01' }), D.layersFor({ code: 'BU-04' }).slice(-2), D.layersFor({ code: 'DOE' }).length, D.layersFor({ code: 'DOE', layers: 1 }).length],
        [['1FCO', '1BCO', '2F', '2B'], ['5F', '5B'], 10, 4]);
     var MG = { m1: { id: 'm1', code: 'M70345', slots: 24 } };
-    eq('where (F-3): "M70345 · slots 3, 4", with the note after', [D.placeText({ magazine_id: 'm1', slots: [4, 3] }, MG), D.placeText({ magazine_id: 'm1', slots: [1, 2, 3], panel_location: 'cart 2' }, MG), D.placeText({ panel_location: 'in MES' }, MG)],
+    var LC = { lc1: { id: 'lc1', name: 'cart 2' } };
+    eq('where (F-3): "M70345 · slots 3, 4", with the place after', [D.placeText({ magazine_id: 'm1', slots: [4, 3] }, MG, LC),
+       D.placeText({ magazine_id: 'm1', slots: [1, 2, 3], panel_location_id: 'lc1' }, MG, LC), D.placeText({ panel_location: 'in MES' }, MG)],
        ['M70345 · slots 3, 4', 'M70345 · slots 1-3 - cart 2', 'in MES']);
     eq('...slots taken by other open requests of that magazine', D.takenSlots([{ id: 'a', status: 'accepted', magazine_id: 'm1', slots: [3], request_no: 'X-1' }, { id: 'b', status: 'completed', magazine_id: 'm1', slots: [4] },
        { id: 'c', status: 'submitted', magazine_id: 'm1', slots: [5], request_no: 'X-3' }], 'm1', 'c'), { 3: 'X-1' });
@@ -308,18 +313,19 @@
       lots: [{ id: 'l1', lot_number: '18178', panel_count: 12 }],
       priorities: [{ id: 'p1', name: 'Line stop', level: 1, needs_reason: true }, { id: 'p3', name: 'Normal', level: 3 }],
       process_steps: [{ id: 's1', name: 'After desmear' }], requests: [],
-      projects: [{ id: 'pr1', code: 'C4F' }, { id: 'pr2', code: 'HORUS' }], part_numbers: [{ id: 'pn1', code: 'PN-1', project_id: 'pr1' }], buildups: [{ id: 'bu2', code: 'BU-02' }] };
-    var full = { tool_id: 't1', type_id: 'm1', project_id: 'pr1', lot_id: 'l1', panels: ['3252', '3253'], priority_id: 'p3', bkm_id: 'b1', panel_location: 'Magazine 14',
-      destructive_ok: true, after: 'scrap', extra: { f1: 'c1' } };
+      projects: [{ id: 'pr1', code: 'C4F' }, { id: 'pr2', code: 'HORUS' }], part_numbers: [{ id: 'pn1', code: 'PN-1', project_id: 'pr1' }], buildups: [{ id: 'bu2', code: 'BU-02' }],
+      panel_locations: [{ id: 'lc1', name: 'Magazine 14' }], destinations: [{ id: 'd1', name: 'Back to me' }] };
+    var full = { tool_id: 't1', type_id: 'm1', project_id: 'pr1', lot_id: 'l1', panels: ['3252', '3253'], priority_id: 'p3', bkm_id: 'b1', panel_location_id: 'lc1',
+      destructive_ok: true, destination_id: 'd1', extra: { f1: 'c1' } };
     eq('a complete FIB request', D.requestProblems(full, rq, { submit: true }), []);
     eq('a draft needs only its tool', [D.requestProblems({ tool_id: 't1' }, rq, {}), D.requestProblems({}, rq, {})], [[], ['Pick a tool']]);
     ok('...but a panel ID that is not digits is refused even in a draft', D.requestProblems({ tool_id: 't1', lot_id: 'l1', panels: ['32a'] }, rq, {}).length === 1);
     ok('only a count, no IDs, is fine (F-1)', !D.requestProblems(Object.assign({}, full, { panels: [], panel_count: 2 }), rq, { submit: true }).length);
     function sub(ch) { return D.requestProblems(Object.assign({}, full, ch), rq, { submit: true }); }
-    var pd = D.requestProblemDetails(Object.assign({}, full, { priority_id: null, panel_location: ' ' }), rq, { submit: true });
+    var pd = D.requestProblemDetails(Object.assign({}, full, { priority_id: null, panel_location_id: null }), rq, { submit: true });
     eq('structured problems carry stable step metadata', pd.map(function (x) { return [x.text, x.step]; }),
-       [['Pick a priority', 'urgency'], ['Say where the panels are now: the magazine slots, or a note', 'where']]);
-    eq('...and legacy requestProblems keeps the same text list', D.requestProblems(Object.assign({}, full, { priority_id: null, panel_location: ' ' }), rq, { submit: true }),
+       [['Pick a priority', 'urgency'], ['Say where the panels are now: pick a place, or the magazine slots', 'where']]);
+    eq('...and legacy requestProblems keeps the same text list', D.requestProblems(Object.assign({}, full, { priority_id: null, panel_location_id: null }), rq, { submit: true }),
        pd.map(function (x) { return x.text; }));
     ok('a new lot typed in the form is fine; a number already registered is not (F-5)', !sub({ lot_id: null, new_lot: { lot_number: '19000' } }).length &&
        sub({ lot_id: null, new_lot: { lot_number: '18178' } }).some(function (x) { return /exists already/.test(x); }));
@@ -339,13 +345,18 @@
        !sub({ part_number_id: 'pn1' }).length && sub({ project_id: 'pr2', part_number_id: 'pn1' }).length === 1);
     ok('the build-up is optional; picked, it decides the layers (F-2, F-6)', !sub({ layers: ['5B'] }).length && sub({ buildup_id: 'bu2', layers: ['5B'] }).length === 1 &&
        !sub({ buildup_id: 'bu2', layers: ['1FCO', '3B'] }).length && sub({ buildup_id: 'gone' }).length === 1);
-    ok('submit: type, lot, panels, priority, where the panels are - all required', [{ type_id: null }, { lot_id: null }, { panels: [] }, { priority_id: null }, { panel_location: ' ' }].every(function (c) { return sub(c).length >= 1; }));
+    ok('submit: type, lot, panels, priority, where the panels are - all required', [{ type_id: null }, { lot_id: null }, { panels: [] }, { priority_id: null }, { panel_location_id: null }].every(function (c) { return sub(c).length >= 1; }));
     ok('Line stop needs a reason (Q26)', sub({ priority_id: 'p1' }).length === 1 && !sub({ priority_id: 'p1', priority_reason: 'line 2 down' }).length);
     ok('no BKM: the purpose must say what to measure (Q45, M2-13)', sub({ bkm_id: null }).length === 1 && !sub({ bkm_id: null, purpose: 'voids at via 3' }).length && !sub({ bkm_id: null, bkm_path: 'Z:\\my.pptx' }).length);
-    ok('FIB: the destructive tick is required, and afterwards is scrap (M2-11, M2-12)', sub({ destructive_ok: false }).length === 1 && sub({ after: 'back_to_me' }).length === 1);
-    ok('"Other" afterwards needs the text', D.requestProblems(Object.assign({}, full, { tool_id: 't2', type_id: 'm2', bkm_id: null, bkm_path: 'Z:\\\\q.pptx', after: 'other', extra: {} }), rq, { submit: true }).length === 1);
+    ok('FIB: the destructive tick is required (M2-11)', sub({ destructive_ok: false }).length === 1);
+    ok('destination required; typed new place / destination allowed, duplicates refused', sub({ destination_id: null }).length === 1 &&
+       !sub({ destination_id: null, new_destination: { name: 'New dock' } }).length &&
+       sub({ destination_id: null, new_destination: { name: 'back to ME' } }).some(function (x) { return /exists already/.test(x); }) &&
+       !sub({ panel_location_id: null, new_location: { name: 'Shelf 9' } }).length &&
+       sub({ panel_location_id: null, new_location: { name: 'magazine 14' } }).some(function (x) { return /exists already/.test(x); }) &&
+       sub({ new_location: { name: 'Shelf 9' } }).some(function (x) { return /not both/.test(x); }));
     ok('the tool\'s required extra field must be answered; "only for" another type does not apply (Q5)', sub({ extra: {} }).length === 1 && !sub({}).some(function (x) { return /Depth/.test(x); }));
-    ok('a BKM of another tool is refused', D.requestProblems(Object.assign({}, full, { tool_id: 't2', type_id: 'm2', bkm_id: 'b1', after: 'back_to_me', extra: {} }), rq, {}).length === 1);
+    ok('a BKM of another tool is refused', D.requestProblems(Object.assign({}, full, { tool_id: 't2', type_id: 'm2', bkm_id: 'b1', extra: {} }), rq, {}).length === 1);
     eq('warnings (Q44): QVM in Maintenance past the date, and no BKM', D.submitWarnings({ tool_id: 't2', needed_by: '2026-10-01', lot_id: 'l1', panels: [1] }, rq).map(function (w) { return w.code; }), ['tool_down', 'no_bkm']);
     eq('...no warning when the tool is back before the date', D.submitWarnings({ tool_id: 't2', needed_by: '2026-10-20', bkm_path: 'Z:\\x', lot_id: 'l1', panels: [1] }, rq), []);
     rq.requests = [{ id: 'r9', request_no: 'FIB-260920-01', status: 'accepted', tool_id: 't1', lot_id: 'l1', panels: ['3253', '3300'] }];
@@ -512,7 +523,8 @@
 
     group('Store: first run and seed data (M1-5, M1-8, M1-9)');
     var seed = ST._pure.seedData(Date.parse('2026-09-24T10:00:00Z'));
-    eq('schema 13, revision 0', [seed.schema_version, seed.revision], [13, 0]);
+    eq('schema 14, revision 0', [seed.schema_version, seed.revision], [14, 0]);
+    eq('...destinations seeded, locations start empty (addendum 02)', [seed.destinations.map(function (x) { return x.name; }), seed.panel_locations], [['Back to me', 'Back to the line', 'Lab may scrap them'], []]);
     eq('20 sample magazines M70345-M70364, 24 slots each (M2-23)', [seed.magazines.length, seed.magazines[0].code, seed.magazines[19].code, seed.magazines.every(function (m) { return m.slots === 24 && m.sample; })],
        [20, 'M70345', 'M70364', true]);
     eq('on-hold reasons (M3-4)', seed.hold_reasons.map(function (h) { return h.name; }), ['Waiting for panels', 'Tool down', 'Waiting for engineer info', 'Higher priority first', 'Other']);
@@ -832,6 +844,10 @@
     group('Store: requests - drafts and submit (M2 step 4)');
     var qvm = tool('QVM'), qType = typesOf('QVM')[0];
     var normal = ST.list('priorities').filter(function (p) { return p.is_default; })[0];
+    var locB2 = await ST.saveEntry('panel_locations', { fields: { name: 'Rack B2' } });
+    var locC1 = await ST.saveEntry('panel_locations', { fields: { name: 'Rack C1' } });
+    var dstMe = ST.list('destinations').filter(function (x) { return x.name === 'Back to me'; })[0];
+    var dstScrap = ST.list('destinations').filter(function (x) { return x.name === 'Lab may scrap them'; })[0];
     var d1 = await ST.saveDraft({ fields: { tool_id: qvm.id, purpose: '  pads  ' } });
     eq('a draft: no ID yet, trimmed, private, timeline "created"', [d1.status, d1.request_no, d1.purpose, d1.requester_id, ST.requestEvents(d1.id).map(function (e) { return e.kind; })],
        ['draft', null, 'pads', adminL, ['created']]);
@@ -841,11 +857,11 @@
     eq('...re-saving with the fresh version works (the autosave contract)', [d1b.purpose, ST.byId('requests', d1.id).purpose], ['pads v2', 'pads v2']);
     await refused('submit checks everything', ST.submitRequest({ id: d1.id, fields: {} }), 'invalid');
     eq('...and changes nothing', [ST.byId('requests', d1.id).status, ST.byId('requests', d1.id).request_no], ['draft', null]);
-    var s1 = await ST.submitRequest({ id: d1.id, fields: { project_id: prjL.id, type_id: qType.id, lot_id: lx.id, panels: [3, 1, 3], priority_id: normal.id, panel_location: 'Rack B2', after: 'back_to_me', bkm_path: 'Z:\\bkm\\my.pptx' } });
+    var s1 = await ST.submitRequest({ id: d1.id, fields: { project_id: prjL.id, type_id: qType.id, lot_id: lx.id, panels: [3, 1, 3], priority_id: normal.id, panel_location_id: locB2.id, destination_id: dstMe.id, bkm_path: 'Z:\\bkm\\my.pptx' } });
     ok('submitted: ID QVM-YYMMDD-01, panels once in the order given, counted', /^QVM-\d{6}-01$/.test(s1.request_no) && s1.status === 'submitted' && s1.panels.join() === '3,1' && s1.panel_count === 2 && !!s1.submitted_ts);
     eq('...timeline: created, then draft -> submitted', ST.requestEvents(s1.id).map(function (e) { return e.kind + ':' + e.from + '>' + e.to; }), ['created:null>draft', 'status:draft>submitted']);
     ok('...audited with its ID', ST.data().audit_log.slice(-1)[0].action === 'submit' && ST.data().audit_log.slice(-1)[0].reason === s1.request_no);
-    var s2 = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [2], priority_id: normal.id, panel_location: 'Rack B2', after: 'back_to_me', purpose: 'pads' } });
+    var s2 = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [2], priority_id: normal.id, panel_location_id: locB2.id, destination_id: dstMe.id, purpose: 'pads' } });
     ok('a second QVM request the same day gets 02 - submitted straight away, no draft first', /^QVM-\d{6}-02$/.test(s2.request_no));
     await refused('a submitted request is not a draft any more', ST.saveDraft({ id: s1.id, fields: { purpose: 'x' } }), 'not_allowed');
     await refused('...and is never deleted (cancel instead, Q35)', ST.deleteDraft(s1.id), 'not_allowed');
@@ -866,7 +882,7 @@
     group('Personal request templates (Q28, T-1..T-3)');
     var tf = D.templateFieldsOf(s1);
     eq('a template keeps everything in the form', Object.keys(tf).sort(), D.TEMPLATE_FIELDS.slice().sort());
-    eq('...lot, panels and place kept (changed 2026-09-28)', [tf.lot_id, tf.panels, tf.panel_location], [s1.lot_id, s1.panels, s1.panel_location]);
+    eq('...lot, panels and place kept (changed 2026-09-28)', [tf.lot_id, tf.panels, tf.panel_location_id], [s1.lot_id, s1.panels, s1.panel_location_id]);
     ok('...never the request itself', ['request_no', 'duplicated_from'].every(function (k) { return !(k in tf); }));
     eq('names: required, not twice (any case)', [D.templateNameProblems('  ', []).length, D.templateNameProblems('QVM pads', [{ name: 'qvm  PADS' }]).length, D.templateNameProblems('QVM pads', []).length], [1, 1, 0]);
     await refused('a quality engineer alone keeps no templates', (ST.setCurrentUser(qeL.id), ST.saveTemplate({ name: 'x', request_id: s1.id })), 'not_allowed');
@@ -893,8 +909,8 @@
     eq('its tool out of use: cannot be started, only deleted', [D.templateCheck(tp1, hid).usable, D.templateCheck(tp1, hid).reason], [false, 'Its tool is no longer in use']);
     var magL = ST.list('magazines')[0];
     var tp3 = await ST.saveTemplate({ name: 'Full', fields: { tool_id: qvm.id, lot_id: lx.id, panels: ['3252'], panel_count: 1,
-      process_step_id: ps1.id, magazine_id: magL.id, slots: [3], panel_location: 'Rack B2', needed_by: '2026-10-09',
-      priority_id: normal.id, priority_reason: 'Audit Friday', after: 'back_to_me', purpose: 'x' } });
+      process_step_id: ps1.id, magazine_id: magL.id, slots: [3], panel_location_id: locB2.id, needed_by: '2026-10-09',
+      priority_id: normal.id, priority_reason: 'Audit Friday', destination_id: dstMe.id, purpose: 'x' } });
     var ck3 = D.templateCheck(tp3, ST.data());
     eq('a full template starts as-is: usable, no notes', [ck3.usable, ck3.notes, ck3.fields.lot_id, ck3.fields.panels, ck3.fields.slots, ck3.fields.needed_by, ck3.fields.priority_reason],
        [true, [], lx.id, ['3252'], [3], '2026-10-09', 'Audit Friday']);
@@ -915,18 +931,27 @@
     eq('delete, audited', [ST.myTemplates(adminL).length, ST.data().audit_log.slice(-1)[0].action], [1, 'delete']);
     var v10 = ST._pure.seedData(); v10.schema_version = 10; delete v10.templates;
     ST._pure.migrate(v10);
-    eq('schema 10 -> 11 (-> 13): templates start empty', [v10.schema_version, v10.templates], [13, []]);
+    eq('schema 10 -> 11 (-> 14): templates start empty', [v10.schema_version, v10.templates], [14, []]);
     var v11 = ST._pure.seedData(); v11.schema_version = 11;
     v11.lots = [{ id: 'lot_old', lot_number: '11111' }, { id: 'lot_new', lot_number: '22222', project_id: 'prj_x', part_number_id: 'pn_x' }];
     ST._pure.migrate(v11);
     var v12 = ST._pure.seedData(); v12.schema_version = 12;
     v12.part_numbers = [{ id: 'pn_old', code: 'PN-9', project_ids: ['p1', 'p2'] }];
     ST._pure.migrate(v12);
-    eq('schema 12 -> 13: part numbers keep their first project only (P-1)',
-      [v12.schema_version, v12.part_numbers[0].project_id, 'project_ids' in v12.part_numbers[0]], [13, 'p1', false]);
-    eq('schema 11 -> 12 (-> 13): lots gain empty project + part-number links, kept ones survive',
+    eq('schema 12 -> 13 (-> 14): part numbers keep their first project only (P-1)',
+      [v12.schema_version, v12.part_numbers[0].project_id, 'project_ids' in v12.part_numbers[0]], [14, 'p1', false]);
+    eq('schema 11 -> 12 (-> 14): lots gain empty project + part-number links, kept ones survive',
       [v11.schema_version, v11.lots[0].project_id, v11.lots[0].part_number_id, v11.lots[1].project_id],
-      [13, null, null, 'prj_x']);
+      [14, null, null, 'prj_x']);
+    var v13 = ST._pure.seedData(); v13.schema_version = 13;
+    v13.requests = [{ id: 'r1', panel_location: 'Rack B2', after: 'back_to_me' }, { id: 'r2', panel_location: 'rack  b2', after: 'other', after_other: 'to SEM' }, { id: 'r3' }];
+    ST._pure.migrate(v13);
+    function locName(id) { return v13.panel_locations.filter(function (x) { return x.id === id; })[0].name; }
+    function dstName(id) { return v13.destinations.filter(function (x) { return x.id === id; })[0].name; }
+    eq('schema 13 -> 14: distinct texts become one entry each, requests link them, old keys gone (addendum 02)',
+      [v13.schema_version, v13.panel_locations.length, locName(v13.requests[0].panel_location_id), v13.requests[0].panel_location_id === v13.requests[1].panel_location_id,
+       dstName(v13.requests[0].destination_id), dstName(v13.requests[1].destination_id), v13.requests[2].panel_location_id, 'after' in v13.requests[0]],
+      [14, 1, 'Rack B2', true, 'Back to me', 'to SEM', null, false]);
 
     group('Store: comments and cancel (M2 step 5)');
     await ST.saveEntry('users', { id: tomL.id, fields: { windows_id: 'tlot' } });
@@ -966,7 +991,7 @@
     await ST.saveEntry('tools', { id: qvm.id, fields: { primary_operator_id: qeL.id } });
     var anL = await ST.saveEntry('users', { fields: { name: 'Ana Lyst', roles: ['analyst'] } });
     var w = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [4], priority_id: normal.id,
-      panel_location: 'Rack B2', after: 'back_to_me', purpose: 'pads' } });
+      panel_location_id: locB2.id, destination_id: dstMe.id, purpose: 'pads' } });
     eq('assigned to the primary at submit', w.assigned_to, qeL.id);
     ST.setCurrentUser(tomL.id);
     await refused('an engineer cannot accept', ST.requestAction(w.id, 'accept', {}), 'not_allowed');
@@ -1046,26 +1071,29 @@
     group('Store: magazine slots, a new lot, put back, scrapped (F-3, F-5, M3-13)');
     ST.setCurrentUser(adminL);
     var mq = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, new_lot: { lot_number: '40002' }, buildup_id: buL.id,
-      panels: ['3252', '3253'], layers: ['1fco', '2F'], priority_id: normal.id, magazine_id: m1.id, slots: [4, 3], after: 'back_to_me', purpose: 'pads' } });
+      panels: ['3252', '3253'], layers: ['1fco', '2F'], priority_id: normal.id, magazine_id: m1.id, slots: [4, 3], destination_id: dstMe.id, purpose: 'pads' } });
     var newLot = ST.data().lots.filter(function (x) { return x.lot_number === '40002'; })[0];
     eq('a lot typed in the form is registered at submit, owned by the requester', [!!newLot, mq.lot_id === (newLot || {}).id, (newLot || {}).owner_id, mq.new_lot], [true, true, adminL, null]);
       var mqNew = await ST.submitRequest({ fields: { tool_id: qvm.id, new_type: { name: 'Pad check' }, new_project: { code: 'NPRJ' }, new_part_number: { code: 'PN-NPRJ-01' },
          new_lot: { lot_number: '40009' }, new_buildup: { code: 'BU-09' }, panels: ['3321'], new_priority: { name: 'Planning' },
-         panel_location: 'Rack D1', new_magazine: { code: 'M70999' }, after: 'back_to_me', purpose: 'new values test' } });
+         new_location: { name: 'Rack D1' }, new_magazine: { code: 'M70999' }, new_destination: { name: 'New dock' }, purpose: 'new values test' } });
       var prjNew = ST.data().projects.filter(function (x) { return x.code === 'NPRJ'; })[0];
       var buNew = ST.data().buildups.filter(function (x) { return x.code === 'BU-09'; })[0];
       var magNew = ST.data().magazines.filter(function (x) { return x.code === 'M70999'; })[0];
       var typeNew = ST.data().measurement_types.filter(function (x) { return x.tool_id === qvm.id && x.name === 'Pad check'; })[0];
       var prioNew = ST.data().priorities.filter(function (x) { return x.name === 'Planning'; })[0];
-      eq('typed new project/build-up/magazine/type/priority are created on submit and linked on the request',
+      var locNew = ST.data().panel_locations.filter(function (x) { return x.name === 'Rack D1'; })[0];
+      var dstNew = ST.data().destinations.filter(function (x) { return x.name === 'New dock'; })[0];
+      eq('typed new project/build-up/magazine/type/priority/location/destination are created on submit and linked on the request',
           [!!prjNew && mqNew.project_id === prjNew.id, !!buNew && mqNew.buildup_id === buNew.id, !!magNew && mqNew.magazine_id === magNew.id,
-            !!typeNew && mqNew.type_id === typeNew.id, !!prioNew && mqNew.priority_id === prioNew.id],
-          [true, true, true, true, true]);
+            !!typeNew && mqNew.type_id === typeNew.id, !!prioNew && mqNew.priority_id === prioNew.id,
+            !!locNew && mqNew.panel_location_id === locNew.id, !!dstNew && mqNew.destination_id === dstNew.id],
+          [true, true, true, true, true, true, true]);
     eq('...magazine slots sorted, layers tidied, no note needed', [mq.slots, mq.layers, D.placeText(mq, (function () { var o = {}; o[m1.id] = m1; return o; })())], [[3, 4], ['1FCO', '2F'], m1.code + ' · slots 3, 4']);
     await refused('a slot taken by another open request is refused', ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: mq.lot_id, panel_count: 1,
-      priority_id: normal.id, magazine_id: m1.id, slots: [4], after: 'back_to_me', purpose: 'x' } }), 'invalid');
+      priority_id: normal.id, magazine_id: m1.id, slots: [4], destination_id: dstMe.id, purpose: 'x' } }), 'invalid');
     await refused('a layer not of the build-up is refused', ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: mq.lot_id, panel_count: 1,
-      priority_id: normal.id, panel_location: 'x', layers: ['9F'], after: 'back_to_me', purpose: 'x' } }), 'invalid');
+      priority_id: normal.id, panel_location_id: locB2.id, layers: ['9F'], destination_id: dstMe.id, purpose: 'x' } }), 'invalid');
     ST.setCurrentUser(qeL.id);
     await ST.requestAction(mq.id, 'accept', {});
     await ST.requestAction(mq.id, 'receive', { received_where: 'QVM shelf 1' });
@@ -1075,21 +1103,21 @@
     eq('Complete: put back into another magazine\'s slots', ST.byId('requests', mq.id).put_back, { magazine_id: m3.id, slots: [1, 2] });
     ST.setCurrentUser(adminL);
     var fq = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: tool('FIB').id, type_id: typesOf('FIB')[0].id, lot_id: mq.lot_id, panels: ['3252'], priority_id: normal.id,
-      panel_location: 'bench', destructive_ok: true, after: 'scrap', purpose: 'x' } });
+      panel_location_id: locB2.id, destructive_ok: true, destination_id: dstScrap.id, purpose: 'x' } });
     await ST.requestAction(fq.id, 'accept', {});
     await ST.requestAction(fq.id, 'receive', { received_where: 'FIB cabinet' });
     await ST.requestAction(fq.id, 'start', {});
     await ST.requestAction(fq.id, 'complete', { results_path: 'Z:\\r', panels_outcome: 'scrapped' });
     eq('FIB: the panel is marked scrapped on the lot', ST.byId('lots', mq.lot_id).scrapped, ['3252']);
     await refused('...and cannot be requested again', ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: mq.lot_id, panels: ['3252'], priority_id: normal.id,
-      panel_location: 'x', after: 'back_to_me', purpose: 'x' } }), 'invalid');
+      panel_location_id: locB2.id, destination_id: dstMe.id, purpose: 'x' } }), 'invalid');
 
     group('Store: edit a submitted request, take it (M3-5, M3-7)');
     var e1 = await ST.submitRequest({ fields: { project_id: prjL.id, tool_id: qvm.id, type_id: qType.id, lot_id: lx.id, panels: [1, 2, 3, 4], priority_id: normal.id,
-      panel_location: 'Rack B2', after: 'back_to_me', purpose: 'pads' } });
+      panel_location_id: locB2.id, destination_id: dstMe.id, purpose: 'pads' } });
     await refused('an edit needs a reason', ST.editRequest({ id: e1.id, fields: { panels: [1, 2, 3, 4, 5, 6] } }), 'invalid');
     await refused('...the tool cannot change', ST.editRequest({ id: e1.id, fields: { tool_id: tool('FIB').id }, reason: 'x' }), 'invalid');
-    e1 = await ST.editRequest({ id: e1.id, fields: { panels: [1, 2, 3, 4, 5, 6], panel_location: 'Rack C1' }, reason: 'two more panels' });
+    e1 = await ST.editRequest({ id: e1.id, fields: { panels: [1, 2, 3, 4, 5, 6], panel_location_id: locC1.id }, reason: 'two more panels' });
     eq('an edit: saved, and the timeline says what changed and why', [e1.panels.length, ST.requestEvents(e1.id).slice(-1)[0].text],
        [6, 'panels 1, 2, 3, 4 -> 1, 2, 3, 4, 5, 6; panels are now Rack B2 -> Rack C1; how many panels 4 -> 6. Reason: two more panels']);
     e1 = await ST.editRequest({ id: e1.id, fields: { lot_id: null, new_lot: { lot_number: '40003' } }, reason: 'wrong lot' });
@@ -1359,7 +1387,7 @@
     ok('...requests with Hirata IDs, with just a count, with layers, in magazine slots, with a note',
        DD.requests.some(function (r) { return r.panels.length && r.panels.every(D.isPanelId); }) && DD.requests.some(function (r) { return !r.panels.length && r.panel_count; }) &&
        DD.requests.some(function (r) { return r.layers.length; }) && DD.requests.filter(function (r) { return D.isOpen(r) && r.slots.length; }).length >= 20 &&
-       DD.requests.some(function (r) { return !r.magazine_id && r.panel_location; }));
+       DD.requests.some(function (r) { return !r.magazine_id && r.panel_location_id; }));
     var badReq = DD.requests.map(function (r) { return [r.request_no || r.id, D.requestProblems(r, DD, { submit: r.status !== 'draft', allowScrapped: true })]; }).filter(function (x) { return x[1].length; });
     eq('every request keeps the request rules', badReq.slice(0, 3), []);
     var nos = DD.requests.map(function (r) { return r.request_no; }).filter(Boolean);
@@ -1414,6 +1442,12 @@
     function metaVal(k) { var row = metaSheet.filter(function (r) { return r[0] === k; })[0]; return row && row[1]; }
     eq('meta carries the live revision, schema and request count',
       [metaVal('Revision'), metaVal('Schema'), metaVal('Requests')], [ST.status().revision, ST.data().schema_version, ST.data().requests.length]);
+    ST.setCurrentUser(ST.list('users', { all: true }).filter(function (u) { return (u.roles || []).indexOf('admin') !== -1; })[0].id);
+    var xLoc = await ST.saveEntry('panel_locations', { fields: { name: 'Export shelf' } });
+    var xr = window.MRT.exporter.requestRows([{ request_no: 'X-1', status: 'submitted', submitted_ts: '2026-09-24T10:00:00Z', panels: ['1'],
+      panel_location_id: xLoc.id, destination_id: ST.list('destinations')[0].id, magazine_id: ST.list('magazines')[0].id, slots: [3, 4] }]);
+    eq('panel logistics columns sit together, magazine as text', [xr[0].slice(11, 14), xr[1][11], xr[1][12], xr[1][13], typeof xr[1][13]],
+      [['Panels now', 'Panels after', 'Magazine'], 'Export shelf', ST.list('destinations')[0].name, ST.list('magazines')[0].code + ' 3, 4', 'string']);
 
     group('Excel bridge: import (validate + all-or-nothing save)');
     var X = window.XLSX;
@@ -1507,7 +1541,7 @@
     P.migrate(v1);
     eq('schema 1 -> 3: part numbers and process steps start empty', [v1.part_numbers, v1.process_steps], [[], []]);
     eq('...FIB becomes destructive, the others not', v1.tools.map(function (t) { return t.code + ':' + t.destructive; }), ['HRM:false', 'AOI:false', 'PRF:false', 'QVM:false', 'FIB:true']);
-    eq('...and the file says schema 13, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [13, [], [], []]);
+    eq('...and the file says schema 14, with no lots or requests', [v1.schema_version, v1.lots, v1.requests, v1.request_events], [14, [], [], []]);
     eq('...schema 7 -> 8 brings the magazines', v1.magazines.length, 20);
     eq('...schema 6 -> 7 brings the on-hold reasons', v1.hold_reasons.length, 5);
     eq('...schema 4 -> 5 brings the sample lot fields', v1.lot_fields.map(function (f) { return f.label; }).length, 7);
@@ -1520,18 +1554,19 @@
     ST.init(a);
     await ST.load();
     delete P.MIGRATIONS[0];
-    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v13_') !== -1; });
+    var copies = Object.keys(a.files).filter(function (k) { return k.indexOf(cfg.backup_prefix + 'before-upgrade_v0-to-v14_') !== -1; });
     eq('an upgrade first keeps a copy of the old file', copies.length, 1);
     eq('...the copy is the old file, unchanged', JSON.parse(a.files[copies[0]]).schema_version, 0);
-    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [13, true]);
+    eq('...the data is upgraded in memory', [ST.data().schema_version, ST.data().upgraded], [14, true]);
     // 8 -> 9 (form v2): panel numbers become IDs; the lot's old loading map gives the request its slots
     var v8 = ST._pure.seedData(); v8.schema_version = 8;
     v8.lots = [{ id: 'L', lot_number: '1', project_id: v8.projects[0].id, buildup_id: v8.buildups[0].id, panel_count: 4, owner_id: 'u', scrapped: [2],
                  magazine_ids: ['M'], load: [{ panel: 1, magazine_id: 'M', slot: 7 }, { panel: 3, magazine_id: 'M', slot: 9 }] }];
     v8.requests = [{ id: 'R', lot_id: 'L', panels: [1, 3], magazine_id: 'M', rack: 5, layer: '2f' }, { id: 'S', lot_id: 'L', panels: [4], layer: 'L7' }];
     P.migrate(v8);
-    eq('schema 8 -> 9: IDs, count, slots from the old map, layer to layers (or the note), lots lose the map',
-       [v8.requests[0].panels, v8.requests[0].panel_count, v8.requests[0].slots, v8.requests[0].layers, v8.requests[1].layers, v8.requests[1].panel_location, v8.lots[0].scrapped, 'load' in v8.lots[0]],
+    eq('schema 8 -> 9 (-> 14): IDs, count, slots from the old map, layer to layers (or a location entry), lots lose the map',
+       [v8.requests[0].panels, v8.requests[0].panel_count, v8.requests[0].slots, v8.requests[0].layers, v8.requests[1].layers,
+        v8.panel_locations.filter(function (x) { return x.id === v8.requests[1].panel_location_id; })[0].name, v8.lots[0].scrapped, 'load' in v8.lots[0]],
        [['1', '3'], 2, [7, 9], ['2F'], [], 'layer L7', ['2'], false]);
     eq('...and the status says so until the next save', ST.status().upgradedFrom, 0);
     // 9 -> 10 (F-6): project, part number and build-up move from the lot to its requests
@@ -1539,7 +1574,7 @@
     v9.lots = [{ id: 'L', lot_number: '1', project_id: 'P', part_number_id: 'N', buildup_id: 'B', panel_count: 4, owner_id: 'u', scrapped: [] }];
     v9.requests = [{ id: 'R', lot_id: 'L' }, { id: 'S', lot_id: null, new_lot: { lot_number: '2', project_id: 'P2', buildup_id: null } }];
     P.migrate(v9);
-    eq('schema 9 -> 10 (-> 12): requests take project, part number, build-up from their lot (or the new lot); lots first drop them, then regain empty links (F-7)',
+    eq('schema 9 -> 10 (-> 14): requests take project, part number, build-up from their lot (or the new lot); lots first drop them, then regain empty links (F-7)',
        [v9.requests[0].project_id, v9.requests[0].part_number_id, v9.requests[0].buildup_id, v9.requests[1].project_id, v9.requests[1].new_lot, v9.lots[0].project_id, 'buildup_id' in v9.lots[0]],
        ['P', 'N', 'B', 'P2', { lot_number: '2' }, null, false]);
     var v9b = ST._pure.seedData(); v9b.schema_version = 9; v9b.magazines = [];

@@ -47,7 +47,7 @@ window.MRT.views.slip = (function () {
         f('Needed by', r.needed_by || 'no date'),
         f('Requested by', who ? who.name : null),
         f('Submitted', ui.formatDate(r.submitted_ts)),
-        f('Afterwards', D.AFTER_LABEL[r.after] + (r.after_other ? ': ' + r.after_other : '')),
+        f('Afterwards', window.MRT.requestActions.destinationOf(r)),
         f('BKM', bkm ? bkm.name : r.bkm_path ? 'own BKM (path on the request)' : 'none - see the purpose', 'wide')
       ],
       warn: tool && tool.destructive ? tool.code + ' DESTROYS THESE PANELS - confirmed by the requester' : null

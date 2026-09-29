@@ -243,8 +243,11 @@ window.MRT.views.request = (function () {
       return row(f.label, X.answerText(f, (r.extra || {})[f.id]) || null);
     });
     return ui.panel({ title: 'Details', icon: 'requests', body: ui.el('dl', { class: 'facts' }, [].concat.apply([], [
-      row('Panels are now', window.MRT.requestActions.whereOf(r) || null), row('Panels are after', step ? step.name : r.process_step_other || null),
-      row('Layers', (r.layers || []).join(', ') || null), row('Afterwards', D.AFTER_LABEL[r.after] + (r.after_other ? ': ' + r.after_other : '')),
+      [ui.el('dt', { class: 'facts-sub', text: 'Panel logistics' })],
+      row('Panels are now', window.MRT.requestActions.whereOf(r) || null),
+      row('Afterwards', window.MRT.requestActions.destinationOf(r) || null),
+      row('Panels are after', step ? step.name : r.process_step_other || null),
+      row('Layers', (r.layers || []).join(', ') || null),
       tool && tool.destructive ? row('Destructive', r.destructive_ok ? 'Confirmed by the requester' : 'NOT confirmed') : [],
       row('Purpose', r.purpose || null)
     ].concat(extra))) }).node;

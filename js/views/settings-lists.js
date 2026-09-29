@@ -3,10 +3,11 @@
  *
  * Settings > Lists: lot fields (extra fields on every lot, like a tool's
  * extra fields), projects and build-ups (the lot pickers, Q7/Q8), part
- * numbers linked to one or more projects (M1-13), process steps ("the
- * panels are after ...", M2-7) and priorities (Q26: Line stop / Hot / Normal / Low - renamable, one is the
- * default, some need a reason). Lists are referenced by ID, so a rename
- * shows everywhere; delete only while unused, otherwise hide (Q47).
+ * numbers linked to exactly one project (P-1), process steps ("the
+ * panels are after ...", M2-7), panel locations + destinations (panel
+ * logistics, addendum 02) and priorities (Q26: Line stop / Hot / Normal / Low - renamable,
+ * one is the default, some need a reason). Lists are referenced by ID, so a
+ * rename shows everywhere; delete only while unused, otherwise hide (Q47).
  */
 (function () {
   'use strict';
@@ -32,6 +33,8 @@
     body.appendChild(magazinesPanel());
     body.appendChild(namedPanel('process_steps'));
     body.appendChild(namedPanel('hold_reasons'));
+    body.appendChild(namedPanel('panel_locations'));
+    body.appendChild(namedPanel('destinations'));
     body.appendChild(prioritiesPanel());
     K().focusRow(body, ctx.focusId);
   }
@@ -195,7 +198,13 @@
       active: 'Active (untick to hide it from the request form)' },
     hold_reasons: { title: 'On-hold reasons', icon: 'clock', what: 'on-hold reason', placeholder: 'e.g. Waiting for panels',
       intro: 'A quality engineer picks one when putting a request on hold (plus an optional note). Analytics counts them (M3-4).',
-      empty: 'None - a request cannot be put on hold without a reason.', pos: 'Position in the list', active: 'Active (untick to hide it)' }
+      empty: 'None - a request cannot be put on hold without a reason.', pos: 'Position in the list', active: 'Active (untick to hide it)' },
+    panel_locations: { title: 'Panel locations', icon: 'lots', what: 'panel location', placeholder: 'e.g. Metrology inbox shelf', desc: true, usage: true,
+      intro: 'Where the panels are now (addendum 02). Engineers pick one in the request form, or type a new place - it is added on submit. Hidden places stay on old requests.',
+      empty: 'None yet - the form offers typing a new place.', pos: 'Position in the list', active: 'Active (untick to hide it from the form)' },
+    destinations: { title: 'Destinations', icon: 'inbox', what: 'destination', placeholder: 'e.g. Back to the line', desc: true, usage: true,
+      intro: 'Where the panels go after measuring (addendum 02). Engineers pick one in the request form, or type a new place - it is added on submit. Hidden places stay on old requests.',
+      empty: 'None yet - the form offers typing a new place.', pos: 'Position in the list', active: 'Active (untick to hide it from the form)' }
   };
 
   function namedPanel(coll) {
@@ -203,26 +212,29 @@
     var rows = store.list(coll, { all: true });
     return k.panel(c.title, c.icon, [ui.button('Add', { size: 'sm', icon: 'plus', onClick: function () { namedDialog(coll, null); } })], [
       ui.el('p', { class: 'muted', text: c.intro }),
-      k.table([{ label: '#', cls: 'num' }, 'Name', 'Status', { label: '', cls: 'actions' }], rows.map(function (r) {
+      k.table([{ label: '#', cls: 'num' }, 'Name'].concat(c.desc ? ['Description'] : []).concat(['Status', { label: '', cls: 'actions' }]), rows.map(function (r) {
         return { id: 'row-' + r.id, cls: r.active === false ? 'is-off' : null, cells: [
-          ui.el('span', { class: 'num', text: String(r.sort || '') }), ui.el('b', { text: r.name }), activeChip(r),
+          ui.el('span', { class: 'num', text: String(r.sort || '') }), ui.el('b', { text: r.name })].concat(c.desc ? [r.description || k.muted('-')] : []).concat([activeChip(r),
           ui.el('span', { class: 'row-actions' }, [k.editButton(r.name, function () { namedDialog(coll, r); }), k.deleteButton(coll, r, r.name)])
-        ] };
+        ]) };
       }), c.empty)
     ]);
   }
 
   function namedDialog(coll, r) {
     var edit = !!r, c = NAMED[coll];
+    var use = edit && c.usage ? store.entryUsage(coll, r.id) : null;
     return K().editDialog({
       title: edit ? 'Edit ' + r.name : 'Add a ' + c.what, icon: 'edit',
-      values: edit ? { name: r.name, sort: r.sort, active: r.active !== false }
+      intro: use && use.count ? 'Used by ' + use.text + ' - hiding keeps the history.' : null,
+      values: edit ? { name: r.name, description: r.description || '', sort: r.sort, active: r.active !== false }
                    : { sort: store.list(coll, { all: true }).length + 1, active: true },
       fields: [
         { key: 'name', label: 'Name', kind: 'text', cls: 'half', placeholder: c.placeholder },
         { key: 'sort', label: c.pos, kind: 'number', cls: 'half' },
+        c.desc ? { key: 'description', label: 'Description (optional)', kind: 'text' } : null,
         { key: 'active', label: c.active, kind: 'check' }
-      ],
+      ].filter(Boolean),
       check: function (v) {
         if (!v.name) return ['name', 'Enter a name'];
         if (!(v.sort >= 1) || Math.floor(v.sort) !== v.sort) return ['sort', 'A whole number, 1 or more'];

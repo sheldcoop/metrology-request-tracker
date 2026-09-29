@@ -72,6 +72,12 @@
     d.process_steps = ['After desmear', 'After Cu plating', 'After solder resist'].map(function (n, i) {
       return { id: 'pstep_demo_' + i, name: n, active: true, sort: i + 1, version: 1 };
     });
+    d.panel_locations = [{ id: 'loc_demo_1', name: 'Magazine 14, rack B2' }, { id: 'loc_demo_2', name: 'In MES' }].map(function (x, i) {
+      return { id: x.id, name: x.name, description: '', active: true, sort: i + 1, version: 1 };
+    });
+    d.destinations = ['Back to me', 'Back to the line', 'Lab may scrap them'].map(function (n, i) {
+      return { id: 'dst_demo_' + (i + 1), name: n, description: '', active: true, sort: i + 1, version: 1 };
+    });
     d.lots = [
       ['10001', 'C4F', 'pn_demo_1', 'BU-01', 12, PEOPLE.engineer.id, 9, 'Panels 3-4 have a known scratch'],
       ['10001.01', 'C4F', 'pn_demo_1', 'BU-01', 4, PEOPLE.engineer.id, 5, ''],
@@ -90,13 +96,13 @@
       { id: 'req_demo_1', request_no: 'FIB-' + ymdIn(-1).slice(2).replace(/-/g, '') + '-01', status: 'submitted', tool_id: tool('FIB').id, type_id: typeOf('FIB'),
         lot_id: 'lot_demo_0', panels: [1, 2, 3, 4], priority_id: prioId('P1'), priority_reason: 'Line 2 stopped - voids suspected', needed_by: ymdIn(1),
         bkm_id: d.bkms.filter(function (b) { return b.tool_id === tool('FIB').id; })[0].id, bkm_path: '', purpose: 'Check voids at via 3 after the new plating recipe',
-        process_step_id: 'pstep_demo_1', process_step_other: '', layer: 'L3', panel_location: 'Magazine 14, rack B2', destructive_ok: true, after: 'scrap',
-        after_other: '', extra: { fld_demo_side: 'ch_f' }, duplicated_from: null, requester_id: PEOPLE.engineer.id, created_ts: iso(1.1), updated_ts: iso(1),
+        process_step_id: 'pstep_demo_1', process_step_other: '', layer: 'L3', panel_location_id: 'loc_demo_1', new_location: null, destructive_ok: true, destination_id: 'dst_demo_3',
+        new_destination: null, extra: { fld_demo_side: 'ch_f' }, duplicated_from: null, requester_id: PEOPLE.engineer.id, created_ts: iso(1.1), updated_ts: iso(1),
         submitted_ts: iso(1), version: 2 },
       { id: 'req_demo_2', request_no: 'QVM-' + ymdIn(-2).slice(2).replace(/-/g, '') + '-01', status: 'submitted', tool_id: tool('QVM').id, type_id: typeOf('QVM'),
         lot_id: 'lot_demo_2', panels: [1, 5, 9], priority_id: prioId('P3'), priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '',
-        purpose: 'Pad size on the corner coupons', process_step_id: null, process_step_other: 'after solder resist', layer: '', panel_location: 'In MES',
-        destructive_ok: false, after: 'back_to_me', after_other: '', extra: {}, duplicated_from: null, requester_id: PEOPLE.admin.id,
+        purpose: 'Pad size on the corner coupons', process_step_id: null, process_step_other: 'after solder resist', layer: '', panel_location_id: 'loc_demo_2', new_location: null,
+        destructive_ok: false, destination_id: 'dst_demo_1', new_destination: null, extra: {}, duplicated_from: null, requester_id: PEOPLE.admin.id,
         created_ts: iso(2), updated_ts: iso(2), submitted_ts: iso(2), version: 2 }
     ];
     d.request_events = [

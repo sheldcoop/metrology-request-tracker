@@ -27,7 +27,7 @@
  *                         choices: ['A', 'B'], only_for: [type names] }
  *   lot_fields[]: extra fields on every lot, same shape as a tool's fields[] (no only_for)
  *   part_numbers[]: { code (capitals, digits, - . _ /), description, project: the one project code (P-1) }
- *             (DECISIONS M1-13: one part number may belong to several projects)
+ *   panel_locations[] / destinations[]: names (or { name, description, sample }) for panel logistics
  *   closing_days[]: { date: 'YYYY-MM-DD', name }  - company closing days (not public holidays)
  *   public_holidays: Austrian public holidays are added for this year and next, by rule.
  */
@@ -81,6 +81,14 @@ window.MRT.seed = {
   // Process steps ("the panels are after ..."), in line order (DECISIONS M2-7). None known yet -
   // e.g. ['After desmear', 'After Cu plating'] once Prince gives the real list.
   process_steps: [],
+
+  // Panel logistics (addendum 02): where the panels are now. Site-specific - the office adds
+  // the real places in Settings > Lists (or straight in the request form).
+  panel_locations: [],
+
+  // Panel logistics (addendum 02): where the panels go after measuring. Converted from the
+  // old fixed After choice, so existing meaning carries over; the office edits them freely.
+  destinations: ['Back to me', 'Back to the line', 'Lab may scrap them'],
 
   buildups: ['BU-01', 'BU-02', 'BU-03', 'BU-04', 'BU-05', 'TEST', 'DOE', 'OPT'],
 

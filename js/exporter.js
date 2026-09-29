@@ -46,7 +46,7 @@ window.MRT.exporter = (function () {
   /* --- tables --------------------------------------------------------------- */
 
   var REQUEST_HEAD = ['Request ID', 'Status', 'Tool', 'Measurement type', 'Project', 'Part number', 'Lot', 'Build-up', 'Layers',
-    'Panels', 'Panel count', 'Priority', 'Requester', 'Assigned to', 'Needed by', 'Expected done', 'Submitted', 'Accepted',
+    'Panels', 'Panel count', 'Panels now', 'Panels after', 'Magazine', 'Priority', 'Requester', 'Assigned to', 'Needed by', 'Expected done', 'Submitted', 'Accepted',
     'Started', 'Completed', 'Analyzed', 'Turnaround (lab h, hold out)', 'On hold (lab h)', 'Calendar (h)', 'On time',
     'Clarifications', 'Reopened', 'Results folder', 'Purpose'];
 
@@ -56,9 +56,13 @@ window.MRT.exporter = (function () {
     return [REQUEST_HEAD].concat((requests || []).map(function (r) {
       var t = D.requestTimes(r, ev, cal, hs, now);
       var lot = r.lot_id ? store.byId('lots', r.lot_id) : null;
+      var mag = r.magazine_id ? store.byId('magazines', r.magazine_id) : null;
+      var slots = (r.slots || []).slice().sort(function (a, b) { return a - b; });
       return [r.request_no || '(draft)', D.REQUEST_STATUS_LABEL[r.status] || r.status, code('tools', r.tool_id), nameOf('measurement_types', r.type_id),
         code('projects', r.project_id), code('part_numbers', r.part_number_id), lot ? lot.lot_number : '', code('buildups', r.buildup_id),
         (r.layers || []).join(' '), (r.panels || []).join(', '), D.panelCountOf ? D.panelCountOf(r) : (r.panels || []).length,
+        nameOf('panel_locations', r.panel_location_id), nameOf('destinations', r.destination_id),
+        mag ? mag.code + (slots.length ? ' ' + D.formatPanels(slots) : '') : '',
         nameOf('priorities', r.priority_id), nameOf('users', r.requester_id), nameOf('users', r.assigned_to),
         r.needed_by || '', r.expected_done || '', stamp(r.submitted_ts), stamp(r.accepted_ts), stamp(r.started_ts),
         stamp(t.completed_ts), stamp(r.analyzed_ts), hours(t.turnaround_ms), hours(t.hold_ms || null), hours(t.calendar_ms),
