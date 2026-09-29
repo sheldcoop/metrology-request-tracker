@@ -15,7 +15,7 @@
  *     level: 1..4 (priority; 1 = Line stop), urgent: bool, late: bool,
  *     prio: {name, code} | null, stamp: {label, kind} | null,
  *     fields: [{label, value (text or Node), sub, cls ('wide'), extra (Node)}],
- *     split: {left: Node, right: Node}    (full only; the two-column body row)
+ *     stack: [Node, ...]                  (full only; full-width areas under the grid)
  *     lines: [[text or Node, ...], ...]   (card only; the first line is mono)
  *     code: Node (slip barcode), warn: text (slip), footer: Node (magazine view),
  *     href, ariaLabel
@@ -48,9 +48,7 @@
         return el('div', { class: 'tr-cell' }, [el('div', { class: 'tr-label', text: f.label }), el('div', { class: 'tr-value' }, f.value),
           f.sub ? el('div', { class: 'tr-sub', text: f.sub }) : null, f.extra || null]);
       })),
-      m.split ? el('div', { class: 'tr-split' }, [
-        el('div', { class: 'tr-split-left' }, m.split.left), el('div', { class: 'tr-split-right' }, m.split.right)
-      ]) : null,
+      (m.stack || []).filter(Boolean).map(function (s) { return el('div', { class: 'tr-stack' }, s); }),
       m.footer ? el('div', { class: 'tr-mag' }, m.footer) : null
     ]);
   }

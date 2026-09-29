@@ -108,7 +108,7 @@ window.MRT.views.hirata = (function () {
 
   function findTab(body) {
     var input = ui.field({ label: 'Hirata codes', mono: true, value: state.find, placeholder: 'e.g. 3407, 0119, 1827',
-      hint: 'The last 4 digits (lot per day + panel), or the full 9. Several at once: commas or spaces.' });
+      hint: 'Digits, up to 9 each: the panel number, its last 4, or the full 9. Several at once: commas or spaces.' });
     var sheet = ui.el('div', { class: 'hirata-sheet', 'aria-live': 'polite' });
     var count = ui.el('p', { class: 'muted' });
     var problems = ui.el('div');
@@ -159,10 +159,15 @@ window.MRT.views.hirata = (function () {
     if (!list.length) return null;
     var MARK = { measured: { icon: 'check', text: 'Measured' }, scrapped: { icon: 'close', text: 'Scrapped' } }[o.state];
     var items = list.map(function (id) {
+      var decoded = D.hirataFields(id);
+      var lot = decoded.filter(function (f) { return f.id === 'lot'; })[0];
+      var rest = decoded.filter(function (f) { return f.id !== 'lot'; });
       return ui.el('div', { class: 'panel-hirata-item' + (o.state ? ' is-' + o.state : '') + (o.compact ? ' is-compact' : '') }, [
-        ui.el('span', { class: 'panel-cu' }, [copper(id, size || 'md'), MARK ? ui.el('span', { class: 'panel-mark', title: MARK.text }, ui.icon(MARK.icon, 14)) : null]),
-        o.compact ? ui.el('div', { class: 'mono', text: id })
-          : ui.el('div', {}, [ui.el('div', { class: 'mono', text: id + (MARK ? '  ·  ' + MARK.text.toLowerCase() : '') }), ui.hirataFields(D.hirataFields(id), { compact: true })])]);
+        o.compact ? null : ui.el('div', { class: 'panel-lot-head' }, ['Lot per day ', ui.el('b', { class: 'mono', text: lot ? lot.value : '-' })]),
+        ui.el('div', { class: 'panel-hirata-body' }, [
+          ui.el('span', { class: 'panel-cu' }, [copper(id, size || 'md'), MARK ? ui.el('span', { class: 'panel-mark', title: MARK.text }, ui.icon(MARK.icon, 14)) : null]),
+          o.compact ? ui.el('div', { class: 'mono', text: id })
+            : ui.el('div', {}, [ui.el('div', { class: 'mono', text: id + (MARK ? '  ·  ' + MARK.text.toLowerCase() : '') }), ui.hirataFields(rest, { compact: true })])])]);
     });
     var node = ui.el('div', { class: 'panel-hirata' + (o.animate ? ' is-animating' : '') }, items);
     if (o.state !== 'received') return node;

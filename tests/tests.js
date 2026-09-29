@@ -530,6 +530,8 @@
     eq('check: other lengths are drawn as typed', D.hirataCheck('23').kind, 'short');
     eq('check: letters are refused', D.hirataCheck('34a7').problem, 'Digits only');
     ok('check: more than 9 digits is refused', !!D.hirataCheck('1234567890').problem);
+    eq('panel IDs: 1 to 9 digits each (no forced length)', [D.isPanelId('7'), D.isPanelId('07'), D.isPanelId('3252'), D.isPanelId('161234507'), D.isPanelId('1612345070'), D.isPanelId('3a')],
+       [true, true, true, true, false, false]);
     eq('several codes at once', D.hirataList('3407, 0119 1827').map(function (x) { return x.digits; }), ['3407', '0119', '1827']);
     eq('a panel ID may now be the full 9-digit code (H-1)', D.parsePanelIds('161234507, 3252').ids, ['161234507', '3252']);
     ok('...but not 10 digits', D.parsePanelIds('1612345070').errors.length === 1);

@@ -436,8 +436,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
   check('each typed Hirata ID shows its copper panel to the right (H-3)', $$('#main .panel-chips .panel-hirata-item').length === 4 &&
         $$('#main .panel-chips .panel-hirata-item')[0].children[1].classList.contains('cu-panel'));
-  setVal(fieldIn(M(), 'Hirata IDs'), '3252, 32525'); await settle();
-  check('...five digits are refused at the field, only the 4-digit ID is kept (H-4)', /"32525" is not 4 digits/.test(mainText()) &&
+  setVal(fieldIn(M(), 'Hirata IDs'), '7, 3252, 32525'); await settle();
+  check('...1, 4 and 5 digits are all accepted (no forced length)', $$('#main .panel-chip').length === 3 && !/"32525" is not/.test(mainText()));
+  setVal(fieldIn(M(), 'Hirata IDs'), '3252, 1612345070'); await settle();
+  check('...10 digits are refused at the field, the good ID is kept', /"1612345070" is not a Hirata ID/.test(mainText()) &&
         $$('#main .panel-chip').length === 1);
   setVal(fieldIn(M(), 'Hirata IDs'), '3252-3255'); await settle();
   $$('#main .panel-chips .panel-hirata-item')[0].click(); await settle();
@@ -473,14 +475,16 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('the traveller card: ID, stamp "Submitted", priority stripe, the magazine with 4 slots', !!$('#main .traveller.prio-3') &&
         $('#main .tr-stamp').textContent === 'Submitted' && $$('#main .traveller .mz-slot.is-picked').length === 4 && /3252, 3253/.test($('#main .traveller').textContent));
   check('the request page shows each panel as copper with its decoded fields (H-3)', $$('#main .traveller .cu-panel').length === req1.panels.length &&
-        /Lot per day/.test($('#main .traveller .hf-list').textContent));
+        /Lot per day/.test($('#main .traveller .panel-lot-head').textContent));
   check('...no date: "the priority says how urgent it is"', /priority says how urgent/.test($('#main .tr-clock').textContent));
   check('the status rail: Submitted now, by whom and when', $$('#main .rail-step').length === 6 && $('#main .rail-step.is-now').textContent.indexOf('Submitted') === 0 && /Prince Khurana/.test($('#main .rail-step.is-now').textContent));
   check('no path is proposed on the page (only confirmed folders show)', mainText().indexOf(req1.request_no + String.fromCharCode(92)) === -1);
-  check('...no banner, no folder rows while nothing is set (hidden, not "Not set yet")', !$('#main .res-banner') &&
-        $$('#main .folder-row').length === 0 && !/Not set yet/.test(mainText()));
-  check('...card body: Hirata codes listed right, above the visual panel maps', $('#main .hirata-codes').querySelectorAll('li').length === req1.panels.length &&
-        $('#main .tr-split').querySelectorAll('.cu-panel').length === req1.panels.length);
+  check('...three areas: info, Hirata codes + maps, reserved path block', $$('#main .tr-stack').length === 2 && !!$('#main .path-block'));
+  check('...unset folders show a dash, no Copy buttons, no "Not set yet"', $$('#main .folder-row').length === 2 && !/Not set yet/.test(mainText()) &&
+        !buttonByText($('#main .path-block'), 'Copy path'));
+  check('...Hirata codes listed above the visual maps, LOT PER DAY on each card', $('#main .hirata-codes').querySelectorAll('li').length === req1.panels.length &&
+        $('#main .traveller').querySelectorAll('.cu-panel').length === req1.panels.length &&
+        $('#main .traveller').querySelectorAll('.panel-lot-head').length === req1.panels.length);
   setVal(fieldIn(doc.getElementById('main'), 'Add a comment'), 'Please cut near via 3, @olga');
   buttonByText(doc.getElementById('main'), 'Add comment').click(); await settle();
   const com = MRT.store.requestEvents(req1.id).filter(e => e.kind === 'comment')[0];
@@ -610,11 +614,21 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   win.setHash('#/results'); await settle();
   check('Results tab: the request with both paths, clickable', mainText().indexOf(req2.request_no) !== -1 && $$('#main a.path-link').length === 2 &&
         $$('#main a.path-link').every(a => /^file:/.test(a.getAttribute('href'))));
+  setVal(fieldIn(doc.getElementById('main'), 'Request ID'), req2.request_no.slice(0, 8)); await settle();
+  check('...ID search keeps the match', mainText().indexOf(req2.request_no) !== -1);
+  setVal(fieldIn(doc.getElementById('main'), 'Request ID'), 'zzz-no-such'); await settle();
+  check('...ID search with no match shows the empty state', /No requests match/.test(mainText()));
+  setVal(fieldIn(doc.getElementById('main'), 'Request ID'), ''); await settle();
+  setVal(fieldIn(doc.getElementById('main'), 'Tool'), req2.tool_id); await settle();
+  check('...tool filter keeps its own requests', mainText().indexOf(req2.request_no) !== -1);
+  const otherTool = MRT.store.list('tools').filter(t => t.id !== req2.tool_id)[0];
+  setVal(fieldIn(doc.getElementById('main'), 'Tool'), otherTool.id); await settle();
+  check('...tool filter hides other tools', mainText().indexOf(req2.request_no) === -1);
+  setVal(fieldIn(doc.getElementById('main'), 'Tool'), ''); await settle();
   MRT.store.setCurrentUser(meP); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
-  check('no top banner (paths live in the card only)', !$('#main .res-banner'));
-  check('...card split: both folders with big Copy path buttons', $('#main .tr-split').querySelectorAll('a.path-link').length === 2 &&
-        buttonByText($('#main .tr-split'), 'Copy path') !== null &&
-        $$('#main .tr-split-left .folder-row').every(n => !!buttonByText(n, 'Copy path')));
+  check('no top banner (paths live in the card block only)', !$('#main .res-banner'));
+  check('...path block: both folders with big Copy path buttons', $('#main .path-block').querySelectorAll('a.path-link').length === 2 &&
+        $$('#main .path-block .folder-row').every(n => !!buttonByText(n, 'Copy path')));
   buttonByText(doc.getElementById('main'), 'Print slip').click(); await settle();
   check('Print slip: the A6 traveller slip with the ID, its barcode and the panels (Q38)', !!$('#main .slip') && $('#main .slip-id').textContent === req2.request_no &&
         $('#main .barcode').querySelectorAll('rect').length > 30 && /DESTROYS THESE PANELS/.test($('#main .slip').textContent));

@@ -37,13 +37,35 @@ window.MRT.views.results = (function () {
 
   function render(main) {
     shown = PAGE;
-    var list = store.visibleRequests(function (r) { return r.status === 'completed' || r.status === 'analyzed'; });
-    list.sort(function (a, b) { return String(a.completed_ts || '') < String(b.completed_ts || '') ? 1 : -1; });
+    var all = store.visibleRequests(function (r) { return r.status === 'completed' || r.status === 'analyzed'; });
+    all.sort(function (a, b) { return String(a.completed_ts || '') < String(b.completed_ts || '') ? 1 : -1; });
     main.appendChild(ui.pageHead('Results', 'Finished requests and where their data lives. Click a path to open it.'));
+    var tools = store.list('tools').filter(function (t) { return all.some(function (r) { return r.tool_id === t.id; }); });
+    var toolSel = ui.el('select', { class: 'input', 'aria-label': 'Filter by tool' },
+      [{ v: '', t: 'All tools' }].concat(tools.map(function (t) { return { v: t.id, t: t.name }; })).map(function (o) {
+        return ui.el('option', { value: o.v, text: o.t });
+      }));
+    var idSearch = ui.field({ label: 'Request ID', mono: true, placeholder: 'e.g. FIB-260924-01', cls: 'inline' });
+    toolSel.addEventListener('change', function () { shown = PAGE; draw(); });
+    idSearch.input.addEventListener('input', function () { shown = PAGE; draw(); });
+    main.appendChild(ui.el('div', { class: 'results-filters' }, [
+      ui.el('label', { class: 'ifield' }, [ui.el('span', { class: 'ifield-label', text: 'Tool' }), toolSel]),
+      idSearch.node
+    ]));
     var holder = ui.el('div');
     main.appendChild(holder);
 
+    function filtered() {
+      var q = idSearch.value().trim().toLowerCase();
+      return all.filter(function (r) {
+        if (toolSel.value && r.tool_id !== toolSel.value) return false;
+        if (q && String(r.request_no || '').toLowerCase().indexOf(q) === -1) return false;
+        return true;
+      });
+    }
+
     function draw() {
+      var list = filtered();
       var rows = list.slice(0, shown).map(function (r) {
         return ui.el('tr', {}, [
           ui.el('td', {}, ui.el('a', { href: '#/request/' + r.id, text: r.request_no || '(no number)' })),
@@ -57,7 +79,8 @@ window.MRT.views.results = (function () {
             return ui.el('th', { scope: 'col', text: h });
           }))),
           ui.el('tbody', {}, rows)
-        ])) : ui.emptyState({ icon: 'folder', title: 'No finished requests yet', text: 'Completed requests appear here with their results folder; analyzed ones add the analyzed data folder.' }),
+        ])) : (all.length ? ui.emptyState({ icon: 'search', title: 'No requests match', text: 'Loosen the tool filter or the ID search.' })
+          : ui.emptyState({ icon: 'folder', title: 'No finished requests yet', text: 'Completed requests appear here with their results folder; analyzed ones add the analyzed data folder.' })),
         list.length > shown ? ui.button('Show ' + Math.min(PAGE, list.length - shown) + ' more', { size: 'sm',
           onClick: function () { shown += PAGE; draw(); } }) : null
       ]);
