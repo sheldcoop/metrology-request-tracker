@@ -596,6 +596,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const ruth = await MRT.store.saveEntry('users', { fields: { name: 'Ruth Adler', roles: ['analyst'] } });
   MRT.store.setCurrentUser(ruth.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
   check('the analyst sees Mark analyzed across tools', !!buttonByText($('#main .req-actbar'), 'Mark analyzed'));
+  win.setHash('#/requests'); await settle();
+  check('...found from My requests: "To analyze (all tools)" lists it (M7)', /To analyze \(all tools\)/.test(mainText()) && mainText().indexOf(req2.request_no) !== -1);
+  win.setHash('#/request/' + req2.id); await settle();
   buttonByText($('#main .req-actbar'), 'Mark analyzed').click(); await settle();
   check('...Analyzed: stamp Closed', MRT.store.byId('requests', req2.id).status === 'analyzed' && $('#main .tr-stamp').textContent === 'Closed' && !$('#main .req-actbar'));
   MRT.store.setCurrentUser(meP); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
