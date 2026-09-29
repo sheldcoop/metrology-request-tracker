@@ -958,8 +958,11 @@ window.MRT.domain = (function () {
   function assignOnSubmit(tool, users, today) {
     function u(id) { return (users || []).filter(function (x) { return x.id === id; })[0] || null; }
     var p = u(tool && tool.primary_operator_id), b = u(tool && tool.backup_operator_id);
-    if (p && isAway(p, today) && b && b.active !== false && !isAway(b, today)) {
-      return { id: b.id, note: p.name + ' is away - assigned to the backup, ' + b.name };
+    var pOk = p && p.active !== false && !isAway(p, today);
+    var bOk = b && b.active !== false && !isAway(b, today);
+    if (!pOk && bOk) {
+      var why = !p ? 'no primary quality engineer' : p.active === false ? p.name + ' is deactivated' : p.name + ' is away';
+      return { id: b.id, note: why + ' - assigned to the backup, ' + b.name };
     }
     return { id: p ? p.id : (b ? b.id : null), note: null };
   }
