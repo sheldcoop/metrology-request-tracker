@@ -493,8 +493,14 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         $$('#main .traveller .lot-row').map(n => n.textContent).join('|') ===
         'Project' + MRT.store.byId('projects', req1.project_id).code + '|Part' + MRT.store.byId('part_numbers', req1.part_number_id).code +
         '|Lot18178|Build-up' + MRT.store.byId('buildups', req1.buildup_id).code);
-  check('...one People box on the right: Requested by, Assigned to, Analyzed by', ['Requested by', 'Assigned to', 'Analyzed by', 'Primary QE', 'Backup QE']
-        .every(t => $$('#main .req-side dt').map(n => n.textContent).indexOf(t) !== -1) && /not analyzed yet/.test(mainText()));
+  const who = (id, empty) => id ? MRT.store.byId('users', id).name : empty;
+  check('...People box on the card right: Requested by, Assigned to, Analyzed by', $$('#main .traveller .people-row').length === 3 &&
+        $$('#main .traveller .people-row').map(n => n.textContent).join('|') ===
+        'Requested by' + who(req1.requester_id, '?') + '|Assigned to' + who(req1.assigned_to, 'nobody yet') +
+        '|Analyzed by' + who(req1.analyzed_by, 'not analyzed yet') && !!$('#main .traveller .tr-cell.tr-right .people-stack'));
+  check('...sidebar keeps only the Quality engineers, no doubled names', ['Primary QE', 'Backup QE']
+        .every(t => $$('#main .req-side dt').map(n => n.textContent).indexOf(t) !== -1) &&
+        ['Requested by', 'Assigned to', 'Analyzed by'].every(t => $$('#main .req-side dt').map(n => n.textContent).indexOf(t) === -1));
   setVal(fieldIn(doc.getElementById('main'), 'Add a comment'), 'Please cut near via 3, @olga');
   buttonByText(doc.getElementById('main'), 'Add comment').click(); await settle();
   const com = MRT.store.requestEvents(req1.id).filter(e => e.kind === 'comment')[0];

@@ -167,6 +167,11 @@ window.MRT.views.request = (function () {
           lotRow('Lot', lot.lot_number),
           lotRow('Build-up', (byId('buildups', r.buildup_id) || {}).code)
         ]) : muted('?')),
+        cell('People', ui.el('div', { class: 'people-stack' }, [
+          peopleRow('Requested by', userName(r.requester_id)),
+          peopleRow('Assigned to', r.assigned_to ? userName(r.assigned_to) : muted('nobody yet')),
+          peopleRow('Analyzed by', r.analyzed_by ? userName(r.analyzed_by) : muted('not analyzed yet'))
+        ]), null, null, 'tr-right'),
         cell('Priority', prio ? ui.el('span', { class: 'tr-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono muted', text: prio.code })]) : muted('-'),
              r.priority_reason ? r.priority_reason : null),
         cell('Needed by', r.needed_by ? ui.el('b', { class: 'num', text: ui.formatDate(r.needed_by + 'T12:00:00Z') }) : muted('no date'), null,
@@ -199,13 +204,20 @@ window.MRT.views.request = (function () {
   }
 
   /** One fact on the card (drawn by ui.traveller). */
-  function cell(label, value, sub, extra) { return { label: label, value: value, sub: sub || null, extra: extra || null }; }
+  function cell(label, value, sub, extra, cls) { return { label: label, value: value, sub: sub || null, extra: extra || null, cls: cls || null }; }
 
   /** One line of the Lot stack: small label, plain value (the app's own sans, not mono). */
   function lotRow(label, v) {
     return ui.el('div', { class: 'lot-row' }, [
       ui.el('span', { class: 'lot-label', text: label }),
       ui.el('span', { class: 'lot-val', text: v || '-' })]);
+  }
+
+  /** One line of the People box on the card's right: who requested, measures, analyzed. */
+  function peopleRow(label, v) {
+    return ui.el('div', { class: 'people-row' }, [
+      ui.el('span', { class: 'people-label', text: label }),
+      ui.el('span', { class: 'people-val' }, [v])]);
   }
 
   /** This request's place in the tool's queue, so the requester knows when their turn comes. */
@@ -321,10 +333,7 @@ window.MRT.views.request = (function () {
       return [ui.el('dt', { text: role }), ui.el('dd', {}, [u.name, away ? ui.statusBadge('warning', 'Away' + (a.until ? ' until ' + a.until : '')) : null,
         bk ? ui.el('span', { class: 'away-swap', title: 'Away - ' + bk.name + ' covers' }, [ui.el('span', { class: 'away-arrow', 'aria-hidden': 'true', text: '⇄' }), bk.name]) : null])];
     }
-    return ui.panel({ title: 'People', icon: 'users', body: ui.el('dl', { class: 'facts' }, [].concat(
-      person(r.requester_id, 'Requested by'),
-      person(r.assigned_to, 'Assigned to'),
-      person(r.analyzed_by, 'Analyzed by', null, 'not analyzed yet'),
+    return ui.panel({ title: 'Quality engineers', icon: 'users', body: ui.el('dl', { class: 'facts' }, [].concat(
       person(tool && tool.primary_operator_id, 'Primary QE', tool && tool.backup_operator_id),
       person(tool && tool.backup_operator_id, 'Backup QE')
     )) }).node;

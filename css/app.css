@@ -1873,6 +1873,13 @@ div.panel-hirata-item.is-compact { flex-direction: row; align-items: center; }
 .lot-row { display: flex; align-items: baseline; gap: 8px; }
 .lot-label { font-size: 11px; color: var(--fg-muted); min-width: 58px; }
 .lot-val { font-size: 14px; font-weight: 600; }
+/* the People box on the card's right, same look as the Lot stack on the left */
+.tr-cell.tr-right { grid-column-end: -1; }
+.people-stack { display: grid; gap: 3px; }
+.people-row { display: flex; align-items: baseline; gap: 8px; }
+.people-label { font-size: 11px; color: var(--fg-muted); min-width: 84px; }
+.people-val { font-size: 14px; font-weight: 600; }
+.people-val .muted { font-weight: 400; }
 /* on the request page the panels share the row, at most 4 across (the 5th wraps); narrow columns show fewer */
 .panel-hirata > .panel-hirata-item { flex: 1 1 190px; min-width: 170px; max-width: calc(25% - 11px); }
 button.panel-hirata-item { background: none; border: 0; padding: 2px; font: inherit; color: inherit; cursor: pointer; border-radius: 6px; }
