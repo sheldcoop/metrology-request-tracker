@@ -1114,6 +1114,19 @@
       eq('M4: requester vs other engineer isolation', [D.canSeeRequest(U.reqEng, { status: 'submitted', requester_id: 've' }),
         D.canSeeRequest(U.otherEng, { status: 'submitted', requester_id: 've' })], [true, false]);
     })();
+    (function emailMatrix() {
+      var req = { id: 'e', email: 'e@x.at' }, pri = { id: 'q1', email: 'q1@x.at' }, bak = { id: 'q2' };
+      var ana = [{ id: 'a', email: 'a@x.at' }, { id: 'q1', email: 'q1@x.at' }];
+      function ids(list) { return list.map(function (u) { return u.id; }); }
+      eq('emails: submit goes to both QEs (backup without email skipped)', ids(D.emailRecipients(null, 'submit', { requester: req, primary: pri, backup: bak, analysts: [], meId: 'e' })), ['q1']);
+      eq('...the actor is never mailed to themselves', ids(D.emailRecipients(null, 'complete', { requester: req, primary: pri, backup: bak, analysts: [], meId: 'e' })), []);
+      eq('...analysts resolved, duplicates once', ids(D.emailRecipients({ submit: ['analysts', 'primary'], clarify: [], answer: [], complete: [], analyze: [], cancel: [] }, 'submit',
+        { requester: req, primary: pri, backup: bak, analysts: ana, meId: 'x' })), ['a', 'q1']);
+      eq('...cancel ticks everyone, actor excluded', ids(D.emailRecipients(null, 'cancel', { requester: req, primary: pri, backup: { id: 'q2', email: 'q2@x.at' }, analysts: [], meId: 'q1' })), ['e', 'q2']);
+      ok('...bad table and unknown who flagged, missing events fine', D.validateEmailMatrix(null).length === 1 &&
+        D.validateEmailMatrix({ submit: ['owner'] }).length === 1 && D.validateEmailMatrix({}).length === 0);
+      eq('...normalize fills a missing event from the default', D.normalizeEmailMatrix({}).submit, D.DEFAULT_EMAIL_MATRIX.submit);
+    })();
     eq('M4: settings/template/comment/management gates', [
       D.canUseSettings({ roles: ['admin'] }), D.canUseSettings({ roles: ['engineer'] }),
       D.canSaveTemplate({ id: 'a', roles: ['engineer'] }, { requester_id: 'a' }), D.canSaveTemplate({ id: 'a', roles: ['engineer'] }, { requester_id: 'b' }),

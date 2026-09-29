@@ -79,21 +79,22 @@ window.MRT.requestActions = (function () {
 
   /**
    * A ready Outlook draft about a request (Q19, M4-4), offered on a toast
-   * after the key events: submit -> the tool's quality engineers; clarify,
-   * complete -> the requester; cancel -> the other side.
+   * after the key events. Who is addressed for what comes from Settings >
+   * Emails (domain.emailRecipients); the actor is never mailed to themselves.
    */
   function emailOffer(r, event) {
     var me = store.currentUser(), tool = toolOf(r) || {};
     var lot = store.byId('lots', r.lot_id), prio = store.byId('priorities', r.priority_id);
     function person(id) { return id ? store.byId('users', id) : null; }
-    var toQE = [person(tool.primary_operator_id), person(tool.backup_operator_id)];
-    var to = event === 'submit' ? toQE : event === 'cancel' && r.requester_id === me.id ? toQE : [person(r.requester_id)];
-    to = to.filter(function (u) { return u && u.id !== me.id && u.email; });
+    var analysts = store.list('users', { all: true }).filter(function (u) { return u.active !== false && D.hasRole(u, 'analyst'); });
+    var to = D.emailRecipients(store.getSetting('email_matrix'), event, {
+      requester: person(r.requester_id), primary: person(tool.primary_operator_id), backup: person(tool.backup_operator_id),
+      analysts: analysts, meId: me.id });
     if (!to.length) return null;
-    var what = { submit: 'New request', clarify: 'Question about', complete: 'Completed', analyze: 'Analyzed', cancel: 'Cancelled' }[event];
+    var what = { submit: 'New request', clarify: 'Question about', answer: 'Answered', complete: 'Completed', analyze: 'Analyzed', cancel: 'Cancelled' }[event];
     var last = store.requestEvents(r.id).slice(-1)[0];
     var body = [
-      what + ': ' + r.request_no + (tool.code ? ' (' + tool.code + ')' : ''),
+      r.request_no + ' - ' + what + (tool.code ? ' (' + tool.code + ')' : ''),
       'Lot ' + (lot ? lot.lot_number : '?') + ', panels ' + D.panelsText(r) + (whereOf(r) ? ' (' + whereOf(r) + ')' : ''),
       'Priority ' + (prio ? prio.name : '-') + (r.needed_by ? ', needed by ' + r.needed_by : ''),
       event === 'complete' && r.results_path ? 'Results: ' + r.results_path : null,
@@ -190,7 +191,7 @@ window.MRT.requestActions = (function () {
           { key: 'text', label: 'Your answer', kind: 'longtext' }
         ], {}, function (v) { return store.requestAction(r.id, 'answer', v); }, function (v) { return v.text ? null : ['text', 'Write your answer']; },
         'The request goes back to the quality engineer, where it was before.')
-          .then(function (res) { return res ? done(res, 'answered.') : null; });
+          .then(function (res) { return res ? done(res, 'answered.', 'answer') : null; });
         break;
       case 'complete': {
         var root = tool && tool.results_root ? tool.results_root.replace(/\\+$/, '') + '\\' + (r.submitted_ts || '').slice(0, 4) + '\\' + r.request_no + '\\' : '';

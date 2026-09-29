@@ -703,6 +703,21 @@ window.MRT.store = (function () {
    * Admin: the theme everyone starts with (Settings > Look). Each person can still pick their
    * own in the user menu. key: a theme key of js/themes.js, or null for the app's default.
    */
+  /** Settings > Emails: who is offered a draft for what (admin). Missing events fall back to the default. */
+  function saveEmailMatrix(m, reason) {
+    return guard(function () {
+      requireAdmin();
+      var problems = D.validateEmailMatrix(m);
+      assert(!problems.length, problems.join('. '), 'invalid', problems);
+      var clean = D.normalizeEmailMatrix(m);
+      var old = getSetting('email_matrix');
+      assert(JSON.stringify(old || null) !== JSON.stringify(clean), 'Nothing was changed', 'no_change');
+      setSettingValue('email_matrix', clean);
+      audit('setting', 'email_matrix', 'update', 'email_matrix', old ? '(set)' : null, '(set)', reason ? String(reason).trim() : null);
+      return commit().then(function () { return clean; });
+    });
+  }
+
   function setDefaultTheme(key, reason) {
     return guard(function () {
       requireAdmin();
@@ -2272,6 +2287,7 @@ window.MRT.store = (function () {
     replaceData: replaceData,
     importRequests: importRequests,
     setDefaultTheme: setDefaultTheme,
+    saveEmailMatrix: saveEmailMatrix,
     addLots: addLots,
     setLotOwner: setLotOwner,
     deleteLot: deleteLot,

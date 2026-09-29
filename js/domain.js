@@ -100,6 +100,64 @@ window.MRT.domain = (function () {
   }
 
   /*
+   * Email drafts (Settings > Emails): who is offered a ready Outlook draft
+   * for what. Today a draft the actor sends; later the server sends
+   * automatically to the same people (OPEN_QUESTIONS #10) - the matrix
+   * stays, only the sending moves. The actor is never mailed to themselves.
+   */
+  var EMAIL_EVENTS = ['submit', 'clarify', 'answer', 'complete', 'analyze', 'cancel'];
+  var EMAIL_EVENT_LABEL = { submit: 'Submitted', clarify: 'Question asked', answer: 'Answered',
+                            complete: 'Completed', analyze: 'Analyzed', cancel: 'Cancelled' };
+  var EMAIL_ROLES = ['requester', 'primary', 'backup', 'analysts'];
+  var EMAIL_ROLE_LABEL = { requester: 'Requester', primary: 'Primary QE', backup: 'Backup QE', analysts: 'Analysts' };
+  var DEFAULT_EMAIL_MATRIX = {
+    submit: ['primary', 'backup'], clarify: ['requester'], answer: ['primary', 'backup'],
+    complete: ['requester'], analyze: ['requester'], cancel: ['requester', 'primary', 'backup']
+  };
+
+  /** Problems with a stored email matrix, [] when fine. */
+  function validateEmailMatrix(m) {
+    var p = [];
+    if (!m || typeof m !== 'object' || Array.isArray(m)) return ['The email table is not a table'];
+    EMAIL_EVENTS.forEach(function (e) {
+      var roles = m[e];
+      if (roles === undefined) return;   // missing events fall back to the default (normalizeEmailMatrix)
+      if (!Array.isArray(roles)) { p.push(EMAIL_EVENT_LABEL[e] + ' is not a list'); return; }
+      roles.forEach(function (r) { if (EMAIL_ROLES.indexOf(r) === -1) p.push(EMAIL_EVENT_LABEL[e] + ': unknown who "' + r + '"'); });
+    });
+    return p;
+  }
+
+  /** A stored matrix with missing events filled from the default; unknown roles dropped. */
+  function normalizeEmailMatrix(m) {
+    var out = {};
+    EMAIL_EVENTS.forEach(function (e) {
+      var roles = m && Array.isArray(m[e]) ? m[e].filter(function (r) { return EMAIL_ROLES.indexOf(r) !== -1; }) : null;
+      out[e] = roles || DEFAULT_EMAIL_MATRIX[e].slice();
+    });
+    return out;
+  }
+
+  /**
+   * Who gets the draft for an event: the ticked roles resolved to people
+   * with an email address, the actor left out, no duplicates.
+   * @param {Object} people {requester, primary, backup, analysts[], meId}
+   */
+  function emailRecipients(matrix, event, people) {
+    var m = normalizeEmailMatrix(matrix);
+    var out = [], seen = {};
+    (m[event] || []).forEach(function (role) {
+      var list = role === 'analysts' ? (people.analysts || []) : [people[role]];
+      list.forEach(function (u) {
+        if (!u || !u.email || u.id === people.meId || seen[u.id]) return;
+        seen[u.id] = true;
+        out.push(u);
+      });
+    });
+    return out;
+  }
+
+  /*
    * Away (DECISIONS M1-14): vacation, sick leave - one period per person,
    * stored on the user as away_from / away_until (YYYY-MM-DD, until optional =
    * "until further notice") and an optional note. No reason is ever stored.
@@ -1860,6 +1918,9 @@ window.MRT.domain = (function () {
     canSaveTemplate: canSaveTemplate,
     canEditComment: canEditComment,
     defaultAnalyticsTab: defaultAnalyticsTab,
+    EMAIL_EVENTS: EMAIL_EVENTS, EMAIL_EVENT_LABEL: EMAIL_EVENT_LABEL, EMAIL_ROLES: EMAIL_ROLES, EMAIL_ROLE_LABEL: EMAIL_ROLE_LABEL,
+    DEFAULT_EMAIL_MATRIX: DEFAULT_EMAIL_MATRIX, validateEmailMatrix: validateEmailMatrix, normalizeEmailMatrix: normalizeEmailMatrix,
+    emailRecipients: emailRecipients,
     awayState: awayState,
     isAway: isAway,
     validateAway: validateAway,
