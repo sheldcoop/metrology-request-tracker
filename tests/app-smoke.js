@@ -485,6 +485,13 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...Hirata codes listed above the visual maps, LOT PER DAY on each card', $('#main .hirata-codes').querySelectorAll('li').length === req1.panels.length &&
         $('#main .traveller').querySelectorAll('.cu-panel').length === req1.panels.length &&
         $('#main .traveller').querySelectorAll('.panel-lot-head').length === req1.panels.length);
+  check('...one Lot + Panel Number block per card, no repeated code text', $$('#main .traveller .panel-lp').length === req1.panels.length &&
+        $$('#main .traveller .panel-lp-row').length === req1.panels.length * 2 &&
+        /Lot/.test($('#main .traveller .panel-lp').textContent) && /Panel Number/.test($('#main .traveller .panel-lp').textContent) &&
+        $$('#main .panel-hirata-item').every(it => it.querySelectorAll('.mono').every(n => req1.panels.indexOf(n.textContent) === -1)));
+  check('...Lot reads Project / Lot / Build-up top to bottom', $$('#main .traveller .lot-row').length >= 3 &&
+        $$('#main .traveller .lot-row').map(n => n.textContent).slice(0, 3).join('|') ===
+        'Project' + MRT.store.byId('projects', req1.project_id).code + '|Lot18178|Build-up' + MRT.store.byId('buildups', req1.buildup_id).code);
   setVal(fieldIn(doc.getElementById('main'), 'Add a comment'), 'Please cut near via 3, @olga');
   buttonByText(doc.getElementById('main'), 'Add comment').click(); await settle();
   const com = MRT.store.requestEvents(req1.id).filter(e => e.kind === 'comment')[0];

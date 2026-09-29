@@ -81,6 +81,11 @@ check('traveller',()=>{const m={id:'FIB-260925-01',subtitle:'FIB',glyph:{key:'fi
   const sl=put(ui.traveller(m,{size:'slip'}));expect('traveller slip: warning line',sl.classList.contains('slip')&&/W/.test(sl.textContent));
   const u=put(ui.traveller({id:'<b>x</b>'},{size:'full'}));expect('traveller: text never becomes markup',u.textContent.indexOf('<b>x</b>')!==-1);
   expect('four sizes',ui.TRAVELLER_SIZES.join()==='full,mini,card,slip')});
+check('needle gauge',()=>{const g=ui.needleGauge();put(g.node);
+  g.set(0.5,'soon');const n=g.node.querySelector('.ng-needle');
+  expect('set() turns the needle and the state class',/rotate\(90/.test(n.style.transform)&&g.node.getAttribute('class')==='ngauge is-soon');
+  g.set(1,'late');expect('...late pins the needle right',/rotate\(180/.test(n.style.transform)&&g.node.getAttribute('class')==='ngauge is-late');
+  g.set(0.2,'paused');expect('...paused colours the dial',g.node.getAttribute('class')==='ngauge is-paused')});
 check('hirata',()=>{const dots=d=>[8,4,2,1].map(w=>(d&w)!==0).concat([true]);
   const cp=put(ui.copperPanel({columns:'3407'.split('').map(c=>dots(+c)),text:'3407',size:'md'}));
   expect('copper panel: 4 columns x 5 holes, role img with the digits',cp.querySelectorAll('span').filter(x=>x.classList.contains('cu-hole')).length===20&&cp.getAttribute('role')==='img'&&/3407/.test(cp.getAttribute('aria-label')));
