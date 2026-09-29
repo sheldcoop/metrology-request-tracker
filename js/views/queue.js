@@ -5,8 +5,8 @@
  * tools where I am the primary or backup quality engineer (admins: every
  * tool), "assigned to me" first, each part in the queue order of M2-5 (Line
  * stop on top, late next, then needed-by). Late ones red. One click per row
- * (js/views/request-actions.js); tick several for Accept all / Start all.
- * The 1 s tick updates the countdown text only.
+ * (js/views/request-actions.js); tick several for Accept all / Receive &
+ * start all / Start all. The 1 s tick updates the countdown text only.
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -102,7 +102,7 @@ window.MRT.views.queue = (function () {
       ui.mount(bulk, ids.length ? [
         ui.el('span', { text: ids.length + ' ticked' }),
         ui.button('Accept all (' + canAccept.length + ')', { size: 'sm', kind: 'primary', icon: 'check', disabled: !canAccept.length, onClick: function () { runAll(canAccept, 'accept', {}); } }),
-        ui.button('Receive all (' + canReceive.length + ')', { size: 'sm', icon: 'inbox', disabled: !canReceive.length, onClick: function () { receiveAll(canReceive); } }),
+        ui.button('Receive & start all (' + canReceive.length + ')', { size: 'sm', icon: 'activity', disabled: !canReceive.length, onClick: function () { receiveAll(canReceive); } }),
         ui.button('Start all (' + canStart.length + ')', { size: 'sm', icon: 'activity', disabled: !canStart.length, onClick: function () { runAll(canStart, 'start', {}); } }),
         ui.button('Clear', { size: 'sm', kind: 'ghost', onClick: function () { picked = {}; draw(); } })
       ] : null);
@@ -113,24 +113,29 @@ window.MRT.views.queue = (function () {
     function runAll(list, action, x) {
       var n = 0;
       list.reduce(function (p, r) {
-        return p.then(function () { return store.requestAction(r.id, action, x).then(function () { n++; }); });
+        return p.then(function () {
+          var q = action === 'receive_start'
+            ? store.requestAction(r.id, 'receive', x).then(function () { return store.requestAction(r.id, 'start', {}); })
+            : store.requestAction(r.id, action, x);
+          return q.then(function () { n++; });
+        });
       }, Promise.resolve()).then(function () {
         ui.toast({ kind: 'success', message: n + ' request' + (n === 1 ? '' : 's') + ' ' +
-          (action === 'accept' ? 'accepted' : action === 'receive' ? 'received' : 'started') + '.' });
+          (action === 'accept' ? 'accepted' : action === 'receive_start' ? 'received and started' : 'started') + '.' });
       }).catch(function (e) {
         ui.toastError(n + ' done, then: ' + e.message, e);
       }).then(function () { picked = {}; window.MRT.app.route(); });
     }
 
-    /** Shift start: several lots arrive together, one shared place in the lab. */
+    /** Shift start: several lots arrive together, one shared place in the lab - each is received and started. */
     function receiveAll(list) {
       var where = ui.field({ label: 'Kept where in the lab (optional, same for all)', placeholder: 'e.g. FIB cabinet, shelf 2' });
-      ui.dialog({ title: 'Panels received - ' + list.length + ' requests', icon: 'inbox', body: where.node, actions: [
+      ui.dialog({ title: 'Receive & start - ' + list.length + ' requests', icon: 'activity', body: where.node, actions: [
         { label: 'Cancel', value: null },
-        { label: 'Receive all', kind: 'primary', value: function () { return where.value(); } }
+        { label: 'Receive & start all', kind: 'primary', value: function () { return where.value(); } }
       ] }).then(function (v) {
         if (v === null || v === undefined) return;
-        runAll(list, 'receive', { received_where: v });
+        runAll(list, 'receive_start', { received_where: v });
       }).catch(function (e) { ui.toastError(e.message, e); });
     }
 
@@ -176,7 +181,7 @@ window.MRT.views.queue = (function () {
       var clock = ui.el('span', { class: 'q-clock' });
       clocks.push({ node: clock, r: r });
       var who = byId('users', r.requester_id), assigned = byId('users', r.assigned_to);
-      var actions = A.buttons(r, { size: 'sm', only: ['start', 'accept', 'receive', 'hold', 'clarify', 'complete', 'resume', 'take'] });
+      var actions = A.buttons(r, { size: 'sm', only: ['start', 'accept', 'receive_start', 'hold', 'clarify', 'complete', 'resume', 'take'] });
       if (bkmPath) actions.push(ui.button('', { kind: 'ghost', size: 'sm', icon: 'copy', ariaLabel: 'Copy BKM path of ' + r.request_no, title: 'Copy BKM path',
         onClick: function () { ui.copyText(bkmPath, 'BKM path copied'); } }));
       return ui.el('tr', { id: 'row-' + r.id, class: 'q-row prio-' + (prio ? prio.level : 3) + (late ? ' is-late' : '') }, [

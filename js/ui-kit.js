@@ -105,7 +105,7 @@
   function panels() {
     function demo(title, o, cls) {
       return ui.panel({ title: title, icon: o.icon || 'gauge', status: o.status, glow: o.glow, cls: cls, actions: o.actions,
-        body: el('p', { class: 'muted', style: { margin: 0 }, text: o.text }) }).node;
+        collapsible: o.collapsible, collapsed: o.collapsed, body: el('p', { class: 'muted', style: { margin: 0 }, text: o.text }) }).node;
     }
     return el('div', { class: 'kit-grid' }, [
       demo('Default', { text: 'Title bar, icon, corner brackets.' }),
@@ -113,7 +113,9 @@
       demo('With OK LED', { status: 'ok', text: 'Steady LED.' }),
       demo('Critical', { status: 'critical', glow: true, icon: 'alert', text: 'Pulsing LED, orange glow.' }),
       demo('Expired', { status: 'expired', glow: true, icon: 'clock', text: 'Red glow, pulsing LED.' }),
-      demo('Interactive', { text: 'Hover me.', actions: [ui.button('', { kind: 'ghost', icon: 'refresh', ariaLabel: 'Refresh', size: 'sm' })] }, 'is-interactive')
+      demo('Interactive', { text: 'Hover me.', actions: [ui.button('', { kind: 'ghost', icon: 'refresh', ariaLabel: 'Refresh', size: 'sm' })] }, 'is-interactive'),
+      demo('Collapsible', { text: 'Chevron folds the body away.', collapsible: true }),
+      demo('Collapsed', { text: 'Starts folded.', collapsible: true, collapsed: true })
     ]);
   }
 

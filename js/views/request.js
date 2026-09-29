@@ -35,6 +35,19 @@ window.MRT.views.request = (function () {
       onClick: function () { ui.copyText(text, what + ' copied'); } });
   }
 
+  /** A share path as a file:// link (opens from file:// pages in Chrome/Edge); otherwise plain text. */
+  function fileUrl(p) {
+    if (!D.isSharePath(p)) return null;
+    var s = String(p).replace(/\\/g, '/');
+    return encodeURI(/^\/\//.test(s) ? 'file:' + s : 'file:///' + s);
+  }
+  function pathNode(path, what) {
+    var url = fileUrl(path);
+    var text = url ? ui.el('a', { class: 'mono path-link', href: url, text: path, title: path + ' - open' })
+                   : ui.el('span', { class: 'mono', text: path, title: path });
+    return ui.el('span', { class: 'cell-path' }, [text, copyBtn(path, what)]);
+  }
+
   function render(main, ctx) {
     var me = store.currentUser();
     var r = byId('requests', ctx.subpath);
@@ -213,10 +226,10 @@ window.MRT.views.request = (function () {
     return ui.panel({ title: 'BKM and results', icon: 'folder', body: [
       ui.el('div', { class: 'ifield-label', text: 'BKM' }),
       bkmPath ? ui.el('div', {}, [bkm ? ui.el('div', { text: bkm.name + (bkm.doc_version ? ' (' + bkm.doc_version + ')' : '') }) : null,
-        ui.el('span', { class: 'cell-path' }, [ui.el('span', { class: 'mono', text: bkmPath, title: bkmPath }), copyBtn(bkmPath, 'BKM path')])])
+        pathNode(bkmPath, 'BKM path')])
         : ui.statusBadge('warning', 'No BKM - see the purpose'),
       ui.el('div', { class: 'ifield-label', text: r.results_path ? 'Results folder' : 'Results folder (proposed, Q30)' }),
-      results ? ui.el('span', { class: 'cell-path' }, [ui.el('span', { class: 'mono', text: results, title: results }), copyBtn(results, 'Results path')])
+      results ? pathNode(results, 'Results path')
               : muted('The tool has no results root yet (Settings > Tools).'),
       r.results_path ? null : ui.el('p', { class: 'muted', text: 'The quality engineer confirms or changes it when completing.' })
     ] }).node;

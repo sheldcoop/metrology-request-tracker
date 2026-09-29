@@ -215,6 +215,15 @@ a { color: var(--accent); }
 }
 .panel-head .spacer, .card-head .spacer { flex: 1; }
 .panel-actions { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+/* collapsible panels: the chevron turns, the body hides */
+.panel-collapse { margin-left: auto; display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  background: none; border: 0; border-radius: 6px; color: var(--fg-muted); cursor: pointer; }
+.panel-actions + .panel-collapse { margin-left: 0; }
+.panel-collapse:hover { color: var(--fg); background: var(--inset); }
+.panel-collapse:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.panel-collapse svg { transition: transform 160ms var(--ease-out); }
+.panel.is-collapsed .panel-collapse svg { transform: rotate(-90deg); }
+.panel.is-collapsed .panel-head { border-bottom-color: transparent; }
 .panel-body { padding: 16px; }
 .panel-body.flush { padding: 0; }
 
@@ -1265,6 +1274,11 @@ table.grid tbody tr { scroll-margin: 80px; }
 .cell-tool .tool-glyph { padding: 2px; border: 1px solid var(--line); border-radius: 4px; background: var(--inset); box-sizing: content-box; }
 .cell-path { display: inline-flex; align-items: center; gap: 4px; max-width: 420px; }
 .cell-path .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+a.path-link { color: var(--link, var(--accent)); text-decoration: none; border-bottom: 1px dotted var(--link, var(--accent)); }
+a.path-link:hover { text-decoration: underline; }
+/* Request page side: path rows take the full panel width, equal to the timeline's presence */
+.req-side .cell-path { display: flex; max-width: none; }
+.req-side .cell-path .mono { flex: 1 1 auto; min-width: 0; }
 .prio-label { display: inline-flex; align-items: baseline; gap: 8px; }
 .prio-label b { font-size: 15px; }
 .prio-label .mono { font-size: 11px; }
@@ -1602,6 +1616,10 @@ dialog.drawer::backdrop { background: rgba(0,0,0,.28); }
 button.mz-slot { cursor: pointer; }
 button.mz-slot:hover .mz-rail { background: var(--accent); }
 button.mz-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+/* a divider every 6 slots, so counting down the column is easy */
+.mz-slot.is-bank { box-shadow: 0 1px 0 var(--line); }
+/* read-only: folded empty runs */
+.mz-skip { padding: 1px 8px 1px 34px; font-size: 10px; color: var(--fg-muted); }
 
 /* Panel map (Q6, M2-2): each panel a small board with corner fiducials.
    Picked = lit (accent fill + glow); the light fades in via opacity only. */
@@ -1800,7 +1818,8 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .hirata-ref-item b { font-size: 15px; }
 .hirata-ref-item span { font-size: 10px; color: var(--fg-muted); }
 .panel-hirata { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 8px; }
-.panel-hirata-item { display: inline-flex; align-items: center; gap: 8px; }
+/* panels share the row, at most 4 across (the 5th wraps); narrow columns show fewer */
+.panel-hirata-item { display: inline-flex; align-items: center; gap: 8px; flex: 1 1 190px; min-width: 170px; max-width: calc(25% - 11px); }
 button.panel-hirata-item { background: none; border: 0; padding: 2px; font: inherit; color: inherit; cursor: pointer; border-radius: 6px; }
 button.panel-hirata-item:hover .panel-chip { border-color: var(--line-hi); }
 button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

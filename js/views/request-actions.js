@@ -9,8 +9,9 @@
  *   MRT.requestActions.run(action, r) -> Promise (resolves when saved, null when cancelled)
  *
  * Actions: accept, receive, start, hold, resume, clarify, answer, complete,
- * analyze, reopen (domain.TRANSITIONS), plus 'take' (Take it). Who may do
- * what is decided in domain.js, never here.
+ * analyze, reopen (domain.TRANSITIONS), plus 'take' (Take it) and
+ * 'receive_start' (Receive & start: one dialog, both transitions). Who may
+ * do what is decided in domain.js, never here.
  */
 window.MRT = window.MRT || {};
 window.MRT.requestActions = (function () {
@@ -21,8 +22,8 @@ window.MRT.requestActions = (function () {
   var D = window.MRT.domain;
 
   var ICON = { accept: 'check', receive: 'inbox', start: 'activity', hold: 'clock', resume: 'refresh', clarify: 'help', answer: 'edit',
-               complete: 'check', analyze: 'check', reopen: 'restore', take: 'user' };
-  var PRIMARY = { accept: true, receive: true, start: true, complete: true, answer: true, analyze: true };
+               complete: 'check', analyze: 'check', reopen: 'restore', take: 'user', receive_start: 'activity' };
+  var PRIMARY = { accept: true, receive: true, start: true, complete: true, answer: true, analyze: true, receive_start: true };
 
   function toolOf(r) { return store.byId('tools', r.tool_id); }
 
@@ -45,12 +46,17 @@ window.MRT.requestActions = (function () {
   function available(r) {
     var me = store.currentUser(), tool = toolOf(r);
     var list = D.actionsFor(me, r, tool, Date.now());
+    // no separate receive: receiving always starts measuring (Receive & start)
+    var ri = list.indexOf('receive');
+    if (ri !== -1) list[ri] = 'receive_start';
     if (D.canTake(me, r, tool)) list.push('take');
     return list;
   }
 
   function label(action) {
-    return action === 'take' ? 'Take it' : D.TRANSITIONS[action].label;
+    if (action === 'take') return 'Take it';
+    if (action === 'receive_start') return 'Receive & start';
+    return D.TRANSITIONS[action].label;
   }
 
   function buttons(r, o) {
@@ -145,6 +151,15 @@ window.MRT.requestActions = (function () {
           { key: 'where', label: 'Kept where in the lab (optional)', kind: 'text', placeholder: 'e.g. FIB cabinet, shelf 2' }
         ], {}, function (v) { return store.requestAction(r.id, 'receive', { received_where: v.where }); })
           .then(function (res) { return res ? done(res, 'panels received.') : null; });
+        break;
+      case 'receive_start':
+        p = ask('Receive & start - ' + r.request_no, 'activity', [
+          { key: 'where', label: 'Kept where in the lab (optional)', kind: 'text', placeholder: 'e.g. FIB cabinet, shelf 2' }
+        ], {}, function (v) {
+          return store.requestAction(r.id, 'receive', { received_where: v.where })
+            .then(function () { return store.requestAction(r.id, 'start', {}); });
+        }, null, 'The panels are marked received and measuring starts - one step, two entries in the timeline.')
+          .then(function (res) { return res ? done(res, 'panels received and started.') : null; });
         break;
       case 'hold':
         var holdRows = store.list('hold_reasons');
