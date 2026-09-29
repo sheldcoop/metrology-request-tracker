@@ -477,6 +477,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...no date: "the priority says how urgent it is"', /priority says how urgent/.test($('#main .tr-clock').textContent));
   check('the status rail: Submitted now, by whom and when', $$('#main .rail-step').length === 6 && $('#main .rail-step.is-now').textContent.indexOf('Submitted') === 0 && /Prince Khurana/.test($('#main .rail-step.is-now').textContent));
   check('the results folder is proposed from the tool root (Q30)', mainText().indexOf('\\\\srv\\lab\\FIB\\') !== -1 && mainText().indexOf(req1.request_no + '\\') !== -1);
+  check('...unmissable in a banner under the header, with Copy path + Open', !!$('#main .res-banner') && !$('#main .res-banner').classList.contains('is-confirmed') &&
+        $('#main .res-banner .res-banner-path').textContent.indexOf(req1.request_no) !== -1 &&
+        !!buttonByText($('#main .res-banner'), 'Copy path') && !!buttonByText($('#main .res-banner'), 'Open'));
   setVal(fieldIn(doc.getElementById('main'), 'Add a comment'), 'Please cut near via 3, @olga');
   buttonByText(doc.getElementById('main'), 'Add comment').click(); await settle();
   const com = MRT.store.requestEvents(req1.id).filter(e => e.kind === 'comment')[0];
@@ -610,8 +613,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.getElementById('main'), 'Print slip').click(); await settle();
   check('Print slip: the A6 traveller slip with the ID, its barcode and the panels (Q38)', !!$('#main .slip') && $('#main .slip-id').textContent === req2.request_no &&
         $('#main .barcode').querySelectorAll('rect').length > 30 && /DESTROYS THESE PANELS/.test($('#main .slip').textContent));
-  check('...each panel drawn as its copper panel, with its decoded fields (H-3)', (req2.panels || []).length > 0 &&
-        $$('#main .slip .cu-panel').length === req2.panels.length && /Panel/.test($('#main .slip .hf-list').textContent));
+  check('...each panel drawn compactly in one row: copper + ID, no decoded fields (horizontal slip panels)', (req2.panels || []).length > 0 &&
+        $$('#main .slip .cu-panel').length === req2.panels.length && !$('#main .slip .hf-list') &&
+        req2.panels.every(id => $('#main .slip').textContent.indexOf(id) !== -1));
+  check('...the results folder is printed big on the slip', $('#main .slip .slip-path') !== null &&
+        $('#main .slip .slip-path').textContent.indexOf(MRT.store.byId('requests', req2.id).results_path) !== -1);
   win.setHash('#/lab'); await settle();
   req2.request_no.split('').concat(['Enter']).forEach(k => doc.dispatch('keydown', { key: k, target: doc.body })); await settle();
   check('a scanner typing the ID + Enter anywhere opens the request (Q38)', win.location.hash === '#/request/' + req2.id);

@@ -27,6 +27,7 @@ window.MRT.views.slip = (function () {
     }
     var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id), prio = byId('priorities', r.priority_id);
     var type = byId('measurement_types', r.type_id), who = byId('users', r.requester_id), bkm = byId('bkms', r.bkm_id);
+    var folder = D.resultsFolder(r, tool);
     main.appendChild(ui.pageHead('Traveller slip', 'Print it and put it with the panels. A6 paper, or A4 (the card sits top left).', [
       ui.button('Back to the request', { kind: 'ghost', icon: 'chevron_left', onClick: function () { location.hash = '#/request/' + r.id; } }),
       ui.button('Print', { kind: 'primary', icon: 'download', onClick: function () { window.print(); } })
@@ -41,7 +42,8 @@ window.MRT.views.slip = (function () {
         f('Lot', lot ? lot.lot_number + '  ' + [(byId('projects', r.project_id) || {}).code, r.part_number_id ? (byId('part_numbers', r.part_number_id) || {}).code : null,
           (byId('buildups', r.buildup_id) || {}).code].filter(Boolean).join(' · ') : null),
         f('Panels', D.panelsText(r) + ((r.panels || []).length ? '  (' + r.panels.length + ')' : ''), 'wide'),
-        (r.panels || []).length ? { label: 'On the panels', value: window.MRT.views.hirata.panelsView(r.panels, 'md'), cls: 'wide' } : null,
+        (r.panels || []).length ? { label: 'On the panels', value: window.MRT.views.hirata.panelsView(r.panels, 'sm', { compact: true }), cls: 'wide slip-panels' } : null,
+        f(folder.confirmed ? 'Results folder - put the data here' : 'Results folder (proposed)', folder.path || 'not set yet - see the request', 'wide slip-path'),
         f('Layers', (r.layers || []).join(', ') || null),
         f('Panels are', window.MRT.requestActions.whereOf(r) || null, 'wide'),
         f('Needed by', r.needed_by || 'no date'),

@@ -575,6 +575,16 @@ window.MRT.domain = (function () {
     return [t, loc].filter(Boolean).join(' - ');
   }
 
+  /** The results folder: confirmed at Complete, else proposed from the tool root (Q30). {path, confirmed}. */
+  function resultsFolder(r, tool) {
+    if (r.results_path) return { path: r.results_path, confirmed: true };
+    var year = (r.submitted_ts || '').slice(0, 4);
+    if (tool && tool.results_root) {
+      return { path: tool.results_root.replace(/\\+$/, '') + '\\' + year + '\\' + r.request_no + '\\', confirmed: false };
+    }
+    return { path: null, confirmed: false };
+  }
+
   /** The slots of a magazine taken by other open requests: {slot: request_no}. */
   function takenSlots(requests, magazineId, exceptId) {
     var out = {};
@@ -1961,6 +1971,7 @@ window.MRT.domain = (function () {
     buildupLayers: buildupLayers,
     layersFor: layersFor,
     placeText: placeText,
+    resultsFolder: resultsFolder,
     takenSlots: takenSlots,
     isMagazineCode: isMagazineCode,
     parseLotNumbers: parseLotNumbers,
