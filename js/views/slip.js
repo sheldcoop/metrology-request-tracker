@@ -27,6 +27,7 @@ window.MRT.views.slip = (function () {
     }
     var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id), prio = byId('priorities', r.priority_id);
     var type = byId('measurement_types', r.type_id), who = byId('users', r.requester_id), bkm = byId('bkms', r.bkm_id);
+    var assignee = byId('users', r.assigned_to), analyst = byId('users', r.analyzed_by);
     main.appendChild(ui.pageHead('Traveller slip', 'Print it and put it with the panels. A6 paper, or A4 (the card sits top left).', [
       ui.button('Back to the request', { kind: 'ghost', icon: 'chevron_left', onClick: function () { location.hash = '#/request/' + r.id; } }),
       ui.button('Print', { kind: 'primary', icon: 'download', onClick: function () { window.print(); } })
@@ -48,6 +49,8 @@ window.MRT.views.slip = (function () {
         f('Panels are', window.MRT.requestActions.whereOf(r) || null, 'wide'),
         f('Needed by', r.needed_by || 'no date'),
         f('Requested by', who ? who.name : null),
+        f('Assigned to', assignee ? assignee.name : null),
+        f('Analyzed by', analyst ? analyst.name : null),
         f('Submitted', ui.formatDate(r.submitted_ts)),
         f('Afterwards', window.MRT.requestActions.destinationOf(r)),
         f('BKM', bkm ? bkm.name : r.bkm_path ? 'own BKM (path on the request)' : 'none - see the purpose', 'wide')

@@ -648,6 +648,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...both folders printed big on the slip', $$('#main .slip .slip-path').length === 2 &&
         $$('#main .slip .slip-path').map(n => n.textContent).join('|').indexOf(MRT.store.byId('requests', req2.id).results_path) !== -1 &&
         $$('#main .slip .slip-path').map(n => n.textContent).join('|').indexOf(MRT.store.byId('requests', req2.id).analyzed_path) !== -1);
+  check('...Requested by, Assigned to, Analyzed by on the slip', ['Requested by', 'Assigned to', 'Analyzed by',
+        MRT.store.byId('users', MRT.store.byId('requests', req2.id).requester_id).name,
+        MRT.store.byId('users', MRT.store.byId('requests', req2.id).analyzed_by).name]
+        .every(t => $('#main .slip').textContent.indexOf(t) !== -1));
   win.setHash('#/lab'); await settle();
   req2.request_no.split('').concat(['Enter']).forEach(k => doc.dispatch('keydown', { key: k, target: doc.body })); await settle();
   check('a scanner typing the ID + Enter anywhere opens the request (Q38)', win.location.hash === '#/request/' + req2.id);
