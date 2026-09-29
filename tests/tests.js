@@ -110,6 +110,12 @@
     eq('odd characters are not a login', D.parseWindowsLogin('pk$'), null);
     ok('dots and dashes are fine', D.isWindowsId('p.khurana-2'));
     ok('upper case is not a stored ID', !D.isWindowsId('PKhurana'));
+    eq('M3: login matrix (domain, case, edges)', [
+      D.parseWindowsLogin('ATS\\pkhurana'), D.parseWindowsLogin('ats\\PKHURANA'), D.parseWindowsLogin('pkhurana'),
+      D.parseWindowsLogin('A\\B\\C'), D.parseWindowsLogin('ATS\\'), D.parseWindowsLogin('\\pkhurana'),
+      D.parseWindowsLogin('user@ats.com'), D.parseWindowsLogin(new Array(66).join('a')), D.parseWindowsLogin('a$b'), D.parseWindowsLogin('  ')
+    ], [{ windows_id: 'pkhurana', domain: 'ATS' }, { windows_id: 'pkhurana', domain: 'ATS' }, { windows_id: 'pkhurana', domain: null },
+      null, null, null, null, null, null, null]);
 
     ok('same ID, no domains: match', D.identityMatches({ windows_id: 'pk' }, { windows_id: 'pk', domain: 'ATS' }));
     ok('same ID, same domain: match', D.identityMatches({ windows_id: 'pk', domain: 'ATS' }, { windows_id: 'pk', domain: 'ats' }));
@@ -625,6 +631,17 @@
     ST.setCurrentUser(anna.id);
     await refused('only admins add people', ST.saveEntry('users', { fields: { name: 'X', roles: ['engineer'] } }), 'not_admin');
     await refused('an operator cannot grant herself admin', ST.saveEntry('users', { id: anna.id, fields: { roles: ['operator', 'admin'] } }), 'not_admin');
+    await refused('M3: ...nor change the admin PIN', ST.setAdminPin('9999', 'x'), 'not_admin');
+    var admM3 = ST.list('users', { all: true }).filter(function (u) { return (u.roles || []).indexOf('admin') !== -1; })[0].id;
+    ST.setCurrentUser(admM3);
+    var edM3 = await ST.saveEntry('users', { fields: { name: 'Ed M3', roles: ['engineer'] } });
+    ST.setCurrentUser(edM3.id);
+    await refused('M3: an engineer cannot take the admin role', ST.saveEntry('users', { id: edM3.id, fields: { roles: ['engineer', 'admin'] } }), 'not_admin');
+    await refused('M3: ...nor hand it to someone else', ST.saveEntry('users', { id: anna.id, fields: { roles: ['operator', 'admin'] } }), 'not_admin');
+    ST.setCurrentUser(admM3);
+    await ST.saveEntry('users', { id: edM3.id, fields: { roles: ['engineer', 'analyst'] } });
+    ST.setCurrentUser(edM3.id);
+    eq('M3: a role change is live on the next read (no reload)', ST.currentUser().roles, ['engineer', 'analyst']);
     ST.init(a); await ST.load();
     eq('nobody is signed in after a reload', ST.currentUser(), null);
     eq('"Is this you?" finds Anna by name', ST.nameMatches('anna  BERGER').map(function (u) { return u.name; }), ['Anna Berger']);
