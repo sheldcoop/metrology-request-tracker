@@ -195,7 +195,7 @@ window.MRT.requestActions = (function () {
           .then(function (res) { return res ? done(res, 'answered.', 'answer') : null; });
         break;
       case 'complete': {
-        var root = tool && tool.results_root ? tool.results_root.replace(/\\+$/, '') + '\\' + (r.submitted_ts || '').slice(0, 4) + '\\' + r.request_no + '\\' : '';
+        var root = (D.resultsFolder(r, tool || {}).path) || '';
         var outcome = tool && tool.destructive ? 'scrapped' : 'returned';
         var f = ui.form([
           { key: 'results_path', label: 'Results folder', kind: 'path', placeholder: '\\\\server\\share\\...', hint: 'Proposed from the tool\'s results root - change it if needed.' },
