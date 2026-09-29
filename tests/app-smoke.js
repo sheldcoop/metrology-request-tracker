@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js', 'js/ui/theme-gallery.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/settings-look.js', 'js/views/settings-emails.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/settings-look.js', 'js/views/settings-emails.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/results.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -86,8 +86,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   // --- the side menu (M1-6)
   const items = doc.getElementById('navItems').children;
-  check('ten menu entries', items.length === 10, items.length);
-  check('all ten live (Analytics came with M5)', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,requests,new,lots,board,hirata,analytics,settings,help');
+  check('eleven menu entries', items.length === 11, items.length);
+  check('all eleven live (Results tab)', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,requests,new,lots,board,results,hirata,analytics,settings,help');
   check('nothing greyed any more', items.filter(i => i.classList.contains('is-soon') || i.getAttribute('aria-disabled') === 'true').length === 0);
 
   // --- Lab status
@@ -600,7 +600,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...found from My requests: "To analyze (all tools)" lists it (M7)', /To analyze \(all tools\)/.test(mainText()) && mainText().indexOf(req2.request_no) !== -1);
   win.setHash('#/request/' + req2.id); await settle();
   buttonByText($('#main .req-actbar'), 'Mark analyzed').click(); await settle();
+  check('...a dialog asks the analyzed data folder, prefilled with the results folder', !!openDialog() && fieldIn(openDialog(), 'Analyzed data folder').value === MRT.store.byId('requests', req2.id).results_path);
+  setVal(fieldIn(openDialog(), 'Analyzed data folder'), '\\\\srv\\lab\\FIB\\analysis'); buttonByText(openDialog(), 'Save').click(); await settle();
   check('...Analyzed: stamp Closed', MRT.store.byId('requests', req2.id).status === 'analyzed' && $('#main .tr-stamp').textContent === 'Closed' && !$('#main .req-actbar'));
+  win.setHash('#/results'); await settle();
+  check('Results tab: the request with both paths, clickable', mainText().indexOf(req2.request_no) !== -1 && $$('#main a.path-link').length === 2 &&
+        $$('#main a.path-link').every(a => /^file:/.test(a.getAttribute('href'))));
   MRT.store.setCurrentUser(meP); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
   buttonByText(doc.getElementById('main'), 'Print slip').click(); await settle();
   check('Print slip: the A6 traveller slip with the ID, its barcode and the panels (Q38)', !!$('#main .slip') && $('#main .slip-id').textContent === req2.request_no &&

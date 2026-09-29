@@ -1041,6 +1041,7 @@ window.MRT.domain = (function () {
     }
     if ((action === 'clarify' || action === 'answer') && !isStr(x.text)) p.push(action === 'clarify' ? 'Say what is missing' : 'Write your answer');
     if (action === 'reopen' && !isStr(x.text)) p.push('Say why the results are not OK');
+    if (action === 'analyze' && !isSharePath(x.analyzed_path)) p.push('Analyzed data folder: a share path like \\\\server\\share\\... or Z:\\...');
     if (action === 'complete') {
       if (!isSharePath(x.results_path)) p.push('Results folder: a share path like \\\\server\\share\\... or Z:\\...');
       if (PANEL_OUTCOMES.indexOf(x.panels_outcome) === -1) p.push('Say what happened to the panels');

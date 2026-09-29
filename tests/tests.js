@@ -1061,8 +1061,10 @@
     await ST.requestAction(w.id, 'start', {});
     await ST.requestAction(w.id, 'complete', { results_path: 'Z:\\lab\\QVM\\x', panels_outcome: 'returned' });
     ST.setCurrentUser(anL.id);
-    w = await ST.requestAction(w.id, 'analyze', {});
+    await refused('Analyze needs the analyzed data folder', ST.requestAction(w.id, 'analyze', {}), 'invalid');
+    w = await ST.requestAction(w.id, 'analyze', { analyzed_path: 'Z:\\\\lab\\\\QVM\\\\analysis' });
     ok('Analyzed closes it, by the analyst', w.status === 'analyzed' && D.isClosed(w, Date.now()) && w.analyzed_by === anL.id);
+    eq('...the analyzed data folder is stored and on the timeline', [w.analyzed_path, ST.requestEvents(w.id).slice(-1)[0].text], ['Z:\\\\lab\\\\QVM\\\\analysis', 'Analysis in Z:\\\\lab\\\\QVM\\\\analysis']);
     await refused('...only once, and no reopen after', ST.requestAction(w.id, 'analyze', {}), 'not_allowed');
     await refused('...no reopen after analyze', ST.requestAction(w.id, 'reopen', { text: 'x' }), 'not_allowed');
     eq('...the timeline tells the whole story', ST.requestEvents(w.id).map(function (e) { return e.kind === 'status' ? e.to : e.kind; }),
