@@ -153,6 +153,26 @@ window.MRT.views.hirata = (function () {
    * o.state (P4): 'received' (in the lab tray), 'measured' (a check),
    * 'scrapped' (crossed out); o.animate: it just changed (slide / mark).
    */
+  /**
+   * The right side of a panel card: one block with Lot + Panel Number (the code
+   * itself is already listed above the cards, so it is not repeated here),
+   * then the remaining decoded fields.
+   */
+  function infoBlock(decoded) {
+    if (!decoded.length) return null;   // undecodable: the code list above already shows the ID
+    function pick(k) { var f = decoded.filter(function (x) { return x.id === k; })[0]; return f ? f.value : null; }
+    var rest = decoded.filter(function (f) { return f.id !== 'lot' && f.id !== 'pan'; });
+    return ui.el('div', {}, [
+      ui.el('div', { class: 'panel-lp' }, [lpRow('Lot', pick('lot')), lpRow('Panel Number', pick('pan'))]),
+      rest.length ? ui.hirataFields(rest, { compact: true }) : null]);
+  }
+
+  function lpRow(label, v) {
+    return ui.el('div', { class: 'panel-lp-row' }, [
+      ui.el('span', { class: 'panel-lp-label', text: label }),
+      ui.el('b', { class: 'mono', text: v == null ? '-' : v })]);
+  }
+
   function panelsView(ids, size, o) {
     o = o || {};
     var list = (ids || []).filter(function (id) { return !D.hirataCheck(id).problem; });
@@ -161,13 +181,12 @@ window.MRT.views.hirata = (function () {
     var items = list.map(function (id) {
       var decoded = D.hirataFields(id);
       var lot = decoded.filter(function (f) { return f.id === 'lot'; })[0];
-      var rest = decoded.filter(function (f) { return f.id !== 'lot'; });
       return ui.el('div', { class: 'panel-hirata-item' + (o.state ? ' is-' + o.state : '') + (o.compact ? ' is-compact' : '') }, [
-        o.compact ? null : ui.el('div', { class: 'panel-lot-head' }, ['Lot per day ', ui.el('b', { class: 'mono', text: lot ? lot.value : '-' })]),
+        o.compact ? null : ui.el('div', { class: 'panel-lot-head' },
+          ['Lot per day ', ui.el('b', { class: 'mono', text: lot ? lot.value : '-' }), MARK ? '  ·  ' + MARK.text.toLowerCase() : null]),
         ui.el('div', { class: 'panel-hirata-body' }, [
           ui.el('span', { class: 'panel-cu' }, [copper(id, size || 'md'), MARK ? ui.el('span', { class: 'panel-mark', title: MARK.text }, ui.icon(MARK.icon, 14)) : null]),
-          o.compact ? ui.el('div', { class: 'mono', text: id })
-            : ui.el('div', {}, [ui.el('div', { class: 'mono', text: id + (MARK ? '  ·  ' + MARK.text.toLowerCase() : '') }), ui.hirataFields(rest, { compact: true })])])]);
+          o.compact ? ui.el('div', { class: 'mono', text: id }) : infoBlock(decoded)])]);
     });
     var node = ui.el('div', { class: 'panel-hirata' + (o.animate ? ' is-animating' : '') }, items);
     if (o.state !== 'received') return node;

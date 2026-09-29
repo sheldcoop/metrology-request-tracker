@@ -161,9 +161,12 @@ window.MRT.views.request = (function () {
       level: level, urgent: level === 1 && D.isOpen(r),
       stamp: D.isClosed(r, Date.now()) ? { label: 'Closed', kind: 'neutral' } : { label: D.REQUEST_STATUS_LABEL[r.status], kind: STAMP[r.status] || 'neutral' },
       fields: [
-        cell('Lot', lot ? [ui.el('b', { class: 'mono', text: lot.lot_number }), ui.el('span', { class: 'muted', text: '  ' +
-          [(byId('projects', r.project_id) || {}).code, r.part_number_id ? (byId('part_numbers', r.part_number_id) || {}).code : null,
-           (byId('buildups', r.buildup_id) || {}).code].filter(Boolean).join(' · ') })] : muted('?')),
+        cell('Lot', lot ? ui.el('div', { class: 'lot-stack' }, [
+          lotRow('Project', (byId('projects', r.project_id) || {}).code),
+          lotRow('Lot', lot.lot_number),
+          lotRow('Build-up', (byId('buildups', r.buildup_id) || {}).code),
+          r.part_number_id ? lotRow('Part', (byId('part_numbers', r.part_number_id) || {}).code) : null
+        ]) : muted('?')),
         cell('Priority', prio ? ui.el('span', { class: 'tr-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono muted', text: prio.code })]) : muted('-'),
              r.priority_reason ? r.priority_reason : null),
         cell('Needed by', r.needed_by ? ui.el('b', { class: 'num', text: ui.formatDate(r.needed_by + 'T12:00:00Z') }) : muted('no date'), null,
@@ -198,6 +201,13 @@ window.MRT.views.request = (function () {
 
   /** One fact on the card (drawn by ui.traveller). */
   function cell(label, value, sub, extra) { return { label: label, value: value, sub: sub || null, extra: extra || null }; }
+
+  /** One line of the Lot stack: small label, plain value (the app's own sans, not mono). */
+  function lotRow(label, v) {
+    return ui.el('div', { class: 'lot-row' }, [
+      ui.el('span', { class: 'lot-label', text: label }),
+      ui.el('span', { class: 'lot-val', text: v || '-' })]);
+  }
 
   /** This request's place in the tool's queue, so the requester knows when their turn comes. */
   function ord(n) { return n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'); }
