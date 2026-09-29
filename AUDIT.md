@@ -1,7 +1,8 @@
 # Holistic gap audit — 2026-09-28 (statuses updated as the fix-all goal landed fixes)
 
-Gates after fix-all: 654/654 unit tests · app-smoke 285/285 · ui-smoke ok ·
-css-check ok · contrast 0 fails · preview-smoke 13. Main == origin/main, tree clean.
+Gates after review batch (2026-09-29): 662/662 unit tests · app-smoke 295/295 ·
+ui-smoke ok · css-check ok · contrast 0 fails · preview-smoke 13.
+Main == origin/main, tree clean.
 Scale: EXISTS = works + covered · PARTIAL = works but untested, warn-only, or by-design limit ·
 MISSING = absent.
 
@@ -27,9 +28,10 @@ MISSING = absent.
    `store.js:1439` submitRequest (draft→submitted); clarification→answer→back,
    on_hold→resume→back, completed→reopen→accepted. Terminals (cancelled,
    analyzed) are intentional (`domain.js` isClosed).
-6. ID collision entropy — PARTIAL. `store.js:73` newId = prefix +
-   Date.now-base36 + 32-bit random; no collision test. User-facing
-   request_no uniqueness IS enforced and tested (`tests/tests.js:1296`).
+6. ID collision entropy — EXISTS (fixed 2026-09-29). `store.js:74` newId =
+   prefix + Date.now-base36 + 64-bit crypto random; 20,000-ID uniqueness
+   test (`tests/tests.js` seed group). User-facing request_no uniqueness
+   IS enforced and tested.
 7. Scheduled backups — EXISTS (event-driven, no scheduler). Trigger: the first
    save of the day (`store.js` save() → dailyBackup). Nothing time-based exists.
 8. Same-request concurrent edit — PARTIAL. File-level revision gate only: the
@@ -39,8 +41,9 @@ MISSING = absent.
 ## TIER 2 — Daily usability
 9. Notifications — EXISTS. `domain.js` notificationsFor (@mentions, assignment,
    clarification), bell view, demo-tested (`tests/tests.js:1324`).
-10. Bulk operations — EXISTS. Queue Accept all / Start all, sequential saves
-    (`js/views/queue.js:111-121`, Q43).
+10. Bulk operations — EXISTS. Queue Accept all / Receive & start all /
+    Start all, sequential saves (`js/views/queue.js`, Q43). Receiving
+    always starts (no separate receive since 2026-09-29).
 11. Global search — EXISTS (`js/app.js` search across tools/types/BKMs/requests/
     lots/users; smoke `tests/app-smoke.js:113,361`).
 12. RBAC in domain.js — EXISTS (hasRole/canAct/canMeasure/canAnalyze/canRequest,
@@ -79,8 +82,9 @@ MISSING = absent.
 26. Edge AND Safari — PARTIAL by design. Chromium-only (File System Access);
     `js/app.js:212` showUnsupported points at Edge. Safari can never run this
     architecture.
-27. Crash recovery — PARTIAL. Page-level isolation (`js/app.js:553` render
-    try/catch) + `unhandledrejection` (`js/app.js:1149`); no `window.onerror`.
+27. Crash recovery — EXISTS. Page-level isolation (`js/app.js` render
+    try/catch) + `window` error and `unhandledrejection` handlers
+    (`js/app.js:1148-1156`) with toast + console details.
 28. Memory leaks over 8 h — MISSING. Nothing measured; design is tick-text-only
     but unproven.
 
@@ -91,16 +95,19 @@ MISSING = absent.
 31. Archive strategy — PARTIAL. Decided: yearly archive file, analytics-readable
     (`DECISIONS.md:12` Q40). Not built; no tracking item in OPEN_QUESTIONS.md
     (left untouched — report only).
-32. Schema migration — EXISTS. Numbered MIGRATIONS to v11 (`store.js:288`),
-    tested, pre-upgrade backup (`store.js:414`).
-33. Audit log growth/pruning — MISSING. `audit_log` and `request_events` grow
-    forever (`store.js:2003` "history only grows"); no cap, no archive, no
-    pruning. Slow-burn file-size risk.
-34. Search at 5,000 requests — PARTIAL. Big-file render timed in
-    `tests/preview-smoke.js` (fake DOM); search itself unmeasured at scale.
+32. Schema migration — EXISTS. Numbered MIGRATIONS to v13 (lot links 11→12,
+    single-project part numbers 12→13), each tested, pre-upgrade backup.
+33. Audit log growth/pruning — PARTIAL (surfaced 2026-09-29). History still
+    grows forever; Health now warns past 20k audit / 50k timeline entries
+    (`domain.js` audit_large/events_large) and the Audit log downloads.
+    No cap, archive or pruning yet (OPEN_QUESTIONS #27).
+34. Search at 5,000 requests — PARTIAL. Queue sort over 5k has a
+    correctness + time tripwire (`tests/tests.js`); big-file render timed
+    in `tests/preview-smoke.js` (fake DOM). Search itself and real-browser
+    timing unmeasured at scale.
 35. Measured < 150 ms — PARTIAL. Measured in fake DOM only (e.g. `#/queue`
     39 ms); never measured in a real browser.
-36. Test coverage gaps — PARTIAL (judgment). 640 tests + 285 smoke checks; gaps
+36. Test coverage gaps — PARTIAL (judgment). 662 tests + 295 smoke checks; gaps
     are exactly the PARTIALs/MISSINGs in this file.
 37. Docs current — EXISTS (fixed 2026-09-29). Excel (E-1/E-2), restyle (R-1) and audit
     (A-1) recorded in DECISIONS.md; audit decisions parked as OPEN_QUESTIONS 24-29.
@@ -160,7 +167,8 @@ MISSING = absent.
     (`js/excel-bridge.js` FileReader), launcher `?who=` (`js/identity.js`),
     `mailto:` (`js/adapters/mail.js`). Swap = new `storage-api.js` + one
     `js/config.js` flag; no view/domain/store change needed.
-56. Lot linked to Project + Part Number — EXISTS (fixed 2026-09-29, F-7). A lot carries no
-    project/part-number of its own (a migration deleted direct links:
-    `js/store.js:363`); `lotProjects()` derives them from the lot's requests
-    (`js/views/lots.js:31,153`). A lot is project-less until its first request.
+56. Lot linked to Project + Part Number — EXISTS (F-7 + P-1, 2026-09-29).
+    A lot links one project + one part number (optional, validated,
+    migration 11→12); the form inherits them when unset. A part number
+    belongs to exactly one project (migration 12→13); a project with part
+    numbers cannot be deleted.

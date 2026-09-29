@@ -705,6 +705,15 @@ never the only signal - the text/label says the same thing.
   single IDs; a project with PNs cannot be deleted.
 - **X-1** (2026-09-29, "fix all" goal) Requester: the card shows the queue
   place (`domain.queuePosition`, accepted/received/in-progress on the tool by
-  submitted time); drafts delete from My requests rows. QE: bulk Panels
-  received with one shared place. Admin: the audit log downloads (filtered
-  rows). Manager pages reviewed, no change.
+  submitted time); drafts delete from My requests rows. Admin: the audit log
+  downloads (filtered rows). Manager pages reviewed, no change.
+- **X-2** (2026-09-29, Prince: no separate receive) Receiving always starts:
+  one "Receive & start" button (and bulk "Receive & start all") asks the
+  place once, then runs receive + start; the timeline keeps both entries.
+  Paths on the request page are clickable `file://` links; the read-only
+  magazine folds empty runs; Hirata panels share the row (max 4); the New
+  Request side panels collapse (remembered per PC).
+- **X-3** (2026-09-29, review goal) IDs: 64-bit crypto random + 20k
+  uniqueness test. Health warns past 20k audit / 50k timeline entries
+  (download first; archiving still open #27). Queue sort has a 5k
+  correctness + time tripwire. Docs refreshed (P-1 supersedes M1-13).

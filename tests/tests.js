@@ -239,6 +239,15 @@
       { id: 'g', status: 'submitted', priority_id: 'p3', submitted_ts: '0' }];
     eq('queue order (M2-5): Line stop, late, by date (Hot first on the same day), then no date by priority, longest waiting first',
        D.sortQueue(QL, { now_ts: Date.parse('2026-09-24T10:00:00Z'), cal: calW, levelOf: function (r) { return lvQ[r.priority_id]; } }).map(function (r) { return r.id; }).join(''), 'bcdagfe');
+    ok('...5,000 requests sort right and fast (scale tripwire)', (function () {
+      var big = [], i;
+      for (i = 0; i < 5000; i++) big.push({ id: 'q' + i, status: 'submitted', priority_id: 'p' + ((i % 4) + 1),
+        needed_by: i % 3 ? '2026-10-' + (10 + (i % 15)) : null, submitted_ts: '2026-09-' + (10 + (i % 15)) + 'T08:00:00Z' });
+      var t0 = Date.now();
+      var out = D.sortQueue(big, { now_ts: Date.parse('2026-09-24T10:00:00Z'), cal: calW, levelOf: function (r) { return lvQ[r.priority_id]; } });
+      var first = out.slice(0, 1250).every(function (r) { return r.priority_id === 'p1'; });
+      return out.length === 5000 && first && Date.now() - t0 < 5000;
+    })());
     eq('late: past the end of the lab day on the date; never while on hold', [D.isLate({ status: 'accepted', needed_by: '2026-09-24' }, D.viennaTs('2026-09-24', '17:59'), calW),
        D.isLate({ status: 'accepted', needed_by: '2026-09-24' }, D.viennaTs('2026-09-24', '18:01'), calW), D.isLate({ status: 'on_hold', needed_by: '2026-09-01' }, Date.now(), calW)], [false, true, false]);
     var QS = [{ tool_id: 't', status: 'accepted', submitted_ts: '2026-09-21T07:00:00Z', needed_by: '2026-09-22', request_no: 'A' },
@@ -537,6 +546,11 @@
       var ids = {}, dup = false;
       ST.COLLECTIONS.forEach(function (c) { seed[c].forEach(function (r) { if (r.id) { if (ids[r.id]) dup = true; ids[r.id] = 1; } }); });
       return !dup;
+    })());
+    ok('new IDs: 20,000 unique, stable form', (function () {
+      var seen = {}, n = 20000, i, id, good = true;
+      for (i = 0; i < n; i++) { id = ST._pure.newId('req'); if (seen[id] || !/^req_[0-9a-z]+_[0-9a-z]+$/.test(id)) { good = false; break; } seen[id] = 1; }
+      return good && Object.keys(seen).length === n;
     })());
 
     // seed.js can carry real extra fields and closing days - no code change needed
@@ -1177,6 +1191,10 @@
     ok('...linking to the request', hi.filter(function (x) { return x.code === 'req_bad_project'; })[0].tab === 'request');
     hb.magazines = [];
     ok('no magazines is a warning (the form offers none)', countOf(D.healthIssues(hb, { today_ymd: '2026-09-24' }), 'no_magazines') === 1);
+    hb.audit_log = new Array(20001); hb.request_events = new Array(50001);
+    var hl = D.healthIssues(hb, { today_ymd: '2026-09-24' });
+    ok('a huge history warns, pointing at the Audit log', countOf(hl, 'audit_large') === 1 && countOf(hl, 'events_large') === 1 &&
+       hl.filter(function (x) { return x.code === 'audit_large'; })[0].tab === 'audit');
     var ha = JSON.parse(JSON.stringify(hs2));
     ha.users[1].away_from = '2026-09-20';
     eq('only the primary away: no warning', countOf(D.healthIssues(ha, { today_ymd: '2026-09-24' }), 'both_away'), 0);
