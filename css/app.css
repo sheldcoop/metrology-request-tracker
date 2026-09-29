@@ -1382,6 +1382,9 @@ a.path-link:hover { text-decoration: underline; }
 
 /* Panels section row: mode | entry | process step */
 .panels-row { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(220px, 1fr); gap: 10px; align-items: start; }
+/* panel logistics: where now, where after, magazine on one row (addendum 02) */
+.where-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
+@media (max-width: 1100px) { .where-row { grid-template-columns: minmax(0, 1fr); } }
 .panels-mode { display: grid; gap: 6px; align-content: start; min-width: 170px; }
 .panels-entry { min-width: 0; }
 @media (max-width: 1100px) { .panels-row { grid-template-columns: minmax(0, 1fr); } .panels-mode { min-width: 0; } }
@@ -1668,6 +1671,8 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 0 0 14px; font-size: 13px; }
 .facts dt { color: var(--fg-muted); }
 .facts dd { margin: 0; }
+.facts dt.facts-sub { grid-column: 1 / -1; margin-top: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-faint); }
+.facts dt.facts-sub:first-child { margin-top: 0; }
 
 /* ------------------------------------------------------------------ *
  * Help (in-app manual)

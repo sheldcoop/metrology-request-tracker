@@ -27,12 +27,19 @@ window.MRT.requestActions = (function () {
 
   function toolOf(r) { return store.byId('tools', r.tool_id); }
 
-  /** Where the request's panels are: "M70345 · slots 3, 4" (+ the note), F-3. */
+  /** Where the request's panels are: "M70345 · slots 3, 4" (+ the place), F-3. */
   function whereOf(r) {
-    var mags = {};
+    var mags = {}, locs = {};
     store.list('magazines', { all: true }).forEach(function (m) { mags[m.id] = m; });
-    if (r.status === 'completed' && r.put_back) return 'back in ' + D.placeText({ magazine_id: r.put_back.magazine_id, slots: r.put_back.slots }, mags);
-    return D.placeText(r, mags);
+    store.list('panel_locations', { all: true }).forEach(function (x) { locs[x.id] = x; });
+    if (r.status === 'completed' && r.put_back) return 'back in ' + D.placeText({ magazine_id: r.put_back.magazine_id, slots: r.put_back.slots }, mags, locs);
+    return D.placeText(r, mags, locs);
+  }
+
+  /** Where the panels go after measuring (addendum 02). */
+  function destinationOf(r) {
+    var d = store.byId('destinations', r.destination_id);
+    return d ? d.name : null;
   }
 
   /** The Hirata ID shown in each slot: the IDs in order onto the slots in order. */
@@ -187,14 +194,14 @@ window.MRT.requestActions = (function () {
         break;
       case 'complete': {
         var root = tool && tool.results_root ? tool.results_root.replace(/\\+$/, '') + '\\' + (r.submitted_ts || '').slice(0, 4) + '\\' + r.request_no + '\\' : '';
-        var outcome = r.after === 'scrap' || (tool && tool.destructive) ? 'scrapped' : r.after === 'other' ? 'other' : 'returned';
+        var outcome = tool && tool.destructive ? 'scrapped' : 'returned';
         var f = ui.form([
           { key: 'results_path', label: 'Results folder', kind: 'path', placeholder: '\\\\server\\share\\...', hint: 'Proposed from the tool\'s results root - change it if needed.' },
           { key: 'panels_outcome', label: 'The panels', kind: 'select', cls: 'half', options: D.PANEL_OUTCOMES.map(function (x) { return { value: x, label: D.PANEL_OUTCOME_LABEL[x] }; }) },
-          { key: 'note', label: 'Note (optional; required for Other)', kind: 'text', cls: 'half', placeholder: r.after === 'other' ? r.after_other : '' },
+          { key: 'note', label: 'Note (optional; required for Other)', kind: 'text', cls: 'half' },
           { key: 'magazine_id', label: 'Put them back into magazine', kind: 'select', cls: 'half',
             options: [{ value: '', label: '- not into a magazine -' }].concat(store.list('magazines').map(function (m) { return { value: m.id, label: m.code }; })) }
-        ], { results_path: root, panels_outcome: outcome, note: r.after === 'other' ? r.after_other : '', magazine_id: r.magazine_id || '' });
+        ], { results_path: root, panels_outcome: outcome, note: '', magazine_id: r.magazine_id || '' });
         var slotBox = ui.el('div', { class: 'mz-pick' });
         var picker = null;
         function paintSlots() {
@@ -241,5 +248,5 @@ window.MRT.requestActions = (function () {
     return p.catch(fail);
   }
 
-  return { buttons: buttons, run: run, available: available, label: label, emailOffer: emailOffer, whereOf: whereOf, slotLabels: slotLabels };
+  return { buttons: buttons, run: run, available: available, label: label, emailOffer: emailOffer, whereOf: whereOf, destinationOf: destinationOf, slotLabels: slotLabels };
 })();

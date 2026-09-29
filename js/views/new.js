@@ -53,7 +53,7 @@ window.MRT.views['new'] = (function () {
     return { tool_id: r.tool_id, type_id: r.type_id, project_id: r.project_id || null, part_number_id: r.part_number_id || null, buildup_id: r.buildup_id || null,
              lot_id: r.lot_id, panels: (r.panels || []).slice(), panel_count: r.panel_count || null,
              layers: (r.layers || []).slice(), priority_id: r.priority_id, bkm_id: r.bkm_id, bkm_path: r.bkm_path, purpose: r.purpose,
-             process_step_id: r.process_step_id, process_step_other: r.process_step_other, after: r.after, after_other: r.after_other,
+             process_step_id: r.process_step_id, process_step_other: r.process_step_other, destination_id: r.destination_id || null,
              extra: JSON.parse(JSON.stringify(r.extra || {})), duplicated_from: r.id };
   }
 
@@ -116,11 +116,15 @@ window.MRT.views['new'] = (function () {
     var st = Object.assign({ tool_id: null, type_id: null, new_type: null, project_id: null, new_project: null, part_number_id: null, new_part_number: null,
       buildup_id: null, new_buildup: null, lot_id: null, new_lot: null, panels: [], panel_count: null, layers: [],
       priority_id: defaultPriority(), priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '', purpose: '',
-      process_step_id: null, process_step_other: '', panel_location: '', magazine_id: null, new_magazine: null, slots: [], destructive_ok: false,
+      process_step_id: null, process_step_other: '', panel_location_id: null, new_location: null, magazine_id: null, new_magazine: null, slots: [], destructive_ok: false,
       new_priority: null,
-      after: 'back_to_me', after_other: '', extra: {}, duplicated_from: null }, src || {});
+      destination_id: null, new_destination: null, extra: {}, duplicated_from: null }, src || {});
     if (!src && q.lot && byId('lots', q.lot)) st.lot_id = q.lot;
     if (!src && q.tool && byId('tools', q.tool)) st.tool_id = q.tool;
+    if (!src && !st.destination_id && !st.new_destination) {
+      var backToMe = store.list('destinations').filter(function (x) { return D.normalizeName(x.name) === 'back to me'; })[0];
+      if (backToMe) st.destination_id = backToMe.id;
+    }
     if (!st.panels) st.panels = [];
     if (!st.layers) st.layers = [];
     if (!st.slots) st.slots = [];
@@ -218,6 +222,10 @@ window.MRT.views['new'] = (function () {
       var tool = byId('tools', st.tool_id), type = byId('measurement_types', st.type_id), bkm = byId('bkms', st.bkm_id);
       var prio = byId('priorities', st.priority_id), bu = byId('buildups', st.buildup_id), proj = byId('projects', st.project_id), pn = byId('part_numbers', st.part_number_id);
       var mags = magsById();
+      var locsById = {}, dstById = {};
+      store.list('panel_locations', { all: true }).forEach(function (x) { locsById[x.id] = x; });
+      store.list('destinations', { all: true }).forEach(function (x) { dstById[x.id] = x; });
+      var dstName = dstById[st.destination_id] ? dstById[st.destination_id].name : (st.new_destination ? st.new_destination.name + ' (new)' : null);
       var n = D.panelCountOf(st);
       var typeName = type ? type.name : (st.new_type ? st.new_type.name + ' (new)' : null);
       var projCode = proj ? proj.code : (st.new_project ? st.new_project.code + ' (new)' : null);
@@ -227,7 +235,7 @@ window.MRT.views['new'] = (function () {
         tool: tool ? [tool.code, typeName, bkm ? 'BKM ' + bkm.name : st.bkm_path ? 'own BKM' : null].filter(Boolean).join('  ·  ') : 'Pick the tool',
         lot: lotNumber || projCode ? [projCode, pn ? pn.code : (st.new_part_number ? st.new_part_number.code + ' (new)' : null), lotNumber ? 'lot ' + lotNumber + (st.new_lot ? ' (new)' : '') : null, buCode,
           n ? (st.panels.length ? st.panels.join(', ') : n + ' panel' + (n === 1 ? '' : 's')) : null, st.layers.length ? st.layers.join(' ') : null].filter(Boolean).join('  ·  ') : '',
-        where: [D.placeText(st, mags) || null, D.AFTER_LABEL[st.after] ? 'then ' + D.AFTER_LABEL[st.after].toLowerCase() : null].filter(Boolean).join('  ·  '),
+        where: [D.placeText(st, mags, locsById) || null, st.new_location ? st.new_location.name + ' (new)' : null, dstName ? 'then ' + dstName.toLowerCase() : null].filter(Boolean).join('  ·  '),
         urgency: prioName ? prioName + (st.needed_by ? '  ·  by ' + st.needed_by : '') : '',
         details: [st.purpose ? (st.purpose.length > 60 ? st.purpose.slice(0, 60) + '...' : st.purpose) : null,
           Object.keys(st.extra || {}).length ? Object.keys(st.extra).length + ' tool field' + (Object.keys(st.extra).length === 1 ? '' : 's') : null].filter(Boolean).join('  ·  ')
@@ -261,7 +269,6 @@ window.MRT.views['new'] = (function () {
         b.addEventListener('click', function () {
           if (st.tool_id === t.id || editing) return;
           st.tool_id = t.id; st.type_id = null; st.new_type = null; st.bkm_id = null; st.extra = {}; st.destructive_ok = false;
-          st.after = t.destructive ? 'scrap' : (st.after === 'scrap' ? 'back_to_me' : st.after);
           paintTool(); paintLot(); paintWhere(); paintDetails(); changed();
         });
         return b;
@@ -355,42 +362,14 @@ window.MRT.views['new'] = (function () {
       })[0] || null;
     }
 
-    function distinctValues(values) {
-      var seen = {}, out = [];
-      (values || []).forEach(function (v) {
-        var t = String(v || '').trim();
-        if (!t) return;
-        var k = t.toLowerCase();
-        if (seen[k]) return;
-        seen[k] = true;
-        out.push(t);
-      });
-      return out;
-    }
-
-    function knownLocations() {
-      var rows = [];
-      (store.data().requests || []).forEach(function (r) {
-        rows.push(r.panel_location || '');
-        if (r.after === 'other') rows.push(r.after_other || '');
-        else if (r.after && D.AFTER_LABEL[r.after]) rows.push(D.AFTER_LABEL[r.after]);
-      });
-      return distinctValues(rows);
-    }
-
-    function afterTextValue() {
-      if (st.after === 'other') return st.after_other || '';
-      return st.after && D.AFTER_LABEL[st.after] ? D.AFTER_LABEL[st.after] : '';
-    }
-
-    function setAfterFromText(text, tool) {
-      var t = String(text || '').trim();
-      if (tool && tool.destructive) { st.after = 'scrap'; st.after_other = ''; return; }
-      if (!t) { st.after = null; st.after_other = ''; return; }
-      var exact = D.AFTER_OPTIONS.filter(function (a) { return a !== 'other' && D.AFTER_LABEL[a].toLowerCase() === t.toLowerCase(); })[0] || null;
-      if (exact) { st.after = exact; st.after_other = ''; return; }
-      st.after = 'other';
-      st.after_other = t;
+    /** Close matches for a typed place, so lookalikes get picked instead of doubled (AC-A02-05). */
+    function closeMatches(rows, typed) {
+      var n = D.normalizeName(typed);
+      if (n.length < 3) return [];
+      return rows.filter(function (x) {
+        var xn = D.normalizeName(x.name);
+        return xn !== n && (D.sameName(x.name, typed) || xn.indexOf(n) !== -1 || n.indexOf(xn) !== -1);
+      }).slice(0, 3).map(function (x) { return x.name; });
     }
 
     function layersForBuildup(bu) {
@@ -651,23 +630,44 @@ window.MRT.views['new'] = (function () {
       readProcessStep();
     }
 
-    /* 3. Where the panels are: magazine slots / note, and where they go after (F-3, M2-12) */
+    /* 3. Panel logistics: where now, where after, magazine - one row (F-3, addendum 02) */
     function paintWhere() {
       var mags = store.list('magazines', { all: true }).filter(function (m) { return m.active !== false || m.id === st.magazine_id; });
-      var locs = knownLocations();
+      var locs = store.list('panel_locations', { all: true }).filter(function (x) { return x.active !== false || x.id === st.panel_location_id; });
+      var dsts = store.list('destinations', { all: true }).filter(function (x) { return x.active !== false || x.id === st.destination_id; });
       var tool = byId('tools', st.tool_id);
+      var locNow = byId('panel_locations', st.panel_location_id);
+      var dstNow = byId('destinations', st.destination_id);
 
-      var whereNowF = ui.field({ label: 'Where the panels are now', cls: 'half', value: st.panel_location || '',
+      var whereNowF = ui.field({ label: 'Where the panels are now', value: locNow ? locNow.name : (st.new_location ? st.new_location.name : ''),
         combo: true,
-        placeholder: 'e.g. with Anna / in MES / top shelf', list: locs.map(function (x) { return { value: x }; }) });
-      var afterChoices = distinctValues(D.AFTER_OPTIONS.filter(function (a) { return a !== 'other'; }).map(function (a) { return D.AFTER_LABEL[a]; }).concat(locs));
-      var afterF = ui.field({ label: 'Where the panels go after measuring', cls: 'half', value: afterTextValue(),
+        placeholder: 'Type or pick a place', list: locs.map(function (x) { return { value: x.name, label: x.description || '' }; }) });
+      whereNowF.input.addEventListener('input', function () { readPlace(whereNowF, locs, 'panel_location_id', 'new_location', 'Panel location'); });
+      var afterF = ui.field({ label: 'Where the panels go after measuring', value: dstNow ? dstNow.name : (st.new_destination ? st.new_destination.name : ''),
         combo: true,
-        placeholder: 'e.g. Back to me / Back to the line / with Anna', list: afterChoices.map(function (x) { return { value: x }; }),
-        disabled: !!(tool && tool.destructive), hint: tool && tool.destructive ? tool.code + ' destroys the panels: always scrap.' : null });
+        placeholder: 'Type or pick a destination', list: dsts.map(function (x) { return { value: x.name, label: x.description || '' }; }) });
+      afterF.input.addEventListener('input', function () { readPlace(afterF, dsts, 'destination_id', 'new_destination', 'Destination'); });
+
+      /** Type to pick a place, or type a new one - it is added on submit (addendum 02). */
+      function readPlace(f, rows, idKey, newKey, label) {
+        var typed = f.value().trim();
+        var hit = rows.filter(function (x) { return D.normalizeName(x.name) === D.normalizeName(typed); })[0] || null;
+        st[idKey] = hit ? hit.id : null;
+        st[newKey] = null;
+        if (hit) f.setState('valid');
+        else if (!typed) f.setState(null);
+        else if (typed.length > 60) f.setState('invalid', 'Keep the name under 60 characters');
+        else {
+          st[newKey] = { name: typed };
+          var close = closeMatches(rows, typed);
+          f.setState('valid', 'New ' + label.toLowerCase() + '. It will be added when you submit.' +
+            (close.length ? ' Close to: ' + close.join(', ') + ' - pick it instead?' : ''));
+        }
+        changed();
+      }
 
       var magNow = byId('magazines', st.magazine_id);
-      var magF = ui.field({ label: 'Magazine', cls: 'half', value: magNow ? magNow.code : (st.new_magazine ? st.new_magazine.code : ''),
+      var magF = ui.field({ label: 'Magazine', value: magNow ? magNow.code : (st.new_magazine ? st.new_magazine.code : ''),
         combo: true,
         placeholder: 'Type or pick magazine', list: mags.map(function (m) { return { value: m.code, label: (m.slots || 24) + ' slots' }; }) });
       var slotsHost = ui.el('div', { class: 'wz-mag' });
@@ -687,14 +687,6 @@ window.MRT.views['new'] = (function () {
           onChange: function (slots) { st.slots = slots; slotPicker.setLabels(window.MRT.requestActions.slotLabels(st.panels, slots)); fitText(); changed(); } });
         ui.mount(slotsHost, slotPicker.node);
         fitText();
-      }
-
-      function readAfterField() {
-        setAfterFromText(afterF.value(), tool);
-        if (tool && tool.destructive) afterF.setState('valid');
-        else if (afterF.value().trim() && st.after === 'other') afterF.setState('valid', 'New location. It will be saved with this request.');
-        else afterF.setState(null);
-        changed();
       }
 
       function readMagazine() {
@@ -719,10 +711,8 @@ window.MRT.views['new'] = (function () {
         changed();
       }
 
-      whereNowF.input.addEventListener('input', function () { st.panel_location = whereNowF.value().trim(); changed(); });
-      whereNowF.input.addEventListener('change', function () { st.panel_location = whereNowF.value().trim(); changed(); });
-      afterF.input.addEventListener('input', readAfterField);
-      afterF.input.addEventListener('change', readAfterField);
+      whereNowF.input.addEventListener('change', function () { readPlace(whereNowF, locs, 'panel_location_id', 'new_location', 'Panel location'); });
+      afterF.input.addEventListener('change', function () { readPlace(afterF, dsts, 'destination_id', 'new_destination', 'Destination'); });
       magF.input.addEventListener('input', readMagazine);
       magF.input.addEventListener('change', readMagazine);
 
@@ -731,13 +721,14 @@ window.MRT.views['new'] = (function () {
       if (!(tool && tool.destructive)) st.destructive_ok = false;
 
       ui.mount(steps.where.body, [
-        ui.el('div', { class: 'form-grid' }, [whereNowF.node, afterF.node]),
-        ui.el('div', { class: 'req-part' }, [ui.el('div', { class: 'form-grid' }, magF.node), fit, slotsHost]),
+        ui.el('div', { class: 'where-row' }, [whereNowF.node, afterF.node, magF.node]),
+        ui.el('div', { class: 'req-part' }, [fit, slotsHost]),
         destructiveT ? ui.el('div', { class: 'req-destructive' }, [ui.icon('alert', 16), destructiveT.node]) : null,
         next('where')
       ]);
 
-      readAfterField();
+      readPlace(whereNowF, locs, 'panel_location_id', 'new_location', 'Panel location');
+      readPlace(afterF, dsts, 'destination_id', 'new_destination', 'Destination');
       readMagazine();
     }
 
@@ -817,13 +808,15 @@ window.MRT.views['new'] = (function () {
       var nmg = !st.magazine_id && st.new_magazine && st.new_magazine.code ? { code: st.new_magazine.code } : null;
       var nty = !st.type_id && st.new_type && st.new_type.name ? { name: st.new_type.name } : null;
       var npri = !st.priority_id && st.new_priority && st.new_priority.name ? { name: st.new_priority.name } : null;
+      var nloc = !st.panel_location_id && st.new_location && st.new_location.name ? { name: st.new_location.name } : null;
+      var ndst = !st.destination_id && st.new_destination && st.new_destination.name ? { name: st.new_destination.name } : null;
       return { tool_id: st.tool_id, type_id: st.type_id, project_id: st.project_id, part_number_id: st.part_number_id, buildup_id: st.buildup_id,
         new_project: nprj, new_part_number: np, new_buildup: nbu, new_magazine: nmg, new_type: nty, new_priority: npri,
         lot_id: st.lot_id, new_lot: nl, panels: st.panels.slice(), panel_count: st.panel_count,
         layers: st.layers.slice(), priority_id: st.priority_id, priority_reason: st.priority_reason, needed_by: st.needed_by,
         bkm_id: st.bkm_id, bkm_path: st.bkm_path, purpose: st.purpose, process_step_id: st.process_step_id, process_step_other: st.process_step_other,
-        panel_location: st.panel_location, magazine_id: st.magazine_id, slots: st.magazine_id ? st.slots.slice() : [],
-        destructive_ok: st.destructive_ok, after: st.after, after_other: st.after === 'other' ? st.after_other : '', extra: st.extra, duplicated_from: st.duplicated_from };
+        panel_location_id: st.panel_location_id, new_location: nloc, magazine_id: st.magazine_id, slots: st.magazine_id ? st.slots.slice() : [],
+        destructive_ok: st.destructive_ok, destination_id: st.destination_id, new_destination: ndst, extra: st.extra, duplicated_from: st.duplicated_from };
     }
     function probe() { return Object.assign({}, editing ? draft : {}, { id: draft ? draft.id : null }, fields()); }
 
@@ -837,7 +830,11 @@ window.MRT.views['new'] = (function () {
       var buCode = bu ? bu.code : (st.new_buildup ? st.new_buildup.code : null);
       var prioName = prio ? prio.name : (st.new_priority ? st.new_priority.name : null);
       var prioCode = prio ? prio.code : null;
-      var where = D.placeText(st, magsById());
+      var locsById = {}, dstById = {};
+      store.list('panel_locations', { all: true }).forEach(function (x) { locsById[x.id] = x; });
+      store.list('destinations', { all: true }).forEach(function (x) { dstById[x.id] = x; });
+      var where = D.placeText(st, magsById(), locsById);
+      var dstName = dstById[st.destination_id] ? dstById[st.destination_id].name : (st.new_destination ? st.new_destination.name + ' (new)' : null);
       function fact(label, value, cls) { return { label: label, value: value, cls: cls || null }; }
       ui.mount(preview, ui.traveller({
         id: editing ? draft.request_no : tool ? tool.code + '-YYMMDD-NN' : 'Pick a tool',
@@ -854,7 +851,7 @@ window.MRT.views['new'] = (function () {
           fact('Where', where || '-'),
           fact('Needed by', st.needed_by || 'no date', 'num'),
           fact('BKM', st.bkm_id || st.bkm_path ? 'yes' : ui.statusBadge('warning', 'No BKM')),
-          fact('Afterwards', D.AFTER_LABEL[st.after] || '-')
+          fact('Afterwards', dstName || '-')
         ],
         footer: st.magazine_id && byId('magazines', st.magazine_id) && st.slots.length ? ui.magazineSlots({ magazine: byId('magazines', st.magazine_id),
           picked: st.slots, labels: window.MRT.requestActions.slotLabels(st.panels, st.slots), readOnly: true }).node : null

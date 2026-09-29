@@ -486,11 +486,12 @@ window.MRT.domain = (function () {
   }
 
   /** Where the panels are (F-3): "M70345 · slots 3, 4", and/or the note. */
-  function placeText(r, magsById) {
+  function placeText(r, magsById, locsById) {
     var m = r.magazine_id ? magsById[r.magazine_id] : null;
     var slots = (r.slots || []).slice().sort(function (a, b) { return a - b; });
     var t = m ? m.code + (slots.length ? ' · slot' + (slots.length > 1 ? 's ' : ' ') + formatPanels(slots) : '') : '';
-    return [t, r.panel_location].filter(Boolean).join(' - ');
+    var loc = r.panel_location_id && locsById ? (locsById[r.panel_location_id] || {}).name : r.panel_location;
+    return [t, loc].filter(Boolean).join(' - ');
   }
 
   /** The slots of a magazine taken by other open requests: {slot: request_no}. */
@@ -707,6 +708,8 @@ window.MRT.domain = (function () {
 
       case 'process_steps':
       case 'hold_reasons':
+      case 'panel_locations':
+      case 'destinations':
         if (!isStr(r.name)) p.push('Enter a name');
         else if (r.name.length > 60) p.push('Keep the name under 60 characters');
         else if (others(d[collection], r.id).some(function (x) { return normalizeName(x.name) === normalizeName(r.name); })) p.push(r.name + ' is already listed');
@@ -830,8 +833,7 @@ window.MRT.domain = (function () {
     clarification: 'Needs clarification', on_hold: 'On hold', cancelled: 'Cancelled'
   };
   /** Where the panels go after measuring (M2-12). */
-  var AFTER_OPTIONS = ['back_to_me', 'back_to_line', 'scrap', 'other'];
-  var AFTER_LABEL = { back_to_me: 'Back to me', back_to_line: 'Back to the line', scrap: 'Lab may scrap them', other: 'Other' };
+  // (the After enum is gone since addendum 02: destinations are a managed list; migration 13 converted the old values)
   var REQUEST_TEXT_MAX = 2000;
 
   /** Engineers request measurements (Q17); admins too. */
@@ -1242,9 +1244,9 @@ window.MRT.domain = (function () {
    * ------------------------------------------------------------------ */
 
   var TEMPLATE_FIELDS = ['tool_id', 'type_id', 'bkm_id', 'bkm_path', 'project_id', 'part_number_id', 'buildup_id', 'layers',
-                         'after', 'after_other', 'priority_id', 'priority_reason', 'needed_by', 'purpose', 'extra',
+                         'destination_id', 'new_destination', 'priority_id', 'priority_reason', 'needed_by', 'purpose', 'extra',
                          'lot_id', 'new_lot', 'panels', 'panel_count', 'process_step_id', 'process_step_other',
-                         'panel_location', 'magazine_id', 'new_magazine', 'slots', 'destructive_ok',
+                         'panel_location_id', 'new_location', 'magazine_id', 'new_magazine', 'slots', 'destructive_ok',
                          'new_project', 'new_part_number', 'new_buildup', 'new_type', 'new_priority'];
   var TEMPLATE_NAME_MAX = 60;
 
@@ -1301,6 +1303,8 @@ window.MRT.domain = (function () {
     }
     if (f.process_step_id && !live(row('process_steps', f.process_step_id))) drop('process_step_id', 'The process step of this template is hidden - pick another');
     if (f.magazine_id && !live(row('magazines', f.magazine_id))) { drop('magazine_id', 'The magazine of this template is hidden - pick another'); f.slots = []; }
+    if (f.panel_location_id && !live(row('panel_locations', f.panel_location_id))) drop('panel_location_id', 'The panel location of this template is hidden - pick another');
+    if (f.destination_id && !live(row('destinations', f.destination_id))) drop('destination_id', 'The destination of this template is hidden - pick another');
     if (!tool.destructive) f.destructive_ok = false;
     if (f.new_project) {
       var npjCode = trim(f.new_project.code || '').toUpperCase();
@@ -1335,6 +1339,16 @@ window.MRT.domain = (function () {
       var nprName = trim(f.new_priority.name || '');
       if (!isStr(nprName)) f.new_priority = null;
       else if ((d.priorities || []).some(function (x) { return normalizeName(x.name) === normalizeName(nprName); })) { f.new_priority = null; notes.push('Priority ' + nprName + ' exists already - pick it from suggestions'); }
+    }
+    if (f.new_location) {
+      var nlcName = trim(f.new_location.name || '');
+      if (!isStr(nlcName)) f.new_location = null;
+      else if ((d.panel_locations || []).some(function (x) { return normalizeName(x.name) === normalizeName(nlcName); })) { f.new_location = null; notes.push('Panel location ' + nlcName + ' exists already - pick it from suggestions'); }
+    }
+    if (f.new_destination) {
+      var ndeName = trim(f.new_destination.name || '');
+      if (!isStr(ndeName)) f.new_destination = null;
+      else if ((d.destinations || []).some(function (x) { return normalizeName(x.name) === normalizeName(ndeName); })) { f.new_destination = null; notes.push('Destination ' + ndeName + ' exists already - pick it from suggestions'); }
     }
     var extra = {};
     Object.keys(f.extra || {}).forEach(function (fid) {
@@ -1471,7 +1485,7 @@ window.MRT.domain = (function () {
     function byId(coll, id) { return id ? (d[coll] || []).filter(function (x) { return x.id === id; })[0] || null : null; }
     function add(code, text, step) { out.push({ code: code, text: text, step: step }); }
     function stepOfTextField(k) {
-      var m = { purpose: 'details', panel_location: 'where', priority_reason: 'urgency', after_other: 'where', process_step_other: 'lot' };
+      var m = { purpose: 'details', priority_reason: 'urgency', process_step_other: 'lot' };
       return m[k] || 'details';
     }
 
@@ -1558,8 +1572,23 @@ window.MRT.domain = (function () {
     }
     if (r.type_id && r.new_type) add('type_conflict', 'Pick an existing measurement type or type a new one, not both', 'tool');
     if (r.process_step_id && !byId('process_steps', r.process_step_id)) add('process_step_not_found', 'Process step not found', 'lot');
-    if (r.after && AFTER_OPTIONS.indexOf(r.after) === -1) add('after_invalid', 'Pick where the panels go afterwards', 'where');
-    ['purpose', 'panel_location', 'priority_reason', 'after_other', 'process_step_other'].forEach(function (k) {
+    if (r.panel_location_id && !byId('panel_locations', r.panel_location_id)) add('panel_location_not_found', 'Panel location not found', 'where');
+    if (r.destination_id && !byId('destinations', r.destination_id)) add('destination_not_found', 'Destination not found', 'where');
+    var nlc = r.new_location;
+    if (nlc) {
+      var nlcName = trim(nlc.name || '');
+      if (!isStr(nlcName)) add('location_new_invalid', 'Panel location: enter a name', 'where');
+      else if ((d.panel_locations || []).some(function (x) { return normalizeName(x.name) === normalizeName(nlcName); })) add('location_exists', 'Panel location ' + nlcName + ' exists already - pick it from suggestions', 'where');
+    }
+    if (r.panel_location_id && r.new_location) add('location_conflict', 'Pick an existing panel location or type a new one, not both', 'where');
+    var nde = r.new_destination;
+    if (nde) {
+      var ndeName = trim(nde.name || '');
+      if (!isStr(ndeName)) add('destination_new_invalid', 'Destination: enter a name', 'where');
+      else if ((d.destinations || []).some(function (x) { return normalizeName(x.name) === normalizeName(ndeName); })) add('destination_exists', 'Destination ' + ndeName + ' exists already - pick it from suggestions', 'where');
+    }
+    if (r.destination_id && r.new_destination) add('destination_conflict', 'Pick an existing destination or type a new one, not both', 'where');
+    ['purpose', 'priority_reason', 'process_step_other'].forEach(function (k) {
       if (r[k] && String(r[k]).length > REQUEST_TEXT_MAX) add('text_too_long_' + k, 'Text too long: ' + k, stepOfTextField(k));
     });
     var ex = r.extra || {};
@@ -1581,11 +1610,9 @@ window.MRT.domain = (function () {
     if (!prio && !nprio) add('priority_required', 'Pick a priority', 'urgency');
     else if (prio && prio.needs_reason && !isStr(r.priority_reason)) add('priority_reason_required', prio.name + ' needs a reason', 'urgency');
     if (!bkm && !r.bkm_path && !isStr(r.purpose)) add('purpose_required_without_bkm', 'Without a BKM, the purpose must say what to measure', 'details');
-    if (!(r.magazine_id && (r.slots || []).length) && !isStr(r.panel_location)) add('panel_location_required', 'Say where the panels are now: the magazine slots, or a note', 'where');
+    if (!(r.magazine_id && (r.slots || []).length) && !r.panel_location_id && !r.new_location) add('panel_location_required', 'Say where the panels are now: pick a place, or the magazine slots', 'where');
     if (tool.destructive && r.destructive_ok !== true) add('destructive_ack_required', tool.code + ' destroys the panels - tick that they may be scrapped', 'where');
-    if (!r.after) add('after_required', 'Say where the panels go afterwards', 'where');
-    else if (r.after === 'other' && !isStr(r.after_other)) add('after_other_required', 'Say where the panels go afterwards (Other)', 'where');
-    if (tool.destructive && r.after && r.after !== 'scrap') add('destructive_after_must_scrap', tool.code + ' destroys the panels - they cannot come back', 'where');
+    if (!r.destination_id && !r.new_destination) add('destination_required', 'Say where the panels go afterwards', 'where');
     if (r.process_step_other && r.process_step_id) add('process_step_conflict', 'Pick a process step or type one, not both', 'lot');
     fieldsForType(d.tool_fields, tool.id, r.type_id).forEach(function (f) {
       if (f.active === false && isEmptyAnswer(ex[f.id])) return;
@@ -1749,6 +1776,8 @@ window.MRT.domain = (function () {
       if (r.project_id && !projects[r.project_id]) add('problem', 'req_bad_project', no + ': its project no longer exists', 'request', r.id);
       if (r.buildup_id && !bus[r.buildup_id]) add('problem', 'req_bad_buildup', no + ': its build-up no longer exists', 'request', r.id);
       if (r.part_number_id && !pns[r.part_number_id]) add('problem', 'req_bad_pn', no + ': its part number no longer exists', 'request', r.id);
+      if (r.panel_location_id && !(data.panel_locations || []).some(function (x) { return x.id === r.panel_location_id; })) add('problem', 'req_bad_location', no + ': its panel location no longer exists', 'request', r.id);
+      if (r.destination_id && !(data.destinations || []).some(function (x) { return x.id === r.destination_id; })) add('problem', 'req_bad_destination', no + ': its destination no longer exists', 'request', r.id);
     });
     if (!(data.magazines || []).some(function (m) { return m.active !== false; })) {
       add('warning', 'no_magazines', 'No magazines: the request form cannot offer any - add them in Settings > Lists, or "Add the sample magazines" in Settings > Data', 'lists', null);
@@ -1839,8 +1868,6 @@ window.MRT.domain = (function () {
     countdown: countdown,
     REQUEST_STATUSES: REQUEST_STATUSES,
     REQUEST_STATUS_LABEL: REQUEST_STATUS_LABEL,
-    AFTER_OPTIONS: AFTER_OPTIONS,
-    AFTER_LABEL: AFTER_LABEL,
     canRequest: canRequest,
     canSeeRequest: canSeeRequest,
     canEditDraft: canEditDraft,

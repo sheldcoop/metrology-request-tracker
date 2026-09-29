@@ -4,9 +4,10 @@
  * The lab board (#/board, Q22, M3-8, redesign P5): a lab rack. One lane per
  * tool (glyph, lamp, open count); lanes with nothing on them fold to a thin
  * line. Columns are the status slots Submitted | Accepted | Panels received |
- * In progress | Waiting (on hold, needs clarification) | Completed (last 7 days). Cards are
+ * In progress | Waiting (on hold, needs clarification) | Completed (last 7 days) |
+ * Analyzed (last 7 days). Cards are
  * compact mini travellers: priority stripe, ID, lot, panels, a needed-by
- * gauge and the quality engineer's initials.
+ * gauge and the quality engineer's initials (analyzed cards: analyst + date).
  * Click only (P5-3): a click opens a side panel with the full traveller and
  * the usual action buttons (same rules, dialogs and audit as everywhere).
  * Ctrl/middle click still opens the request page. Nothing is dragged.
@@ -27,7 +28,8 @@ window.MRT.views.board = (function () {
     { key: 'panels_received', label: 'Panels received', has: ['panels_received'] },
     { key: 'in_progress', label: 'In progress', has: ['in_progress'] },
     { key: 'waiting', label: 'Waiting', has: ['on_hold', 'clarification'] },
-    { key: 'completed', label: 'Completed (7 days)', has: ['completed'] }
+    { key: 'completed', label: 'Completed (7 days)', has: ['completed'] },
+    { key: 'analyzed', label: 'Analyzed (7 days)', has: ['analyzed'] }
   ];
   var WEEK = 7 * 86400000;
   var view = { pick: null, only: 'all', q: '', done: null };   // done: show the Completed column (remembered)   // q: search text - other cards dim   // pick: 'all' | 'mine' | a tool id (remembered); only: 'all' | 'linestop' | 'late' | 'me'   // 'all' | 'mine' | a tool id - remembered per person on this PC
@@ -49,12 +51,13 @@ window.MRT.views.board = (function () {
     var lanes = view.pick === 'mine' ? mineTools : view.pick === 'all' ? tools : tools.filter(function (t) { return t.id === view.pick; });
     var now = Date.now(), cal = store.calendar();
     var reqs = store.visibleRequests(function (r) {
-      return D.isOpen(r) || (r.status === 'completed' && r.completed_ts && now - Date.parse(r.completed_ts) < WEEK);
+      return D.isOpen(r) || (r.status === 'completed' && r.completed_ts && now - Date.parse(r.completed_ts) < WEEK) ||
+        (r.status === 'analyzed' && r.analyzed_ts && now - Date.parse(r.analyzed_ts) < WEEK);
     });
     main.appendChild(ui.pageHead('Board', 'Every open request by tool. Click a card to see it and act on it here.'));
     main.appendChild(toolPicker(tools, mineTools, reqs));
     if (view.done === null) view.done = !(app.readPref && app.readPref('board_done') === 'hide');
-    var cols = view.done ? COLS : COLS.filter(function (c) { return c.key !== 'completed'; });
+    var cols = view.done ? COLS : COLS.filter(function (c) { return c.key !== 'completed' && c.key !== 'analyzed'; });
     var shown = reqs.filter(function (r) { return passes(r, me, now, cal); });
     main.appendChild(onlyPicker(reqs, me, now, cal));
     reqs = shown;
@@ -71,7 +74,7 @@ window.MRT.views.board = (function () {
         ui.el('b', { text: c.label }), ui.el('span', { class: 'board-count num' + (n ? '' : ' is-zero'), text: String(n) })]));
     });
     lanes.forEach(function (t) {
-      var mine = reqs.filter(function (r) { return r.tool_id === t.id && (view.done || r.status !== 'completed'); });
+      var mine = reqs.filter(function (r) { return r.tool_id === t.id && (view.done || (r.status !== 'completed' && r.status !== 'analyzed')); });
       var open = mine.filter(function (r) { return D.isOpen(r); }).length;
       var running = mine.some(function (r) { return r.status === 'in_progress'; });
       var lane = ui.el('div', { class: 'board-lane is-' + t.status + (mine.length ? '' : ' is-empty') }, [
@@ -119,7 +122,7 @@ window.MRT.views.board = (function () {
       return ui.el('button', { type: 'button', class: 'tool-pick' + (on ? ' is-on' : '') + (o.key === 'linestop' && n ? ' is-alarm' : ''), 'aria-pressed': on ? 'true' : 'false',
         dataset: { only: o.key }, onclick: function () { view.only = o.key; window.MRT.app.route(); } },
         [ui.el('span', { text: o.label }), ui.el('span', { class: 'tool-pick-n num', text: String(n) })]);
-    })).concat([ui.toggle({ kind: 'switch', label: 'Completed column', checked: view.done, onChange: function (v) {
+    })).concat([ui.toggle({ kind: 'switch', label: 'Completed + Analyzed', checked: view.done, onChange: function (v) {
       view.done = v; if (window.MRT.app.writePref) window.MRT.app.writePref('board_done', v ? 'show' : 'hide'); window.MRT.app.route(); } }).node, search, ui.el('span', { class: 'muted board-search-n', 'aria-live': 'polite' })]));
   }
 
@@ -156,6 +159,7 @@ window.MRT.views.board = (function () {
 
   function card(r) {
     var lot = byId('lots', r.lot_id), prio = byId('priorities', r.priority_id), qe = byId('users', r.assigned_to);
+    var analyst = r.status === 'analyzed' ? byId('users', r.analyzed_by) : null;
     var level = prio ? prio.level : 3;
     var clock = ui.el('span', { class: 'q-clock' });
     var bar = ui.el('i');
@@ -168,7 +172,9 @@ window.MRT.views.board = (function () {
       lines: [
         [(lot ? lot.lot_number : '?') + '  ·  ' + D.panelsText(r)],
         [gauge],
-        [r.status === 'on_hold' ? ui.statusBadge('warning', 'On hold') : r.status === 'clarification' ? ui.statusBadge('warning', 'Question') : null,
+        analyst ? [ui.el('span', { class: 'bcard-who', title: analyst.name, text: ui.initials(analyst.name) }),
+          ui.el('span', { class: 'muted', text: ui.formatDate(r.analyzed_ts) })]
+        : [r.status === 'on_hold' ? ui.statusBadge('warning', 'On hold') : r.status === 'clarification' ? ui.statusBadge('warning', 'Question') : null,
          clock, qe ? ui.el('span', { class: 'bcard-who', title: qe.name, text: ui.initials(qe.name) }) : null]
       ]
     }, { size: 'card' });

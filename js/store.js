@@ -22,11 +22,11 @@ window.MRT.store = (function () {
   var cfg = window.MRT.config;
   var D = window.MRT.domain;
 
-  var SCHEMA_VERSION = 13;
+  var SCHEMA_VERSION = 14;
 
   var COLLECTIONS = [
     'users', 'settings', 'tools', 'measurement_types', 'tool_fields', 'bkms',
-    'projects', 'part_numbers', 'buildups', 'process_steps', 'hold_reasons', 'priorities', 'holidays', 'lot_fields', 'magazines', 'lots', 'requests', 'request_events', 'templates', 'audit_log'
+    'projects', 'part_numbers', 'buildups', 'process_steps', 'hold_reasons', 'priorities', 'holidays', 'lot_fields', 'magazines', 'panel_locations', 'destinations', 'lots', 'requests', 'request_events', 'templates', 'audit_log'
   ];
 
   /** In-memory state. `data` is the loaded file; never mutate it from a screen. */
@@ -177,6 +177,12 @@ window.MRT.store = (function () {
     data.buildups = (S.buildups || []).map(function (c) {
       return { id: newId('bld'), code: c, name: '', active: true, version: 1 };
     });
+    function placeRow(prefix, x, i) {
+      var o = typeof x === 'string' ? { name: x } : x;
+      return sampleFlag({ id: newId(prefix), name: o.name, description: o.description || '', active: true, sort: i + 1, version: 1 }, o);
+    }
+    data.panel_locations = (S.panel_locations || []).map(function (x, i) { return placeRow('loc', x, i); });
+    data.destinations = (S.destinations || []).map(function (x, i) { return placeRow('dst', x, i); });
 
     var year = parseInt(D.viennaYmd(now).slice(0, 4), 10);
     [year, year + 1].forEach(function (y) {
@@ -388,7 +394,31 @@ window.MRT.store = (function () {
     12: function (d) { (d.part_numbers || []).forEach(function (p) {
       if (!('project_id' in p)) p.project_id = (p.project_ids && p.project_ids[0]) || null;
       delete p.project_ids;
-    }); }
+    }); },
+    // 13 -> 14: panel logistics (addendum 02). Free location notes and the After enum become
+    // managed panel_locations + destinations; each distinct text becomes one entry.
+    13: function (d) {
+      if (!Array.isArray(d.panel_locations)) d.panel_locations = [];
+      if (!Array.isArray(d.destinations)) d.destinations = [];
+      var AFTER = { back_to_me: 'Back to me', back_to_line: 'Back to the line', scrap: 'Lab may scrap them' };
+      function findOrAdd(coll, prefix, name) {
+        var t = String(name || '').trim();
+        if (!t) return null;
+        var hit = d[coll].filter(function (x) { return D.normalizeName(x.name) === D.normalizeName(t); })[0];
+        if (hit) return hit.id;
+        var row = { id: newId(prefix), name: t, description: '', active: true, sort: d[coll].length + 1, version: 1 };
+        d[coll].push(row);
+        return row.id;
+      }
+      (d.requests || []).forEach(function (r) {
+        if (!('panel_location_id' in r)) r.panel_location_id = findOrAdd('panel_locations', 'loc', r.panel_location);
+        if (!('destination_id' in r)) {
+          r.destination_id = r.after === 'other' ? findOrAdd('destinations', 'dst', r.after_other)
+            : r.after ? findOrAdd('destinations', 'dst', AFTER[r.after] || r.after) : null;
+        }
+        delete r.panel_location; delete r.after; delete r.after_other;
+      });
+    }
   };
 
   function magazinesFromSeed(S) {
@@ -1017,6 +1047,8 @@ window.MRT.store = (function () {
     process_steps:     { prefix: 'pstep', label: 'process step',     fields: ['name', 'active', 'sort'] },
     hold_reasons:      { prefix: 'hold',  label: 'on-hold reason',   fields: ['name', 'active', 'sort'] },
     magazines:         { prefix: 'mag',   label: 'magazine',         fields: ['code', 'slots', 'active'] },
+    panel_locations:  { prefix: 'loc',   label: 'panel location',   fields: ['name', 'description', 'active', 'sort'] },
+    destinations:     { prefix: 'dst',   label: 'destination',      fields: ['name', 'description', 'active', 'sort'] },
     priorities:        { prefix: 'prio',  label: 'priority',         fields: ['code', 'name', 'level', 'needs_reason', 'is_default', 'active'] },
     holidays:          { prefix: 'hol',   label: 'holiday',          fields: ['date', 'name', 'kind'] }
   };
@@ -1036,6 +1068,8 @@ window.MRT.store = (function () {
     process_steps: { active: true },
     hold_reasons: { active: true },
     magazines: { slots: 24, active: true },
+    panel_locations: { description: '', active: true },
+    destinations: { description: '', active: true },
     priorities: { needs_reason: false, is_default: false, active: true },
     holidays: { kind: 'closing', source: 'manual' }
   };
@@ -1084,7 +1118,7 @@ window.MRT.store = (function () {
       var existing = o.id ? need(collection, o.id, spec.label) : null;
       if (existing) checkVersion(existing, o.version, spec.label);
       var next = existing ? clone(existing) : Object.assign({ id: newId(spec.prefix) }, clone(NEW_DEFAULTS[collection]));
-      if (!existing && (collection === 'measurement_types' || collection === 'tool_fields' || collection === 'tools' || collection === 'process_steps' || collection === 'hold_reasons' || collection === 'lot_fields') && !('sort' in fields)) {
+      if (!existing && (collection === 'measurement_types' || collection === 'tool_fields' || collection === 'tools' || collection === 'process_steps' || collection === 'hold_reasons' || collection === 'lot_fields' || collection === 'panel_locations' || collection === 'destinations') && !('sort' in fields)) {
         next.sort = state.data[collection].filter(function (r) { return !fields.tool_id || r.tool_id === fields.tool_id; }).length + 1;
       }
       if (existing && 'tool_id' in fields) {
@@ -1171,6 +1205,8 @@ window.MRT.store = (function () {
     process_steps: [['requests', 'process_step_id', 'request']],
     hold_reasons: [['requests', 'hold_reason_id', 'request']],
     magazines: [['requests', 'magazine_id', 'request']],
+    panel_locations: [['requests', 'panel_location_id', 'request']],
+    destinations: [['requests', 'destination_id', 'request']],
     priorities: [['requests', 'priority_id', 'request']],
     holidays: []
   };
@@ -1216,17 +1252,17 @@ window.MRT.store = (function () {
    * ------------------------------------------------------------------ */
 
   var REQUEST_FIELDS = ['tool_id', 'type_id', 'lot_id', 'panels', 'priority_id', 'priority_reason', 'needed_by',
-    'bkm_id', 'bkm_path', 'purpose', 'process_step_id', 'process_step_other', 'panel_location',
-    'destructive_ok', 'after', 'after_other', 'extra', 'duplicated_from', 'magazine_id', 'slots', 'layers', 'panel_count', 'new_lot',
+    'bkm_id', 'bkm_path', 'purpose', 'process_step_id', 'process_step_other', 'panel_location_id', 'new_location',
+    'destructive_ok', 'destination_id', 'new_destination', 'extra', 'duplicated_from', 'magazine_id', 'slots', 'layers', 'panel_count', 'new_lot',
     'project_id', 'part_number_id', 'new_part_number', 'buildup_id', 'new_project', 'new_buildup', 'new_magazine', 'new_type', 'new_priority'];
 
   function tidyRequest(f) {
     var o = clone(f || {});
     Object.keys(o).forEach(function (k) { assert(REQUEST_FIELDS.indexOf(k) !== -1, 'Unknown field: ' + k); });
-    ['priority_reason', 'bkm_path', 'purpose', 'process_step_other', 'panel_location', 'after_other'].forEach(function (k) {
+    ['priority_reason', 'bkm_path', 'purpose', 'process_step_other'].forEach(function (k) {
       if (typeof o[k] === 'string') o[k] = o[k].trim();
     });
-    ['type_id', 'lot_id', 'priority_id', 'needed_by', 'bkm_id', 'process_step_id', 'after', 'magazine_id', 'panel_count', 'project_id', 'part_number_id', 'buildup_id'].forEach(function (k) { if (o[k] === '') o[k] = null; });
+    ['type_id', 'lot_id', 'priority_id', 'needed_by', 'bkm_id', 'process_step_id', 'magazine_id', 'panel_count', 'project_id', 'part_number_id', 'buildup_id', 'panel_location_id', 'destination_id'].forEach(function (k) { if (o[k] === '') o[k] = null; });
     if (Array.isArray(o.slots)) o.slots = o.slots.map(Number).filter(function (x, i, a) { return a.indexOf(x) === i; }).sort(function (a, b) { return a - b; });
     if (Array.isArray(o.layers)) o.layers = o.layers.map(function (x) { return String(x).trim().toUpperCase(); }).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
     if (o.panel_count !== null && o.panel_count !== undefined) o.panel_count = Number(o.panel_count);
@@ -1237,6 +1273,8 @@ window.MRT.store = (function () {
     if (o.new_magazine) o.new_magazine = { code: String(o.new_magazine.code || '').trim().toUpperCase() };
     if (o.new_type) o.new_type = { name: String(o.new_type.name || '').trim() };
     if (o.new_priority) o.new_priority = { name: String(o.new_priority.name || '').trim() };
+    if (o.new_location) o.new_location = { name: String(o.new_location.name || '').trim() };
+    if (o.new_destination) o.new_destination = { name: String(o.new_destination.name || '').trim() };
     if ('new_lot' in o && o.new_lot && o.lot_id) o.new_lot = null;
     if ('new_part_number' in o && o.new_part_number && o.part_number_id) o.new_part_number = null;
     if ('new_project' in o && o.new_project && o.project_id) o.new_project = null;
@@ -1244,6 +1282,8 @@ window.MRT.store = (function () {
     if ('new_magazine' in o && o.new_magazine && o.magazine_id) o.new_magazine = null;
     if ('new_type' in o && o.new_type && o.type_id) o.new_type = null;
     if ('new_priority' in o && o.new_priority && o.priority_id) o.new_priority = null;
+    if ('new_location' in o && o.new_location && o.panel_location_id) o.new_location = null;
+    if ('new_destination' in o && o.new_destination && o.destination_id) o.new_destination = null;
     if (Array.isArray(o.panels)) {
       o.panels = o.panels.map(function (x) { return String(x).trim(); }).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
       if (o.panels.length) o.panel_count = o.panels.length;       // with IDs, the count is theirs
@@ -1272,7 +1312,7 @@ window.MRT.store = (function () {
       priority_id: null, priority_reason: '', needed_by: null, bkm_id: null, bkm_path: '', purpose: '', process_step_id: null,
       process_step_other: '', layers: [], panel_count: null, new_lot: null, project_id: null, part_number_id: null, new_part_number: null, buildup_id: null,
       new_project: null, new_buildup: null, new_magazine: null, new_type: null, new_priority: null,
-      panel_location: '', magazine_id: null, slots: [], destructive_ok: false, after: null, after_other: '', extra: {},
+      panel_location_id: null, new_location: null, magazine_id: null, slots: [], destructive_ok: false, destination_id: null, new_destination: null, extra: {},
       duplicated_from: null, requester_id: me.id, created_ts: nowIso(), updated_ts: null, submitted_ts: null, version: 0 };
     return { existing: null, next: Object.assign(blank, f) };
   }
@@ -1425,6 +1465,38 @@ window.MRT.store = (function () {
     r.new_priority = null;
   }
 
+  function registerNewLocation(r) {
+    var nl = r.new_location;
+    if (!nl) return;
+    var name = String(nl.name || '').trim();
+    if (!name) { r.new_location = null; return; }
+    var hit = (state.data.panel_locations || []).filter(function (x) { return D.normalizeName(x.name) === D.normalizeName(name); })[0];
+    if (hit) { r.panel_location_id = hit.id; r.new_location = null; return; }
+    var row = { id: newId('loc'), name: name, description: '', active: true, sort: (state.data.panel_locations || []).length + 1, version: 1 };
+    var pp = D.validateEntry('panel_locations', row, state.data);
+    assert(!pp.length, pp.join('. '), 'invalid', pp);
+    state.data.panel_locations.push(row);
+    audit('panel_location', row.id, 'create', null, null, row.name, 'Registered with a request');
+    r.panel_location_id = row.id;
+    r.new_location = null;
+  }
+
+  function registerNewDestination(r) {
+    var nd = r.new_destination;
+    if (!nd) return;
+    var name = String(nd.name || '').trim();
+    if (!name) { r.new_destination = null; return; }
+    var hit = (state.data.destinations || []).filter(function (x) { return D.normalizeName(x.name) === D.normalizeName(name); })[0];
+    if (hit) { r.destination_id = hit.id; r.new_destination = null; return; }
+    var row = { id: newId('dst'), name: name, description: '', active: true, sort: (state.data.destinations || []).length + 1, version: 1 };
+    var pp = D.validateEntry('destinations', row, state.data);
+    assert(!pp.length, pp.join('. '), 'invalid', pp);
+    state.data.destinations.push(row);
+    audit('destination', row.id, 'create', null, null, row.name, 'Registered with a request');
+    r.destination_id = row.id;
+    r.new_destination = null;
+  }
+
   /** A part number typed in the request is registered when the request is sent. */
   function registerNewPartNumber(r) {
     var np = r.new_part_number;
@@ -1473,6 +1545,8 @@ window.MRT.store = (function () {
       registerNewProject(x.next);
       registerNewType(x.next);
       registerNewPriority(x.next);
+      registerNewLocation(x.next);
+      registerNewDestination(x.next);
       registerNewBuildup(x.next);
       registerNewMagazine(x.next);
       registerNewLot(x.next, me);
@@ -1694,16 +1768,16 @@ window.MRT.store = (function () {
       if (k === 'slots') return D.formatPanels(v);
       if (k === 'magazine_id') { var mg = byId('magazines', v); return mg ? mg.code : '?'; }
       var coll = { type_id: 'measurement_types', lot_id: 'lots', priority_id: 'priorities', bkm_id: 'bkms', process_step_id: 'process_steps',
-                   project_id: 'projects', part_number_id: 'part_numbers', buildup_id: 'buildups' }[k];
+                   project_id: 'projects', part_number_id: 'part_numbers', buildup_id: 'buildups',
+                   panel_location_id: 'panel_locations', destination_id: 'destinations' }[k];
       if (coll) { var row = byId(coll, v); return row ? (row.lot_number || row.name || row.code) : '?'; }
-      if (k === 'after') return D.AFTER_LABEL[v] || v;
       if (k === 'destructive_ok') return v ? 'yes' : 'no';
       if (k === 'extra') return 'changed';
       return String(v);
     }
     var names = { type_id: 'type', lot_id: 'lot', priority_id: 'priority', priority_reason: 'priority reason', needed_by: 'needed by',
-      bkm_id: 'BKM', bkm_path: 'BKM path', process_step_id: 'process step', process_step_other: 'process step', panel_location: 'panels are now',
-      destructive_ok: 'destructive OK', after_other: 'afterwards (other)', extra: 'tool fields', magazine_id: 'magazine', panel_count: 'how many panels',
+      bkm_id: 'BKM', bkm_path: 'BKM path', process_step_id: 'process step', process_step_other: 'process step', panel_location_id: 'panels are now',
+      destructive_ok: 'destructive OK', destination_id: 'panels go after', extra: 'tool fields', magazine_id: 'magazine', panel_count: 'how many panels',
       project_id: 'project', part_number_id: 'part number', buildup_id: 'build-up' };
     return (names[k] || k) + ' ' + show(a) + ' -> ' + show(b);
   }

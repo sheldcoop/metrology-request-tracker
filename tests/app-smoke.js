@@ -272,6 +272,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Copy puts a BKM path on the clipboard', /SAMPLE-SHARE|Z:/.test(win.navigator.clipboard.text || ''));
 
   await tab('lists');
+  check('...panel logistics lists live here', /Panel locations/.test(mainText()) && /Destinations/.test(mainText()));
   buttonByText(doc.getElementById('main').querySelectorAll('section')[0], 'Add').click(); await settle();
   dlg2 = openDialog(); setVal(fieldIn(dlg2, 'Code'), 'nova'); buttonByText(dlg2, 'Save').click(); await settle();
   check('a project is added, code in capitals', MRT.store.list('projects').some(p => p.code === 'NOVA'));
@@ -385,8 +386,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(M(), 'Submit').click(); await settle();
   check('Submit with nothing picked lists what is missing', !$('#main .req-errors').hidden && /Pick a tool/.test($('#main .req-errors').textContent));
   toolOpt('FIB').click(); await settle();
-  check('picking FIB: its types, the destructive tick, afterwards fixed to scrap', !!fieldIn(M(), 'Measurement type') &&
-        /destroys these panels/.test(mainText()) && fieldIn(M(), 'Where the panels go after measuring').value === 'Lab may scrap them');
+  check('picking FIB: its types, the destructive tick, afterwards free (Back to me default)', !!fieldIn(M(), 'Measurement type') &&
+        /destroys these panels/.test(mainText()) && fieldIn(M(), 'Where the panels go after measuring').value === 'Back to me');
   check('...and its extra field (Cut side)', !!fieldIn(M(), 'Cut side'));
       setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].name); await settle();
   setVal(fieldIn(M(), 'Cut side'), fieldIn(M(), 'Cut side').querySelectorAll('option')[1].value); await settle();
@@ -395,7 +396,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         !/destroys these panels/.test(mainText()) && fieldIn(M(), 'Where the panels go after measuring').value === 'Back to me');
   toolOpt('FIB').click(); await settle();
   check('...switching back to FIB starts its type/extras clean', fieldIn(M(), 'Measurement type').value === '' && !!fieldIn(M(), 'Cut side') &&
-        /destroys these panels/.test(mainText()) && fieldIn(M(), 'Where the panels go after measuring').value === 'Lab may scrap them');
+        /destroys these panels/.test(mainText()) && fieldIn(M(), 'Where the panels go after measuring').value === 'Back to me');
       setVal(fieldIn(M(), 'Measurement type'), MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].name); await settle();
   buttonByText(M(), 'Next: Lot and panels').click(); await settle();
   check('Next opens step 2; step 1 folds into one line with the tool and type, ticked', isOpenStep('lot') && !isOpenStep('tool') &&
@@ -465,9 +466,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('complete, but no BKM: a warning asks first (Q44)', !!openDialog() && /Submit anyway/.test(openDialog().textContent) && /No BKM/.test(openDialog().textContent));
   buttonByText(openDialog(), 'Submit anyway').click(); await settle();
   const req1 = MRT.store.data().requests.filter(r => r.status === 'submitted')[0];
-  check('submitted: ID FIB-YYMMDD-01, Hirata IDs, layer, magazine slots, scrap, destructive ok', !!req1 && /^FIB-\d{6}-01$/.test(req1.request_no) &&
+  check('submitted: ID FIB-YYMMDD-01, Hirata IDs, layer, magazine slots, Back-to-me default, destructive ok', !!req1 && /^FIB-\d{6}-01$/.test(req1.request_no) &&
         req1.panels.join() === '3252,3253,3254,3255' && req1.project_id === c4f.id && req1.part_number_id === pn77.id && req1.buildup_id === bu1.id && req1.panel_count === 4 && req1.layers.join() === '2F' && req1.lot_id === lot1.id &&
-        req1.magazine_id === mag1.id && req1.slots.join() === '3,4,5,6' && req1.after === 'scrap' && req1.destructive_ok === true);
+        req1.magazine_id === mag1.id && req1.slots.join() === '3,4,5,6' && MRT.store.byId('destinations', req1.destination_id).name === 'Back to me' && req1.destructive_ok === true);
   check('...its request page opens (M2 step 5)', win.location.hash === '#/request/' + req1.id && mainText().indexOf(req1.request_no) !== -1 && /M70345 · slots 3-6/.test(mainText()));
   check('the traveller card: ID, stamp "Submitted", priority stripe, the magazine with 4 slots', !!$('#main .traveller.prio-3') &&
         $('#main .tr-stamp').textContent === 'Submitted' && $$('#main .traveller .mz-slot.is-picked').length === 4 && /3252, 3253/.test($('#main .traveller').textContent));
@@ -516,6 +517,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const prevPanel2 = $$('#main .req-side .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
   check('...and stays collapsed (remembered on this PC)', prevPanel2.classList.contains('is-collapsed'));
   prevPanel2.querySelector('.panel-collapse').click(); await settle();
+  check('...panel logistics sit on one row', $('#main .where-row').querySelectorAll('.ifield').length === 3);
+  setVal(fieldIn(M(), 'Where the panels go after measuring'), 'Back to'); await settle();
+  check('...a near-miss suggests the close matches', /Close to: Back to me, Back to the line/.test(mainText()));
+  setVal(fieldIn(M(), 'Where the panels go after measuring'), 'Back to me'); await settle();
   setVal(fieldIn(M(), 'Lot'), '1917x'); await settle();
   check('a lot number that is not one is named at the field', /Lot numbers are digits/.test(mainText()));
   setVal(fieldIn(M(), 'Lot'), '19170'); await settle();
@@ -530,8 +535,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   if (openDialog()) { buttonByText(openDialog(), 'Submit anyway').click(); await settle(); }
   const lotNew = MRT.store.data().lots.filter(l => l.lot_number === '19170')[0];
   const reqNew = MRT.store.data().requests.filter(r => r.status === 'submitted').slice(-1)[0];
-  check('...Submit registers lot 19170 and the request uses it: C4F, the build-up, 3 panels, no IDs, the note', !!lotNew && reqNew.project_id === c4f.id && reqNew.buildup_id === bu1.id &&
-        reqNew.lot_id === lotNew.id && reqNew.panel_count === 3 && reqNew.panels.length === 0 && reqNew.panel_location === 'with Anna');
+  check('...Submit registers lot 19170 and the request uses it: C4F, the build-up, 3 panels, no IDs, the new place', !!lotNew && reqNew.project_id === c4f.id && reqNew.buildup_id === bu1.id &&
+        reqNew.lot_id === lotNew.id && reqNew.panel_count === 3 && reqNew.panels.length === 0 &&
+        MRT.store.byId('panel_locations', reqNew.panel_location_id).name === 'with Anna' &&
+        MRT.store.list('panel_locations').some(x => x.name === 'with Anna'));
   await MRT.store.cancelRequest(reqNew.id, 'test only');
   win.setHash('#/request/' + req1.id); await settle();
   buttonByText(doc.getElementById('main'), 'Cancel request').click(); await settle();
@@ -604,9 +611,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // --- My queue (M3 step 2)
   const fibType = MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id;
   const prioBy = code => MRT.store.list('priorities').filter(p => p.code === code)[0].id;
-  const base = { project_id: c4f.id, tool_id: fib().id, type_id: fibType, lot_id: lot1.id, panel_location: 'Rack A', destructive_ok: true, after: 'scrap', purpose: 'x' };
+  const dstScrap = MRT.store.list('destinations').filter(x => x.name === 'Lab may scrap them')[0].id;
+  const dstBackToMe = MRT.store.list('destinations').filter(x => x.name === 'Back to me')[0].id;
+  const base = { project_id: c4f.id, tool_id: fib().id, type_id: fibType, lot_id: lot1.id, new_location: { name: 'Rack A' }, destructive_ok: true, destination_id: dstScrap, purpose: 'x' };
   const qN = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [5], priority_id: prioBy('P3') }) });
-  const qL = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [6], priority_id: prioBy('P1'), priority_reason: 'line 2 down' }) });
+  const rackA = MRT.store.list('panel_locations').filter(x => x.name === 'Rack A')[0].id;
+  const qL = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panel_location_id: rackA, new_location: null, panels: [6], priority_id: prioBy('P1'), priority_reason: 'line 2 down' }) });
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
   check('the bell shows Olga what is new: her tool\'s requests (M4)', visible('bellCount') && +text('bellCount') >= 2);
   doc.getElementById('bellBtn').click(); await settle();
@@ -618,7 +628,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   MRT.store.setCurrentUser(meP);
   const ed = await MRT.store.saveEntry('users', { fields: { name: 'Ed Engineer', roles: ['engineer'] } });
   MRT.store.setCurrentUser(ed.id);
-  const edReq = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panels: [7], priority_id: prioBy('P3') }) });
+  const edReq = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panel_location_id: rackA, new_location: null, panels: [7], priority_id: prioBy('P3') }) });
   win.setHash('#/request/' + edReq.id); await settle();
   check('engineer on own request: Edit, Cancel, Copy, Print - and no workflow bar at all',
     ['Edit request', 'Print slip', 'Copy this request', 'Cancel request'].every(t => !!buttonByText(M(), t)) && !$('#main .req-actbar'));
@@ -682,9 +692,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   // --- the board (M3 step 4)
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
-  check('Board: a lane per tool, six columns, one accepted + one in-progress FIB card', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 6 &&
+  check('Board: a lane per tool, seven columns, one accepted + one in-progress FIB card', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 7 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
+  const anCell = $$('#main .board-cell').filter(c => c.dataset.col === 'analyzed' && c.dataset.tool === fib().id)[0];
+  check('...the Analyzed column holds the analyzed request with analyst + date', anCell.querySelectorAll('.bcard').length === 1 &&
+        anCell.querySelectorAll('.bcard')[0].dataset.id === req2.id && /RA/.test(anCell.textContent));
   const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
   check('...the Line stop card pulses, has a needed-by gauge, nothing is draggable', lsCard.classList.contains('is-urgent') && !!lsCard.querySelector('.bgauge') &&
         $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
@@ -711,7 +724,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   bs.value = ''; bs.dispatch('input');
   const doneSw = $$('#main input').filter(i => i.getAttribute('role') === 'switch')[0];
   doneSw.checked = false; doneSw.dispatch('change'); await settle();
-  check('Board: the Completed column can be hidden (P5-7)', $$('#main .board-colhead').length === 5 && !$$('#main .board-cell').some(c => c.dataset.col === 'completed'));
+  check('Board: the done columns can be hidden (P5-7)', $$('#main .board-colhead').length === 5 && !$$('#main .board-cell').some(c => c.dataset.col === 'completed' || c.dataset.col === 'analyzed'));
   const doneSw2 = $$('#main input').filter(i => i.getAttribute('role') === 'switch')[0];
   doneSw2.checked = true; doneSw2.dispatch('change'); await settle();
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
@@ -749,7 +762,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...an admin sets TEST to 2 layers: up to 3F / 3B', MRT.store.list('buildups').filter(x => x.code === 'TEST')[0].layers === 2 && MRT.domain.layersFor(MRT.store.list('buildups').filter(x => x.code === 'TEST')[0]).slice(-1)[0] === '3B');
   const fibT = MRT.store.list('measurement_types').filter(m => m.tool_id === fib().id)[0].id;
   const inMag = await MRT.store.submitRequest({ fields: { project_id: c4f.id, tool_id: fib().id, type_id: fibT, lot_id: lot1.id, panels: ['3260', '3261'], priority_id: MRT.store.list('priorities')[2].id,
-    magazine_id: mag1.id, slots: [1, 2], destructive_ok: true, after: 'scrap', purpose: 'x' } });
+    magazine_id: mag1.id, slots: [1, 2], destructive_ok: true, destination_id: dstScrap, purpose: 'x' } });
   win.setHash('#/new?lot=' + lot1.id); await settle();
   toolOpt('QVM').click(); await settle();
   setVal(fieldIn(M(), 'Magazine'), mag1.code); await settle();
@@ -766,7 +779,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         $$('#main .mz-slot.is-picked').length === 2);
   const qvmReq = await MRT.store.submitRequest({ fields: { project_id: c4f.id, tool_id: MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id,
     type_id: MRT.store.list('measurement_types').filter(m => m.tool_id === MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id)[0].id, lot_id: lot1.id,
-    panels: ['3270'], priority_id: MRT.store.list('priorities')[2].id, magazine_id: mag1.id, slots: [7], after: 'back_to_me', purpose: 'x' } });
+    panels: ['3270'], priority_id: MRT.store.list('priorities')[2].id, magazine_id: mag1.id, slots: [7], destination_id: dstBackToMe, purpose: 'x' } });
   const qvmT = MRT.store.list('tools').filter(t => t.code === 'QVM')[0];
   await MRT.store.saveEntry('tools', { id: qvmT.id, fields: { primary_operator_id: olga.id } });
   MRT.store.setCurrentUser(olga.id);

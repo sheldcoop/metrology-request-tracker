@@ -717,3 +717,10 @@ never the only signal - the text/label says the same thing.
   uniqueness test. Health warns past 20k audit / 50k timeline entries
   (download first; archiving still open #27). Queue sort has a 5k
   correctness + time tripwire. Docs refreshed (P-1 supersedes M1-13).
+- **A-02** (2026-09-29, Prince Q&A) Addendum 02: panel logistics row (Where
+  now, Where after, Magazine) with managed panel_locations + destinations
+  (select-or-add-new, close-match hints, migration 13->14 turns distinct
+  texts into entries, After enum deleted). Live names, no frozen snapshots;
+  FIB scrap forcing dropped (destructive tick kept). Board gains an
+  Analyzed column (last 7 days, analyst + date). Exports carry the three
+  adjacent columns, magazine as text.
