@@ -159,9 +159,10 @@ window.MRT.views.hirata = (function () {
     if (!list.length) return null;
     var MARK = { measured: { icon: 'check', text: 'Measured' }, scrapped: { icon: 'close', text: 'Scrapped' } }[o.state];
     var items = list.map(function (id) {
-      return ui.el('div', { class: 'panel-hirata-item' + (o.state ? ' is-' + o.state : '') }, [
+      return ui.el('div', { class: 'panel-hirata-item' + (o.state ? ' is-' + o.state : '') + (o.compact ? ' is-compact' : '') }, [
         ui.el('span', { class: 'panel-cu' }, [copper(id, size || 'md'), MARK ? ui.el('span', { class: 'panel-mark', title: MARK.text }, ui.icon(MARK.icon, 14)) : null]),
-        ui.el('div', {}, [ui.el('div', { class: 'mono', text: id + (MARK ? '  ·  ' + MARK.text.toLowerCase() : '') }), ui.hirataFields(D.hirataFields(id), { compact: true })])]);
+        o.compact ? ui.el('div', { class: 'mono', text: id })
+          : ui.el('div', {}, [ui.el('div', { class: 'mono', text: id + (MARK ? '  ·  ' + MARK.text.toLowerCase() : '') }), ui.hirataFields(D.hirataFields(id), { compact: true })])]);
     });
     var node = ui.el('div', { class: 'panel-hirata' + (o.animate ? ' is-animating' : '') }, items);
     if (o.state !== 'received') return node;

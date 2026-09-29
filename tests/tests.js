@@ -1128,6 +1128,11 @@
       ok('...bad table and unknown who flagged, missing events fine', D.validateEmailMatrix(null).length === 1 &&
         D.validateEmailMatrix({ submit: ['owner'] }).length === 1 && D.validateEmailMatrix({}).length === 0);
       eq('...normalize fills a missing event from the default', D.normalizeEmailMatrix({}).submit, D.DEFAULT_EMAIL_MATRIX.submit);
+    eq('results folder: confirmed wins, else proposed from the tool root (Q30), else none',
+      [D.resultsFolder({ results_path: 'Z:\\\\x', submitted_ts: '2026-09-01T00:00:00Z', request_no: 'F-1' }, { results_root: 'Z:\\\\root' }),
+       D.resultsFolder({ submitted_ts: '2026-09-01T00:00:00Z', request_no: 'F-1' }, { results_root: 'Z:\\\\root\\\\' }),
+       D.resultsFolder({ submitted_ts: '2026-09-01T00:00:00Z', request_no: 'F-1' }, {})],
+      [{ path: 'Z:\\\\x', confirmed: true }, { path: 'Z:\\\\root\\2026\\F-1\\', confirmed: false }, { path: null, confirmed: false }]);
     })();
     eq('M4: settings/template/comment/management gates', [
       D.canUseSettings({ roles: ['admin'] }), D.canUseSettings({ roles: ['engineer'] }),

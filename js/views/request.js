@@ -32,7 +32,11 @@ window.MRT.views.request = (function () {
   function muted(t) { return ui.el('span', { class: 'muted', text: t }); }
   function copyBtn(text, what) {
     return ui.button('', { kind: 'ghost', size: 'sm', icon: 'copy', ariaLabel: 'Copy ' + what, title: 'Copy ' + what,
-      onClick: function () { ui.copyText(text, what + ' copied'); } });
+      onClick: function (ev) {
+        ui.copyText(text, what + ' copied');
+        var b = ev && ev.currentTarget ? ev.currentTarget : null;   // brief copied pulse, still under reduced-motion
+        if (b) { b.classList.add('is-copied'); setTimeout(function () { b.classList.remove('is-copied'); }, 900); }
+      } });
   }
 
   /** A share path as a file:// link (opens from file:// pages in Chrome/Edge); otherwise plain text. */
@@ -46,6 +50,29 @@ window.MRT.views.request = (function () {
     var text = url ? ui.el('a', { class: 'mono path-link', href: url, text: path, title: path + ' - open' })
                    : ui.el('span', { class: 'mono', text: path, title: path });
     return ui.el('span', { class: 'cell-path' }, [text, copyBtn(path, what)]);
+  }
+
+  /** The unmissable banner under the header: where the data goes, + Copy and Open. */
+  function resultsBanner(r, tool) {
+    var f = D.resultsFolder(r, tool);
+    return ui.el('div', { class: 'res-banner' + (f.confirmed ? ' is-confirmed' : ''), role: 'note',
+      'aria-label': f.path ? (f.confirmed ? 'Results folder' : 'Proposed results folder') : 'No results folder yet' }, [
+      ui.icon('folder', 22),
+      ui.el('div', { class: 'res-banner-body' }, [
+        ui.el('div', { class: 'res-banner-label', text: f.path ? (f.confirmed ? 'Results folder - put the data here' : 'Proposed results folder - confirmed at Complete') : 'No results folder yet' }),
+        f.path ? ui.el('a', { class: 'mono res-banner-path path-link', href: fileUrl(f.path), text: f.path, title: f.path + ' - open' })
+               : ui.el('div', { class: 'muted', text: 'The tool has no results root yet (Settings > Tools).' })
+      ]),
+      f.path ? ui.el('div', { class: 'res-banner-actions' }, [
+        ui.button('Copy path', { kind: 'primary', icon: 'copy', onClick: function (ev) {
+          ui.copyText(f.path, 'Results path copied');
+          var b = ev && ev.currentTarget ? ev.currentTarget : null;
+          if (b) { b.classList.add('is-copied'); setTimeout(function () { b.classList.remove('is-copied'); }, 900); }
+        } }),
+        ui.button('Open', { icon: 'expand', ariaLabel: 'Open results folder', title: 'Open results folder',
+          onClick: function () { var u = fileUrl(f.path); if (u) window.open(u, '_blank'); } })
+      ]) : null
+    ]);
   }
 
   function render(main, ctx) {
@@ -74,6 +101,7 @@ window.MRT.views.request = (function () {
       D.canCancel(me, r, tool) ? ui.button('Cancel request', { kind: 'danger', icon: 'close', onClick: function () { cancel(r); } }) : null
     ];
     main.appendChild(ui.pageHead(r.request_no, (tool ? tool.name : '') + ' - requested by ' + userName(r.requester_id), actions));
+    main.appendChild(resultsBanner(r, tool));
 
     var prev = seen[r.id], nowKey = r.status + '|' + !!r.received_ts;
     var changed = prev !== undefined && prev !== nowKey;
@@ -221,8 +249,7 @@ window.MRT.views.request = (function () {
   function pathsPanel(r, tool) {
     var bkm = byId('bkms', r.bkm_id);
     var bkmPath = bkm ? bkm.path : r.bkm_path;
-    var year = (r.submitted_ts || '').slice(0, 4);
-    var results = r.results_path || (tool && tool.results_root ? tool.results_root.replace(/\\+$/, '') + '\\' + year + '\\' + r.request_no + '\\' : null);
+    var results = D.resultsFolder(r, tool).path;
     return ui.panel({ title: 'BKM and results', icon: 'folder', body: [
       ui.el('div', { class: 'ifield-label', text: 'BKM' }),
       bkmPath ? ui.el('div', {}, [bkm ? ui.el('div', { text: bkm.name + (bkm.doc_version ? ' (' + bkm.doc_version + ')' : '') }) : null,
