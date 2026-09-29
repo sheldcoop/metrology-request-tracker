@@ -76,6 +76,29 @@ window.MRT.domain = (function () {
   /** Who closes measurements - analysts (or admins). The ONE place that decides it. */
   function canAnalyze(user) { return hasRole(user, 'analyst') || hasRole(user, 'admin'); }
 
+  /** Who opens Settings - admins (the screen asks the PIN on top). The ONE place that decides it. */
+  function canUseSettings(user) { return hasRole(user, 'admin'); }
+
+  /** Admin names for "ask an admin" messages (display only). */
+  function adminNames(users) { return (users || []).filter(function (u) { return hasRole(u, 'admin'); }).map(function (u) { return u.name; }); }
+
+  /** Who saves a request as their template - engineers on their own, admins on any. */
+  function canSaveTemplate(user, r) { return canRequest(user) && !!r && (r.requester_id === user.id || hasRole(user, 'admin')); }
+
+  /** Who edits a timeline comment - its author, or an admin. */
+  function canEditComment(user, e) { return !!e && e.kind === 'comment' && !!user && (e.user_id === user.id || hasRole(user, 'admin')); }
+
+  /** Who sees the Lab + Management analytics tabs - managers (M4; admin-sees-all is an M7 question). */
+  function canSeeManagement(user) { return hasRole(user, 'manager'); }
+
+  /** The Analytics tab a person lands on (M4): measurers with tools see Work (admins see Lab); managers Lab; the rest Mine. */
+  function defaultAnalyticsTab(user, hasWorkTools) {
+    if (hasWorkTools && !hasRole(user, 'admin')) return 'work';
+    if (hasRole(user, 'manager')) return 'lab';
+    if (canMeasure(user)) return 'work';
+    return 'mine';
+  }
+
   /*
    * Away (DECISIONS M1-14): vacation, sick leave - one period per person,
    * stored on the user as away_from / away_until (YYYY-MM-DD, until optional =
@@ -1818,6 +1841,12 @@ window.MRT.domain = (function () {
     hasRole: hasRole,
     canMeasure: canMeasure,
     canAnalyze: canAnalyze,
+    canUseSettings: canUseSettings,
+    canSeeManagement: canSeeManagement,
+    adminNames: adminNames,
+    canSaveTemplate: canSaveTemplate,
+    canEditComment: canEditComment,
+    defaultAnalyticsTab: defaultAnalyticsTab,
     awayState: awayState,
     isAway: isAway,
     validateAway: validateAway,

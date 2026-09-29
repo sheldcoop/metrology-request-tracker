@@ -39,7 +39,7 @@ window.MRT.views.analytics = (function () {
   function nameOf(c, id) { var r = byId(c, id); return r ? (r.name || r.code) : (id ? '?' : 'nobody'); }
   function h(ms) { return ms === null || ms === undefined ? '-' : ui.formatDurationH(ms / 3600000); }
   function pct(v) { return v === null || v === undefined ? '-' : ui.formatNumber(v, 1) + ' %'; }
-  function isManager(me) { return D.hasRole(me, 'manager'); }
+  function isManager(me) { return D.canSeeManagement(me); }
 
   /* --- click-through: the requests behind a number --------------------- */
 
@@ -131,7 +131,7 @@ window.MRT.views.analytics = (function () {
     var want = (ctx.subpath || '').split('/')[0];
     if (tabs.some(function (t) { return t.key === want; })) state.tab = want;
     if (!state.tab || !tabs.some(function (t) { return t.key === state.tab; })) {
-      state.tab = D.measuredTools(me, store.list('tools')).length && !D.hasRole(me, 'admin') ? 'work' : isManager(me) ? 'lab' : D.canMeasure(me) ? 'work' : 'mine';
+      state.tab = D.defaultAnalyticsTab(me, !!D.measuredTools(me, store.list('tools')).length);
     }
     if (!state.filter) state.filter = A.defaultFilter();
 

@@ -66,7 +66,7 @@ window.MRT.views.request = (function () {
       D.canEditSubmitted(me, r) ? ui.button('Edit request', { icon: 'edit', onClick: function () { location.hash = '#/new/' + r.id; } }) : null,
       ui.button('Print slip', { icon: 'download', onClick: function () { location.hash = '#/slip/' + r.id; } }),
       ui.button('Copy this request', { icon: 'copy', onClick: function () { location.hash = '#/new?from=' + r.id; } }),
-      D.canRequest(me) && (r.requester_id === me.id || D.hasRole(me, 'admin')) ? ui.button('Save as template', { icon: 'requests',
+      D.canSaveTemplate(me, r) ? ui.button('Save as template', { icon: 'requests',
         title: 'Keep what stays the same for next time (not the lot, panels, place or dates)',
         onClick: function () { var ty = store.byId('measurement_types', r.type_id);
           window.MRT.templates.save([(store.byId('tools', r.tool_id) || {}).code, ty ? ty.name : ''].filter(Boolean).join(' '), { request_id: r.id }); } }) : null,
@@ -303,7 +303,7 @@ window.MRT.views.request = (function () {
     var list = ui.el('ol', { class: 'timeline' }, events.map(function (e) {
       var icon = { comment: 'edit', created: 'plus', assign: 'user', panels: 'inbox', edit: 'edit' }[e.kind] ||
         (e.to === 'cancelled' ? 'close' : e.to === 'on_hold' ? 'clock' : e.to === 'clarification' ? 'help' : 'check');
-      var editable = e.kind === 'comment' && (e.user_id === me.id || D.hasRole(me, 'admin'));
+      var editable = D.canEditComment(me, e);
       return ui.el('li', { class: 'tl-item is-' + e.kind + (e.to ? ' to-' + e.to : '') }, [
         ui.el('span', { class: 'tl-icon', 'aria-hidden': 'true' }, ui.icon(icon, 14)),
         ui.el('div', {}, [
