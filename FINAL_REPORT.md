@@ -89,7 +89,7 @@ git revert -m 1 <merge>      # then run the suite and push
 | M7 | 57c524d | m7-analyst |
 | M8 | e8f1c74 | m8-components |
 | M9 | 22e7999 | m9-themes |
-| M10 | (this merge) | m10-docs |
+| M10 | f0b5137 | m10-docs |
 
 To return the whole tree to before the pass: `git checkout main &&
 git reset --hard 241ff63` (Merge addendum-02), then force-push only if no
