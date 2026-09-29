@@ -71,7 +71,8 @@ record the change here with the date.
 - **Q27** Tool status Up / Down / Maintenance (with until-date), set by operator or admin; shown on
   the board; new requests warn. Capacity numbers later.
 - **Q30** Admin sets a results root per tool; app proposes `<root>\YYYY\<request ID>\` (Copy path);
-  operator may change it.
+  operator may change it. **Revised 2026-09-29 (Prince):** the proposal is only the Complete dialog's
+  prefill — pages and the slip show confirmed folders only ("Not set yet" before that).
 - **Q34** After Completed the engineer may mark "Results OK" or "Reopen" (reason → back to the
   operator); auto-closes after 7 days; reopen rate in analytics.
 - **Changed 2026-09-28, Prince (RBAC):** Q9 and Q34 are superseded. Status is now Draft →

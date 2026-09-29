@@ -52,25 +52,35 @@ window.MRT.views.request = (function () {
     return ui.el('span', { class: 'cell-path' }, [text, copyBtn(path, what)]);
   }
 
-  /** The unmissable banner under the header: where the data goes, + Copy and Open. */
-  function resultsBanner(r, tool) {
-    var f = D.resultsFolder(r, tool);
-    return ui.el('div', { class: 'res-banner' + (f.confirmed ? ' is-confirmed' : ''), role: 'note',
-      'aria-label': f.path ? (f.confirmed ? 'Results folder' : 'Proposed results folder') : 'No results folder yet' }, [
+  /** One folder row: icon, label, clickable path (or Not set yet), Copy button. No proposed paths. */
+  function folderRow(label, path, what) {
+    return ui.el('div', { class: 'folder-row' }, [
+      ui.icon('folder', 18),
+      ui.el('div', { class: 'folder-row-body' }, [
+        ui.el('div', { class: 'folder-row-label', text: label }),
+        path ? ui.el('a', { class: 'mono path-link', href: fileUrl(path), text: path, title: path + ' - open' })
+             : ui.el('div', { class: 'muted', text: 'Not set yet' })
+      ]),
+      path ? copyBtn(path, what) : null
+    ]);
+  }
+
+  /** The unmissable banner under the header: where the data goes + Copy path. Confirmed folders only. */
+  function resultsBanner(r) {
+    return ui.el('div', { class: 'res-banner' + (r.results_path ? ' is-confirmed' : ''), role: 'note',
+      'aria-label': r.results_path ? 'Results folder' : 'No results folder yet' }, [
       ui.icon('folder', 22),
       ui.el('div', { class: 'res-banner-body' }, [
-        ui.el('div', { class: 'res-banner-label', text: f.path ? (f.confirmed ? 'Results folder - put the data here' : 'Proposed results folder - confirmed at Complete') : 'No results folder yet' }),
-        f.path ? ui.el('a', { class: 'mono res-banner-path path-link', href: fileUrl(f.path), text: f.path, title: f.path + ' - open' })
-               : ui.el('div', { class: 'muted', text: 'The tool has no results root yet (Settings > Tools).' })
+        ui.el('div', { class: 'res-banner-label', text: r.results_path ? 'Results folder - put the data here' : 'No results folder yet' }),
+        r.results_path ? ui.el('a', { class: 'mono res-banner-path path-link', href: fileUrl(r.results_path), text: r.results_path, title: r.results_path + ' - open' })
+               : ui.el('div', { class: 'muted', text: 'The quality engineer confirms it at Complete.' })
       ]),
-      f.path ? ui.el('div', { class: 'res-banner-actions' }, [
+      r.results_path ? ui.el('div', { class: 'res-banner-actions' }, [
         ui.button('Copy path', { kind: 'primary', icon: 'copy', onClick: function (ev) {
-          ui.copyText(f.path, 'Results path copied');
+          ui.copyText(r.results_path, 'Results path copied');
           var b = ev && ev.currentTarget ? ev.currentTarget : null;
           if (b) { b.classList.add('is-copied'); setTimeout(function () { b.classList.remove('is-copied'); }, 900); }
-        } }),
-        ui.button('Open', { icon: 'expand', ariaLabel: 'Open results folder', title: 'Open results folder',
-          onClick: function () { var u = fileUrl(f.path); if (u) window.open(u, '_blank'); } })
+        } })
       ]) : null
     ]);
   }
@@ -101,7 +111,7 @@ window.MRT.views.request = (function () {
       D.canCancel(me, r, tool) ? ui.button('Cancel request', { kind: 'danger', icon: 'close', onClick: function () { cancel(r); } }) : null
     ];
     main.appendChild(ui.pageHead(r.request_no, (tool ? tool.name : '') + ' - requested by ' + userName(r.requester_id), actions));
-    main.appendChild(resultsBanner(r, tool));
+    main.appendChild(resultsBanner(r));
 
     var prev = seen[r.id], nowKey = r.status + '|' + !!r.received_ts;
     var changed = prev !== undefined && prev !== nowKey;
@@ -149,8 +159,7 @@ window.MRT.views.request = (function () {
         cell('Needed by', r.needed_by ? ui.el('b', { class: 'num', text: ui.formatDate(r.needed_by + 'T12:00:00Z') }) : muted('no date'), null,
           gauge ? ui.el('div', { class: 'tr-dial' }, [gauge.node, clock]) : clock),
         cell('Panels', ui.el('b', { class: 'mono', text: D.panelsText(r) + ((r.panels || []).length ? '  (' + r.panels.length + ')' : '') }),
-          [(r.layers || []).length ? 'layer ' + r.layers.join(', ') : null, window.MRT.requestActions.whereOf(r) || null].filter(Boolean).join(' · ') || null,
-          window.MRT.views.hirata.panelsView(r.panels, 'md', { state: panelState(r), animate: live.changed })),
+          [(r.layers || []).length ? 'layer ' + r.layers.join(', ') : null, window.MRT.requestActions.whereOf(r) || null].filter(Boolean).join(' · ') || null),
         cell('Submitted', ui.el('span', { class: 'num', text: ui.formatTs(r.submitted_ts) })),
         r.expected_done ? cell('Expected done', ui.el('b', { class: 'num', text: ui.formatDate(r.expected_done + 'T12:00:00Z') }),
           r.needed_by && r.expected_done > r.needed_by ? 'later than needed' : null) : null,
@@ -159,6 +168,8 @@ window.MRT.views.request = (function () {
         r.received_ts ? cell('Panels received', userName(r.received_by) + ', ' + ui.formatTs(r.received_ts), r.received_where || null) : null,
         r.status === 'on_hold' ? cell('On hold', ((byId('hold_reasons', r.hold_reason_id) || {}).name || '?'), r.hold_note || null) : null
       ],
+      split: { left: [folderRow('Results folder', r.results_path, 'Results path'), folderRow('Analyzed data folder', r.analyzed_path, 'Analyzed data path')],
+               right: window.MRT.views.hirata.panelsView(r.panels, 'md', { state: panelState(r), animate: live.changed }) || muted('no panels') },
       footer: magazineView(r)
     }, { size: 'full' });
   }
@@ -249,18 +260,15 @@ window.MRT.views.request = (function () {
   function pathsPanel(r, tool) {
     var bkm = byId('bkms', r.bkm_id);
     var bkmPath = bkm ? bkm.path : r.bkm_path;
-    var results = D.resultsFolder(r, tool).path;
     return ui.panel({ title: 'BKM and results', icon: 'folder', body: [
       ui.el('div', { class: 'ifield-label', text: 'BKM' }),
       bkmPath ? ui.el('div', {}, [bkm ? ui.el('div', { text: bkm.name + (bkm.doc_version ? ' (' + bkm.doc_version + ')' : '') }) : null,
         pathNode(bkmPath, 'BKM path')])
         : ui.statusBadge('warning', 'No BKM - see the purpose'),
-      ui.el('div', { class: 'ifield-label', text: r.results_path ? 'Results folder' : 'Results folder (proposed, Q30)' }),
-      results ? pathNode(results, 'Results path')
-              : muted('The tool has no results root yet (Settings > Tools).'),
-      r.results_path ? null : ui.el('p', { class: 'muted', text: 'The quality engineer confirms or changes it when completing.' }),
-      r.analyzed_path ? ui.el('div', { class: 'ifield-label', text: 'Analyzed data folder' }) : null,
-      r.analyzed_path ? pathNode(r.analyzed_path, 'Analyzed data path') : null
+      ui.el('div', { class: 'ifield-label', text: 'Results folder' }),
+      r.results_path ? pathNode(r.results_path, 'Results path') : muted('Not set yet - confirmed at Complete.'),
+      ui.el('div', { class: 'ifield-label', text: 'Analyzed data folder' }),
+      r.analyzed_path ? pathNode(r.analyzed_path, 'Analyzed data path') : muted('Not set yet - confirmed at Mark analyzed.')
     ] }).node;
   }
 

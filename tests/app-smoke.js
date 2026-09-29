@@ -476,10 +476,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         /Lot per day/.test($('#main .traveller .hf-list').textContent));
   check('...no date: "the priority says how urgent it is"', /priority says how urgent/.test($('#main .tr-clock').textContent));
   check('the status rail: Submitted now, by whom and when', $$('#main .rail-step').length === 6 && $('#main .rail-step.is-now').textContent.indexOf('Submitted') === 0 && /Prince Khurana/.test($('#main .rail-step.is-now').textContent));
-  check('the results folder is proposed from the tool root (Q30)', mainText().indexOf('\\\\srv\\lab\\FIB\\') !== -1 && mainText().indexOf(req1.request_no + '\\') !== -1);
-  check('...unmissable in a banner under the header, with Copy path + Open', !!$('#main .res-banner') && !$('#main .res-banner').classList.contains('is-confirmed') &&
-        $('#main .res-banner .res-banner-path').textContent.indexOf(req1.request_no) !== -1 &&
-        !!buttonByText($('#main .res-banner'), 'Copy path') && !!buttonByText($('#main .res-banner'), 'Open'));
+  check('no path is proposed on the page (only confirmed folders show)', mainText().indexOf(req1.request_no + String.fromCharCode(92)) === -1);
+  check('...no proposed path anywhere: the banner says none set yet, no Copy button', !!$('#main .res-banner') && !$('#main .res-banner').classList.contains('is-confirmed') &&
+        /No results folder yet/.test($('#main .res-banner').textContent) && !buttonByText($('#main .res-banner'), 'Copy path'));
+  check('...card body: both folders left with icons, Hirata panels right', $$('#main .folder-row').length === 2 &&
+        $$('#main .folder-row').every(n => !!n.querySelector('svg')) &&
+        $('#main .tr-split').querySelectorAll('.cu-panel').length === req1.panels.length);
   setVal(fieldIn(doc.getElementById('main'), 'Add a comment'), 'Please cut near via 3, @olga');
   buttonByText(doc.getElementById('main'), 'Add comment').click(); await settle();
   const com = MRT.store.requestEvents(req1.id).filter(e => e.kind === 'comment')[0];
@@ -610,14 +612,18 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Results tab: the request with both paths, clickable', mainText().indexOf(req2.request_no) !== -1 && $$('#main a.path-link').length === 2 &&
         $$('#main a.path-link').every(a => /^file:/.test(a.getAttribute('href'))));
   MRT.store.setCurrentUser(meP); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
+  check('confirmed banner: green edge, Copy path only, no Open button', $('#main .res-banner').classList.contains('is-confirmed') &&
+        !!buttonByText($('#main .res-banner'), 'Copy path') && !buttonByText($('#main .res-banner'), 'Open'));
+  check('...card split shows both confirmed folders', $('#main .tr-split').querySelectorAll('a.path-link').length === 2);
   buttonByText(doc.getElementById('main'), 'Print slip').click(); await settle();
   check('Print slip: the A6 traveller slip with the ID, its barcode and the panels (Q38)', !!$('#main .slip') && $('#main .slip-id').textContent === req2.request_no &&
         $('#main .barcode').querySelectorAll('rect').length > 30 && /DESTROYS THESE PANELS/.test($('#main .slip').textContent));
   check('...each panel drawn compactly in one row: copper + ID, no decoded fields (horizontal slip panels)', (req2.panels || []).length > 0 &&
         $$('#main .slip .cu-panel').length === req2.panels.length && !$('#main .slip .hf-list') &&
         req2.panels.every(id => $('#main .slip').textContent.indexOf(id) !== -1));
-  check('...the results folder is printed big on the slip', $('#main .slip .slip-path') !== null &&
-        $('#main .slip .slip-path').textContent.indexOf(MRT.store.byId('requests', req2.id).results_path) !== -1);
+  check('...both folders printed big on the slip', $$('#main .slip .slip-path').length === 2 &&
+        $$('#main .slip .slip-path').map(n => n.textContent).join('|').indexOf(MRT.store.byId('requests', req2.id).results_path) !== -1 &&
+        $$('#main .slip .slip-path').map(n => n.textContent).join('|').indexOf(MRT.store.byId('requests', req2.id).analyzed_path) !== -1);
   win.setHash('#/lab'); await settle();
   req2.request_no.split('').concat(['Enter']).forEach(k => doc.dispatch('keydown', { key: k, target: doc.body })); await settle();
   check('a scanner typing the ID + Enter anywhere opens the request (Q38)', win.location.hash === '#/request/' + req2.id);
