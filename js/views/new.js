@@ -993,8 +993,12 @@ window.MRT.views['new'] = (function () {
     } else if (st.tool_id) { shown.tool = true; go('lot'); }
     else go('tool');
 
+    var app = window.MRT.app;
+    function collapsed(key) { return !!(app.readPref && app.readPref(key) === 'hide'); }
+    function remember(key) { return function (c) { if (app.writePref) app.writePref(key, c ? 'hide' : 'show'); }; }
     ui.mount(side, [
-      ui.panel({ title: 'What the lab will see', icon: 'requests', body: preview }).node,
+      ui.panel({ title: 'What the lab will see', icon: 'requests', body: preview,
+        collapsible: true, collapsed: collapsed('new_preview'), onToggle: remember('new_preview') }).node,
       myList(me)
     ]);
   }
@@ -1014,7 +1018,10 @@ window.MRT.views['new'] = (function () {
         old ? ui.statusBadge('warning', '30+ days') : null
       ]);
     }
-    return ui.panel({ title: 'Your requests', icon: 'inbox', body: [
+    var app = window.MRT.app;
+    var shut = !!(app.readPref && app.readPref('new_mylist') === 'hide');
+    return ui.panel({ title: 'Your requests', icon: 'inbox', collapsible: true, collapsed: shut,
+      onToggle: function (c) { if (app.writePref) app.writePref('new_mylist', c ? 'hide' : 'show'); }, body: [
       ui.el('div', { class: 'ifield-label', text: 'Drafts (only you see them)' }),
       drafts.length ? ui.el('ul', { class: 'req-list' }, drafts.map(line)) : ui.el('p', { class: 'muted', text: 'None.' }),
       ui.el('div', { class: 'ifield-label', text: 'Submitted, newest first' }),

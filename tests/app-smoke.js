@@ -509,6 +509,13 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // a lot that is not registered yet, typed in the form (F-5); just how many panels (F-1); a note instead of a magazine
   win.setHash('#/new?tool=' + MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id); await settle();
   check('?tool= picks the tool and opens step 2', $$('#main .tool-pick-opt.is-on').length === 1 && isOpenStep('lot'));
+  const prevPanel = $$('#main .req-side .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
+  prevPanel.querySelector('.panel-collapse').click(); await settle();
+  check('...the lab preview collapses', prevPanel.classList.contains('is-collapsed') && prevPanel.querySelector('.panel-collapse').getAttribute('aria-expanded') === 'false');
+  win.setHash('#/lab'); await settle(); win.setHash('#/new?tool=' + MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id); await settle();
+  const prevPanel2 = $$('#main .req-side .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
+  check('...and stays collapsed (remembered on this PC)', prevPanel2.classList.contains('is-collapsed'));
+  prevPanel2.querySelector('.panel-collapse').click(); await settle();
   setVal(fieldIn(M(), 'Lot'), '1917x'); await settle();
   check('a lot number that is not one is named at the field', /Lot numbers are digits/.test(mainText()));
   setVal(fieldIn(M(), 'Lot'), '19170'); await settle();
@@ -557,13 +564,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('Accept with an expected done date: stamp Accepted, date on the card', MRT.store.byId('requests', req2.id).status === 'accepted' && $('#main .tr-stamp').textContent === 'Accepted' && /Expected done/.test($('#main .traveller').textContent));
   check('...the card shows the queue place (1st of 1 on FIB)', /Queue/.test($('#main .traveller').textContent) && /1st of 1/.test($('#main .traveller').textContent));
   check('...the new stamp presses on and the rail fills (P3)', $('#main .tr-stamp').classList.contains('is-stamping') && $('#main .status-rail').classList.contains('is-filling'));
-  check('...now Panels received, still no Start', !!buttonByText($('#main .req-actbar'), 'Panels received') && !buttonByText($('#main .req-actbar'), 'Start'));
-  buttonByText($('#main .req-actbar'), 'Panels received').click(); await settle();
-  setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Save').click(); await settle();
-  check('...Panels received with the place, then Start in one click', MRT.store.byId('requests', req2.id).status === 'panels_received' && /FIB cabinet/.test($('#main .traveller').textContent) && !!buttonByText($('#main .req-actbar'), 'Start'));
-  buttonByText($('#main .req-actbar'), 'Start').click(); await settle();
+  check('...now Receive & start, no separate Panels received, still no Start', !!buttonByText($('#main .req-actbar'), 'Receive & start') &&
+        !buttonByText($('#main .req-actbar'), 'Panels received') && !buttonByText($('#main .req-actbar'), 'Start'));
+  buttonByText($('#main .req-actbar'), 'Receive & start').click(); await settle();
+  setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Save').click(); await settle(); await settle();
   const r2 = MRT.store.byId('requests', req2.id);
-  check('...In progress', r2.status === 'in_progress');
+  check('...one step: the place stored, In progress', r2.status === 'in_progress' && /FIB cabinet/.test($('#main .traveller').textContent));
   const hasCu = !!$('#main .panel-hirata');
   check('...the panels slide into the lab tray (P4)' + (hasCu ? '' : ' [no Hirata IDs here]'), !hasCu || (!!$('#main .panel-tray.is-animating') && /lab tray/i.test($('#main .panel-tray').textContent)));
   let filedToast = null; const realToast = MRT.ui.toast;
@@ -573,6 +579,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(openDialog(), 'Save').click(); await settle();
   check('...Completed, the results path shown with Copy', MRT.store.byId('requests', req2.id).status === 'completed' && $('#main .tr-stamp').textContent === 'Completed' &&
         !!$$('#main button').filter(b => b.getAttribute('aria-label') === 'Copy Results path')[0]);
+  check('...the results path itself is a clickable file link', $$('#main .req-side a.path-link').some(a => /^file:/.test(a.getAttribute('href'))));
   MRT.ui.toast = realToast;
   check('...scrapped panels are crossed out (P4)' + (hasCu ? '' : ' [no Hirata IDs here]'), !hasCu || (!$('#main .panel-tray') && !!$('#main .panel-hirata-item.is-scrapped .panel-mark')));
   check('Complete: the toast files the folder and offers Copy results path (P6)', !!filedToast && filedToast.cls === 'is-filed' && filedToast.icon === 'folder' &&
@@ -637,14 +644,14 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText($('#main .queue-bulk'), 'Accept all (2)').click(); await settle(); await settle();
   check('...Accept all accepts both', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'accepted'));
   const qRowA = $$('#main .q-row')[0].textContent;
-  check('...row order: Panels received, then Hold and Clarify', ['Panels received', 'Hold', 'Needs clarification'].every((t, i, a) => !i || qRowA.indexOf(a[i - 1]) < qRowA.indexOf(t)));
+  check('...row order: Receive & start, then Hold and Clarify', ['Receive & start', 'Hold', 'Needs clarification'].every((t, i, a) => !i || qRowA.indexOf(a[i - 1]) < qRowA.indexOf(t)));
   const qLRow = $$('#main .q-row').filter(tr => tr.textContent.indexOf(qL.request_no) !== -1)[0];
   { const cb = qLRow.querySelector('input'); cb.checked = true; cb.dispatch('change'); }
   await settle();
-  check('...ticking one accepted offers Receive all (1)', !!buttonByText($('#main .queue-bulk'), 'Receive all (1)'));
-  buttonByText($('#main .queue-bulk'), 'Receive all (1)').click(); await settle();
-  setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Receive all').click(); await settle(); await settle();
-  check('...Receive all asks one shared place and receives only it', MRT.store.byId('requests', qL.id).status === 'panels_received' &&
+  check('...ticking one accepted offers Receive & start all (1)', !!buttonByText($('#main .queue-bulk'), 'Receive & start all (1)'));
+  buttonByText($('#main .queue-bulk'), 'Receive & start all (1)').click(); await settle();
+  setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Receive & start all').click(); await settle(); await settle();
+  check('...one shared place, received and started, the other untouched', MRT.store.byId('requests', qL.id).status === 'in_progress' &&
         MRT.store.byId('requests', qL.id).received_where === 'FIB cabinet' && MRT.store.byId('requests', qN.id).status === 'accepted');
   MRT.store.setCurrentUser(meP); await MRT.store.saveEntry('users', { id: meP, fields: { email: 'prince@example.com' } }); MRT.store.setCurrentUser(olga.id);
   const offer = MRT.requestActions.emailOffer(MRT.store.byId('requests', qN.id), 'clarify');
@@ -675,25 +682,19 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   // --- the board (M3 step 4)
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
-  check('Board: a lane per tool, six columns, one accepted + one received FIB card', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 6 &&
+  check('Board: a lane per tool, six columns, one accepted + one in-progress FIB card', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 6 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1 &&
-        $$('#main .board-cell').filter(c => c.dataset.col === 'panels_received' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
+        $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
   const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
   check('...the Line stop card pulses, has a needed-by gauge, nothing is draggable', lsCard.classList.contains('is-urgent') && !!lsCard.querySelector('.bgauge') &&
         $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
-  lsCard.dispatch('click'); await settle();
-  const drw = win.document.querySelector('dialog.drawer');
-  check('...a click opens the side panel with the traveller and Start (P5-3)', !!drw && !!buttonByText(drw, 'Start') && /Open full page/.test(drw.textContent));
-  buttonByText(drw, 'Start').click(); await settle();
-  check('...Start moves the card, the panel closes', MRT.store.byId('requests', qL.id).status === 'in_progress' && !win.document.querySelector('dialog.drawer') &&
-        $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
   $$('#main .bcard').filter(c => c.dataset.id === qN.id)[0].dispatch('click'); await settle();
-  const drw2 = win.document.querySelector('dialog.drawer');
-  check('...the accepted card offers Panels received in the panel', !!drw2 && !!buttonByText(drw2, 'Panels received'));
-  buttonByText(drw2, 'Panels received').click(); await settle();
-  buttonByText(openDialog(), 'Save').click(); await settle();
-  check('...received into Panels received', MRT.store.byId('requests', qN.id).status === 'panels_received' &&
-        $$('#main .board-cell').filter(c => c.dataset.col === 'panels_received' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
+  const drw = win.document.querySelector('dialog.drawer');
+  check('...a click opens the side panel with the traveller and Receive & start (P5-3)', !!drw && !!buttonByText(drw, 'Receive & start') && /Open full page/.test(drw.textContent));
+  buttonByText(drw, 'Receive & start').click(); await settle();
+  setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Save').click(); await settle(); await settle();
+  check('...received and started, both cards In progress, the panel closes', MRT.store.byId('requests', qN.id).status === 'in_progress' && !win.document.querySelector('dialog.drawer') &&
+        $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 2);
   check('...tools with nothing on them fold to one line', $$('#main .board-fold').length === $$('#main .board-lane.is-empty').length);
   const fibPick = $$('#main .tool-pick').filter(b => b.dataset.pick === fib().id)[0];
   fibPick.click(); await settle();
@@ -753,6 +754,16 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   toolOpt('QVM').click(); await settle();
   setVal(fieldIn(M(), 'Magazine'), mag1.code); await settle();
   check('the form greys out slots another open request holds, with its ID', mzs()[0].classList.contains('is-taken') && mzs()[0].tagName === 'DIV' && mzs()[0].textContent.indexOf(inMag.request_no) !== -1);
+  await MRT.store.requestAction(inMag.id, 'accept', {});
+  win.setHash('#/request/' + inMag.id); await settle();
+  check('only Receive & start, no separate Panels received', !!buttonByText($('#main .req-actbar'), 'Receive & start') && !buttonByText($('#main .req-actbar'), 'Panels received'));
+  buttonByText($('#main .req-actbar'), 'Receive & start').click(); await settle();
+  setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Save').click(); await settle();
+  const inMagTo = MRT.store.requestEvents(inMag.id).filter(e => e.kind === 'status').map(e => e.to).slice(-2).join();
+  check('...one dialog receives and starts, two timeline entries', MRT.store.byId('requests', inMag.id).status === 'in_progress' &&
+        MRT.store.byId('requests', inMag.id).received_where === 'FIB cabinet' && inMagTo === 'panels_received,in_progress');
+  check('...the magazine on the card folds the empty slots away', $$('#main .mz-skip').length === 1 && /21 empty/.test($('#main .mz').textContent) &&
+        $$('#main .mz-slot.is-picked').length === 2);
   const qvmReq = await MRT.store.submitRequest({ fields: { project_id: c4f.id, tool_id: MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id,
     type_id: MRT.store.list('measurement_types').filter(m => m.tool_id === MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id)[0].id, lot_id: lot1.id,
     panels: ['3270'], priority_id: MRT.store.list('priorities')[2].id, magazine_id: mag1.id, slots: [7], after: 'back_to_me', purpose: 'x' } });

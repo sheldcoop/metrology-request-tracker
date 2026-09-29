@@ -37,17 +37,36 @@
   function panel(o) {
     o = o || {};
     var ledHost = el('span', { class: 'panel-led' });
+    var collapseBtn = o.collapsible ? el('button', { type: 'button', class: 'panel-collapse', 'aria-expanded': 'true',
+      'aria-label': 'Collapse ' + (o.title || 'panel') }) : null;
+    var collapsed = !!o.collapsed;
+    if (collapseBtn) {
+      collapseBtn.appendChild(icon('chevron_down', 16));
+      collapseBtn.addEventListener('click', function () { setCollapsed(!collapsed); });
+    }
     var head = (o.title || o.actions) ? el('div', { class: 'panel-head' }, [
       o.icon ? el('span', { class: 'panel-icon' }, icon(o.icon, 16)) : null,
       o.title ? el('h2', { class: 'panel-title', text: o.title }) : null,
       ledHost,
-      o.actions ? el('div', { class: 'panel-actions' }, o.actions) : null
+      o.actions ? el('div', { class: 'panel-actions' }, o.actions) : null,
+      collapseBtn
     ]) : null;
     var body = el('div', { class: 'panel-body' + (o.flush ? ' flush' : '') }, o.body || null);
     var node = el(o.tag || 'section', {
       class: 'panel' + (o.cls ? ' ' + o.cls : ''),
       'aria-label': o.title || null
     }, [head, body]);
+    function setCollapsed(c, silent) {
+      if (!collapseBtn) return;
+      collapsed = !!c;
+      if (collapsed) body.setAttribute('hidden', '');
+      else body.removeAttribute('hidden');
+      node.classList.toggle('is-collapsed', collapsed);
+      collapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      collapseBtn.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + (o.title || 'panel'));
+      if (o.onToggle && !silent) o.onToggle(collapsed);
+    }
+    if (collapsed) setCollapsed(true, true);
 
     function setStatus(status) {
       var s = status ? displayStatus(status) : null;
@@ -56,7 +75,7 @@
       else node.removeAttribute('data-status');
     }
     if (o.status) setStatus(o.status);
-    return { node: node, body: body, setStatus: setStatus };
+    return { node: node, body: body, setStatus: setStatus, setCollapsed: setCollapsed };
   }
 
   /* ------------------------------------------------------------------ *

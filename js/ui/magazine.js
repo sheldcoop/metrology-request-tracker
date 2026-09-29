@@ -32,9 +32,21 @@
 
     var count = el('span', { class: 'mz-count num' });
     var frame = el('div', { class: 'mz-frame' + (o.readOnly ? ' is-readonly' : ''), role: 'group', 'aria-label': 'Magazine ' + mag.code + ', ' + n + ' slots' });
+    // read-only (the request card): long empty runs fold into one "··· n empty ···" row
+    var skipLen = {};
+    if (o.readOnly) {
+      var keep = {};
+      list().forEach(function (sl) { for (var d = -1; d <= 1; d++) keep[sl + d] = true; });
+      var run = [];
+      function flush() { if (run.length >= 3) skipLen[run[0]] = run.length; run = []; }
+      for (var s0 = 1; s0 <= n + 1; s0++) { if (s0 <= n && !keep[s0]) run.push(s0); else flush(); }
+    }
+    function folded(s) { return skipLen[s] ? true : Object.keys(skipLen).some(function (k) { return s > +k && s < +k + skipLen[k]; }); }
     for (var s = 1; s <= n; s++) {
+      if (skipLen[s]) frame.appendChild(el('div', { class: 'mz-skip', 'aria-hidden': 'true', text: '··· ' + skipLen[s] + ' empty ···' }));
       var t = taken[s];
-      var attrs = { class: 'mz-slot' + (t ? ' is-taken' : ''), dataset: { slot: s }, title: t ? 'Slot ' + s + ': ' + t : 'Slot ' + s };
+      var attrs = { class: 'mz-slot' + (t ? ' is-taken' : '') + (s % 6 === 0 && s !== n ? ' is-bank' : ''), dataset: { slot: s },
+        title: t ? 'Slot ' + s + ': ' + t : 'Slot ' + s, hidden: folded(s) };
       var kids = [el('span', { class: 'mz-no', text: String(s) }), el('span', { class: 'mz-rail', 'aria-hidden': 'true' }),
                   el('span', { class: 'mz-panel' }, el('span', { class: 'mz-id' })), t ? el('span', { class: 'mz-taken', text: t }) : null];
       var node = o.readOnly || t ? el('div', attrs, kids) : el('button', Object.assign(attrs, { type: 'button', tabindex: '-1' }), kids);

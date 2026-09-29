@@ -133,7 +133,7 @@ window.MRT.views.help = (function () {
       steps: [
         'Order: Line stop always on top, then late requests (red, most overdue first), then by needed-by date; requests without a date come last, by priority.',
         'Requests assigned to you come first; "Others of your tools" below. Take it moves one to you.',
-        'Each row has one-click Accept / Start / Complete / Resume / Panels received and Copy BKM path. Click the request ID for the full page.',
+        'Each row has one-click Accept / Receive & start / Complete / Resume and Copy BKM path. Click the request ID for the full page.',
         'Tick several rows for Accept all or Start all.',
         'Filter by tool or status (Waiting = on hold or needs clarification).'
       ],
@@ -143,8 +143,7 @@ window.MRT.views.help = (function () {
       intro: 'The buttons under the traveller card show what you may do now. Only the tool\'s primary and backup quality engineers (and admins) see them.',
       steps: [
         'Accept - optionally with an "expected done" date; the engineer sees it.',
-        'Panels received - who, when and where they are kept in the lab. Nothing starts before the panels arrive.',
-        'Start - the request is In progress; the tool drawing on the card comes alive.',
+        'Receive & start - one step: who received the panels, when, where they are kept - and measuring starts. The tool drawing on the card comes alive.',
         'Hold - pick why (Settings > Lists > On-hold reasons) and add a note; the clock pauses. Resume brings it back to where it was.',
         'Needs clarification - say what is missing; it goes back to the engineer. When they click Answered it returns to where it was.',
         'Complete - the results folder is proposed from the tool\'s results root (change it if needed); say what happened to the panels (FIB: scrapped).',
