@@ -1768,6 +1768,8 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
   .slip::before { background: #000 !important; }
   .slip.prio-3::before, .slip.prio-4::before { background: transparent !important; border-right: 1px dashed #000; }
   .topbar, .nav, .alert-banner, .conflict-banner, .help-toc, .head-actions, .help-open, .toasts, .skip-link { display: none !important; }
+  /* nothing clickable works on paper: no buttons, action bars, dialogs, menus or search popups */
+  button, .req-actbar, dialog, .menu, .search-results { display: none !important; }
   /* paper is white in every theme: dark text, no fills or glows (print is the one place for plain black);
      the copper panels keep their copper, so the slip matches the real panel */
   body, .main, .main *:not(.cu-panel):not(.cu-hole) { color: #000 !important; background: transparent !important; box-shadow: none !important; }

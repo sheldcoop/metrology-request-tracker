@@ -54,6 +54,9 @@ const REQUIRED = {
 for (const [comp, sels] of Object.entries(REQUIRED)) {
   for (const s of sels) if (!css.includes(s)) { console.log('missing', comp + ':', s); bad++; }
 }
+// print hides everything clickable, so paper never shows buttons, bars, dialogs or popups
+const printCss = css.slice(css.indexOf('@media print'));
+['button, .req-actbar, dialog, .menu, .search-results'].forEach(s => { if (!printCss.includes(s)) { console.log('missing print rule:', s); bad++; } });
 const byName = css.split('\n').map((l, i) => [l, i + 1]).filter(x => /\[data-theme="/.test(x[0]) && !/^\s*(\/\*|\*)/.test(x[0]) && x[0].indexOf('live in ONE place') === -1);
 byName.forEach(x => { console.log('line', x[1], 'keys on a theme name - use data-scheme / data-contrast, or put colours in js/themes.js'); bad++; });
 console.log(bad ? bad + ' problem(s)' : 'css ok');
