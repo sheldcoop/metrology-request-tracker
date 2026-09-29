@@ -45,7 +45,7 @@
         m.stamp ? el('span', { class: 'tr-stamp is-' + (m.stamp.kind || 'neutral'), text: m.stamp.label }) : null
       ]),
       el('div', { class: 'tr-grid' }, (m.fields || []).filter(Boolean).map(function (f) {
-        return el('div', { class: 'tr-cell' }, [el('div', { class: 'tr-label', text: f.label }), el('div', { class: 'tr-value' }, f.value),
+        return el('div', { class: 'tr-cell' + (f.cls ? ' ' + f.cls : '') }, [el('div', { class: 'tr-label', text: f.label }), el('div', { class: 'tr-value' }, f.value),
           f.sub ? el('div', { class: 'tr-sub', text: f.sub }) : null, f.extra || null]);
       })),
       (m.stack || []).filter(Boolean).map(function (s) { return el('div', { class: 'tr-stack' }, s); }),
