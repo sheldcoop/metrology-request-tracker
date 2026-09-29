@@ -22,10 +22,12 @@
 
   function render(body) {
     var k = window.MRT.settingsKit;
+    var X = window.MRT.exporter;
     var log = store.data().audit_log;
     var shown = PAGE;
     var names = {};
     store.list('users', { all: true }).forEach(function (u) { names[u.id] = u.name; });
+    function val(v) { return v === null || v === undefined ? '' : (typeof v === 'string' ? v : JSON.stringify(v)); }
 
     var filter = ui.field({ label: 'Filter', value: filterText, placeholder: 'Person, what, field, value or reason' });
     var count = ui.el('p', { class: 'muted' });
@@ -64,7 +66,12 @@
     }
 
     filter.input.addEventListener('input', function () { filterText = filter.value().trim(); shown = PAGE; fill(); });
-    body.appendChild(k.panel('Audit log', 'refresh', [], [ui.el('div', { class: 'audit-filter' }, filter.node), count, host,
+    body.appendChild(k.panel('Audit log', 'refresh', [X.rowsButton('Download', 'Audit log', function () {
+      return [['When', 'Who', 'What', 'Action', 'Change', 'Old value', 'New value', 'Reason']].concat(matches().map(function (e) {
+        return [e.ts, names[e.user_id] || e.user_id || 'system', String(e.entity || '').replace(/_/g, ' '), String(e.action || '').replace(/_/g, ' '),
+                e.field || '', val(e.old_value), val(e.new_value), e.reason || ''];
+      }));
+    })], [ui.el('div', { class: 'audit-filter' }, filter.node), count, host,
       ui.el('div', { class: 'form-actions' }, more)]));
     fill();
   }

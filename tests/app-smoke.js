@@ -308,6 +308,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   await tab('audit');
   check('the audit log shows the changes', /Christmas Eve/.test(mainText()) && /Olga Quality/.test(mainText()));
+  check('...with a Download for the auditors', !!buttonByText(doc.getElementById('main'), 'Download'));
   const af = fieldIn(doc.getElementById('main'), 'Filter'); setVal(af, 'nova'); await settle();
   check('...and filters', /1 match/.test(mainText()));
 
