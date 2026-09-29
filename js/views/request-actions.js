@@ -98,6 +98,7 @@ window.MRT.requestActions = (function () {
       'Lot ' + (lot ? lot.lot_number : '?') + ', panels ' + D.panelsText(r) + (whereOf(r) ? ' (' + whereOf(r) + ')' : ''),
       'Priority ' + (prio ? prio.name : '-') + (r.needed_by ? ', needed by ' + r.needed_by : ''),
       event === 'complete' && r.results_path ? 'Results: ' + r.results_path : null,
+      event === 'analyze' && r.analyzed_path ? 'Analyzed data: ' + r.analyzed_path : null,
       last && last.text && event !== 'submit' ? '\n' + last.text : null,
       '\nOpen it in the Metrology Request Tracker - search ' + r.request_no + '.'
     ].filter(Boolean).join('\n');
@@ -238,7 +239,12 @@ window.MRT.requestActions = (function () {
         p = act(r, 'resume', {}, 'resumed.');
         break;
       case 'analyze':
-        p = store.requestAction(r.id, 'analyze', {}).then(function (res) { return done(res, 'analyzed - closed.', 'analyze'); });
+        p = ask('Mark analyzed - ' + r.request_no, 'check', [
+          { key: 'analyzed_path', label: 'Analyzed data folder', kind: 'path', placeholder: '\\\\server\\share\\...' }
+        ], { analyzed_path: r.results_path || '' }, function (v) { return store.requestAction(r.id, 'analyze', v); },
+        function (v) { return D.isSharePath(v.analyzed_path) ? null : ['analyzed_path', 'A share path like \\\\server\\share\\... or Z:\\...']; },
+        'Where the analysis output lives. Prefilled with the results folder - paste the real one when it differs.')
+          .then(function (res) { return res ? done(res, 'analyzed - closed.', 'analyze') : null; });
         break;
       case 'take':
         p = store.takeRequest(r.id).then(function (res) { return done(res, 'yours now.'); });

@@ -231,7 +231,9 @@ window.MRT.views.request = (function () {
       ui.el('div', { class: 'ifield-label', text: r.results_path ? 'Results folder' : 'Results folder (proposed, Q30)' }),
       results ? pathNode(results, 'Results path')
               : muted('The tool has no results root yet (Settings > Tools).'),
-      r.results_path ? null : ui.el('p', { class: 'muted', text: 'The quality engineer confirms or changes it when completing.' })
+      r.results_path ? null : ui.el('p', { class: 'muted', text: 'The quality engineer confirms or changes it when completing.' }),
+      r.analyzed_path ? ui.el('div', { class: 'ifield-label', text: 'Analyzed data folder' }) : null,
+      r.analyzed_path ? pathNode(r.analyzed_path, 'Analyzed data path') : null
     ] }).node;
   }
 

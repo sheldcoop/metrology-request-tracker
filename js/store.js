@@ -1660,7 +1660,7 @@ window.MRT.store = (function () {
    * @param {string} action
    * @param {Object} x  what the action needs: {expected_done} accept, {received_where, received} start,
    *                    {hold_reason_id, note} hold, {text} clarify/answer/reopen,
-   *                    {results_path, panels_outcome, note} complete
+   *                    {results_path, panels_outcome, note} complete, {analyzed_path} analyze
    */
   function requestAction(requestId, action, x) {
     return guard(function () {
@@ -1721,7 +1721,7 @@ window.MRT.store = (function () {
         text = D.PANEL_OUTCOME_LABEL[x.panels_outcome] + (r.panels_outcome_note ? ': ' + r.panels_outcome_note : '') + ' - results in ' + r.results_path;
       }
       if (action === 'reopen') { r.reopened = (r.reopened || 0) + 1; r.completed_ts = null; }
-      if (action === 'analyze') { r.analyzed_ts = now; r.analyzed_by = me.id; }
+      if (action === 'analyze') { r.analyzed_ts = now; r.analyzed_by = me.id; r.analyzed_path = String(x.analyzed_path).trim(); text = 'Analysis in ' + r.analyzed_path; }
 
       r.status = to;
       r.version += 1;
