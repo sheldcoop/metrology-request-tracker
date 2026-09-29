@@ -724,3 +724,13 @@ never the only signal - the text/label says the same thing.
   FIB scrap forcing dropped (destructive tick kept). Board gains an
   Analyzed column (last 7 days, analyst + date). Exports carry the three
   adjacent columns, magazine as text.
+- **H-1..H-10** (2026-09-29, autonomous hardening pass, architect's call;
+  Prince reviews in FINAL_REPORT.md) H-4: role checks moved out of views
+  into six domain helpers; H-5: submit skips a deactivated/missing/away
+  primary for the backup, with a timeline note; H-6: on hold > 7 days
+  warns on the Health page (from timeline events, no schema change);
+  clarification is NOT flagged (waits on the engineer, open #31); H-7:
+  Q52 kept strict — admins without the Manager role see no Lab/Management
+  tabs (open #30); H-8: DOM budget guard (`tests/dom-budget.js`, 5000
+  nodes/view, queue paging); H-10: the store picks its storage adapter
+  from `config.adapters.storage`, so the server move needs no store edit.
