@@ -1448,6 +1448,10 @@ a.path-link:hover { text-decoration: underline; }
 .folder-row-body { flex: 1 1 auto; min-width: 0; }
 .folder-row-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); }
 .folder-row .path-link { font-size: 14px; font-weight: 600; word-break: break-all; }
+.tr-split-right .panel-hirata { flex-direction: column; align-items: stretch; }
+.tr-split-right .panel-hirata > .panel-hirata-item { max-width: none; }
+.hirata-codes { margin: 2px 0 10px; padding-left: 22px; display: grid; gap: 2px; font-size: 14px; }
+.hirata-codes li::marker { color: var(--fg-faint); }
 .tr-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); }
 .tr-value { margin-top: 2px; font-size: 15px; }
 .tr-sub { font-size: 12px; color: var(--fg-muted); }
@@ -1740,16 +1744,6 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .slip-f.slip-panels .panel-hirata { flex-wrap: nowrap; gap: 4mm; margin-top: 1mm; }
 .slip-f.slip-panels .panel-hirata-item { flex: 1 1 0; min-width: 0; }
 
-/* Results banner (request page): where the data goes - impossible to miss */
-.res-banner { display: flex; align-items: center; gap: 12px; margin: 12px 0; padding: 12px 16px;
-  background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--radius); }
-.res-banner > svg { flex: none; color: var(--accent); }
-.res-banner.is-confirmed { border-color: var(--ok); }
-.res-banner.is-confirmed > svg { color: var(--ok); }
-.res-banner-body { flex: 1 1 auto; min-width: 0; }
-.res-banner-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-muted); }
-.res-banner-path { display: block; font-size: 17px; font-weight: 700; margin-top: 2px; word-break: break-all; }
-.res-banner-actions { flex: none; display: flex; gap: 8px; }
 
 @media print {
   .main:has(.slip) .page-head { display: none !important; }
