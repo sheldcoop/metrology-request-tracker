@@ -238,6 +238,13 @@
     ok('...with a note for the timeline', /Olga is away/.test(D.assignOnSubmit(toolW, peopleA, '2026-09-24').note));
     peopleA[1].away_from = '2026-09-01';
     eq('...both away: stays with the primary', D.assignOnSubmit(toolW, peopleA, '2026-09-24').id, 'q1');
+    var peopleI = [{ id: 'q1', name: 'Olga', active: false }, { id: 'q2', name: 'Otto' }];
+    eq('...deactivated primary: the backup, with a timeline note (M5)', [D.assignOnSubmit(toolW, peopleI, '2026-10-01').id, D.assignOnSubmit(toolW, peopleI, '2026-10-01').note], ['q2', 'Olga is deactivated - assigned to the backup, Otto']);
+    var peopleN = [{ id: 'q2', name: 'Otto' }];
+    eq('...no primary set: the backup, with a timeline note (M5)', [D.assignOnSubmit({ primary_operator_id: null, backup_operator_id: 'q2' }, peopleN, '2026-10-01').id,
+       D.assignOnSubmit({ primary_operator_id: null, backup_operator_id: 'q2' }, peopleN, '2026-10-01').note], ['q2', 'no primary quality engineer - assigned to the backup, Otto']);
+    eq('...nobody set: unassigned, no note', [D.assignOnSubmit({ primary_operator_id: null, backup_operator_id: null }, [], '2026-10-01').id,
+       D.assignOnSubmit({ primary_operator_id: null, backup_operator_id: null }, [], '2026-10-01').note], [null, null]);
     ok('action data: Complete needs a share path and what happened to the panels', D.actionProblems('complete', { results_path: 'res', panels_outcome: 'x' }, {}).length === 2 &&
        !D.actionProblems('complete', { results_path: 'Z:\\res', panels_outcome: 'scrapped' }, {}).length);
     ok('...Hold needs a listed reason, Clarify a comment', D.actionProblems('hold', { hold_reason_id: 'h9' }, { hold_reasons: [{ id: 'h1' }] }).length === 1 && D.actionProblems('clarify', {}, {}).length === 1);
