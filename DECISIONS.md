@@ -703,3 +703,8 @@ never the only signal - the text/label says the same thing.
   (required, validated, migration 12->13 keeps first). Suggest still lists all
   PNs but flags cross-project ones; lot/request/template/health checks compare
   single IDs; a project with PNs cannot be deleted.
+- **X-1** (2026-09-29, "fix all" goal) Requester: the card shows the queue
+  place (`domain.queuePosition`, accepted/received/in-progress on the tool by
+  submitted time); drafts delete from My requests rows. QE: bulk Panels
+  received with one shared place. Admin: the audit log downloads (filtered
+  rows). Manager pages reviewed, no change.
