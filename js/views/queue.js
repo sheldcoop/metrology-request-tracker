@@ -109,9 +109,11 @@ window.MRT.views.queue = (function () {
       bulk.hidden = !ids.length;
     }
 
-    /** One after the other, so each save sees the last (Q43 bulk). */
+    /** One after the other, so each save sees the last (Q43 bulk); one undo unit for all. */
     function runAll(list, action, x) {
       var n = 0;
+      var past = action === 'accept' ? 'accepted' : action === 'receive_start' ? 'received and started' : 'started';
+      store.beginUndoGroup();
       list.reduce(function (p, r) {
         return p.then(function () {
           var q = action === 'receive_start'
@@ -120,11 +122,13 @@ window.MRT.views.queue = (function () {
           return q.then(function () { n++; });
         });
       }, Promise.resolve()).then(function () {
-        ui.toast({ kind: 'success', message: n + ' request' + (n === 1 ? '' : 's') + ' ' +
-          (action === 'accept' ? 'accepted' : action === 'receive_start' ? 'received and started' : 'started') + '.' });
+        ui.toast({ kind: 'success', message: n + ' request' + (n === 1 ? '' : 's') + ' ' + past + '.' });
       }).catch(function (e) {
         ui.toastError(n + ' done, then: ' + e.message, e);
-      }).then(function () { picked = {}; window.MRT.app.route(); });
+      }).then(function () {
+        store.endUndoGroup(n + ' request' + (n === 1 ? '' : 's') + ' ' + past);
+        picked = {}; window.MRT.app.route();
+      });
     }
 
     /** Shift start: several lots arrive together, one shared place in the lab - each is received and started. */

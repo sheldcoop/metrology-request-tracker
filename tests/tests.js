@@ -1300,6 +1300,11 @@
     eq('undo takes the project back', ST.list('projects').map(function (p) { return p.code; }).indexOf('NOVA'), -1);
     eq('...the audit only grows', auditCount(), auditBefore + 1);
     eq('...an undo cannot be undone', ST.undoInfo(), null);
+    ST.beginUndoGroup();
+    await ST.saveEntry('projects', { fields: { code: 'G1' } });
+    await ST.saveEntry('projects', { fields: { code: 'G2' } });
+    ST.endUndoGroup('2 projects added (M2)');
+    eq('...a group undoes as one unit', [ST.undoInfo().label, await ST.undoLast().then(function () { return ST.list('projects').filter(function (p) { return p.code === 'G1' || p.code === 'G2'; }).length; })], ['2 projects added (M2)', 0]);
 
     var other = fileOf(a);
     other.revision += 5; other.saved_by = ST.currentUser().id; other.saved_ts = '2026-09-24T09:00:00.000Z';

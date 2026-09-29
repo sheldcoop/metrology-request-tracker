@@ -653,6 +653,13 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...ticking two offers Accept all (2)', !!buttonByText($('#main .queue-bulk'), 'Accept all (2)'));
   buttonByText($('#main .queue-bulk'), 'Accept all (2)').click(); await settle(); await settle();
   check('...Accept all accepts both', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'accepted'));
+  check('...one undo unit for the bulk', MRT.store.undoInfo() && MRT.store.undoInfo().label === '2 requests accepted');
+  await MRT.store.undoLast();
+  check('...Undo takes both back to Submitted (M2)', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'submitted'));
+  $$('#main .q-row').forEach(tr => { const cb = tr.querySelector('input'); cb.checked = true; cb.dispatch('change'); });
+  await settle();
+  buttonByText($('#main .queue-bulk'), 'Accept all (2)').click(); await settle(); await settle();
+  check('...re-accepting restores both', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'accepted'));
   const qRowA = $$('#main .q-row')[0].textContent;
   check('...row order: Receive & start, then Hold and Clarify', ['Receive & start', 'Hold', 'Needs clarification'].every((t, i, a) => !i || qRowA.indexOf(a[i - 1]) < qRowA.indexOf(t)));
   const qLRow = $$('#main .q-row').filter(tr => tr.textContent.indexOf(qL.request_no) !== -1)[0];
