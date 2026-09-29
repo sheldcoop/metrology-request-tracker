@@ -1329,6 +1329,18 @@
     ok('...linking to the request', hi.filter(function (x) { return x.code === 'req_bad_project'; })[0].tab === 'request');
     hb.magazines = [];
     ok('no magazines is a warning (the form offers none)', countOf(D.healthIssues(hb, { today_ymd: '2026-09-24' }), 'no_magazines') === 1);
+    var hk = JSON.parse(JSON.stringify(hs2));
+    hk.requests = [{ id: 'rOld', request_no: 'FIB-260910-01', status: 'on_hold' }, { id: 'rNew', request_no: 'FIB-260923-01', status: 'on_hold' },
+                   { id: 'rRun', request_no: 'FIB-260910-02', status: 'in_progress' }];
+    hk.request_events = [{ request_id: 'rOld', kind: 'status', to: 'on_hold', ts: '2026-09-10T08:00:00.000Z' },
+                         { request_id: 'rNew', kind: 'status', to: 'on_hold', ts: '2026-09-23T08:00:00.000Z' },
+                         { request_id: 'rRun', kind: 'status', to: 'on_hold', ts: '2026-09-01T08:00:00.000Z' },
+                         { request_id: 'rRun', kind: 'status', to: 'in_progress', ts: '2026-09-20T08:00:00.000Z' }];
+    var hs = D.healthIssues(hk, { today_ymd: '2026-09-24' });
+    eq('on hold 13 days: a Health warning linking the request (M6)', [countOf(hs, 'stuck_on_hold'),
+       hs.filter(function (x) { return x.code === 'stuck_on_hold'; })[0].tab,
+       /13 days/.test(hs.filter(function (x) { return x.code === 'stuck_on_hold'; })[0].text)], [1, 'request', true]);
+    ok('...a 1-day hold and a resumed request stay quiet', hs.every(function (x) { return x.code !== 'stuck_on_hold' || /260910-01/.test(x.text); }));
     hb.audit_log = new Array(20001); hb.request_events = new Array(50001);
     var hl = D.healthIssues(hb, { today_ymd: '2026-09-24' });
     ok('a huge history warns, pointing at the Audit log', countOf(hl, 'audit_large') === 1 && countOf(hl, 'events_large') === 1 &&
