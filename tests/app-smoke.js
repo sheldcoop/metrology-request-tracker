@@ -475,23 +475,26 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('the traveller card: ID, stamp "Submitted", priority stripe, the magazine with 4 slots', !!$('#main .traveller.prio-3') &&
         $('#main .tr-stamp').textContent === 'Submitted' && $$('#main .traveller .mz-slot.is-picked').length === 4 && /3252, 3253/.test($('#main .traveller').textContent));
   check('the request page shows each panel as copper with its decoded fields (H-3)', $$('#main .traveller .cu-panel').length === req1.panels.length &&
-        /Lot per day/.test($('#main .traveller .panel-lot-head').textContent));
+        !$('#main .traveller .panel-lot-head'));
   check('...no date: "the priority says how urgent it is"', /priority says how urgent/.test($('#main .tr-clock').textContent));
   check('the status rail: Submitted now, by whom and when', $$('#main .rail-step').length === 6 && $('#main .rail-step.is-now').textContent.indexOf('Submitted') === 0 && /Prince Khurana/.test($('#main .rail-step.is-now').textContent));
   check('no path is proposed on the page (only confirmed folders show)', mainText().indexOf(req1.request_no + String.fromCharCode(92)) === -1);
   check('...three areas: info, Hirata codes + maps, reserved path block', $$('#main .tr-stack').length === 2 && !!$('#main .path-block'));
   check('...unset folders show a dash, no Copy buttons, no "Not set yet"', $$('#main .folder-row').length === 2 && !/Not set yet/.test(mainText()) &&
         !buttonByText($('#main .path-block'), 'Copy path'));
-  check('...Hirata codes listed above the visual maps, LOT PER DAY on each card', $('#main .hirata-codes').querySelectorAll('li').length === req1.panels.length &&
+  check('...Hirata codes listed above the visual maps, cards carry no header', $('#main .hirata-codes').querySelectorAll('li').length === req1.panels.length &&
         $('#main .traveller').querySelectorAll('.cu-panel').length === req1.panels.length &&
-        $('#main .traveller').querySelectorAll('.panel-lot-head').length === req1.panels.length);
+        $('#main .traveller').querySelectorAll('.panel-lp').length === req1.panels.length);
   check('...one Lot + Panel Number block per card, no repeated code text', $$('#main .traveller .panel-lp').length === req1.panels.length &&
         $$('#main .traveller .panel-lp-row').length === req1.panels.length * 2 &&
         /Lot/.test($('#main .traveller .panel-lp').textContent) && /Panel Number/.test($('#main .traveller .panel-lp').textContent) &&
         $$('#main .panel-hirata-item').every(it => it.querySelectorAll('.mono').every(n => req1.panels.indexOf(n.textContent) === -1)));
-  check('...Lot reads Project / Lot / Build-up top to bottom', $$('#main .traveller .lot-row').length >= 3 &&
-        $$('#main .traveller .lot-row').map(n => n.textContent).slice(0, 3).join('|') ===
-        'Project' + MRT.store.byId('projects', req1.project_id).code + '|Lot18178|Build-up' + MRT.store.byId('buildups', req1.buildup_id).code);
+  check('...Lot reads Project / Part / Lot / Build-up top to bottom', $$('#main .traveller .lot-row').length === 4 &&
+        $$('#main .traveller .lot-row').map(n => n.textContent).join('|') ===
+        'Project' + MRT.store.byId('projects', req1.project_id).code + '|Part' + MRT.store.byId('part_numbers', req1.part_number_id).code +
+        '|Lot18178|Build-up' + MRT.store.byId('buildups', req1.buildup_id).code);
+  check('...one People box on the right: Requested by, Assigned to, Analyzed by', ['Requested by', 'Assigned to', 'Analyzed by', 'Primary QE', 'Backup QE']
+        .every(t => $$('#main .req-side dt').map(n => n.textContent).indexOf(t) !== -1) && /not analyzed yet/.test(mainText()));
   setVal(fieldIn(doc.getElementById('main'), 'Add a comment'), 'Please cut near via 3, @olga');
   buttonByText(doc.getElementById('main'), 'Add comment').click(); await settle();
   const com = MRT.store.requestEvents(req1.id).filter(e => e.kind === 'comment')[0];

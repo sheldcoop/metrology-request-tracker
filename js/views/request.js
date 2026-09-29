@@ -163,9 +163,9 @@ window.MRT.views.request = (function () {
       fields: [
         cell('Lot', lot ? ui.el('div', { class: 'lot-stack' }, [
           lotRow('Project', (byId('projects', r.project_id) || {}).code),
+          lotRow('Part', r.part_number_id ? (byId('part_numbers', r.part_number_id) || {}).code : null),
           lotRow('Lot', lot.lot_number),
-          lotRow('Build-up', (byId('buildups', r.buildup_id) || {}).code),
-          r.part_number_id ? lotRow('Part', (byId('part_numbers', r.part_number_id) || {}).code) : null
+          lotRow('Build-up', (byId('buildups', r.buildup_id) || {}).code)
         ]) : muted('?')),
         cell('Priority', prio ? ui.el('span', { class: 'tr-prio' }, [ui.el('b', { text: prio.name }), ui.el('span', { class: 'mono muted', text: prio.code })]) : muted('-'),
              r.priority_reason ? r.priority_reason : null),
@@ -176,7 +176,6 @@ window.MRT.views.request = (function () {
         cell('Submitted', ui.el('span', { class: 'num', text: ui.formatTs(r.submitted_ts) })),
         r.expected_done ? cell('Expected done', ui.el('b', { class: 'num', text: ui.formatDate(r.expected_done + 'T12:00:00Z') }),
           r.needed_by && r.expected_done > r.needed_by ? 'later than needed' : null) : null,
-        cell('Assigned to', r.assigned_to ? userName(r.assigned_to) : muted('nobody yet')),
         queueCell(r, tool),
         r.received_ts ? cell('Panels received', userName(r.received_by) + ', ' + ui.formatTs(r.received_ts), r.received_where || null) : null,
         r.status === 'on_hold' ? cell('On hold', ((byId('hold_reasons', r.hold_reason_id) || {}).name || '?'), r.hold_note || null) : null
@@ -314,9 +313,9 @@ window.MRT.views.request = (function () {
 
   function peoplePanel(r, tool) {
     var today = D.viennaYmd(Date.now());
-    function person(id, role, backupId) {
+    function person(id, role, backupId, empty) {
       var u = byId('users', id);
-      if (!u) return [ui.el('dt', { text: role }), ui.el('dd', {}, muted('not set'))];
+      if (!u) return [ui.el('dt', { text: role }), ui.el('dd', {}, muted(empty || 'not set'))];
       var a = D.awayState(u, today);
       var away = a && a.state === 'now', bk = away && backupId ? byId('users', backupId) : null;
       return [ui.el('dt', { text: role }), ui.el('dd', {}, [u.name, away ? ui.statusBadge('warning', 'Away' + (a.until ? ' until ' + a.until : '')) : null,
@@ -324,6 +323,8 @@ window.MRT.views.request = (function () {
     }
     return ui.panel({ title: 'People', icon: 'users', body: ui.el('dl', { class: 'facts' }, [].concat(
       person(r.requester_id, 'Requested by'),
+      person(r.assigned_to, 'Assigned to'),
+      person(r.analyzed_by, 'Analyzed by', null, 'not analyzed yet'),
       person(tool && tool.primary_operator_id, 'Primary QE', tool && tool.backup_operator_id),
       person(tool && tool.backup_operator_id, 'Backup QE')
     )) }).node;

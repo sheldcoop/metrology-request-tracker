@@ -1861,8 +1861,6 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 div.panel-hirata-item { flex-direction: column; align-items: stretch; gap: 2px; }
 div.panel-hirata-item.is-compact { flex-direction: row; align-items: center; }
 .panel-hirata-body { display: inline-flex; align-items: center; gap: 8px; }
-.panel-lot-head { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); }
-.panel-lot-head b { font-size: 13px; color: var(--fg); margin-left: 4px; }
 /* the unified Lot + Panel Number block on the right of a panel card */
 .panel-lp { border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); padding: 4px 8px; margin-bottom: 4px; display: grid; gap: 2px; }
 .panel-lp-row { display: flex; align-items: baseline; gap: 8px; }
