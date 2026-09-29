@@ -2095,12 +2095,35 @@ window.MRT.store = (function () {
   }
 
   function recordUndo() {
+    if (state.grouping) return;   // one undo unit for the whole group, recorded by endUndoGroup
     var added = state.data.audit_log.slice(state.auditLen || 0);
     if (state.undoing || state.noUndo || !state.baseline || !added.length) state.undo = null;
     else {
       var e = added[added.length - 1];
       state.undo = { before: state.baseline, ts: Date.now(),
                      label: String(e.action || 'change').replace(/_/g, ' ') + ' ' + String(e.entity || '').replace(/_/g, ' ') };
+    }
+    state.baseline = JSON.stringify(state.data);
+    state.auditLen = state.data.audit_log.length;
+  }
+
+  /**
+   * Bulk operations (queue Accept all & co) undo as ONE unit: the view opens
+   * a group, saves one by one, then closes it. A crash mid-group leaves each
+   * save committed (safe); the next save re-baselines, so undo stays sane.
+   */
+  function beginUndoGroup() {
+    state.grouping = { baseline: state.baseline, auditLen: state.auditLen };
+  }
+  function endUndoGroup(label) {
+    var g = state.grouping;
+    state.grouping = null;
+    if (!g || state.undoing || !g.baseline) return;
+    var added = state.data.audit_log.slice(g.auditLen || 0);
+    if (added.length) {
+      var e = added[added.length - 1];
+      state.undo = { before: g.baseline, ts: Date.now(), label: label ||
+        (String(e.action || 'change').replace(/_/g, ' ') + ' ' + String(e.entity || '').replace(/_/g, ' ')) };
     }
     state.baseline = JSON.stringify(state.data);
     state.auditLen = state.data.audit_log.length;
@@ -2271,6 +2294,8 @@ window.MRT.store = (function () {
     // undo
     undoInfo: undoInfo,
     undoLast: undoLast,
+    beginUndoGroup: beginUndoGroup,
+    endUndoGroup: endUndoGroup,
 
     // reads
     data: data,
