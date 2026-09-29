@@ -1818,8 +1818,9 @@ button.pm-cell:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .hirata-ref-item b { font-size: 15px; }
 .hirata-ref-item span { font-size: 10px; color: var(--fg-muted); }
 .panel-hirata { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 8px; }
-/* panels share the row, at most 4 across (the 5th wraps); narrow columns show fewer */
-.panel-hirata-item { display: inline-flex; align-items: center; gap: 8px; flex: 1 1 190px; min-width: 170px; max-width: calc(25% - 11px); }
+.panel-hirata-item { display: inline-flex; align-items: center; gap: 8px; }
+/* on the request page the panels share the row, at most 4 across (the 5th wraps); narrow columns show fewer */
+.panel-hirata > .panel-hirata-item { flex: 1 1 190px; min-width: 170px; max-width: calc(25% - 11px); }
 button.panel-hirata-item { background: none; border: 0; padding: 2px; font: inherit; color: inherit; cursor: pointer; border-radius: 6px; }
 button.panel-hirata-item:hover .panel-chip { border-color: var(--line-hi); }
 button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
