@@ -62,16 +62,27 @@ window.MRT.views.request = (function () {
       } });
   }
 
-  /** One folder row: icon, label, clickable path, big Copy button. Hidden when no path. */
+  /** One folder row: icon, label, clickable path (or a dash), big Copy button. */
   function folderRow(label, path, what) {
-    if (!path) return null;
     return ui.el('div', { class: 'folder-row' }, [
       ui.icon('folder', 18),
       ui.el('div', { class: 'folder-row-body' }, [
         ui.el('div', { class: 'folder-row-label', text: label }),
-        ui.el('a', { class: 'mono path-link', href: fileUrl(path), text: path, title: path + ' - open' })
+        path ? ui.el('a', { class: 'mono path-link', href: fileUrl(path), text: path, title: path + ' - open' })
+             : ui.el('div', { class: 'mono muted', text: '-' })
       ]),
-      copyPathBtn(path, what)
+      path ? copyPathBtn(path, what) : null
+    ]);
+  }
+
+  /** The reserved path block: always there, both folders side by side. */
+  function pathBlock(r) {
+    return ui.el('div', { class: 'path-block', role: 'note', 'aria-label': 'Result folders' }, [
+      ui.el('div', { class: 'tr-label', text: 'Folders' }),
+      ui.el('div', { class: 'path-block-grid' }, [
+        folderRow('Results folder', r.results_path, 'Results path'),
+        folderRow('Analyzed data folder', r.analyzed_path, 'Analyzed data path')
+      ])
     ]);
   }
 
@@ -167,8 +178,10 @@ window.MRT.views.request = (function () {
         r.received_ts ? cell('Panels received', userName(r.received_by) + ', ' + ui.formatTs(r.received_ts), r.received_where || null) : null,
         r.status === 'on_hold' ? cell('On hold', ((byId('hold_reasons', r.hold_reason_id) || {}).name || '?'), r.hold_note || null) : null
       ],
-      split: { left: [folderRow('Results folder', r.results_path, 'Results path'), folderRow('Analyzed data folder', r.analyzed_path, 'Analyzed data path')],
-               right: hirataCodeList(r.panels).concat([window.MRT.views.hirata.panelsView(r.panels, 'md', { state: panelState(r), animate: live.changed })]) },
+      stack: [
+        [(r.panels || []).length ? hirataCodeList(r.panels).concat([window.MRT.views.hirata.panelsView(r.panels, 'md', { state: panelState(r), animate: live.changed })]) : null],
+        pathBlock(r)
+      ],
       footer: magazineView(r)
     }, { size: 'full' });
   }

@@ -553,8 +553,8 @@ window.MRT.views['new'] = (function () {
 
       function paintPanelEntry() {
         if (panelMode === 'ids') {
-          idsF = ui.field({ label: 'Hirata IDs', mono: true, value: st.panels.join(', '), placeholder: 'e.g. 3252, 3253 or 3252-3255',
-            hint: 'Exactly 4 digits each; commas or spaces between them, a dash for a run.' });
+          idsF = ui.field({ label: 'Hirata IDs', mono: true, value: st.panels.join(', '), placeholder: 'e.g. 7, 3252 or 3252-3255',
+            hint: 'Digits, up to 9 each; commas or spaces between them, a dash for a run.' });
           idsF.input.addEventListener('input', readPanels);
           ui.mount(entryHost, [idsF.node, chipsHost]);
           countF = null;
@@ -571,8 +571,7 @@ window.MRT.views['new'] = (function () {
       function readPanels() {
         if (panelMode === 'ids') {
           var p = D.parsePanelIds(idsF.value());
-          var bad4 = p.ids.filter(function (x) { return x.length !== 4; });   // H-4: only the last 4 match anything
-          st.panels = p.ids.filter(function (x) { return x.length === 4; });
+          st.panels = p.ids;
           st.panel_count = st.panels.length || null;
           var lot = byId('lots', st.lot_id), gone = lot ? lot.scrapped || [] : [];
           ui.mount(chipsHost, st.panels.map(function (id) {
@@ -580,8 +579,7 @@ window.MRT.views['new'] = (function () {
             return panelChip(id, dead, shownPanels.indexOf(id) === -1);
           }).concat(st.panels.length ? [ui.el('span', { class: 'muted', text: st.panels.length + ' panel' + (st.panels.length === 1 ? '' : 's') })] : []));
           shownPanels = st.panels.slice();
-          var err4 = bad4.length ? '"' + bad4[0] + '" is not 4 digits - type the last 4 of the Hirata code' : null;
-          idsF.setState(p.errors.length || err4 ? 'invalid' : null, p.errors[0] || err4);
+          idsF.setState(p.errors.length ? 'invalid' : null, p.errors[0] || null);
         } else {
           var n = Number(countF.value());
           st.panels = [];

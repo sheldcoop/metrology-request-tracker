@@ -206,7 +206,7 @@ window.MRT.views.help = (function () {
         'Find a pattern: type the last 4 digits (lot per day + panel) or the full 9 - several at once - and see each as the copper panel it is drilled into. Print them to hold against the real panels.',
         'In a request, each Hirata ID you type shows its copper panel right next to it; the request page and the printed slip show every panel with its decoded fields.'
       ],
-      tips: ['A panel ID is the full 9-digit code when you know it, usually its last 4 digits.', 'The code layout is fixed: Supplier 1, Year 1, Week 2, Day 1, Lot per day 2, Panel 2.'],
+      tips: ['A panel ID is digits, up to 9: the panel number, its last 4 digits, or the full 9-digit code.', 'The code layout is fixed: Supplier 1, Year 1, Week 2, Day 1, Lot per day 2, Panel 2.'],
       link: ['Open Hirata tools', '#/hirata'] },
 
     { id: 'away', title: 'Away (vacation, sick leave)', icon: 'calendar',
