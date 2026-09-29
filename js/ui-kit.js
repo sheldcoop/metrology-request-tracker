@@ -2,11 +2,11 @@
  * Metrology Request Tracker - ui-kit.js  (pattern from ABF Tracker v2)
  *
  * Builds ui-kit.html: every component of js/ui/*.js in every state, in one
- * theme or all three side by side, plus a live WCAG contrast table. Mock
+ * theme or every theme side by side, plus a live WCAG contrast table. Mock
  * data only; nothing here touches the store. A new component goes here
  * (all its states) when it is added to js/ui/ (CONTRIBUTING.md).
  *
- *   ui-kit.html?mode=light | dark | hc | all     ?motion=reduce     ?s=3-5 (sections 3..5)
+ *   ui-kit.html?mode=<theme key> | all     ?motion=reduce     ?s=3-5 (sections 3..5)
  */
 (function () {
   'use strict';
