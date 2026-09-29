@@ -52,37 +52,37 @@ window.MRT.views.request = (function () {
     return ui.el('span', { class: 'cell-path' }, [text, copyBtn(path, what)]);
   }
 
-  /** One folder row: icon, label, clickable path (or Not set yet), Copy button. No proposed paths. */
+  /** A big Copy-path button with the copied pulse. */
+  function copyPathBtn(path, what) {
+    return ui.button('Copy path', { icon: 'copy', ariaLabel: 'Copy ' + what, title: 'Copy ' + what,
+      onClick: function (ev) {
+        ui.copyText(path, what + ' copied');
+        var b = ev && ev.currentTarget ? ev.currentTarget : null;
+        if (b) { b.classList.add('is-copied'); setTimeout(function () { b.classList.remove('is-copied'); }, 900); }
+      } });
+  }
+
+  /** One folder row: icon, label, clickable path, big Copy button. Hidden when no path. */
   function folderRow(label, path, what) {
+    if (!path) return null;
     return ui.el('div', { class: 'folder-row' }, [
       ui.icon('folder', 18),
       ui.el('div', { class: 'folder-row-body' }, [
         ui.el('div', { class: 'folder-row-label', text: label }),
-        path ? ui.el('a', { class: 'mono path-link', href: fileUrl(path), text: path, title: path + ' - open' })
-             : ui.el('div', { class: 'muted', text: 'Not set yet' })
+        ui.el('a', { class: 'mono path-link', href: fileUrl(path), text: path, title: path + ' - open' })
       ]),
-      path ? copyBtn(path, what) : null
+      copyPathBtn(path, what)
     ]);
   }
 
-  /** The unmissable banner under the header: where the data goes + Copy path. Confirmed folders only. */
-  function resultsBanner(r) {
-    return ui.el('div', { class: 'res-banner' + (r.results_path ? ' is-confirmed' : ''), role: 'note',
-      'aria-label': r.results_path ? 'Results folder' : 'No results folder yet' }, [
-      ui.icon('folder', 22),
-      ui.el('div', { class: 'res-banner-body' }, [
-        ui.el('div', { class: 'res-banner-label', text: r.results_path ? 'Results folder - put the data here' : 'No results folder yet' }),
-        r.results_path ? ui.el('a', { class: 'mono res-banner-path path-link', href: fileUrl(r.results_path), text: r.results_path, title: r.results_path + ' - open' })
-               : ui.el('div', { class: 'muted', text: 'The quality engineer confirms it at Complete.' })
-      ]),
-      r.results_path ? ui.el('div', { class: 'res-banner-actions' }, [
-        ui.button('Copy path', { kind: 'primary', icon: 'copy', onClick: function (ev) {
-          ui.copyText(r.results_path, 'Results path copied');
-          var b = ev && ev.currentTarget ? ev.currentTarget : null;
-          if (b) { b.classList.add('is-copied'); setTimeout(function () { b.classList.remove('is-copied'); }, 900); }
-        } })
-      ]) : null
-    ]);
+  /** The Hirata codes as a clean list, above the visual panel maps. */
+  function hirataCodeList(ids) {
+    var list = (ids || []).filter(function (id) { return !D.hirataCheck(id).problem; });
+    if (!list.length) return [muted('no panels')];
+    return [ui.el('div', { class: 'tr-label', text: 'Hirata codes (' + list.length + ')' }),
+      ui.el('ol', { class: 'hirata-codes' }, list.map(function (id) {
+        return ui.el('li', { class: 'mono', text: id });
+      }))];
   }
 
   function render(main, ctx) {
@@ -111,7 +111,6 @@ window.MRT.views.request = (function () {
       D.canCancel(me, r, tool) ? ui.button('Cancel request', { kind: 'danger', icon: 'close', onClick: function () { cancel(r); } }) : null
     ];
     main.appendChild(ui.pageHead(r.request_no, (tool ? tool.name : '') + ' - requested by ' + userName(r.requester_id), actions));
-    main.appendChild(resultsBanner(r));
 
     var prev = seen[r.id], nowKey = r.status + '|' + !!r.received_ts;
     var changed = prev !== undefined && prev !== nowKey;
@@ -169,7 +168,7 @@ window.MRT.views.request = (function () {
         r.status === 'on_hold' ? cell('On hold', ((byId('hold_reasons', r.hold_reason_id) || {}).name || '?'), r.hold_note || null) : null
       ],
       split: { left: [folderRow('Results folder', r.results_path, 'Results path'), folderRow('Analyzed data folder', r.analyzed_path, 'Analyzed data path')],
-               right: window.MRT.views.hirata.panelsView(r.panels, 'md', { state: panelState(r), animate: live.changed }) || muted('no panels') },
+               right: hirataCodeList(r.panels).concat([window.MRT.views.hirata.panelsView(r.panels, 'md', { state: panelState(r), animate: live.changed })]) },
       footer: magazineView(r)
     }, { size: 'full' });
   }
@@ -265,10 +264,10 @@ window.MRT.views.request = (function () {
       bkmPath ? ui.el('div', {}, [bkm ? ui.el('div', { text: bkm.name + (bkm.doc_version ? ' (' + bkm.doc_version + ')' : '') }) : null,
         pathNode(bkmPath, 'BKM path')])
         : ui.statusBadge('warning', 'No BKM - see the purpose'),
-      ui.el('div', { class: 'ifield-label', text: 'Results folder' }),
-      r.results_path ? pathNode(r.results_path, 'Results path') : muted('Not set yet - confirmed at Complete.'),
-      ui.el('div', { class: 'ifield-label', text: 'Analyzed data folder' }),
-      r.analyzed_path ? pathNode(r.analyzed_path, 'Analyzed data path') : muted('Not set yet - confirmed at Mark analyzed.')
+      r.results_path ? ui.el('div', { class: 'ifield-label', text: 'Results folder' }) : null,
+      r.results_path ? pathNode(r.results_path, 'Results path') : null,
+      r.analyzed_path ? ui.el('div', { class: 'ifield-label', text: 'Analyzed data folder' }) : null,
+      r.analyzed_path ? pathNode(r.analyzed_path, 'Analyzed data path') : null
     ] }).node;
   }
 
