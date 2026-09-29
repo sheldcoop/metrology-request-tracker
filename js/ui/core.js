@@ -127,7 +127,8 @@ window.MRT.ui = (function () {
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     tag: '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
     hirata: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8" cy="8.5" r="1.3"/><circle cx="8" cy="12" r="1.3"/><circle cx="8" cy="15.5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="16" cy="8.5" r="1.3"/><circle cx="16" cy="15.5" r="1.3"/>',
-    keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>'
+    keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+    mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/>'
   };
 
   /** Inline SVG icon element. `name` must be one of PATHS - never user text. */
