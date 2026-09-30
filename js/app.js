@@ -30,18 +30,18 @@ window.MRT.app = (function () {
    * milestone that brings it. Unlocking a page = adding its view.
    */
   var NAV = [
-    { key: 'home',      label: 'Home',        icon: 'home',        g: 'm', ms: 'M10' },
-    { key: 'lab',       label: 'Lab status',  icon: 'gauge',       g: 'l', ms: 'M1' },
-    { key: 'queue',     label: 'My queue',    icon: 'inbox',       g: 'q', ms: 'M3' },
-    { key: 'requests',  label: 'My requests', icon: 'requests',    g: 'r', ms: 'M3' },
-    { key: 'new',       label: 'New request', icon: 'request_new', g: 'n', ms: 'M2' },
-    { key: 'lots',      label: 'Lots',        icon: 'lots',        g: 'o', ms: 'M2' },
-    { key: 'board',     label: 'Board',       icon: 'board',       g: 'b', ms: 'M3' },
-    { key: 'results',   label: 'Results',     icon: 'folder',      g: 'e', ms: 'M5' },
-    { key: 'hirata',    label: 'Hirata tools', icon: 'hirata',     g: 't', ms: 'M2' },
-    { key: 'analytics', label: 'Analytics',   icon: 'analytics',   g: 'a', ms: 'M5' },
-    { key: 'settings',  label: 'Settings',    icon: 'settings',    g: 's', ms: 'M1' },
-    { key: 'help',      label: 'Help',        icon: 'help',        g: 'h', ms: 'M1' }
+    { key: 'home',      label: 'Home',        icon: 'home',        g: 'm', ms: 'M10', grp: 1 },
+    { key: 'new',       label: 'New request', icon: 'request_new', g: 'n', ms: 'M2', grp: 2 },
+    { key: 'requests',  label: 'My requests', icon: 'requests',    g: 'r', ms: 'M3', grp: 2 },
+    { key: 'queue',     label: 'My queue',    icon: 'inbox',       g: 'q', ms: 'M3', grp: 2 },
+    { key: 'board',     label: 'Board',       icon: 'board',       g: 'b', ms: 'M3', grp: 2 },
+    { key: 'lab',       label: 'Lab status',  icon: 'gauge',       g: 'l', ms: 'M1', grp: 3 },
+    { key: 'lots',      label: 'Lots',        icon: 'lots',        g: 'o', ms: 'M2', grp: 3 },
+    { key: 'results',   label: 'Results',     icon: 'folder',      g: 'e', ms: 'M5', grp: 3 },
+    { key: 'hirata',    label: 'Hirata tools', icon: 'hirata',     g: 't', ms: 'M2', grp: 3 },
+    { key: 'analytics', label: 'Analytics',   icon: 'analytics',   g: 'a', ms: 'M5', grp: 4 },
+    { key: 'settings',  label: 'Settings',    icon: 'settings',    g: 's', ms: 'M1', grp: 5 },
+    { key: 'help',      label: 'Help',        icon: 'help',        g: 'h', ms: 'M1', grp: 5 }
   ];
 
   /** Pages reached by a link, not from the menu. */
@@ -508,26 +508,30 @@ window.MRT.app = (function () {
     ui.mount(document.getElementById('brandMark'), ui.icon('logo', 20));
     document.getElementById('brandVer').textContent = MILESTONE;
     ui.mount(document.getElementById('searchIcon'), ui.icon('search', 16));
-    ui.mount(document.getElementById('keysBtn'), ui.icon('keyboard', 18));
-    ui.mount(document.getElementById('helpBtn'), ui.icon('help', 18));
     ui.mount(document.getElementById('bellIcon'), ui.icon('bell', 18));
     if (document.getElementById('themeBtn')) ui.mount(document.getElementById('themeBtn'), ui.icon('contrast', 18));
     ui.mount(document.getElementById('userCaret'), ui.icon('chevron_down', 16));
   }
 
-  /** The side menu: live pages link; later ones are greyed with their milestone (M1-6). */
+  /** The side menu: grouped with thin dividers; live pages link, later ones
+   *  are greyed with their milestone (M1-6). */
   function paintNav() {
-    ui.mount(document.getElementById('navItems'), NAV.map(function (n) {
+    var nodes = [], lastGrp = null;
+    NAV.forEach(function (n) {
+      if (lastGrp !== null && n.grp !== lastGrp) nodes.push(ui.el('div', { class: 'nav-div', 'aria-hidden': 'true' }));
+      lastGrp = n.grp;
       var inner = [ui.icon(n.icon, 18), ui.el('span', { class: 'nav-label', text: n.label })];
       if (isLive(n.key)) {
-        return ui.el('a', { class: 'nav-item', href: '#/' + n.key, dataset: { route: n.key },
-                            title: n.label + '  (g ' + n.g + ')' }, inner.concat([ui.el('span', { class: 'nav-badge', hidden: true })]));
+        nodes.push(ui.el('a', { class: 'nav-item', href: '#/' + n.key, dataset: { route: n.key },
+                                title: n.label + '  (g ' + n.g + ')' }, inner.concat([ui.el('span', { class: 'nav-badge', hidden: true })])));
+      } else {
+        nodes.push(ui.el('span', { class: 'nav-item is-soon', role: 'link', 'aria-disabled': 'true',
+                               title: n.label + ': coming in ' + n.ms,
+                               'aria-label': n.label + ', not available yet, coming in ' + n.ms },
+                     inner.concat([ui.el('span', { class: 'nav-soon', text: n.ms, 'aria-hidden': 'true' })])));
       }
-      return ui.el('span', { class: 'nav-item is-soon', role: 'link', 'aria-disabled': 'true',
-                             title: n.label + ': coming in ' + n.ms,
-                             'aria-label': n.label + ', not available yet, coming in ' + n.ms },
-                   inner.concat([ui.el('span', { class: 'nav-soon', text: n.ms, 'aria-hidden': 'true' })]));
-    }));
+    });
+    ui.mount(document.getElementById('navItems'), nodes);
     paintBadges();
   }
 
@@ -681,7 +685,6 @@ window.MRT.app = (function () {
    * ------------------------------------------------------------------ */
 
   var stripKey = '';
-  var clockFmt = new Intl.DateTimeFormat('en-GB', { timeZone: cfg.time_zone, hour: '2-digit', minute: '2-digit', hour12: false });
 
   var stripCache = { key: null, value: null };
 
@@ -709,29 +712,19 @@ window.MRT.app = (function () {
         ui.led(n ? status : 'neutral'), ui.el('b', { class: 'num', text: String(n) }), ui.el('span', { text: label })
       ]);
     }
-    var urgent = c.line_stop + c.late;
     banner.hidden = false;
     ui.mount(banner, [
-      ui.el('span', { class: 'strip-state ' + (urgent || c.clarification || c.on_hold ? 'alert' : 'ok') }, [
-        ui.led(c.line_stop ? 'critical' : c.late ? 'expired' : c.clarification || c.on_hold ? 'warning' : 'ok'),
-        tools ? 'Your queue' : 'Your requests'
-      ]),
       ui.el('div', { class: 'strip-segs' }, [
         seg('critical', c.line_stop, 'Line stop', tools ? 'linestop' : 'open'),
         seg('expired', c.late, 'Late', tools ? 'late' : 'open'),
         seg('warning', c.on_hold, 'On hold', tools ? 'on_hold' : 'open'),
         seg('warning', c.clarification, tools ? 'Needs clarification' : 'Needs your answer', tools ? 'clarification' : 'mine')
-      ]),
-      ui.el('div', { class: 'spacer' }),
-      ui.el('span', { class: 'strip-active' }, [ui.el('b', { class: 'num', text: String(c.open) }), ' open']),
-      ui.el('span', { class: 'strip-clock num', id: 'stripClock', 'aria-hidden': 'true', text: clockFmt.format(new Date()) })
+      ])
     ]);
   }
 
-  /** Every second: the clock text, and a repaint only when a count changed. */
+  /** Repaint only when a count changed (the 1 s tick rule). */
   function tickAlertBanner() {
-    var clock = document.getElementById('stripClock');
-    if (clock) clock.textContent = clockFmt.format(new Date());
     if (JSON.stringify(stripCounts()) !== stripKey) paintAlertBanner();
   }
 
@@ -967,22 +960,20 @@ window.MRT.app = (function () {
     ui.menu(anchor, items, [ui.el('b', { text: 'Notifications' }), ui.el('span', { class: 'muted', text: ' - your requests, your tools, @mentions' })]);
   }
 
-  /** New since the last look: a browser pop-up when allowed, else a toast (Q19). */
+  /** New since the last look: the bell count + ring carry it (toasts confirm
+   *  my own actions only). A browser pop-up only when the person opted in. */
   function announceNew() {
     paintBell();
     var fresh = notifications().filter(function (x) { return Date.parse(x.ts) > bell.announced; });
     bell.announced = Date.now();
     if (!fresh.length) return;
-    var popups = 'Notification' in window && window.Notification.permission === 'granted';
-    if (popups) {
+    if ('Notification' in window && window.Notification.permission === 'granted') {
       fresh.slice(0, 3).forEach(function (x) {
         try {
           var n = new window.Notification('Metrology requests', { body: x.text, tag: x.id });
           n.onclick = function () { window.focus(); if (x.request_id) location.hash = '#/request/' + x.request_id; };
         } catch (e) { console.error('MRT: pop-up failed', e); }
       });
-    } else {
-      ui.toast({ message: fresh.length === 1 ? fresh[0].text : fresh.length + ' new notifications - see the bell.' });
     }
   }
 
