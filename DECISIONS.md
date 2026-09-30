@@ -845,3 +845,17 @@ never the only signal - the text/label says the same thing.
   links, no state label, clock or "N open"). Bell keeps the list of what
   changed; incoming changes no longer toast (toasts confirm my own actions
   only); pop-ups only when opted in, never beside a toast.
+- **DASH-9** (dashboard-front-page, redesign Step 4: request box) My queue
+  is one box per request (`js/ui/request-box.js`, plain values in): line 1
+  tool glyph, mono ID, priority word for Line stop/Hot only, status chip,
+  red Late chip when late, assignee right; line 2 lot + build-up; bottom
+  line one filled primary (Accept / Receive & start / Start / Complete),
+  Hold + Needs clarification as quiet text buttons, the rest (Take it, Copy
+  BKM path, Cancel...) behind "...". Stripe for Line stop/Hot only, hover
+  accent-soft + lift. Neutral sticky groups Line stop / Late / Due this
+  week / Rest (pilot, queue only); paging kept (100 boxes + more-button).
+  Ticking shows "N selected:" with one primary bulk + "..." + Clear. On
+  Complete the box reads "Completed" and fades (1.2 s) with a 10 s Undo
+  toast into a collapsed "Done today (N)" section; Undo withdraws the
+  entry. Strip counts are filter links (open/late/yours). Countdown clocks
+  are gone from the queue (the shell tick has nothing to repaint).
