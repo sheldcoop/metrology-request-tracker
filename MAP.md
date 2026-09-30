@@ -118,6 +118,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 ## Docs
 
 `CLAUDE.md` (working agreement) · `DECISIONS.md` (agreed decisions) ·
+`DESIGN_RULES.md` (STEP 2 foundation: shape, type, spacing, elevation, colour roles) ·
 `OPEN_QUESTIONS.md` (parked items) · `OFFICE_SETUP.md` (seed changelog) ·
 `README.md` · `ROADMAP.md` · `CONTRIBUTING.md` · `AUDIT.md` · `TEST_RUN.md` ·
 `MILESTONE_1..10.md` · `FINAL_REPORT.md`.
