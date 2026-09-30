@@ -659,11 +659,16 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         filedToast.actions.some(a => a.label === 'Copy results path'));
   MRT.store.setCurrentUser(meP); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
   check('the requester now sees Reopen (Analyze is the analyst\'s, admins excepted)', !!buttonByText($('#main .req-actbar'), 'Reopen'));
+  win.setHash('#/requests/completed'); await settle();
+  const cBoxes = $$('#main .qbox');
+  check('...completed requests keep Reopen and the results folder link on the box', cBoxes.length === 1 && cBoxes[0].textContent.indexOf(req2.request_no) !== -1 &&
+    !!buttonByText(cBoxes[0], 'Reopen') && $$('#main a.path-link').some(a => /^file:/.test(a.getAttribute('href'))));
   const ruth = await MRT.store.saveEntry('users', { fields: { name: 'Ruth Adler', roles: ['analyst'] } });
   MRT.store.setCurrentUser(ruth.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
   check('the analyst sees Mark analyzed across tools', !!buttonByText($('#main .req-actbar'), 'Mark analyzed'));
-  win.setHash('#/requests'); await settle();
-  check('...found from My requests: "To analyze (all tools)" lists it (M7)', /To analyze \(all tools\)/.test(mainText()) && mainText().indexOf(req2.request_no) !== -1);
+  win.setHash('#/requests/toanalyze'); await settle();
+  check('...found from My requests: the "To analyze" tab lists it with Mark analyzed (M7)', mainText().indexOf(req2.request_no) !== -1 &&
+    !!buttonByText($('#main'), 'Mark analyzed'));
   win.setHash('#/request/' + req2.id); await settle();
   buttonByText($('#main .req-actbar'), 'Mark analyzed').click(); await settle();
   check('...a dialog asks the analyzed data folder, prefilled with the results folder', !!openDialog() && fieldIn(openDialog(), 'Analyzed data folder').value === MRT.store.byId('requests', req2.id).results_path);
@@ -794,25 +799,33 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   await MRT.store.requestAction(qN.id, 'clarify', { text: 'Which side should we cut?' });
   MRT.store.setCurrentUser(meP);
 
-  // --- My requests (M3 step 3)
-  win.setHash('#/requests'); await settle();
-  const mRows = $$('#main .q-row');
-  check('My requests: open ones shown, the one waiting on me first', mRows.length === 2 && mRows[0].textContent.indexOf(qN.request_no) !== -1 && mRows[0].classList.contains('is-mine') && /1 waiting on you/.test(mainText()));
-  buttonByText(mRows[0], 'Answered').click(); await settle();
+  // --- My requests (M3 step 3, Step 5 boxes)
+  win.setHash('#/requests/active'); await settle();
+  const mBoxes = $$('#main .qbox');
+  check('My requests: open ones shown as boxes, the one waiting on me first', mBoxes.length === 2 && mBoxes[0].textContent.indexOf(qN.request_no) !== -1 &&
+    /Needs clarification/.test(mBoxes[0].textContent) && /1 waiting on you/.test(mainText()));
+  check('...line 2 carries lot 18178', mBoxes[0].textContent.indexOf('18178') !== -1);
+  buttonByText(mBoxes[0], 'Answered').click(); await settle();
   setVal(fieldIn(openDialog(), 'Your answer'), 'Front side, via row 3'); buttonByText(openDialog(), 'Save').click(); await settle();
   check('...Answered right there: back to Accepted (M3-2)', MRT.store.byId('requests', qN.id).status === 'accepted' && !/waiting on you/.test(mainText()));
+  setVal(fieldIn(doc.getElementById('main'), 'Show'), 'history'); await settle();
+  const hBoxes = $$('#main .qbox');
+  const r2step = (function () { var r = MRT.store.byId('requests', req2.id); var s = r.process_step_id ? MRT.store.byId('process_steps', r.process_step_id) : null; return s ? s.name : r.process_step_other || ''; })();
+  check('...History holds the analyzed one, stamped Closed, with its process step', hBoxes.length === 1 && hBoxes[0].textContent.indexOf(req2.request_no) !== -1 &&
+    /Closed/.test(hBoxes[0].textContent) && (!r2step || hBoxes[0].textContent.indexOf(r2step) !== -1));
+  check('...and the analyzed data folder as a file link', $$('#main a.path-link').some(a => /^file:/.test(a.getAttribute('href'))));
   setVal(fieldIn(doc.getElementById('main'), 'Show'), 'all'); await settle();
-  check('..."All": cancelled and closed ones too, the closed one stamped Closed', $$('#main .q-row').length === 5 && /Closed/.test(mainText()) && /Cancelled/.test(mainText()));
+  check('..."All": cancelled and closed ones too, the closed one stamped Closed', $$('#main .qbox').length === 5 && /Closed/.test(mainText()) && /Cancelled/.test(mainText()));
   setVal(fieldIn(doc.getElementById('main'), 'Lot or request number'), req2.request_no); await settle();
-  check('...find by request number', $$('#main .q-row').length === 1);
+  check('...find by request number', $$('#main .qbox').length === 1);
   const rowDraft = await MRT.store.saveDraft({ fields: { tool_id: fib().id } });
   win.setHash('#/lab'); await settle(); win.setHash('#/requests/drafts'); await settle();
   setVal(fieldIn(doc.getElementById('main'), 'Lot or request number'), ''); await settle();
   const rowDel = doc.getElementById('main').querySelectorAll('button').filter(b => (b.getAttribute('aria-label') || '').indexOf('Delete draft') === 0)[0];
-  check('...a draft row has a delete button', !!rowDel && $$('#main .q-row').length === 1);
+  check('...a draft box has a delete button', !!rowDel && $$('#main .qbox').length === 1);
   rowDel.click(); await settle();
   buttonByText(openDialog(), 'Delete').click(); await settle();
-  check('...delete from the row removes the draft', !MRT.store.data().requests.some(r => r.id === rowDraft.id) && $$('#main .q-row').length === 0);
+  check('...delete from the box removes the draft', !MRT.store.data().requests.some(r => r.id === rowDraft.id) && $$('#main .qbox').length === 0);
 
   // --- the board (M3 step 4)
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
