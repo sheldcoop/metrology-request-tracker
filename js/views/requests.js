@@ -1,13 +1,14 @@
 /**
  * Metrology Request Tracker - views/requests.js
  *
- * My requests (#/requests, Q16, Q20, DECISIONS M3-11): the engineer's own
- * requests, plus a "To analyze" part for analysts. "Waiting on you" on top
- * (a clarification to answer, completed results to check - Reopen), then
- * open ones, then the rest, newest first; drafts in their own part. Status, needed-by with the
- * lab-time countdown, expected done, who has it. Filter by status, tool or
- * a lot / request number ("where is my lot"). The 1 s tick updates the
- * countdown text only.
+ * My requests (#/requests, Q16, Q20, DECISIONS M3-11, redesign Step 5):
+ * the engineer's own requests as one box per request (js/ui/request-box.js,
+ * line 2 adds the process step), "Waiting on you" on top (a clarification
+ * to answer, completed results to check - Reopen), then open ones, then the
+ * rest, newest first. Completed ones keep Reopen and the results folder
+ * link on the bottom line; analyzed ones live under the History filter.
+ * Analysts get their own "To analyze" tab. Drafts carry on from their box.
+ * Filter by status, tool or a lot / request number ("where is my lot").
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -21,11 +22,11 @@ window.MRT.views.requests = (function () {
 
   var PAGE = 100;
   var view = { status: 'active', tool: '', text: '', shown: PAGE };
-  var clocks = [];
 
   var STATUS_FILTER = [
     { value: 'active', label: 'Waiting on me + open' }, { value: 'mine', label: 'Waiting on me' }, { value: 'open', label: 'Open' },
-    { value: 'completed', label: 'Completed' }, { value: 'analyzed', label: 'Analyzed' }, { value: 'cancelled', label: 'Cancelled' }, { value: 'drafts', label: 'Drafts' }, { value: 'all', label: 'All' },
+    { value: 'completed', label: 'Completed' }, { value: 'toanalyze', label: 'To analyze' }, { value: 'history', label: 'History' },
+    { value: 'cancelled', label: 'Cancelled' }, { value: 'drafts', label: 'Drafts' }, { value: 'all', label: 'All' },
     { value: 'templates', label: 'My templates' }
   ];
 
@@ -41,7 +42,6 @@ window.MRT.views.requests = (function () {
     var want = ctx && ctx.subpath;
     if (want && STATUS_FILTER.some(function (f) { return f.value === want; })) { view.status = want; view.shown = PAGE; }
     var me = store.currentUser();
-    clocks = [];
     var shownRows = [];      // the list as filtered now - what Download writes (Q48)
     var mineAll = store.visibleRequests(function (r) { return r.requester_id === me.id; });
     var toAnalyze = D.canAnalyze(me) ? store.visibleRequests(function (r) { return r.status === 'completed' && r.requester_id !== me.id; }) : [];
@@ -70,22 +70,25 @@ window.MRT.views.requests = (function () {
     }
 
     function draw() {
-      clocks = [];
       if (view.status === 'templates') { shownRows = []; ui.mount(holder, window.MRT.templates.list(me)); return; }
       var now = Date.now();
       var q = D.normalizeName(view.text || '');
-      var list = mineAll.filter(function (r) {
-        if (view.tool && r.tool_id !== view.tool) return false;
-        if (q) {
-          var lot = byId('lots', r.lot_id);
-          if (D.normalizeName((r.request_no || '') + ' ' + (lot ? lot.lot_number : '')).indexOf(q) === -1) return false;
-        }
+      function textOk(r) {
+        if (!q) return true;
+        var lot = byId('lots', r.lot_id);
+        return D.normalizeName((r.request_no || '') + ' ' + (lot ? lot.lot_number : '')).indexOf(q) !== -1;
+      }
+      function toolOk(r) { return !view.tool || r.tool_id === view.tool; }
+      var source = view.status === 'toanalyze' ? toAnalyze : mineAll;
+      var list = source.filter(function (r) {
+        if (!toolOk(r) || !textOk(r)) return false;
         switch (view.status) {
           case 'active': return waitingOnMe(r, now) || D.isOpen(r);
           case 'mine': return waitingOnMe(r, now);
           case 'open': return D.isOpen(r);
+          case 'toanalyze': return true;
           case 'completed': return r.status === 'completed';
-          case 'analyzed': return r.status === 'analyzed';
+          case 'history': return r.status === 'analyzed';
           case 'cancelled': return r.status === 'cancelled';
           case 'drafts': return r.status === 'draft';
           default: return true;
@@ -97,6 +100,8 @@ window.MRT.views.requests = (function () {
       var waiting = mineAll.filter(function (r) { return waitingOnMe(r, now); }).length;
       var late = list.filter(function (r) { return D.isLate(r, now, store.calendar()); }).length;
       var oldDrafts = mineAll.filter(function (r) { return D.isOldDraft(r, now); }).length;
+      var boxes = ui.el('div', { class: 'queue-list' });
+      list.slice(0, view.shown).forEach(function (r) { boxes.appendChild(box(r, me, now)); });
       ui.mount(holder, [
         ui.el('div', {}, [
           ui.el('div', { class: 'queue-shift', 'aria-live': 'polite' }, [
@@ -107,48 +112,56 @@ window.MRT.views.requests = (function () {
           oldDrafts ? ui.el('p', {}, ui.el('a', { href: '#/requests', class: 'chip warning', text: oldDrafts + ' old draft' + (oldDrafts === 1 ? '' : 's') + ' to clean up',
             onclick: function (ev) { ev.preventDefault(); view.status = 'drafts'; statusF.input.value = 'drafts'; draw(); } })) : null
         ]),
-        list.length ? table(list.slice(0, view.shown), now) : ui.emptyState({ icon: 'requests', title: 'Nothing matches', text: 'Try "All" or clear the filter.' }),
+        list.length ? boxes : ui.emptyState({ icon: 'requests', title: 'Nothing matches', text: 'Try "All" or clear the filter.' }),
         list.length > view.shown ? ui.button('Show ' + Math.min(PAGE, list.length - view.shown) + ' more', { size: 'sm', onClick: function () { view.shown += PAGE; draw(); } }) : null
       ]);
-      if (toAnalyze.length) holder.appendChild(ui.panel({ title: 'To analyze (all tools)', icon: 'check',
-        body: [ui.el('p', { class: 'muted', text: toAnalyze.length + ' completed measurement' + (toAnalyze.length === 1 ? '' : 's') + ' waiting for sign-off.' }),
-          table(toAnalyze, now)] }).node);
-      tick();
     }
 
-    function table(list, now) {
-      return ui.el('div', { class: 'table-wrap' }, ui.el('table', { class: 'grid queue-table' }, [
-        ui.el('thead', {}, ui.el('tr', {}, ['Request', 'Lot / panels', 'Status', 'Priority', 'Needed by', 'Expected done', 'With', ''].map(function (h, i) {
-          return ui.el('th', { scope: 'col', class: i === 7 ? 'actions' : null, text: h });
-        }))),
-        ui.el('tbody', {}, list.map(function (r) { return row(r, now); }))
-      ]));
+    /** One request as a box; line 2 adds the process step. Completed ones
+     * keep Reopen and the results folder link; drafts carry on from the box. */
+    function box(r, me, now) {
+      var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id);
+      var prio = byId('priorities', r.priority_id), bu = byId('buildups', r.buildup_id);
+      var step = byId('process_steps', r.process_step_id);
+      var qe = byId('users', r.assigned_to);
+      var closed = D.isClosed(r, now);
+      return ui.requestBox({
+        id: r.id, request_no: r.request_no || ((tool ? tool.code : '?') + ' draft')
+      }, {
+        tool: tool, lot: lot ? lot.lot_number : (r.status === 'draft' ? '-' : '?'),
+        buCode: bu ? bu.code : null, step: step ? step.name : (r.process_step_other || null),
+        prio: prio, assignedName: qe ? qe.name : (r.status === 'draft' ? null : '-'),
+        late: D.isLate(r, now, store.calendar()),
+        statusChip: ui.statusBadge(chip(r, closed), closed ? 'Closed' : D.REQUEST_STATUS_LABEL[r.status]),
+        href: r.status === 'draft' ? '#/new/' + r.id : null,
+        actions: boxActions(r)
+      });
     }
 
-    function row(r, now) {
-      var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id), prio = byId('priorities', r.priority_id), qe = byId('users', r.assigned_to);
-      var closed = D.isClosed(r, now), late = D.isLate(r, now, store.calendar());
-      var clock = ui.el('span', { class: 'q-clock' });
-      clocks.push({ node: clock, r: r });
-      var link = r.status === 'draft' ? '#/new/' + r.id : '#/request/' + r.id;
-      var acts = A.buttons(r, { size: 'sm', only: ['answer', 'analyze', 'reopen'] });
+    function boxActions(r) {
       if (r.status === 'draft') {
-        acts.push(ui.button('Carry on', { size: 'sm', icon: 'edit', onClick: function () { location.hash = link; } }));
-        acts.push(ui.button('', { size: 'sm', kind: 'ghost', icon: 'trash', ariaLabel: 'Delete draft ' + (r.request_no || ''), title: 'Delete this draft',
-          onClick: function () { deleteDraft(r); } }));
+        return [ui.button('Carry on', { size: 'sm', icon: 'edit', onClick: function () { location.hash = '#/new/' + r.id; } }),
+          ui.button('', { size: 'sm', kind: 'ghost', icon: 'trash', ariaLabel: 'Delete draft ' + (r.request_no || ''), title: 'Delete this draft',
+            onClick: function () { deleteDraft(r); } })];
       }
-      return ui.el('tr', { id: 'row-' + r.id, class: 'q-row prio-' + (prio ? prio.level : 3) + (late ? ' is-late' : '') + (waitingOnMe(r, now) ? ' is-mine' : '') }, [
-        ui.el('td', {}, ui.el('span', { class: 'cell-tool' }, [tool ? ui.toolGlyph(tool.glyph, { size: 24 }) : null,
-          ui.el('a', { class: 'mono', href: link, text: r.request_no || ((tool ? tool.code : '?') + ' draft') }),
-          D.isOldDraft(r, now) ? ui.statusBadge('warning', '30+ days', { title: 'Untouched for 30 days or more - submit or delete it (Q33)' }) : null])),
-        ui.el('td', {}, [ui.el('span', { class: 'mono', text: lot ? lot.lot_number : '-' }), ui.el('span', { class: 'muted', text: '  ' + D.panelsText(r) })]),
-        ui.el('td', {}, ui.statusBadge(chip(r, closed), closed ? 'Closed' : D.REQUEST_STATUS_LABEL[r.status])),
-        ui.el('td', { text: prio ? prio.name : '-' }),
-        ui.el('td', {}, [ui.el('span', { class: 'num', text: r.needed_by || '-' }), ui.el('br'), clock]),
-        ui.el('td', {}, ui.el('span', { class: 'num' + (r.expected_done && r.needed_by && r.expected_done > r.needed_by ? ' is-later' : ''), text: r.expected_done || '-' })),
-        ui.el('td', { text: qe ? qe.name : '-' }),
-        ui.el('td', { class: 'actions' }, ui.el('span', { class: 'row-actions' }, acts))
-      ]);
+      var acts = A.buttons(r, { size: 'sm', only: ['answer', 'analyze', 'reopen'] });
+      if (r.status === 'completed' && r.results_path) acts.push(pathLink(r.results_path, 'Results path'));
+      if (r.status === 'analyzed' && r.analyzed_path) acts.push(pathLink(r.analyzed_path, 'Analyzed data path'));
+      return acts;
+    }
+
+    /** The results folder as a link, like on the request page. */
+    function pathLink(path, what) {
+      var url = null;
+      if (D.isSharePath(path)) {
+        var s = String(path).replace(/\\/g, '/');
+        url = encodeURI(/^\/\//.test(s) ? 'file:' + s : 'file:///' + s);
+      }
+      var text = url ? ui.el('a', { class: 'mono path-link', href: url, text: path, title: path + ' - open' })
+                     : ui.el('span', { class: 'mono', text: path, title: path });
+      return ui.el('span', { class: 'cell-path' }, [text,
+        ui.button('', { size: 'sm', kind: 'ghost', icon: 'copy', ariaLabel: 'Copy ' + what, title: 'Copy ' + what,
+          onClick: function () { ui.copyText(path, what + ' copied'); } })]);
     }
 
     draw();
@@ -167,20 +180,8 @@ window.MRT.views.requests = (function () {
     return { clarification: 'warning', on_hold: 'warning', completed: 'ok', cancelled: 'expired', draft: 'neutral', in_progress: 'ok', accepted: 'ok' }[r.status] || 'neutral';
   }
 
-  function tick() {
-    if (!clocks.length) return;
-    var now = Date.now(), cal = store.calendar(), hs = D.holidaySet(store.data().holidays);
-    clocks.forEach(function (c) {
-      var r = c.r;
-      if (!D.isOpen(r)) { c.node.textContent = ''; return; }
-      if (r.status === 'on_hold') { c.node.textContent = 'on hold'; return; }
-      var cd = r.needed_by ? D.countdown(now, r.needed_by, cal, hs) : null;
-      if (!cd) { c.node.textContent = ''; return; }
-      var h = ui.formatDurationH(cd.lab_ms / 3600000);
-      c.node.textContent = cd.late ? 'late ' + h : h + ' left';
-      c.node.className = 'q-clock ' + (cd.late ? 'is-late' : cd.lab_ms < 8 * 3600000 ? 'is-soon' : '');
-    });
-  }
+  /** The shell ticks every second; boxes carry no countdown, so there is nothing to repaint. */
+  function tick() { return; }
 
   return { render: render, tick: tick };
 })();
