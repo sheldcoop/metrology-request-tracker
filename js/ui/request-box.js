@@ -11,8 +11,8 @@
  *
  * It reads no data: the screen passes plain values -
  *   ui.requestBox(r, {
- *     tool, lot, buCode, prio: {name, level} | null, assignedName,
- *     late: bool, statusChip: Node,
+ *     tool, lot, buCode, step: 'After ...' | null, prio: {name, level} | null,
+ *     assignedName, late: bool, statusChip: Node, href: '...' (default '#/request/' + id),
  *     tick: {checked, label, onChange} | null, actions: [Node],
  *     done: bool })
  */
@@ -40,7 +40,7 @@
       ui.el('div', { class: 'qbox-l1' }, [
         tick,
         o.tool ? ui.toolGlyph(o.tool.glyph, { size: 24 }) : null,
-        ui.el('a', { class: 'mono qbox-id', href: '#/request/' + r.id, text: r.request_no }),
+        ui.el('a', { class: 'mono qbox-id', href: o.href || '#/request/' + r.id, text: r.request_no || '' }),
         level <= 2 && o.prio ? ui.el('span', { class: 'qbox-prio-word', text: o.prio.name }) : null,
         o.statusChip || null,
         o.late ? ui.statusBadge('expired', 'Late') : null,
@@ -48,7 +48,8 @@
       ]),
       ui.el('div', { class: 'qbox-l2' }, [
         ui.el('span', { class: 'mono', text: o.lot || '?' }),
-        o.buCode ? ui.el('span', { class: 'muted', text: '  ·  ' + o.buCode }) : null
+        o.buCode ? ui.el('span', { class: 'muted', text: '  ·  ' + o.buCode }) : null,
+        o.step ? ui.el('span', { class: 'muted', text: '  ·  ' + o.step }) : null
       ]),
       acts.length ? ui.el('div', { class: 'qbox-acts' }, acts) : null
     ]);
