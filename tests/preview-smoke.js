@@ -61,7 +61,7 @@ async function boot(query, hash) {
         d.win.MRT.store.data().requests.length > 60 && d.win.MRT.store.currentUser().name === 'Prince Khurana');
   d = await boot('?demo=big&as=mia', '#/queue');
   check('?demo=big&as=mia: Mia\'s queue is full (FIB backup while Olga is away)', d.win.MRT.store.currentUser().name === 'Mia Gruber' &&
-        d.doc.getElementById('main').querySelectorAll('.q-row').length >= 10);
+        d.doc.getElementById('main').querySelectorAll('.qbox').length >= 10);
 
   // every page with the big file: nothing may break, and each render is timed (fake DOM - a rough guide only)
   d = await boot('?demo=big');
