@@ -48,7 +48,7 @@
           : null
       ]),
       el('button', { class: 'btn-icon', type: 'button', 'aria-label': 'Dismiss',
-                     onclick: function () { dismiss(); } }, icon('close', 14)),
+                     onclick: function () { dismiss(); } }, icon('close', 16)),
       timeout ? el('div', { class: 'toast-progress', style: { animationDuration: timeout + 'ms' } }) : null
     ]);
     host.appendChild(node);
