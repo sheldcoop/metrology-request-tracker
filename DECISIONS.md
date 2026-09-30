@@ -752,3 +752,13 @@ never the only signal - the text/label says the same thing.
   #888FA2; quant fg-faint #6E7E87 -> #85929C. Gallery order is
   dark-teal, pure-white, signal, frost, ats, slate, quant (ats-first
   reordering left open).
+- **DASH-2** (dashboard-front-page, Step 2: topbar theme button) New
+  `themeBtn` icon button in `.topbar-right` (contrast glyph, same as the
+  user-menu entry) opening the same `themeGallery()` in a popup menu,
+  wrapped in `.theme-compact` (one row per theme: name + swatch preview,
+  samples and moods hidden by CSS only). No `extra`: "Office default"
+  stays out of the personal picker (user-menu Theme... dialog keeps it).
+  The gallery stays open on a pick, so all 7 themes are one click away
+  (no cycling). Keyboard: gallery radiogroup + roving tabindex + arrows,
+  current card focused on open, Esc/outside click closes via `ui.menu`.
+  `setTheme()` reused untouched, so `rethemeCharts()` still runs.
