@@ -135,7 +135,7 @@ window.MRT.views.analytics = (function () {
     }
     if (!state.filter) state.filter = A.defaultFilter();
 
-    main.appendChild(ui.pageHead('Analytics', 'Lab time (Mon-Fri lab hours, holidays out); hold time shown apart. Click a number to see its requests.'));
+    main.appendChild(ui.pageHead('Analytics', 'Lab time, hold apart. Click a number for its requests.'));
     main.appendChild(filterBar());
     var body = ui.el('div', { class: 'tab-body an-body' });
     var bar = ui.tabs(tabs.map(function (t) { return { key: t.key, label: t.label, icon: t.icon }; }), function (k) {
