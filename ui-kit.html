@@ -71,46 +71,46 @@
   .cx-hero-facts { display: grid; gap: 2px; font-size: 13px; }
   .cx-hero-facts b { font-size: 15px; }
 
-  /* --- Direction A: Deep Lab (dark glass Mission Control) ---
+  /* --- Direction A: Dark Teal (dark glass Mission Control) ---
      Text-bearing popups (combo, menu, dialog) stay solid on purpose:
      a readable popup never shows the fields below through it. */
-  [data-concept="deep-lab"] .kit-bar,
-  [data-concept="deep-lab"] .cx-kpi-strip,
-  [data-concept="deep-lab"] .cx-hero-card,
-  [data-concept="deep-lab"] .toast,
-  [data-concept="deep-lab"] .tip-card {
+  [data-concept="dark-teal"] .kit-bar,
+  [data-concept="dark-teal"] .cx-kpi-strip,
+  [data-concept="dark-teal"] .cx-hero-card,
+  [data-concept="dark-teal"] .toast,
+  [data-concept="dark-teal"] .tip-card {
     background: color-mix(in srgb, var(--surface-2) 82%, transparent);
     backdrop-filter: blur(14px);
     border-color: var(--line-strong);
   }
-  [data-concept="deep-lab"] .panel,
-  [data-concept="deep-lab"] dialog.modal {
+  [data-concept="dark-teal"] .panel,
+  [data-concept="dark-teal"] dialog.modal {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), var(--shadow);
     border-color: var(--line-strong);
   }
-  [data-concept="deep-lab"] .cx-hero-card { border-color: var(--line-hi); }
+  [data-concept="dark-teal"] .cx-hero-card { border-color: var(--line-hi); }
   /* Polish: same hero breathing room in every direction. */
-  [data-concept="deep-lab"] .cx-hero-card,
+  [data-concept="dark-teal"] .cx-hero-card,
   [data-concept="signal"] .cx-hero-card { padding: 22px; }
-  [data-concept="deep-lab"] .traveller.is-urgent { box-shadow: 0 0 24px rgba(249, 115, 22, .25), var(--shadow); }
+  [data-concept="dark-teal"] .traveller.is-urgent { box-shadow: 0 0 24px rgba(249, 115, 22, .25), var(--shadow); }
 
-  /* --- Direction B: Cleanroom (light, airy) ---
+  /* --- Direction B: Pure White (light, airy) ---
      Status tokens stay Carbon White (AA-verified); only the room changes.
      Glass only on the bar and strip; popups, menus and dialogs stay solid. */
-  [data-concept="cleanroom"] .kit-bar,
-  [data-concept="cleanroom"] .cx-kpi-strip {
+  [data-concept="pure-white"] .kit-bar,
+  [data-concept="pure-white"] .cx-kpi-strip {
     background: color-mix(in srgb, var(--surface-2) 78%, transparent);
     backdrop-filter: blur(12px);
   }
-  [data-concept="cleanroom"] .panel,
-  [data-concept="cleanroom"] .cx-hero-card,
-  [data-concept="cleanroom"] dialog.modal { border-color: var(--line); box-shadow: var(--shadow); }
-  [data-concept="cleanroom"] .cx-hero-card { padding: 22px; }
-  [data-concept="cleanroom"] .kit-sec .table-wrap table.grid th {
+  [data-concept="pure-white"] .panel,
+  [data-concept="pure-white"] .cx-hero-card,
+  [data-concept="pure-white"] dialog.modal { border-color: var(--line); box-shadow: var(--shadow); }
+  [data-concept="pure-white"] .cx-hero-card { padding: 22px; }
+  [data-concept="pure-white"] .kit-sec .table-wrap table.grid th {
     text-transform: uppercase; letter-spacing: .08em; font-size: 11px; color: var(--fg-faint);
     border-bottom: 2px solid var(--line-strong);
   }
-  [data-concept="cleanroom"] .traveller.is-urgent { border-left: 6px solid var(--critical); }
+  [data-concept="pure-white"] .traveller.is-urgent { border-left: 6px solid var(--critical); }
 
   /* --- Direction C: Signal (dark, solid, lamp-forward) ---
      No transparency anywhere: no blur, no translucent layers, popups solid.
