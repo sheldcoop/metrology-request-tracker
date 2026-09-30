@@ -135,10 +135,10 @@ window.MRT.views['new'] = (function () {
     var panelMode = st.panels.length || !st.panel_count ? 'ids' : 'count';
 
     var title = editing ? 'Edit ' + draft.request_no : draft ? 'Draft' : from ? 'Copy of ' + (from.request_no || 'a draft') : tpl ? 'New request from "' + tpl.name + '"' : 'New request';
-    main.appendChild(ui.pageHead(title, editing ? 'Change what is needed and save with a reason; the quality engineer sees each change in the timeline. The tool stays.'
-      : 'Tool first, then step by step. Save a draft any time; entered values still need to be valid. Submit sends it to the tool\'s quality engineers.'));
+    main.appendChild(ui.pageHead(title, editing ? 'Change what is needed. Changes show in the timeline.'
+      : 'Tool first, then steps. Submit sends it to the lab.'));
 
-    if (tplNotes.length) main.appendChild(ui.el('div', { class: 'setup-note', role: 'status' }, [ui.icon('info', 14),
+    if (tplNotes.length) main.appendChild(ui.el('div', { class: 'setup-note', role: 'status' }, [ui.icon('info', 16),
       ui.el('span', { text: tplNotes.join(' · ') })]));
     // a new, empty form: offer the person's templates first (Q28)
     if (!src && !draft && !q.lot && !q.tool) { var chooserNode = window.MRT.templates.chooser(me); if (chooserNode) main.appendChild(chooserNode); }
@@ -154,7 +154,7 @@ window.MRT.views['new'] = (function () {
     var steps = {};
     STEPS.forEach(function (s, i) {
       var summary = ui.el('span', { class: 'wz-sum' });
-      var badge = ui.el('span', { class: 'wz-no num', text: s.key === 'review' ? '' : String(i + 1) }, s.key === 'review' ? ui.icon('check', 14) : null);
+      var badge = ui.el('span', { class: 'wz-no num', text: s.key === 'review' ? '' : String(i + 1) }, s.key === 'review' ? ui.icon('check', 16) : null);
       var head = ui.el('button', { type: 'button', class: 'wz-head', 'aria-expanded': 'false' }, [badge,
         ui.el('span', { class: 'wz-title' }, [ui.el('b', { text: s.title }), summary])]);
       var body = ui.el('div', { class: 'wz-body', hidden: true });
