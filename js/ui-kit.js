@@ -367,38 +367,35 @@
     ]);
   }
 
-  /** My queue in isolation: the shift strip, counted separators, a late row. */
+  /** My queue in isolation: the linked shift strip, one group, two boxes, the bulk bar. */
   function queueDemo() {
-    function stat(v, label, bad) {
-      return el('div', { class: 'qs' + (bad ? ' is-bad' : '') }, [
+    function stat(v, label, bad, filter) {
+      return el('a', { class: 'qs' + (bad ? ' is-bad' : ''), href: '#/queue/' + filter }, [
         el('span', { class: 'qs-n num', text: String(v) }), ' ', el('span', { class: 'qs-l', text: label })]);
     }
-    function qrow(no, prio, prioCode, tool, glyphKey, late) {
-      return el('tr', { class: 'q-row prio-' + prio + (late ? ' is-late' : '') }, [
-        el('td', {}, el('input', { type: 'checkbox', 'aria-label': 'Tick ' + no })),
-        el('td', {}, el('span', { class: 'q-prio' }, [el('b', { text: prio === 1 ? 'Line stop' : 'Normal' }), el('span', { class: 'mono muted', text: prioCode })])),
-        el('td', {}, el('span', { class: 'cell-tool' }, [ui.toolGlyph(glyphKey, { size: 24 }),
-          el('a', { class: 'mono', href: '#', text: no })])),
-        el('td', {}, [el('span', { class: 'mono', text: '18178' }), el('span', { class: 'muted', text: '  3252, 3253' })]),
-        el('td', { text: 'Olga Berger' }),
-        el('td', {}, [el('span', { class: 'num', text: '2026-10-02' }), el('br'),
-          el('span', { class: 'q-clock' + (late ? ' is-late' : ''), text: late ? 'late 1 d' : '5 h left' })]),
-        el('td', {}, ui.statusBadge(late ? 'critical' : 'ok', late ? 'Submitted' : 'In progress')),
-        el('td', { text: tool === 'FIB' ? 'Olga Berger' : '-' }),
-        el('td', { class: 'actions' })
-      ]);
+    function sampleBox(no, level, late) {
+      return ui.requestBox({ id: 'demo-' + no, request_no: no }, {
+        tool: { glyph: 'fib' }, lot: '18178', buCode: 'BU-02',
+        prio: { name: level === 1 ? 'Line stop' : 'Hot', level: level },
+        assignedName: 'Olga Berger', late: late,
+        statusChip: ui.statusBadge('neutral', 'Submitted'),
+        tick: { checked: false, label: 'Tick ' + no, onChange: function () {} },
+        actions: [ui.button('Accept', { kind: 'primary', icon: 'check' }),
+          ui.button('Hold', { size: 'sm', kind: 'ghost' }), ui.button('...', { size: 'sm', kind: 'ghost' })]
+      });
     }
     return el('div', {}, [
-      labelled('Shift strip', el('div', { class: 'queue-shift' }, [stat(12, 'open'), stat(3, 'late', true), stat(5, 'yours')])),
-      labelled('Ranked table', el('div', { class: 'table-wrap' }, el('table', { class: 'grid queue-table' }, [
-        el('thead', {}, el('tr', {}, ['', 'Priority', 'Request', 'Lot / panels', 'Requested by', 'Needed by', 'Status', 'Assigned', ''].map(function (h) {
-          return el('th', { scope: 'col', text: h }); }))),
-        el('tbody', {}, [
-          el('tr', { class: 'queue-sep' }, el('td', { colspan: '10' }, [el('span', { text: 'Assigned to you  ·  ' }), el('span', { class: 'num', text: '5' })])),
-          qrow('FIB-260925-01', 1, 'P1', 'FIB', 'fib', true),
-          qrow('QVM-260925-02', 3, 'P3', 'QVM', 'qvm', false)
-        ])
-      ])))
+      labelled('Shift strip', el('div', { class: 'queue-shift' }, [stat(12, 'open', false, 'open'), stat(3, 'late', true, 'late')])),
+      labelled('Group + boxes', el('div', { class: 'queue-list' }, [
+        el('div', { class: 'qgroup' }, ['Line stop  ·  ', el('span', { class: 'num', text: '1' })]),
+        sampleBox('FIB-260925-01', 1, true),
+        sampleBox('QVM-260925-02', 2, false)
+      ])),
+      labelled('Bulk bar', el('div', { class: 'queue-bulk' }, [
+        el('span', { text: '2 selected:' }),
+        ui.button('Accept all (2)', { size: 'sm', kind: 'primary', icon: 'check' }),
+        ui.button('Clear', { size: 'sm', kind: 'ghost' })])),
+      labelled('Done box', ui.requestBox({ id: 'demo-done', request_no: 'FIB-260925-01' }, { done: true }))
     ]);
   }
 
