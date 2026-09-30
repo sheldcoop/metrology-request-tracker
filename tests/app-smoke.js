@@ -140,13 +140,13 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const tcard = k => thDlg.querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
   check('Theme... opens the gallery: every theme of js/themes.js as a live sample, plus "Office default"',
         !!thDlg && thDlg.querySelectorAll('.tg-card').length === MRT.themes.list.length + 1 && thDlg.querySelectorAll('.tg-sample[data-theme="ats"]').length === 1);
-  tcard('deep-lab').click();
-  check('...a click switches at once (theme, scheme) and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'deep-lab' &&
-        doc.documentElement.getAttribute('data-scheme') === 'dark' && storage['mrt.theme.' + MRT.store.currentUser().id] === 'deep-lab' && storage['mrt.theme.last'] === 'deep-lab');
+  tcard('dark-teal').click();
+  check('...a click switches at once (theme, scheme) and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'dark-teal' &&
+        doc.documentElement.getAttribute('data-scheme') === 'dark' && storage['mrt.theme.' + MRT.store.currentUser().id] === 'dark-teal' && storage['mrt.theme.last'] === 'dark-teal');
   tcard('signal').click();
   check('...Signal marks the page high contrast', doc.documentElement.getAttribute('data-contrast') === 'high' && /#FFB224/.test(MRT.themes.css()));
-  tcard('cleanroom').click();
-  check('...Cleanroom (light)', doc.documentElement.getAttribute('data-theme') === 'cleanroom' && doc.documentElement.getAttribute('data-scheme') === 'light' &&
+  tcard('pure-white').click();
+  check('...Pure White (light)', doc.documentElement.getAttribute('data-theme') === 'pure-white' && doc.documentElement.getAttribute('data-scheme') === 'light' &&
         doc.documentElement.getAttribute('data-contrast') === 'normal');
   buttonByText(thDlg, 'Done').click(); await settle();
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
@@ -315,11 +315,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   await tab('look');
   const lookCard = k => doc.getElementById('main').querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
-  check('Settings > Look: every theme as a live sample, the office default marked, old keys still resolve', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.length && lookCard('ats').classList.contains('is-on') && MRT.themes.byKey('hc').key === 'signal' && MRT.themes.byKey('carbon-g100').key === 'deep-lab' && MRT.themes.byKey('gruvbox-light').key === 'cleanroom' && MRT.themes.byKey('minimal').key === 'minimal');
+  check('Settings > Look: every theme as a live sample, the office default marked, old keys still resolve', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.length && lookCard('ats').classList.contains('is-on') && MRT.themes.byKey('hc').key === 'signal' && MRT.themes.byKey('carbon-g100').key === 'dark-teal' && MRT.themes.byKey('gruvbox-light').key === 'pure-white' && MRT.themes.byKey('minimal').key === 'pure-white' && MRT.themes.byKey('deep-lab').key === 'dark-teal' && MRT.themes.byKey('cleanroom').key === 'pure-white');
   lookCard('frost').click(); await settle();
   check('...a click makes Frost the office default (audited)', MRT.store.getSetting('default_theme') === 'frost' && MRT.store.data().audit_log.slice(-1)[0].field === 'default_theme');
   doc.getElementById('userBtn').click(); await settle();
-  buttonByText(doc.body.querySelector('.menu'), 'Theme: Cleanroom...').click(); await settle();
+  buttonByText(doc.body.querySelector('.menu'), 'Theme: Pure White...').click(); await settle();
   const thDlg2 = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   thDlg2.querySelectorAll('.tg-card').filter(c => c.dataset.key === '')[0].click();
   check('..."Office default" in the gallery follows it again', doc.documentElement.getAttribute('data-theme') === 'frost' && !storage['mrt.theme.' + MRT.store.currentUser().id]);
