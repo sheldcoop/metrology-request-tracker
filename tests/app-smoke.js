@@ -13,11 +13,11 @@ const vm = require('vm'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'brandVer', 'saveLed', 'undoBtn', 'searchIcon', 'search',
-  'bellBtn', 'bellIcon', 'bellCount', 'helpBtn', 'keysBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
+  'bellBtn', 'bellIcon', 'bellCount', 'themeBtn', 'helpBtn', 'keysBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
   'navItems', 'navFolder', 'navRev', 'navCollapse', 'main', 'toasts', 'dialogHost'];
 const { win, doc, flush, tick, storage, El } = require('./fake-dom')({ ids: IDS, url: 'file:///Z:/Lab/MRT/index.html?who=ATS%5CPKhurana' });
 // the data-action hooks index.html puts on the top bar
-[['saveLed', 'save-state'], ['undoBtn', 'undo'], ['keysBtn', 'show-keys'], ['bellBtn', 'bell'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
+[['saveLed', 'save-state'], ['undoBtn', 'undo'], ['keysBtn', 'show-keys'], ['bellBtn', 'bell'], ['themeBtn', 'theme-menu'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
   .forEach(p => { doc.getElementById(p[0]).dataset.action = p[1]; });
 doc.getElementById('undoBtn').hidden = true;
 doc.getElementById('gate').hidden = true;
@@ -149,6 +149,21 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...Pure White (light)', doc.documentElement.getAttribute('data-theme') === 'pure-white' && doc.documentElement.getAttribute('data-scheme') === 'light' &&
         doc.documentElement.getAttribute('data-contrast') === 'normal');
   buttonByText(thDlg, 'Done').click(); await settle();
+  doc.getElementById('themeBtn').click(); await settle();
+  const tmMenu = doc.body.querySelector('.menu');
+  const tcard2 = k => (tmMenu.querySelectorAll('.tg-card').filter(c => c.dataset.key === k))[0];
+  check('the topbar theme button opens a compact gallery: one card per theme, keyboard roles, no Office default',
+        !!tmMenu && tmMenu.querySelectorAll('.tg-card').length === MRT.themes.list.length &&
+        tmMenu.querySelectorAll('.tg-card[role="radio"]').length === MRT.themes.list.length && !tcard2(''));
+  check('...the current theme is marked', !!tmMenu.querySelector('.tg-card.is-on') &&
+        tmMenu.querySelector('.tg-card.is-on').dataset.key === 'pure-white');
+  tcard2('slate').click(); await settle();
+  check('...one click switches at once and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'slate' &&
+        storage['mrt.theme.' + MRT.store.currentUser().id] === 'slate');
+  tcard2('pure-white').click(); await settle();
+  check('...every theme is one click away, no cycling', doc.documentElement.getAttribute('data-theme') === 'pure-white');
+  doc.getElementById('themeBtn').click(); await settle();
+  check('...clicking the button again closes it', !doc.body.querySelector('.menu'));
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
   doc.getElementById('keysBtn').click(); await settle();
   const keys = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
