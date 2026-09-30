@@ -10,12 +10,15 @@
  * The user menu's theme gallery, Settings > Look (the default theme for
  * everyone), ui-kit.html and tests/contrast.js all read this list.
  *
- * The themes (2026-09-28, Prince): our own six - AT&S (the default, company
- * identity), Deep Lab, Cleanroom, Signal, Frost and Minimal. The 2026-09-25
- * set (Carbon Gray 100, Carbon White, Primer High Contrast, Catppuccin Mocha,
- * Gruvbox Light) is retired; its keys map onto these (ALIASES), so nobody's
- * saved choice breaks. Status tokens keep OK / Warning / Line stop / Late
- * clearly apart and readable in every theme.
+ * The themes (2026-09-30, Prince, redesign Step 1): five - AT&S (the default,
+ * company identity, dark navy), Pure White, Dark Teal, Slate and Quant.
+ * Dark Teal, Slate and Quant match the studio website tokens (studio
+ * src/tailwind.config.ts .dark / .slate / .quant, HSL converted to hex by
+ * script); their AA-tuned text shades stay one step off the raw tokens where
+ * tests/contrast.js fails. Signal and Frost are retired; their keys (and every
+ * older key) map onto the five (ALIASES), so nobody's saved choice breaks.
+ * Status tokens keep OK / Warning / Line stop / Late clearly apart and
+ * readable in every theme.
  *
  * Add a theme: add an entry with a unique key and a group (Main / Personal),
  * run node tests/contrast.js (WCAG AA for every text colour, and the status
@@ -34,9 +37,11 @@ window.MRT.themes = (function () {
   /** Keys of the retired themes (2026-09-28) -> today's, so a saved choice keeps working. */
   var ALIASES = { dark: 'dark-teal', ocean: 'dark-teal', galaxy: 'dark-teal', forest: 'dark-teal', tech: 'dark-teal',
                   'carbon-g100': 'dark-teal', 'catppuccin-mocha': 'dark-teal', 'deep-lab': 'dark-teal',
+                  signal: 'dark-teal',
                   light: 'pure-white', arctic: 'pure-white', golden: 'pure-white', rose: 'pure-white',
                   'carbon-white': 'pure-white', 'gruvbox-light': 'pure-white', cleanroom: 'pure-white', minimal: 'pure-white',
-                  hc: 'signal', 'primer-hc': 'signal' };
+                  frost: 'pure-white',
+                  hc: 'dark-teal', 'primer-hc': 'dark-teal' };
   var LAST_KEY = 'mrt.theme.last';
 
   /* Status colours per scheme: the meaning never changes, only the shade that reads well. */
@@ -71,8 +76,25 @@ window.MRT.themes = (function () {
    */
   var THEMES = [
 
+    { key: 'ats', name: 'AT&S', scheme: 'dark', group: 'Main',
+      mood: 'Company identity: deep navy room, white writing; corporate red only where it hurts (late, danger).',
+      swatches: ['#082B4F', '#0C3D6E', '#FFFFFF', '#B9CBE0'],
+      p: { bg: '#082B4F', surface: '#0C3D6E', 'surface-2': '#10487F', 'surface-3': '#15538C', inset: '#082B4F',
+           fg: '#FFFFFF', 'fg-muted': '#B9CBE0', 'fg-faint': '#A3B8D2',
+           line: '#2A5A8C', 'line-strong': '#41719F', 'line-hi': '#8FC1F0', bracket: '#41719F',
+           accent: '#FFFFFF', 'accent-fill': '#FFFFFF', 'accent-fg': '#082B4F', 'accent-soft': 'rgba(255, 255, 255, .14)',
+           'accent-glow': '0 0 0 1px #FFFFFF',
+           ok: '#5CCB8A', 'ok-fg': '#7CE3A6', 'ok-bg': '#0A3520',
+           warning: '#F2B84B', 'warning-fg': '#F6C963', 'warning-bg': '#3A2A00',
+           critical: '#FF832B', 'critical-fg': '#FFA76B', 'critical-bg': '#3E1A00',
+           expired: '#FF7A70', 'expired-fg': '#FF9A92', 'expired-bg': '#4A1210',
+           danger: '#FF7A70', 'danger-fg': '#FF9A92', 'danger-bg': '#4A1210', 'on-danger': '#260606',
+           blocked: '#6F6F6F', 'blocked-fg': '#C6C6C6', 'blocked-bg': '#2A3F58',
+           'c-blue': '#8FC1F0', 'c-teal': '#5CC8C8', 'c-pink': '#F49AC2',
+           radius: '6px', 'radius-panel': '10px',
+           shadow: '0 12px 32px rgba(0, 0, 0, .5)', 'shadow-pop': '0 18px 50px rgba(0, 0, 0, .6)', scrim: 'rgba(4, 10, 20, .66)' } },
     { key: 'dark-teal', name: 'Dark Teal', scheme: 'dark', group: 'Main',
-      mood: 'Studio dark: deep navy room, glowing teal actions.',
+      mood: 'Studio .dark tokens: near-black room, teal actions.',
       swatches: ['#020A1D', '#061027', '#02E8CD', '#F8FAFC'],
       p: { bg: '#020A1D', surface: '#061027', 'surface-2': '#1D283A', 'surface-3': '#26344B', inset: '#020A1D',
            fg: '#F8FAFC', 'fg-muted': '#94A3B8', 'fg-faint': '#7F91AA',
@@ -89,79 +111,25 @@ window.MRT.themes = (function () {
            radius: '8px', 'radius-panel': '14px',
            shadow: '0 12px 32px rgba(0, 0, 0, .5)', 'shadow-pop': '0 18px 50px rgba(0, 0, 0, .6)', scrim: 'rgba(4, 8, 18, .66)' } },
     { key: 'pure-white', name: 'Pure White', scheme: 'light', group: 'Main',
-      mood: 'Studio light: pure white room, hairlines, navy ink.',
-      swatches: ['#FFFFFF', '#FFFFFF', '#0F172A', '#020817'],
-      p: { bg: '#FFFFFF', surface: '#FFFFFF', 'surface-2': '#FFFFFF', 'surface-3': '#F7F7F7', inset: '#FFFFFF',
-           fg: '#020817', 'fg-muted': '#64748B', 'fg-faint': '#627289',
-           line: '#E2E8F0', 'line-strong': '#C7D3E2', 'line-hi': '#0F172A', bracket: '#C7D3E2',
-           accent: '#0F172A', 'accent-fill': '#0F172A', 'accent-fg': '#FFFFFF', 'accent-soft': 'rgba(15, 23, 42, .08)',
-           'accent-glow': '0 0 0 1px #0F172A',
-           ok: '#24A148', 'ok-fg': '#0E6027', 'ok-bg': '#DEFBE6',
-           warning: '#F1C21B', 'warning-fg': '#684E00', 'warning-bg': '#FCF4D6',
+      mood: 'White room, hairlines, brand navy ink.',
+      swatches: ['#FFFFFF', '#FFFFFF', '#0C3D6E', '#0F1F33'],
+      p: { bg: '#FFFFFF', surface: '#FFFFFF', 'surface-2': '#FFFFFF', 'surface-3': '#EEF3F9', inset: '#FFFFFF',
+           fg: '#0F1F33', 'fg-muted': '#5B6B7F', 'fg-faint': '#43536A',
+           line: '#E3E8EF', 'line-strong': '#C7D3E2', 'line-hi': '#0C3D6E', bracket: '#C7D3E2',
+           accent: '#0C3D6E', 'accent-fill': '#0C3D6E', 'accent-fg': '#FFFFFF', 'accent-soft': 'rgba(12, 61, 110, .08)',
+           'accent-glow': '0 0 0 1px #0C3D6E',
+           ok: '#1F7A4D', 'ok-fg': '#14532F', 'ok-bg': '#E2F2E8',
+           warning: '#F1C21B', 'warning-fg': '#7A5410', 'warning-bg': '#FCF4D6',
            critical: '#FF832B', 'critical-fg': '#BA4E00', 'critical-bg': '#FFF2E8',
-           expired: '#DA1E28', 'expired-fg': '#A2191F', 'expired-bg': '#FFF1F1',
-           danger: '#DA1E28', 'danger-fg': '#A2191F', 'danger-bg': '#FFF1F1', 'on-danger': '#FFFFFF',
+           expired: '#B42318', 'expired-fg': '#7A1A12', 'expired-bg': '#FBE7E5',
+           danger: '#B42318', 'danger-fg': '#7A1A12', 'danger-bg': '#FBE7E5', 'on-danger': '#FFFFFF',
            blocked: '#8D8D8D', 'blocked-fg': '#525252', 'blocked-bg': '#E0E0E0',
            'c-blue': '#0043CE', 'c-teal': '#007D79', 'c-pink': '#D02670',
            radius: '10px', 'radius-panel': '16px',
            shadow: '0 1px 2px rgba(16, 24, 40, .06), 0 8px 24px rgba(16, 24, 40, .08)',
            'shadow-pop': '0 4px 8px rgba(16, 24, 40, .08), 0 16px 40px rgba(16, 24, 40, .16)', scrim: 'rgba(16, 24, 40, .45)' } },
-    { key: 'signal', name: 'Signal', scheme: 'dark', group: 'Main', contrast: 'high',
-      mood: 'Dark, solid, lamp-forward: opaque surfaces, strong borders, amber accent, big numerals.',
-      swatches: ['#05070C', '#131A26', '#FFB224', '#FFFFFF'],
-      p: { bg: '#05070C', surface: '#0C1119', 'surface-2': '#131A26', 'surface-3': '#1B2434', inset: '#05070C',
-           fg: '#FFFFFF', 'fg-muted': '#C3CAD6', 'fg-faint': '#9AA3B5',
-           line: '#3A4356', 'line-strong': '#8B94A7', 'line-hi': '#FFB224', bracket: '#8B94A7',
-           accent: '#FFB224', 'accent-fill': '#FFB224', 'accent-fg': '#231300', 'accent-soft': '#2A2111',
-           'accent-glow': '0 0 0 2px #FFB224', 'glow-ring': '100%', 'glow-blur': '0%', 'focus-w': '3px',
-           ok: '#42BE65', 'ok-fg': '#42BE65', 'ok-bg': '#022D0D',
-           warning: '#F1C21B', 'warning-fg': '#F1C21B', 'warning-bg': '#302400',
-           critical: '#FF832B', 'critical-fg': '#FF832B', 'critical-bg': '#3E1A00',
-           expired: '#FA4D56', 'expired-fg': '#FF8389', 'expired-bg': '#520408',
-           danger: '#DA1E28', 'danger-fg': '#FF8389', 'danger-bg': '#520408', 'on-danger': '#FFFFFF',
-           blocked: '#6F6F6F', 'blocked-fg': '#C6C6C6', 'blocked-bg': '#393939',
-           'c-blue': '#78A9FF', 'c-teal': '#08BDBA', 'c-pink': '#FF7EB6',
-           radius: '4px', 'radius-panel': '6px',
-           shadow: '0 0 0 1px #000000, 0 10px 28px rgba(0, 0, 0, .55)',
-           'shadow-pop': '0 0 0 1px #8B94A7, 0 16px 44px rgba(0, 0, 0, .65)', scrim: 'rgba(3, 5, 9, .8)' } },
-    { key: 'frost', name: 'Frost', scheme: 'light', group: 'Main',
-      mood: 'Glass flagship, Apple-minimalist: restraint, whitespace, frosted chrome, one blue, quiet type.',
-      swatches: ['#F5F5F7', '#FFFFFF', '#006DCE', '#1D1D1F'],
-      p: { bg: '#F5F5F7', surface: '#FFFFFF', 'surface-2': '#FFFFFF', 'surface-3': '#ECECF0', inset: '#F5F5F7',
-           fg: '#1D1D1F', 'fg-muted': '#515154', 'fg-faint': '#636366',
-           line: '#E5E5EA', 'line-strong': '#C7C7CC', 'line-hi': '#006DCE', bracket: '#C7C7CC',
-           accent: '#006DCE', 'accent-fill': '#006DCE', 'accent-fg': '#FFFFFF', 'accent-soft': '#E8F1FC',
-           'accent-glow': '0 0 0 3px rgba(0, 109, 206, .25)',
-           ok: '#24A148', 'ok-fg': '#0E6027', 'ok-bg': '#DEFBE6',
-           warning: '#F1C21B', 'warning-fg': '#684E00', 'warning-bg': '#FCF4D6',
-           critical: '#FF832B', 'critical-fg': '#BA4E00', 'critical-bg': '#FFF2E8',
-           expired: '#DA1E28', 'expired-fg': '#A2191F', 'expired-bg': '#FFF1F1',
-           danger: '#DA1E28', 'danger-fg': '#A2191F', 'danger-bg': '#FFF1F1', 'on-danger': '#FFFFFF',
-           blocked: '#8D8D8D', 'blocked-fg': '#525252', 'blocked-bg': '#E0E0E0',
-           'c-blue': '#0043CE', 'c-teal': '#007D79', 'c-pink': '#D02670',
-           radius: '12px', 'radius-panel': '20px',
-           shadow: '0 1px 2px rgba(0, 0, 0, .04), 0 12px 32px rgba(0, 0, 0, .08)',
-           'shadow-pop': '0 8px 16px rgba(0, 0, 0, .08), 0 24px 64px rgba(0, 0, 0, .16)', scrim: 'rgba(245, 245, 247, .6)' } },
-    { key: 'ats', name: 'AT&S', scheme: 'light', group: 'Main',
-      mood: 'Company identity: deep navy on a white room; corporate red only where it hurts (late, danger).',
-      swatches: ['#EDF1F6', '#FFFFFF', '#003366', '#CC0000'],
-      p: { bg: '#EDF1F6', surface: '#FFFFFF', 'surface-2': '#FFFFFF', 'surface-3': '#DCE4EE', inset: '#F7F9FC',
-           fg: '#0B1B30', 'fg-muted': '#34465E', 'fg-faint': '#55677F',
-           line: '#C9D4E2', 'line-strong': '#93A5BB', 'line-hi': '#003366', bracket: '#93A5BB',
-           accent: '#003366', 'accent-fill': '#003366', 'accent-fg': '#FFFFFF', 'accent-soft': '#D9E4F2',
-           'accent-glow': '0 0 0 1px #003366',
-           ok: '#24A148', 'ok-fg': '#0E6027', 'ok-bg': '#DEFBE6',
-           warning: '#F1C21B', 'warning-fg': '#684E00', 'warning-bg': '#FCF4D6',
-           critical: '#FF832B', 'critical-fg': '#BA4E00', 'critical-bg': '#FFF2E8',
-           expired: '#CC0000', 'expired-fg': '#8F0000', 'expired-bg': '#FBE9E9',
-           danger: '#CC0000', 'danger-fg': '#8F0000', 'danger-bg': '#FBE9E9', 'on-danger': '#FFFFFF',
-           blocked: '#8D8D8D', 'blocked-fg': '#525252', 'blocked-bg': '#E0E0E0',
-           'c-blue': '#003366', 'c-teal': '#007D79', 'c-pink': '#D02670',
-           radius: '6px', 'radius-panel': '10px',
-           shadow: '0 1px 2px rgba(11, 27, 48, .08), 0 8px 24px rgba(11, 27, 48, .1)',
-           'shadow-pop': '0 8px 24px rgba(11, 27, 48, .18)', scrim: 'rgba(11, 27, 48, .45)' } },
     { key: 'slate', name: 'Slate', scheme: 'dark', group: 'Main',
-      mood: 'Studio slate: warm gray room, amber actions.',
+      mood: 'Studio .slate tokens: warm gray room, amber actions.',
       swatches: ['#131720', '#131720', '#F59F0A', '#E5E7EB'],
       p: { bg: '#131720', surface: '#131720', 'surface-2': '#1F2433', 'surface-3': '#292F43', inset: '#131720',
            fg: '#E5E7EB', 'fg-muted': '#878CA0', 'fg-faint': '#888FA2',
@@ -178,7 +146,7 @@ window.MRT.themes = (function () {
            radius: '8px', 'radius-panel': '14px',
            shadow: '0 12px 32px rgba(0, 0, 0, .5)', 'shadow-pop': '0 18px 50px rgba(0, 0, 0, .6)', scrim: 'rgba(4, 8, 18, .66)' } },
     { key: 'quant', name: 'Quant', scheme: 'dark', group: 'Main',
-      mood: 'Studio quant: near-black room, cyan actions, violet highlights.',
+      mood: 'Studio .quant tokens: near-black room, cyan actions, violet highlights.',
       swatches: ['#0C1017', '#131720', '#13ECEC', '#E8ECEE'],
       p: { bg: '#0C1017', surface: '#131720', 'surface-2': '#1F242E', 'surface-3': '#29303D', inset: '#0C1017',
            fg: '#E8ECEE', 'fg-muted': '#819098', 'fg-faint': '#85929C',
