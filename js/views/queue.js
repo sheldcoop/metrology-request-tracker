@@ -45,7 +45,7 @@ window.MRT.views.queue = (function () {
     var tools = myTools(me);
     var shownRows = [];      // the queue as filtered now - what Download writes (Q48)
     main.appendChild(ui.pageHead('My queue', tools.length ? 'Open requests of ' + tools.map(function (t) { return t.code; }).join(', ') +
-      ' - Line stop on top, then late, then by needed-by date.' : 'Quality engineers see the requests of their tools here.',
+      '. Line stop, late, needed-by order.' : 'Requests of your tools.',
       tools.length ? [window.MRT.exporter.rowsButton('Download', 'My queue', function () { return window.MRT.exporter.requestRows(shownRows); })] : null));
     if (!tools.length) {
       main.appendChild(ui.emptyState({ icon: 'inbox', title: 'You are not a quality engineer of any tool',
