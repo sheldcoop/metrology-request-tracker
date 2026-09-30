@@ -45,7 +45,7 @@ window.MRT.views.requests = (function () {
     var shownRows = [];      // the list as filtered now - what Download writes (Q48)
     var mineAll = store.visibleRequests(function (r) { return r.requester_id === me.id; });
     var toAnalyze = D.canAnalyze(me) ? store.visibleRequests(function (r) { return r.status === 'completed' && r.requester_id !== me.id; }) : [];
-    main.appendChild(ui.pageHead('My requests', mineAll.length ? 'Everything you asked the lab for. Waiting on you comes first.' : 'Completed measurements waiting for analysis.', [
+    main.appendChild(ui.pageHead('My requests', mineAll.length ? 'Your requests. Waiting on you first.' : 'Completed measurements waiting for analysis.', [
       window.MRT.exporter.rowsButton('Download', 'My requests', function () { return window.MRT.exporter.requestRows(shownRows); }),
       D.canRequest(me) ? ui.button('New request', { kind: 'primary', icon: 'plus', onClick: function () { location.hash = '#/new'; } }) : null]));
     if (!mineAll.length && !toAnalyze.length) {
