@@ -800,3 +800,13 @@ never the only signal - the text/label says the same thing.
   transitions, plus explicit rules zero the hover end states so nothing
   jumps. `.tool-plate` keeps its existing border/box transitions for
   state changes (is-selected etc.); transform appended for the lift.
+- **DASH-6** (dashboard-front-page, Step 6: small extras) "Waiting on me"
+  on the side menu from `notificationsFor` (same read watermark as the
+  bell): my requests' updates on My requests, lab-side updates (measurer
+  or assignee) on My queue; unread only, capped at 99+, `warning` badge
+  style, "N waiting on me" hover title; repainted with the bell and on
+  menu rebuild. Empty states: settings tables already carry table empty
+  texts, so only Help's search-no-results became a real `ui.emptyState`
+  (Home cannot be empty: lab/requests/help cards are unconditional).
+  Status-lamp legend: new Help guide (all five lamps as live `ui.led`
+  with words, shapes spelled out, Lab link).
