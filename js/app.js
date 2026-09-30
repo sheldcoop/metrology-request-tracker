@@ -125,6 +125,17 @@ window.MRT.app = (function () {
     applyTheme(officeTheme());
   }
 
+  /** The topbar theme button: the same gallery, compact (swatch preview per theme).
+   *  Personal only - no "Office default" here; that stays in the user menu's
+   *  Theme... dialog. A pick switches at once via setTheme (rethemeCharts kept). */
+  function openThemeMenu(anchor) {
+    var g = ui.themeGallery({ themes: TH, value: readTheme(store.status().currentUserId), onPick: setTheme });
+    ui.menu(anchor, [{ node: [ui.el('div', { class: 'theme-compact' }, [g.node])] }],
+      [ui.el('b', { text: 'Theme' }), ui.el('span', { class: 'muted', text: ' - one click switches, kept for you on this PC' })]);
+    var on = g.node.querySelector('.tg-card.is-on') || g.node.querySelector('.tg-card');
+    if (on && on.focus) on.focus();
+  }
+
   /** The theme gallery: every theme as a live sample; a click switches at once and is remembered for you on this PC. */
   function themeDialog() {
     var mine = readPref('theme', store.status().currentUserId);
@@ -475,6 +486,7 @@ window.MRT.app = (function () {
     ui.mount(document.getElementById('keysBtn'), ui.icon('keyboard', 18));
     ui.mount(document.getElementById('helpBtn'), ui.icon('help', 18));
     ui.mount(document.getElementById('bellIcon'), ui.icon('bell', 18));
+    if (document.getElementById('themeBtn')) ui.mount(document.getElementById('themeBtn'), ui.icon('contrast', 18));
     ui.mount(document.getElementById('userCaret'), ui.icon('chevron_down', 14));
   }
 
@@ -1080,6 +1092,7 @@ window.MRT.app = (function () {
     'reconnect': reconnect,
     'change-user': changeUser,
     'user-menu': openUserMenu,
+    'theme-menu': function (btn) { openThemeMenu(btn); },
     'show-keys': showKeys,
     'bell': function (btn) { openBell(btn); },
     'nav-collapse': toggleNav,
