@@ -54,7 +54,7 @@ window.MRT.views.board = (function () {
       return D.isOpen(r) || (r.status === 'completed' && r.completed_ts && now - Date.parse(r.completed_ts) < WEEK) ||
         (r.status === 'analyzed' && r.analyzed_ts && now - Date.parse(r.analyzed_ts) < WEEK);
     });
-    main.appendChild(ui.pageHead('Board', 'Every open request by tool. Click a card to see it and act on it here.'));
+    main.appendChild(ui.pageHead('Board', 'By tool. Click a card to act.'));
     main.appendChild(toolPicker(tools, mineTools, reqs));
     if (view.done === null) view.done = !(app.readPref && app.readPref('board_done') === 'hide');
     var cols = view.done ? COLS : COLS.filter(function (c) { return c.key !== 'completed' && c.key !== 'analyzed'; });
@@ -158,8 +158,7 @@ window.MRT.views.board = (function () {
   }
 
   function card(r) {
-    var lot = byId('lots', r.lot_id), prio = byId('priorities', r.priority_id), qe = byId('users', r.assigned_to);
-    var analyst = r.status === 'analyzed' ? byId('users', r.analyzed_by) : null;
+    var lot = byId('lots', r.lot_id), prio = byId('priorities', r.priority_id);
     var level = prio ? prio.level : 3;
     var clock = ui.el('span', { class: 'q-clock' });
     var bar = ui.el('i');
@@ -172,10 +171,8 @@ window.MRT.views.board = (function () {
       lines: [
         [(lot ? lot.lot_number : '?') + '  ·  ' + D.panelsText(r)],
         [gauge],
-        analyst ? [ui.el('span', { class: 'bcard-who', title: analyst.name, text: ui.initials(analyst.name) }),
-          ui.el('span', { class: 'muted', text: ui.formatDate(r.analyzed_ts) })]
-        : [r.status === 'on_hold' ? ui.statusBadge('warning', 'On hold') : r.status === 'clarification' ? ui.statusBadge('warning', 'Question') : null,
-         clock, qe ? ui.el('span', { class: 'bcard-who', title: qe.name, text: ui.initials(qe.name) }) : null]
+        [r.status === 'on_hold' ? ui.statusBadge('warning', 'On hold') : r.status === 'clarification' ? ui.statusBadge('warning', 'Question') : null,
+         clock]
       ]
     }, { size: 'card' });
     node.dataset.id = r.id;
