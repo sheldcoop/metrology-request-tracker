@@ -30,6 +30,7 @@ window.MRT.app = (function () {
    * milestone that brings it. Unlocking a page = adding its view.
    */
   var NAV = [
+    { key: 'home',      label: 'Home',        icon: 'home',        g: 'm', ms: 'M10' },
     { key: 'lab',       label: 'Lab status',  icon: 'gauge',       g: 'l', ms: 'M1' },
     { key: 'queue',     label: 'My queue',    icon: 'inbox',       g: 'q', ms: 'M3' },
     { key: 'requests',  label: 'My requests', icon: 'requests',    g: 'r', ms: 'M3' },
@@ -48,6 +49,13 @@ window.MRT.app = (function () {
     { key: 'request', label: 'Request', icon: 'requests', ms: 'M2', menu: 'requests' },
     { key: 'slip', label: 'Traveller slip', icon: 'requests', ms: 'M3', menu: 'requests' }
   ];
+
+  /** Routes only some roles may open. Read surfaces (requests, queue, lab,
+   *  board, analytics, results, help, request, slip) stay open: everyone can
+   *  read everything - the views gate their own actions (e.g. requests.js
+   *  asks canRequest for its New button, settings.js keeps its own admin
+   *  message, both covered by app-smoke). */
+  var ROUTE_GUARDS = { 'new': D.canRequest, lots: D.canRegisterLot };
 
   function navEntry(key) { return NAV.concat(PAGES).filter(function (n) { return n.key === key; })[0] || null; }
   function isLive(key) { return !!window.MRT.views[key]; }
@@ -510,6 +518,8 @@ window.MRT.app = (function () {
     if (!u) return;
     document.getElementById('userAvatar').textContent = ui.initials(u.name);
     document.getElementById('userName').textContent = u.name;
+    var nb = document.getElementById('newBtn');
+    if (nb) nb.hidden = !D.canRequest(u);
   }
 
   function paintFooter() {
@@ -562,6 +572,9 @@ window.MRT.app = (function () {
         title: entry ? entry.label + ' comes in ' + entry.ms : 'Unknown page',
         text: entry ? 'This page is part of a later milestone. Everything live today is in the menu.'
                     : 'That address does not exist. Use the menu on the left.' }));
+    } else if (ROUTE_GUARDS[app.route] && !ROUTE_GUARDS[app.route](store.currentUser())) {
+      main.appendChild(ui.pageHead(entry ? entry.label : 'Unknown page'));
+      main.appendChild(ui.emptyState({ icon: 'lock', title: 'No access', text: "You don't have access, ask an admin." }));
     } else {
       try {
         view.render(main, { subpath: parsed.subpath, query: parsed.query, params: parsed.params });
