@@ -835,3 +835,13 @@ never the only signal - the text/label says the same thing.
   icons at 1.5px round caps (16 rows/nav, 18 filters), short value-first
   subtitles, one empty-state pattern, transform/opacity motion only.
   Rules live in `DESIGN_RULES.md`.
+- **DASH-8** (dashboard-front-page, redesign Step 3: frame) Top bar left to
+  right: search, "+ New" (primary, was plain), bell, save lamp (+ Undo),
+  theme button, user menu. The help and shortcuts icon buttons are gone:
+  Help lives in the nav, shortcuts live in the user menu (and on `?`).
+  Nav regrouped Home | New/My requests/My queue/Board | Lab/Lots/Results/
+  Hirata | Analytics | Settings/Help with thin dividers; active item is the
+  3px bar + bold label (border dropped). Strip is counts only (four filter
+  links, no state label, clock or "N open"). Bell keeps the list of what
+  changed; incoming changes no longer toast (toasts confirm my own actions
+  only); pop-ups only when opted in, never beside a toast.
