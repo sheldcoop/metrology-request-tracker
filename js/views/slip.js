@@ -28,7 +28,7 @@ window.MRT.views.slip = (function () {
     var tool = byId('tools', r.tool_id), lot = byId('lots', r.lot_id), prio = byId('priorities', r.priority_id);
     var type = byId('measurement_types', r.type_id), who = byId('users', r.requester_id), bkm = byId('bkms', r.bkm_id);
     var assignee = byId('users', r.assigned_to), analyst = byId('users', r.analyzed_by);
-    main.appendChild(ui.pageHead('Traveller slip', 'Print it and put it with the panels. A6 paper, or A4 (the card sits top left).', [
+    main.appendChild(ui.pageHead('Traveller slip', 'Put it with the panels. A6, or A4.', [
       ui.button('Back to the request', { kind: 'ghost', icon: 'chevron_left', onClick: function () { location.hash = '#/request/' + r.id; } }),
       ui.button('Print', { kind: 'primary', icon: 'download', onClick: function () { window.print(); } })
     ]));
