@@ -823,3 +823,15 @@ never the only signal - the text/label says the same thing.
   (Home cannot be empty: lab/requests/help cards are unconditional).
   Status-lamp legend: new Help guide (all five lamps as live `ui.led`
   with words, shapes spelled out, Lab link).
+- **DASH-7** (dashboard-front-page, redesign Step 2: foundation) One shape
+  rule (`--radius` buttons/inputs, `--radius-panel` panels/cards/dialogs,
+  999px chips, 50% dots; same radii every theme), 5 type sizes
+  (12/13/15/20/28, weights 600+700, mono for IDs/counts/clocks), 8px grid
+  with compact default + per-user Comfortable density switch, border-OR-shadow
+  elevation (glow only for Line stop / tool Down), colour roles (accent for
+  action only, status colour in chips only, no tints, stripe for Line stop/Hot
+  only, late as red chip), 3 merged components (StatusChip, CountPill, traveller
+  Stamp; LEDs-as-text, OK circles and board initials removed), Lucide-style
+  icons at 1.5px round caps (16 rows/nav, 18 filters), short value-first
+  subtitles, one empty-state pattern, transform/opacity motion only.
+  Rules live in `DESIGN_RULES.md`.
