@@ -566,7 +566,7 @@
       section('Hirata code (ui.copperPanel, ui.hirataFields, ui.hirataGrid)', hirataDemo(), 'Copper stays copper in every theme. The grid blocks any dot that would take a column above 9; the bottom row is the baseline.'),
       section('Traveller card (ui.traveller)', travellerDemo(), 'One drawing, four sizes: full (request page), mini (form preview), card (board), slip (print). Priority stripe per level; Line stop pulses while open.'),
       section('Board wall (stations + nameplates)', boardDemo(), 'The lab wall: ghost station numerals with a state edge and tally, machine nameplates with lamp and open count. Colour only on attention; the late ticket carries the red wash.'),
-      section('Queue shift (strip + ranked table)', queueDemo(), 'Your shift in one glance - open, late (red only when nonzero), yours - then the work in queue order under counted separators. Late rows carry the red wash.'),
+      section('Queue shift (strip + boxes)', queueDemo(), 'Your shift in one glance - open, late (red only when nonzero), yours - then one box per request under neutral group headers. Stripe for Line stop and Hot only.'),
       section('Magazine slots', el('div', { class: 'kit-grid' }, [
           labelled('Pick: press and drag over slots; slots 9-10 taken by another request', ui.magazineSlots({ magazine: { code: 'M70345', slots: 24 }, picked: [3, 4],
             labels: { 3: '3252', 4: '3253' }, taken: { 9: 'FIB-260924-01', 10: 'FIB-260924-01' } }).node),
