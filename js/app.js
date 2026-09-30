@@ -511,6 +511,7 @@ window.MRT.app = (function () {
                              'aria-label': n.label + ', not available yet, coming in ' + n.ms },
                    inner.concat([ui.el('span', { class: 'nav-soon', text: n.ms, 'aria-hidden': 'true' })]));
     }));
+    paintBadges();
   }
 
   function paintUser() {
@@ -900,8 +901,35 @@ window.MRT.app = (function () {
       setTimeout(function () { btn.classList.remove('is-ringing'); }, 900);
     }
     bellLast = n;
+    paintBadges();
   }
   var bellLast = null;
+
+  /** "Waiting on me" on the side menu (Step 6): unread notifications per
+   *  page - my requests' updates on My requests, lab-side updates on My
+   *  queue. Same source and read watermark as the bell. */
+  function paintBadges() {
+    var me = store.currentUser();
+    if (!me || !store.data()) return;
+    var since = readTs(), counts = {};
+    notifications().forEach(function (n) {
+      if (Date.parse(n.ts) <= since || !n.request_id) return;
+      var r = store.byId('requests', n.request_id);
+      if (!r) return;
+      var route = r.requester_id === me.id ? 'requests'
+        : (D.isToolMeasurer(me, store.byId('tools', r.tool_id)) || r.assigned_to === me.id) ? 'queue' : null;
+      if (route) counts[route] = (counts[route] || 0) + 1;
+    });
+    document.querySelectorAll('.nav-item[data-route]').forEach(function (a) {
+      var badge = a.querySelector('.nav-badge');
+      if (!badge) return;
+      var n = counts[a.dataset.route] || 0;
+      badge.hidden = !n;
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.classList.toggle('warning', !!n);
+      badge.title = n ? n + ' waiting on me' : '';
+    });
+  }
 
   function openBell(anchor) {
     var list = notifications(), since = readTs();
