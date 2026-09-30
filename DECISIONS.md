@@ -735,3 +735,20 @@ never the only signal - the text/label says the same thing.
   tabs (open #30); H-8: DOM budget guard (`tests/dom-budget.js`, 5000
   nodes/view, queue paging); H-10: the store picks its storage adapter
   from `config.adapters.storage`, so the server move needs no store edit.
+- **DASH-1** (dashboard-front-page, Step 1: studio themes) Four studio
+  palettes ported to `js/themes.js`, all HSL values converted by script
+  (never by hand). Mapping rules: surface-2 = studio secondary,
+  surface-3 = secondary +5 lightness, line-strong = border +8, faint =
+  muted -7 (dark) / +7 (light), accent = primary, status blocks adopted
+  from deep-lab (dark three) and cleanroom (pure-white), radii/shadows
+  adopted the same way; quant violet only as `line-hi` highlights.
+  Retired deep-lab, cleanroom, minimal; old keys resolve via ALIASES
+  (deep-lab -> dark-teal, cleanroom/minimal -> pure-white; 2026-09-28
+  aliases repointed directly since `byKey` resolves one hop). DEFAULT
+  stays `ats`. Final list (7): ats, frost, signal, dark-teal,
+  pure-white, slate, quant. Contrast fixes, script-computed, verified
+  by `tests/contrast.js` (0 fails): pure-white fg-faint #76869D ->
+  #627289; slate fg-muted #676E83 -> #878CA0, fg-faint #575D6F ->
+  #888FA2; quant fg-faint #6E7E87 -> #85929C. Gallery order is
+  dark-teal, pure-white, signal, frost, ats, slate, quant (ats-first
+  reordering left open).
