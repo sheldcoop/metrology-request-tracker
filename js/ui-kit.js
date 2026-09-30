@@ -214,7 +214,7 @@
         el('span', { class: 'chip ok', text: 'Up' }), el('span', { class: 'chip warning', text: 'Maintenance' }), el('span', { class: 'chip expired', text: 'Down' }),
         el('span', { class: 'chip neutral', text: 'you' }), el('span', { class: 'chip warning', text: 'New' }), el('span', { class: 'chip accent-chip', text: 'Admin' }),
         el('span', { class: 'sample-tag', text: 'Sample' })]),
-      el('p', { class: 'setup-note' }, [ui.icon('info', 14), el('span', { text: 'Setup note: something is not confirmed yet.' })])
+      el('p', { class: 'setup-note' }, [ui.icon('info', 16), el('span', { text: 'Setup note: something is not confirmed yet.' })])
     ]);
   }
 
@@ -499,7 +499,7 @@
               ui.tipRow('Status', t.dataset.tool === 'PRF' ? 'Down' : 'Up'), ui.tipRow('Queue', 'from M3')];
     });
     var menuBtn = el('button', { class: 'user-btn', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false' }, [
-      el('span', { class: 'user-avatar', text: 'PK' }), el('span', { class: 'user-name', text: 'Prince Khurana' }), ui.icon('chevron_down', 14)]);
+      el('span', { class: 'user-avatar', text: 'PK' }), el('span', { class: 'user-name', text: 'Prince Khurana' }), ui.icon('chevron_down', 16)]);
     menuBtn.addEventListener('click', function () {
       ui.menu(menuBtn, [{ node: ui.toggle({ kind: 'switch', label: 'Reduce motion' }).node }, { sep: true },
         { label: 'Keyboard shortcuts', icon: 'keyboard', aside: '?' }, { label: 'Change data folder', icon: 'folder' }, { label: 'Change user', icon: 'user' }],
