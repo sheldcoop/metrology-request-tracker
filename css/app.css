@@ -1206,7 +1206,7 @@ kbd {
   position: relative; display: grid; gap: 12px; padding: 16px 18px 16px 22px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-panel);
   box-shadow: var(--shadow); scroll-margin: 24px;
-  transition: border-color var(--t) ease, box-shadow var(--t) ease;
+  transition: border-color var(--t) ease, box-shadow var(--t) ease, transform var(--t-fast) var(--ease);
 }
 .tool-plate::before {           /* the status edge, like a coloured tag on the tool */
   content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px;
@@ -2026,8 +2026,9 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 /* Home (Step 4): one door per page - icon, title, one line, live count.
    Thin borders, generous space, the accent only on the icon. */
 .home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; margin-top: 16px; }
-.home-card { display: flex; align-items: center; gap: 14px; padding: 18px; text-decoration: none;
-  color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-panel); }
+.home-card { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px; text-decoration: none;
+  color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-panel);
+  transition: transform var(--t-fast) var(--ease); }
 .home-ic { display: flex; color: var(--accent); }
 .home-tx { display: grid; gap: 2px; min-width: 0; }
 .home-tx b { font-size: 14px; }
@@ -2035,6 +2036,26 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 .home-n { margin-left: auto; text-align: right; }
 .home-n b { font-size: 24px; font-variant-numeric: tabular-nums; }
 .home-n span { display: block; font-size: 11px; color: var(--fg-muted); }
+
+/* Card hover (Step 5): lift + soft accent glow on Home cards and Lab tool
+   cards. transform/opacity only: the glow lives on an ::after overlay whose
+   opacity fades in, so no box-shadow is ever transitioned. Theme tokens
+   only (accent-glow, accent-soft). */
+.home-card::after, .tool-plate::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: var(--accent-glow), 0 10px 30px var(--accent-soft);
+  opacity: 0; transition: opacity var(--t-fast) var(--ease);
+}
+.home-card:hover, .tool-plate:hover { transform: translateY(-2px); }
+.home-card:hover::after, .tool-plate:hover::after { opacity: 1; }
+/* Stop under both motion switches (the global rules already kill the
+   transitions; these kill the end states so nothing jumps either). */
+@media (prefers-reduced-motion: reduce) {
+  .home-card:hover, .tool-plate:hover { transform: none; }
+  .home-card:hover::after, .tool-plate:hover::after { opacity: 0; }
+}
+[data-motion="reduce"] .home-card:hover, [data-motion="reduce"] .tool-plate:hover { transform: none; }
+[data-motion="reduce"] .home-card:hover::after, [data-motion="reduce"] .tool-plate:hover::after { opacity: 0; }
 
 /* ================================================================== *
  * Status icons (Prince, 2026-09-25: "status always has icon + text, never colour alone")
