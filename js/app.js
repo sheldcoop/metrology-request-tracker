@@ -131,6 +131,7 @@ window.MRT.app = (function () {
     applyTheme(readTheme(userId));
     applyMotion(readPref('motion', userId) === 'reduce');
     applyContrast(readPref('contrast', userId) === 'high');
+    applyDensity(readPref('density', userId) === 'comfortable');
     applyNav(readPref('nav', userId) === 'collapsed');
   }
 
@@ -165,6 +166,12 @@ window.MRT.app = (function () {
   }
   function setReduceMotion(on) { applyMotion(on); writePref('motion', on ? 'reduce' : 'full'); }
   function setHighContrast(on) { applyContrast(on); writePref('contrast', on ? 'high' : 'normal'); }
+  function applyDensity(roomy) {
+    app.roomy = !!roomy;
+    if (roomy) document.documentElement.setAttribute('data-density', 'comfortable');
+    else document.documentElement.removeAttribute('data-density');
+  }
+  function setDensity(on) { applyDensity(on); writePref('density', on ? 'comfortable' : 'compact'); }
   function toggleNav() {
     var collapsed = document.documentElement.getAttribute('data-nav') !== 'collapsed';
     applyNav(collapsed);
@@ -505,7 +512,7 @@ window.MRT.app = (function () {
     ui.mount(document.getElementById('helpBtn'), ui.icon('help', 18));
     ui.mount(document.getElementById('bellIcon'), ui.icon('bell', 18));
     if (document.getElementById('themeBtn')) ui.mount(document.getElementById('themeBtn'), ui.icon('contrast', 18));
-    ui.mount(document.getElementById('userCaret'), ui.icon('chevron_down', 14));
+    ui.mount(document.getElementById('userCaret'), ui.icon('chevron_down', 16));
   }
 
   /** The side menu: live pages link; later ones are greyed with their milestone (M1-6). */
@@ -535,7 +542,7 @@ window.MRT.app = (function () {
 
   function paintFooter() {
     var s = store.status();
-    ui.mount(document.getElementById('navFolder'), [ui.icon('folder', 12), s.folderName || 'Data folder']);
+    ui.mount(document.getElementById('navFolder'), [ui.icon('folder', 16), s.folderName || 'Data folder']);
     document.getElementById('navRev').textContent = 'Revision ' + s.revision;
     paintSaveLed();
   }
@@ -649,7 +656,7 @@ window.MRT.app = (function () {
     if (!info) return;
     btn.title = 'Undo: ' + info.label + '  (Ctrl+Z)';
     btn.setAttribute('aria-label', 'Undo the last change: ' + info.label);
-    ui.mount(btn, [ui.icon('refresh', 14), ui.el('span', { text: 'Undo' })]);
+    ui.mount(btn, [ui.icon('refresh', 16), ui.el('span', { text: 'Undo' })]);
     undoTimer = setTimeout(paintUndo, info.ms_left + 50);
   }
 
@@ -1013,6 +1020,7 @@ window.MRT.app = (function () {
     var s = store.status();
     var motion = ui.toggle({ kind: 'switch', label: 'Reduce motion', checked: !!app.reduceMotion, onChange: setReduceMotion });
     var contrast = ui.toggle({ kind: 'switch', label: 'High contrast', checked: !!app.highContrast, onChange: setHighContrast });
+    var density = ui.toggle({ kind: 'switch', label: 'Comfortable density', checked: !!app.roomy, onChange: setDensity });
     var homes = livePages().filter(function (n) { return n.key !== 'settings' && n.key !== 'help'; });
     var home = ui.el('select', { class: 'input menu-select', 'aria-label': 'Start page' }, homes.map(function (n) {
       return ui.el('option', { value: n.key, text: n.label, selected: n.key === readHome(u.id) });
@@ -1029,6 +1037,7 @@ window.MRT.app = (function () {
       { label: 'Theme: ' + (TH.byKey(app.theme) || {}).name + '...', icon: 'contrast', onClick: themeDialog },
       { node: motion.node },
       { node: contrast.node },
+      { node: density.node },
       { node: [ui.el('span', { text: 'Start page' }), home] },
       { sep: true },
       { label: awayLabel, icon: 'calendar', onClick: function () { awayDialog(u); } },
@@ -1039,7 +1048,7 @@ window.MRT.app = (function () {
       { label: 'Change user', icon: 'user', onClick: changeUser },
       { sep: true },
       { node: ui.el('div', { class: 'menu-folder' }, [
-        ui.el('div', {}, [ui.icon('folder', 12), ' ', s.folderName || 'Data folder']),
+        ui.el('div', {}, [ui.icon('folder', 16), ' ', s.folderName || 'Data folder']),
         ui.el('div', { class: 'num', text: 'Revision ' + s.revision + '  ·  saved ' + (s.savedTs ? ui.formatTs(s.savedTs) : '-') +
                                            (s.pendingSave ? '  ·  NOT SAVED' : '') })
       ]) }
