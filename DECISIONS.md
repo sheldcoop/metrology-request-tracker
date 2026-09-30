@@ -773,3 +773,20 @@ never the only signal - the text/label says the same thing.
   circle-help, Settings settings. Kit shows the 9 in the Tool glyphs
   section (own `kit-icon-cell` class, so the 28-cell glyph count holds);
   CONTRIBUTING table gained the icon row.
+- **DASH-4** (dashboard-front-page, Step 4: Home) New route `#/home`
+  (`js/views/home.js`, NAV first, shortcut `g m`): a card per page with
+  STEP 3 icon, one line, live count. Cards reuse existing functions only
+  (stripCounts, toolQueueStats, notificationsFor, analytics.get; the drafts
+  / mine / lots / guides / problems reads mirror their own views).
+  Gates: New request canRequest, My queue + Board canMeasure, Analytics
+  canSeeManagement, Lots canRegisterLot, Settings canUseSettings; Lab
+  status, My requests, Help are read surfaces open to all. Routes guarded
+  only where green stays green: `#/new` + `#/lots` show "You don't have
+  access, ask an admin." `#/requests`, `#/queue`, `#/board`, `#/analytics`
+  stay readable (Ruth the analyst works in requests, Prince the
+  non-manager admin reads analytics, Olga reads queue/board) and Settings
+  keeps its own admin message (app-smoke asserts it). Role start pages
+  stay (homeFor); Home is only a start page when picked in the user menu
+  (existing mechanism, no change). `+ New` topbar button (canRequest,
+  repainted in paintUser). Budgets: Home in dom-budget.js (150 ms,
+  10,000 nodes).
