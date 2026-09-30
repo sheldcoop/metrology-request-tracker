@@ -859,3 +859,10 @@ never the only signal - the text/label says the same thing.
   toast into a collapsed "Done today (N)" section; Undo withdraws the
   entry. Strip counts are filter links (open/late/yours). Countdown clocks
   are gone from the queue (the shell tick has nothing to repaint).
+- **DASH-10** (dashboard-front-page, redesign Step 5: My requests) The same
+  box; line 2 adds the process step (e.g. "After lamination"). Completed
+  requests keep Reopen and the results folder link on the bottom line (no
+  "Results OK" button exists since Q34, so it is Reopen only). Analyzed ones
+  moved from the filter list to a History filter. "To analyze" left its
+  bottom panel and is its own tab (`#/requests/toanalyze`). Drafts carry on
+  from their box (Carry on + delete). No countdown clocks here either.
