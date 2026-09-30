@@ -706,11 +706,14 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const qL = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panel_location_id: rackA, new_location: null, panels: [6], priority_id: prioBy('P1'), priority_reason: 'line 2 down' }) });
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
   check('the bell shows Olga what is new: her tool\'s requests (M4)', visible('bellCount') && +text('bellCount') >= 2);
+  const qBadge = doc.getElementById('navItems').querySelectorAll('.nav-item').filter(a => a.dataset.route === 'queue')[0].querySelector('.nav-badge');
+  check('...her queue carries the waiting-on-me badge', !qBadge.hidden && +qBadge.textContent >= 1 && /waiting on me/.test(qBadge.title));
   doc.getElementById('bellBtn').click(); await settle();
   const bellMenu = doc.body.querySelector('.menu');
   check('...opening it lists them, with the new request from Prince', !!bellMenu && bellMenu.textContent.indexOf('New request ' + qL.request_no) !== -1);
   buttonByText(bellMenu, 'Mark all as read').click(); await settle();
   check('..."Mark all as read" clears the count', !visible('bellCount'));
+  check('...and the nav badges clear with it', doc.getElementById('navItems').querySelectorAll('.nav-badge').every(b => b.hidden));
   // --- Pure engineer: Edit, Cancel, Copy, Print (+ Answer only when asked)
   MRT.store.setCurrentUser(meP);
   const ed = await MRT.store.saveEntry('users', { fields: { name: 'Ed Engineer', roles: ['engineer'] } });
@@ -940,7 +943,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const hs = $('.help-search'); hs.value = 'restore'; hs.dispatch('input'); await settle();
   check('Help search narrows the guides', guides.filter(g => !g.hidden).length < guides.length && guides.filter(g => !g.hidden).length > 0);
   hs.value = 'zzzqqq'; hs.dispatch('input'); await settle();
-  check('...and says when nothing is found', guides.every(g => g.hidden) && /Nothing found/.test(mainText()));
+  check('...and says when nothing is found', guides.every(g => g.hidden) && /Nothing found/.test(mainText()) && !!doc.getElementById('main').querySelector('.empty'));
+  check('...the status-lamp legend names all five lamps', ['OK', 'Warning', 'Line stop', 'Late', 'Blocked'].every(w =>
+        doc.getElementById('help-lamps').textContent.indexOf(w) !== -1) && doc.getElementById('help-lamps').querySelectorAll('.led').length === 5);
   win.setHash('#/help/admin-setup'); await settle();
   check('#/help/admin-setup opens that guide', $$('.help-guide').filter(g => g.classList.contains('is-selected')).map(g => g.id).join() === 'help-admin-setup');
   check('every guide link goes to a live page', $$('.help-open').every(a => !!MRT.views[(a.getAttribute('href') || '').replace(/^#\//, '').split('/')[0]]));
