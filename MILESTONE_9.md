@@ -35,3 +35,11 @@ slate, quant); deep-lab/cleanroom/minimal retired with ALIASES kept.
 `tests/contrast.js` still dynamic (0 fails); app-smoke/preview-smoke
 expectations updated to the new keys. Original record above stands as
 verified at the time.
+
+## Addendum — Step 1, redesign pass (2026-09-30)
+Five themes (ats DEFAULT, pure-white, dark-teal, slate, quant); signal and
+frost retired with ALIASES kept (`signal` -> dark-teal, `frost` ->
+pure-white). `ats` is dark navy now; `pure-white` uses brand navy #0C3D6E.
+High contrast is a user-menu switch on top of any theme, not a theme.
+`tests/contrast.js` dynamic (0 fails, CIEDE2000 distinct); app-smoke,
+ui-smoke, kit and Look expectations updated. Details: DECISIONS T-12.

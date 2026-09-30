@@ -667,6 +667,19 @@ never the only signal - the text/label says the same thing.
   `ui.statusIcon(status)` (the icon beside words already shown), in js/ui/core.js. Every status chip
   of the screens goes through it; KPI tiles (Analytics, Lab status, Health) show the status icon
   before their label; Lab status "1 late" carries the clock. A new screen cannot forget the icon.
+- **T-12** (2026-09-30, Prince, redesign Step 1) **Five themes, high contrast as a switch.** `ats`
+  (still the default) is now dark navy: page #082B4F, surface #0C3D6E, white writing, white primary
+  buttons with navy text; late/danger #FF7A70 (text shades lightened where tests/contrast.js failed:
+  expired-fg #FF9A92, critical-fg #FFA76B). `pure-white` takes the brand navy #0C3D6E for top bar,
+  headers, primary buttons and active nav (warning-fg #7A5410, late #B42318, ok #1F7A4D). `dark-teal`,
+  `slate` and `quant` match the studio website tokens (studio src/tailwind.config.ts .dark / .slate /
+  .quant, HSL converted to hex by script) - their values already matched, so only the source note
+  changed. `signal` and `frost` are retired (`signal` -> dark-teal, `frost` -> pure-white in ALIASES);
+  every older key still resolves, so saved choices and the office default keep working. High contrast
+  is no longer a theme: the CSS already keyed the stronger ink off `data-contrast="high"`, so the
+  user menu has a "High contrast" switch that works on top of any theme, remembered per user on the
+  PC (same pattern as Reduce motion). AT&S and Dark Teal look alike at a glance (both dark) on
+  purpose - the accents tell them apart (white vs teal); no fix proposed.
 - **S-1** (2026-09-25, first-day walkthrough on a fresh folder) The setup to-do list (Health) is in the
   order a new admin works through it - tools and people, the lab calendar, the lists, a second admin -
   with one line per tool ("FIB: no primary quality engineer, no backup quality engineer, no results
