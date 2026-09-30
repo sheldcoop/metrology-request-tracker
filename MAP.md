@@ -47,6 +47,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `js/views/extra-fields.js` | Per-tool extra field rendering in the form. |
 | `js/views/analytics.js` | Analytics: My work / My requests / Lab / Management tabs. |
 | `js/views/help.js` | In-app Help page. |
+| `js/views/home.js` | Home: gated card grid into every page, live counts from existing functions. |
 | `js/views/settings.js` | Settings shell: admin gate + PIN lock. |
 | `js/views/settings-health.js` | Health: setup to-do + data issues. |
 | `js/views/settings-users.js` | People: roles, Windows IDs, review. |
