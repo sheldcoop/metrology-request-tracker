@@ -109,6 +109,13 @@ window.MRT.app = (function () {
     else document.documentElement.removeAttribute('data-motion');
   }
 
+  /** High contrast on top of any theme (redesign Step 1): the CSS keys the
+   *  stronger ink off data-contrast, never off a theme name. */
+  function applyContrast(high) {
+    app.highContrast = !!high;
+    document.documentElement.setAttribute('data-contrast', high ? 'high' : 'normal');
+  }
+
   function applyNav(collapsed) {
     if (collapsed) document.documentElement.setAttribute('data-nav', 'collapsed');
     else document.documentElement.removeAttribute('data-nav');
@@ -123,14 +130,16 @@ window.MRT.app = (function () {
   function applyPrefs(userId) {
     applyTheme(readTheme(userId));
     applyMotion(readPref('motion', userId) === 'reduce');
+    applyContrast(readPref('contrast', userId) === 'high');
     applyNav(readPref('nav', userId) === 'collapsed');
   }
 
   /** '' = follow the office default again. */
   function setTheme(next) {
-    if (next) { applyTheme(next); writePref('theme', next); return; }
+    if (next) { applyTheme(next); applyContrast(readPref('contrast', store.status().currentUserId) === 'high'); writePref('theme', next); return; }
     try { localStorage.removeItem(prefKey('theme', store.status().currentUserId)); } catch (e) { /* private mode */ }
     applyTheme(officeTheme());
+    applyContrast(readPref('contrast', store.status().currentUserId) === 'high');
   }
 
   /** The topbar theme button: the same gallery, compact (swatch preview per theme).
@@ -155,6 +164,7 @@ window.MRT.app = (function () {
       actions: [{ label: 'Done', kind: 'primary', value: null }] });
   }
   function setReduceMotion(on) { applyMotion(on); writePref('motion', on ? 'reduce' : 'full'); }
+  function setHighContrast(on) { applyContrast(on); writePref('contrast', on ? 'high' : 'normal'); }
   function toggleNav() {
     var collapsed = document.documentElement.getAttribute('data-nav') !== 'collapsed';
     applyNav(collapsed);
@@ -1002,6 +1012,7 @@ window.MRT.app = (function () {
     if (!u) return;
     var s = store.status();
     var motion = ui.toggle({ kind: 'switch', label: 'Reduce motion', checked: !!app.reduceMotion, onChange: setReduceMotion });
+    var contrast = ui.toggle({ kind: 'switch', label: 'High contrast', checked: !!app.highContrast, onChange: setHighContrast });
     var homes = livePages().filter(function (n) { return n.key !== 'settings' && n.key !== 'help'; });
     var home = ui.el('select', { class: 'input menu-select', 'aria-label': 'Start page' }, homes.map(function (n) {
       return ui.el('option', { value: n.key, text: n.label, selected: n.key === readHome(u.id) });
@@ -1017,6 +1028,7 @@ window.MRT.app = (function () {
     ui.menu(anchor, [
       { label: 'Theme: ' + (TH.byKey(app.theme) || {}).name + '...', icon: 'contrast', onClick: themeDialog },
       { node: motion.node },
+      { node: contrast.node },
       { node: [ui.el('span', { text: 'Start page' }), home] },
       { sep: true },
       { label: awayLabel, icon: 'calendar', onClick: function () { awayDialog(u); } },
@@ -1219,7 +1231,8 @@ window.MRT.app = (function () {
     paintAlertBanner: paintAlertBanner,
     downloadText: downloadText,
     recheckUser: recheckUser,
-    refreshTheme: function () { applyTheme(readTheme(store.status().currentUserId)); },   // after the office default changed
+    refreshTheme: function () { applyTheme(readTheme(store.status().currentUserId));   // after the office default changed
+      applyContrast(readPref('contrast', store.status().currentUserId) === 'high'); },
     awayDialog: awayDialog,
     awayText: awayText,
     readPref: function (name) { return readPref(name, store.status().currentUserId); },
