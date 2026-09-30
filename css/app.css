@@ -997,7 +997,7 @@ kbd {
   border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 0 6px;
 }
 
-.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
 .user-btn {
   display: flex; align-items: center; gap: 8px;
@@ -1060,8 +1060,9 @@ kbd {
   transform: scaleY(0); transition: transform var(--t) var(--ease-out);
 }
 .nav-item.active {
-  background: var(--accent-soft); color: var(--accent); border-color: var(--line);
+  background: var(--accent-soft); color: var(--accent); font-weight: 700;
 }
+.nav-div { border-top: 1px solid var(--line); margin: 8px 12px; }
 .nav-item.active::before { transform: scaleY(1); }
 .nav-item .nav-badge {
   margin-left: auto; min-width: 22px; text-align: center;
@@ -1097,12 +1098,6 @@ kbd {
 }
 /* alert strip: one segment per status, LEDs pulse for Critical/Expired */
 .alert-banner { gap: 16px; padding: 6px 16px; background: color-mix(in srgb, var(--surface-2) 90%, transparent); }
-.strip-state {
-  display: inline-flex; align-items: center; gap: 8px; padding-right: 16px;
-  border-right: 1px solid var(--line); font-size: 12px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .1em;
-}
-.strip-state.ok { color: var(--ok-fg); } .strip-state.alert { color: var(--fg); }
 .strip-segs { display: flex; gap: 4px; flex-wrap: wrap; }
 .strip-seg {
   display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px;
@@ -1116,13 +1111,6 @@ kbd {
 .strip-seg.critical:not(.zero) b { color: var(--critical-fg); }
 .strip-seg.expired:not(.zero) b { color: var(--expired-fg); }
 .strip-seg.warning:not(.zero) b { color: var(--warning-fg); }
-.strip-active { font-size: 12px; color: var(--fg-muted); }
-.strip-active b { color: var(--fg); }
-.strip-clock {
-  font-size: 13px; color: var(--accent); padding-left: 14px; border-left: 1px solid var(--line);
-  letter-spacing: .04em;
-}
-@media (max-width: 1024px) { .strip-active, .strip-clock { display: none; } }
 .alert-banner .spacer, .conflict-banner .spacer { flex: 1; }
 .conflict-banner {
   background: var(--warning-bg); color: var(--warning-fg);
