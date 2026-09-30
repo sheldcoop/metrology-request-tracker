@@ -27,10 +27,6 @@
       <span class="brand-name">Metrology Request Tracker</span>
       <span class="brand-ver" id="brandVer"></span>
     </div>
-    <button class="save-led" id="saveLed" type="button" data-action="save-state"
-            aria-live="polite"></button>
-    <button class="undo-btn" id="undoBtn" type="button" data-action="undo" hidden></button>
-
     <div class="search">
       <span class="search-icon" id="searchIcon"></span>
       <input id="search" type="search" placeholder="Search tools, people, BKMs&hellip;"
@@ -39,14 +35,14 @@
     </div>
 
     <div class="topbar-right">
+      <a class="btn btn-primary btn-sm new-btn" id="newBtn" href="#/new" title="New request (g n)">+ New</a>
       <button class="btn-icon bell-btn" id="bellBtn" type="button" data-action="bell" aria-haspopup="menu" aria-expanded="false"
               title="Notifications" aria-label="Notifications"><span class="bell-icon" id="bellIcon"></span><span class="bell-count" id="bellCount" hidden></span></button>
+      <button class="save-led" id="saveLed" type="button" data-action="save-state"
+            aria-live="polite"></button>
+      <button class="undo-btn" id="undoBtn" type="button" data-action="undo" hidden></button>
       <button class="btn-icon" id="themeBtn" type="button" data-action="theme-menu" aria-haspopup="menu" aria-expanded="false"
               title="Theme" aria-label="Theme"></button>
-      <a class="btn btn-sm new-btn" id="newBtn" href="#/new" title="New request (g n)">+ New</a>
-      <a class="btn-icon" id="helpBtn" href="#/help" title="Help (g h)" aria-label="Help"></a>
-      <button class="btn-icon" id="keysBtn" type="button" data-action="show-keys"
-              title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"></button>
       <button class="user-btn" id="userBtn" type="button" data-action="user-menu" aria-haspopup="menu"
               aria-expanded="false" aria-label="User menu">
         <span class="user-avatar" id="userAvatar"></span>
