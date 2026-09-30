@@ -762,3 +762,14 @@ never the only signal - the text/label says the same thing.
   (no cycling). Keyboard: gallery radiogroup + roving tabindex + arrows,
   current card focused on open, Esc/outside click closes via `ui.menu`.
   `setTheme()` reused untouched, so `rethemeCharts()` still runs.
+- **DASH-3** (dashboard-front-page, Step 3: icons) Six names added to
+  `js/ui/core.js` PATHS (60 total): plus-circle, list, kanban, bar-chart,
+  layers, circle-help; inbox/activity/settings reused, not duplicated.
+  No tool-glyph reuse: no Home card depicts a physical instrument, so the
+  48-grid living drawings stay on Lab/tool surfaces. Global stroke-width
+  1.8 -> 1.75 (no test asserted it; visually negligible). Card mapping:
+  New request plus-circle, My requests list, My queue inbox, Lab status
+  activity, Board kanban, Analytics bar-chart, Lots layers, Help
+  circle-help, Settings settings. Kit shows the 9 in the Tool glyphs
+  section (own `kit-icon-cell` class, so the 28-cell glyph count holds);
+  CONTRIBUTING table gained the icon row.
