@@ -13,13 +13,14 @@ const vm = require('vm'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'brandVer', 'saveLed', 'undoBtn', 'searchIcon', 'search',
-  'bellBtn', 'bellIcon', 'bellCount', 'themeBtn', 'helpBtn', 'keysBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
+  'bellBtn', 'bellIcon', 'bellCount', 'themeBtn', 'newBtn', 'helpBtn', 'keysBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
   'navItems', 'navFolder', 'navRev', 'navCollapse', 'main', 'toasts', 'dialogHost'];
 const { win, doc, flush, tick, storage, El } = require('./fake-dom')({ ids: IDS, url: 'file:///Z:/Lab/MRT/index.html?who=ATS%5CPKhurana' });
 // the data-action hooks index.html puts on the top bar
 [['saveLed', 'save-state'], ['undoBtn', 'undo'], ['keysBtn', 'show-keys'], ['bellBtn', 'bell'], ['themeBtn', 'theme-menu'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
   .forEach(p => { doc.getElementById(p[0]).dataset.action = p[1]; });
 doc.getElementById('undoBtn').hidden = true;
+doc.getElementById('newBtn').setAttribute('href', '#/new');   // static markup in index.html, like the data-actions below
 doc.getElementById('gate').hidden = true;
 doc.getElementById('shell').hidden = true;
 // the search box is an <input> inside .search in index.html
@@ -42,7 +43,7 @@ const ctx = vm.createContext(win);
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js', 'js/ui/theme-gallery.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/settings-look.js', 'js/views/settings-emails.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/results.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/settings-look.js', 'js/views/settings-emails.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/results.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/views/home.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -86,8 +87,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   // --- the side menu (M1-6)
   const items = doc.getElementById('navItems').children;
-  check('eleven menu entries', items.length === 11, items.length);
-  check('all eleven live (Results tab)', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'lab,queue,requests,new,lots,board,results,hirata,analytics,settings,help');
+  check('twelve menu entries', items.length === 12, items.length);
+  check('all twelve live (Results tab)', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'home,lab,queue,requests,new,lots,board,results,hirata,analytics,settings,help');
   check('nothing greyed any more', items.filter(i => i.classList.contains('is-soon') || i.getAttribute('aria-disabled') === 'true').length === 0);
 
   // --- Lab status
@@ -164,6 +165,14 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...every theme is one click away, no cycling', doc.documentElement.getAttribute('data-theme') === 'pure-white');
   doc.getElementById('themeBtn').click(); await settle();
   check('...clicking the button again closes it', !doc.body.querySelector('.menu'));
+  win.setHash('#/home'); await settle();
+  const homeCards = doc.getElementById('main').querySelectorAll('.home-card').map(c => c.getAttribute('href'));
+  check('Home shows his doors (no queue/board/analytics without those roles)',
+        homeCards.join() === '#/new,#/requests,#/lab,#/lots,#/help,#/settings', homeCards.join());
+  check('...each card has an icon, a line and a live count', homeCards.length > 0 && doc.getElementById('main').querySelectorAll('.home-card')
+        .every(c => !!c.querySelector('svg') && /^\d+$/.test(c.querySelector('.home-n').querySelector('b').textContent)));
+  check('...the + New button links to New request', doc.getElementById('newBtn').getAttribute('href') === '#/new' && !doc.getElementById('newBtn').hidden);
+  win.setHash('#/lab'); await settle();
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
   doc.getElementById('keysBtn').click(); await settle();
   const keys = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
@@ -251,6 +260,15 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(dlg2, 'Save').click(); await settle();
   check('FIB gets Olga and a results root', fib().primary_operator_id === olga.id && fib().results_root === '\\\\srv\\lab\\FIB');
   check('FIB is marked destructive (M2-11)', fib().destructive === true && /Destructive/.test(doc.getElementById('main').querySelectorAll('tr').filter(r => /FIB/.test(r.textContent))[0].textContent));
+  MRT.store.setCurrentUser(olga.id); MRT.app.recheckUser(); win.setHash('#/lab'); await settle();
+  win.setHash('#/new'); await settle();
+  check('New request is closed without the engineer role', /You don't have access, ask an admin/.test(mainText()));
+  check('...and the + New button hides too', !!doc.getElementById('newBtn').hidden);
+  win.setHash('#/home'); await settle();
+  check('Home shows only her doors (queue, no new/lots/settings)',
+        doc.getElementById('main').querySelectorAll('.home-card').map(c => c.getAttribute('href')).join() === '#/requests,#/queue,#/lab,#/board,#/help');
+  MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Prince Khurana')[0].id); MRT.app.recheckUser();
+  win.setHash('#/settings/tools'); await settle();
 
   // the FIB setup below the tool list: pick FIB
   const fibOpt = doc.getElementById('main').querySelectorAll('input').filter(i => i.getAttribute('value') === fib().id)[0];
