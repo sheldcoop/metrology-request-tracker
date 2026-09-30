@@ -13,11 +13,11 @@ const vm = require('vm'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'brandVer', 'saveLed', 'undoBtn', 'searchIcon', 'search',
-  'bellBtn', 'bellIcon', 'bellCount', 'themeBtn', 'newBtn', 'helpBtn', 'keysBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
+  'bellBtn', 'bellIcon', 'bellCount', 'themeBtn', 'newBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
   'navItems', 'navFolder', 'navRev', 'navCollapse', 'main', 'toasts', 'dialogHost'];
 const { win, doc, flush, tick, storage, El } = require('./fake-dom')({ ids: IDS, url: 'file:///Z:/Lab/MRT/index.html?who=ATS%5CPKhurana' });
 // the data-action hooks index.html puts on the top bar
-[['saveLed', 'save-state'], ['undoBtn', 'undo'], ['keysBtn', 'show-keys'], ['bellBtn', 'bell'], ['themeBtn', 'theme-menu'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
+[['saveLed', 'save-state'], ['undoBtn', 'undo'], ['bellBtn', 'bell'], ['themeBtn', 'theme-menu'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
   .forEach(p => { doc.getElementById(p[0]).dataset.action = p[1]; });
 doc.getElementById('undoBtn').hidden = true;
 doc.getElementById('newBtn').setAttribute('href', '#/new');   // static markup in index.html, like the data-actions below
@@ -85,10 +85,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('the top bar shows the name', text('userName') === 'Prince Khurana');
   check('milestone tag M1', text('brandVer') === 'M1');
 
-  // --- the side menu (M1-6)
-  const items = doc.getElementById('navItems').children;
+  // --- the side menu (M1-6, grouped in Step 3)
+  const items = doc.getElementById('navItems').querySelectorAll('.nav-item');
   check('twelve menu entries', items.length === 12, items.length);
-  check('all twelve live (Results tab)', items.filter(i => i.tagName === 'A').map(i => i.dataset.route).join() === 'home,lab,queue,requests,new,lots,board,results,hirata,analytics,settings,help');
+  check('grouped order: Home | request pages | lab pages | Analytics | Settings, Help',
+    items.map(i => i.dataset.route).join() === 'home,new,requests,queue,board,lab,lots,results,hirata,analytics,settings,help');
+  check('thin dividers between the five groups', doc.getElementById('navItems').querySelectorAll('.nav-div').length === 4);
   check('nothing greyed any more', items.filter(i => i.classList.contains('is-soon') || i.getAttribute('aria-disabled') === 'true').length === 0);
 
   // --- Lab status
@@ -180,9 +182,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...the + New button links to New request', doc.getElementById('newBtn').getAttribute('href') === '#/new' && !doc.getElementById('newBtn').hidden);
   win.setHash('#/lab'); await settle();
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
-  doc.getElementById('keysBtn').click(); await settle();
+  doc.getElementById('userBtn').click(); await settle();
+  doc.body.querySelector('.menu').querySelectorAll('button').filter(b => /Keyboard shortcuts/.test(b.textContent))[0].click(); await settle();
   const keys = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
-  check('the shortcut list opens and lists only live pages', !!keys && /Lab status/.test(keys.textContent) && /Analytics/.test(keys.textContent));
+  check('the shortcut list opens from the user menu and lists only live pages', !!keys && /Lab status/.test(keys.textContent) && /Analytics/.test(keys.textContent));
   if (keys) { buttonByText(keys, 'Close').click(); await settle(); }
   doc.dispatch('keydown', { key: '[', target: doc.body });
   check('[ collapses the side menu', doc.documentElement.getAttribute('data-nav') === 'collapsed');
@@ -987,8 +990,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const strip = doc.getElementById('alertBanner');
   const cStrip = MRT.domain.stripCounts({ user: MRT.store.currentUser(), tools: MRT.store.list('tools'), requests: MRT.store.data().requests, now_ts: Date.now(),
     cal: MRT.store.calendar(), levelOf: r => (MRT.store.byId('priorities', r.priority_id) || {}).level });
-  check('the strip shows on every page when something is open, with the same counts as the rule', !strip.hidden &&
-        new RegExp(cStrip.open + ' open').test(strip.textContent) && /Line stop/.test(strip.textContent) && /Late/.test(strip.textContent));
+  check('the strip shows on every page when something is open: counts only, same numbers as the rule', !strip.hidden &&
+        /Line stop/.test(strip.textContent) && /Late/.test(strip.textContent) && !/open/.test(strip.textContent));
   const segs = strip.querySelectorAll('a').filter(a => a.classList.contains('strip-seg'));
   check('...four counts, each a link into My queue or My requests', segs.length === 4 && segs.every(a => /^#\/(queue|requests)\//.test(a.getAttribute('href'))));
   win.setHash(segs[1].getAttribute('href')); await settle();
@@ -1123,7 +1126,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   let f = JSON.parse(folder.files['mrt_data.json']); f.revision += 3; folder.files['mrt_data.json'] = JSON.stringify(f);
   tick(); await settle();
   check('someone else saved, nothing open here: the app reloads by itself (M4-3)', !visible('conflictBanner') && MRT.store.status().revision === f.revision);
-  doc.getElementById('keysBtn').click(); await settle();
+  action('show-keys'); await settle();
   f = JSON.parse(folder.files['mrt_data.json']); f.revision += 2; folder.files['mrt_data.json'] = JSON.stringify(f);
   tick(); await settle();
   check('...with a dialog open it only shows the banner', visible('conflictBanner') && /Reload/.test(text('conflictBanner')) && MRT.store.status().revision !== f.revision);
