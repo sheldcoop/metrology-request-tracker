@@ -32,7 +32,7 @@ window.MRT.views.hirata = (function () {
     if (parts[0] === 'find' || parts[0] === 'read') state.tab = parts[0];
     if (ctx.query) { state.tab = 'find'; state.find = ctx.query; }
 
-    main.appendChild(ui.pageHead('Hirata tools', 'Put a Hirata code in and check it - nothing is saved', ui.el('div', { class: 'head-actions' }, [
+    main.appendChild(ui.pageHead('Hirata tools', 'Check a Hirata code. Nothing is saved.', ui.el('div', { class: 'head-actions' }, [
       ui.button('Print', { icon: 'download', onClick: function () { window.print(); } })
     ])));
     var body = ui.el('div', { class: 'tab-body' });
@@ -101,7 +101,7 @@ window.MRT.views.hirata = (function () {
       'The bottom dot of every column is the baseline: always there, worth nothing.',
       'The code starts with a column of all five dots; it sets the orientation.',
       '9 digits: Supplier 1, Year 1, Week 2, Day 1, Lot per day 2, Panel 2.'
-    ].map(function (t) { return ui.el('li', {}, [ui.icon('info', 14), ui.el('span', { text: t })]); })) }).node;
+    ].map(function (t) { return ui.el('li', {}, [ui.icon('info', 16), ui.el('span', { text: t })]); })) }).node;
   }
 
   /* --- Find a pattern ----------------------------------------------------- */
