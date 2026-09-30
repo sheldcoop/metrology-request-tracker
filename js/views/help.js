@@ -402,9 +402,9 @@ window.MRT.views.help = (function () {
         g.extra ? g.extra() : null,
         ui.el('ol', { class: 'help-steps' }, g.steps.map(function (t) { return ui.el('li', { text: t }); })),
         g.tips && g.tips.length ? ui.el('ul', { class: 'help-tips' }, g.tips.map(function (t) {
-          return ui.el('li', {}, [ui.icon('info', 14), ui.el('span', { text: t })]);
+          return ui.el('li', {}, [ui.icon('info', 16), ui.el('span', { text: t })]);
         })) : null,
-        g.link ? ui.el('a', { class: 'btn btn-sm help-open', href: g.link[1] }, [g.link[0], ui.icon('chevron_right', 14)]) : null
+        g.link ? ui.el('a', { class: 'btn btn-sm help-open', href: g.link[1] }, [g.link[0], ui.icon('chevron_right', 16)]) : null
       ])
     ]);
   }
