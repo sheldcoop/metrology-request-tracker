@@ -23,7 +23,7 @@ if(process.argv[2]==='chart'){win.Chart=function(canvas,cfg){charts++;this.cfg=c
   const a=cfg.options.animations;if(a){a.y.from({index:1,chart:chartObj,datasetIndex:0});a.x.delay({type:'data',index:2})}
   this.destroy=()=>destroyed++;};}const ctx=vm.createContext(win);
 vm.runInContext(fs.readFileSync(path.join(ROOT,'js/themes.js'),'utf8'),ctx,{filename:'themes.js'});
-['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller','hirata','theme-gallery'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
+['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller','request-box','hirata','theme-gallery'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
 let errs=0;
 function check(name,fn){try{fn();flush()}catch(e){errs++;console.log('ERR',name,e.stack.split('\n').slice(0,3).join(' | '))}}
 function expect(name,cond){if(!cond){errs++;console.log('FAIL',name)}}
@@ -81,6 +81,11 @@ check('traveller',()=>{const m={id:'FIB-260925-01',subtitle:'FIB',glyph:{key:'fi
   const sl=put(ui.traveller(m,{size:'slip'}));expect('traveller slip: warning line',sl.classList.contains('slip')&&/W/.test(sl.textContent));
   const u=put(ui.traveller({id:'<b>x</b>'},{size:'full'}));expect('traveller: text never becomes markup',u.textContent.indexOf('<b>x</b>')!==-1);
   expect('four sizes',ui.TRAVELLER_SIZES.join()==='full,mini,card,slip')});
+check('requestBox',()=>{const r={id:'q1',request_no:'FIB-260925-01'};const o={tool:{glyph:'fib'},lot:'18178',buCode:'BU-02',
+  prio:{name:'Line stop',level:1},assignedName:'Olga Berger',late:true,statusChip:ui.statusBadge('neutral','Submitted'),
+  tick:{checked:false,label:'Tick x',onChange(){}} ,actions:[ui.button('Accept',{kind:'primary'})]};
+  const b=put(ui.requestBox(r,o));expect('box: stripe class, late chip, lot line, actions',b.classList.contains('qbox')&&b.classList.contains('prio-1')&&/Late/.test(b.textContent)&&/BU-02/.test(b.textContent)&&/Accept/.test(b.textContent));
+  const d=put(ui.requestBox(r,{done:true}));expect('done box says Completed',d.classList.contains('is-done')&&/Completed/.test(d.textContent))});
 check('needle gauge',()=>{const g=ui.needleGauge();put(g.node);
   g.set(0.5,'soon');const n=g.node.querySelector('.ng-needle');
   expect('set() turns the needle and the state class',/rotate\(90/.test(n.style.transform)&&g.node.getAttribute('class')==='ngauge is-soon');
