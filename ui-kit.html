@@ -90,8 +90,7 @@
   }
   [data-concept="dark-teal"] .cx-hero-card { border-color: var(--line-hi); }
   /* Polish: same hero breathing room in every direction. */
-  [data-concept="dark-teal"] .cx-hero-card,
-  [data-concept="signal"] .cx-hero-card { padding: 22px; }
+  [data-concept="dark-teal"] .cx-hero-card { padding: 22px; }
   [data-concept="dark-teal"] .traveller.is-urgent { box-shadow: 0 0 24px rgba(249, 115, 22, .25), var(--shadow); }
 
   /* --- Direction B: Pure White (light, airy) ---
@@ -112,40 +111,6 @@
   }
   [data-concept="pure-white"] .traveller.is-urgent { border-left: 6px solid var(--critical); }
 
-  /* --- Direction C: Signal (dark, solid, lamp-forward) ---
-     No transparency anywhere: no blur, no translucent layers, popups solid.
-     Amber accent (bench-equipment lamps); status tokens stay Carbon g100. */
-  [data-concept="signal"] .panel,
-  [data-concept="signal"] .cx-hero-card,
-  [data-concept="signal"] .cx-kpi-strip,
-  [data-concept="signal"] dialog.modal { border-width: 2px; }
-  [data-concept="signal"] .cx-display { font-size: 34px; }
-  [data-concept="signal"] .cx-hero-facts { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-  [data-concept="signal"] .kit-sec .table-wrap table.grid td:first-child { font-family: var(--font-mono); font-weight: 650; }
-  [data-concept="signal"] .traveller.is-urgent { border-left: 8px solid var(--critical); box-shadow: var(--shadow); }
-  [data-concept="signal"] .btn-primary { background: var(--accent-fill); border-color: var(--accent-fill); }
-
-  /* --- Direction D: Frost (glass flagship, Apple-minimalist) ---
-     Restraint: hairlines, whitespace, one blue, quiet type. Frosted chrome
-     (bar, strip, hero, toasts, tips); popups, menus and dialogs stay solid. */
-  [data-concept="frost"] .kit-bar,
-  [data-concept="frost"] .cx-kpi-strip,
-  [data-concept="frost"] .cx-hero-card,
-  [data-concept="frost"] .toast,
-  [data-concept="frost"] .tip-card {
-    background: color-mix(in srgb, var(--surface-2) 68%, transparent);
-    backdrop-filter: blur(22px) saturate(1.6);
-    border-color: rgba(255, 255, 255, .6);
-    box-shadow: var(--shadow);
-  }
-  [data-concept="frost"] .panel,
-  [data-concept="frost"] .cx-kpi-strip,
-  [data-concept="frost"] dialog.modal { border: 0; box-shadow: var(--shadow); }
-  [data-concept="frost"] .cx-hero-card { border: 0; box-shadow: var(--shadow); padding: 24px; }
-  [data-concept="frost"] .kit-sec > h2 { text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--fg); }
-  [data-concept="frost"] .kit-label { text-transform: none; letter-spacing: 0; font-size: 12px; }
-  [data-concept="frost"] .kit-sec .table-wrap table.grid th { text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--fg-faint); border-bottom: 1px solid var(--line); }
-  [data-concept="frost"] .traveller.is-urgent { border-left: 4px solid var(--critical); }
 </style>
 </head>
 <body>
