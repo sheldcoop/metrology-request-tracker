@@ -799,8 +799,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
   const anCell = $$('#main .board-cell').filter(c => c.dataset.col === 'analyzed' && c.dataset.tool === fib().id)[0];
-  check('...the Analyzed column holds the analyzed request with analyst + date', anCell.querySelectorAll('.bcard').length === 1 &&
-        anCell.querySelectorAll('.bcard')[0].dataset.id === req2.id && /RA/.test(anCell.textContent));
+  check('...the Analyzed column holds the analyzed request (analyst lives in the drawer, not the card)', anCell.querySelectorAll('.bcard').length === 1 &&
+        anCell.querySelectorAll('.bcard')[0].dataset.id === req2.id && !anCell.querySelector('.bcard-who'));
   const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
   check('...the Line stop card pulses, has a needed-by gauge, nothing is draggable', lsCard.classList.contains('is-urgent') && !!lsCard.querySelector('.bgauge') &&
         $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
