@@ -2011,6 +2011,18 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 .tg-s-lamps .is-expired { background: var(--expired); box-shadow: var(--expired-glow); }
 .tg-s-bar2 { height: 18px; border-radius: 2px; background: linear-gradient(90deg, var(--accent) 0 62%, var(--surface-3) 62%); }
 
+/* Topbar theme popup (Step 2): the same gallery, compact - swatch preview per
+   theme, no live samples or moods. Keyboard support comes with the gallery
+   (radiogroup, roving tabindex, arrow keys); Esc / outside click closes the menu. */
+.menu .theme-compact { width: 100%; }
+.theme-compact .theme-gallery { gap: 4px; }
+.theme-compact .tg-group-title { margin-top: 2px; }
+.theme-compact .tg-grid { grid-template-columns: 1fr; gap: 4px; }
+.theme-compact .tg-card { padding: 6px 8px; }
+.theme-compact .tg-sample, .theme-compact .tg-mood { display: none; }
+.theme-compact .tg-text { grid-template-columns: 1fr auto; align-items: center; }
+.theme-compact .tg-swatches { margin-top: 0; }
+
 /* ================================================================== *
  * Status icons (Prince, 2026-09-25: "status always has icon + text, never colour alone")
  * One shape per meaning, the same in every theme, drawn as inline SVG masks in the status colour:
