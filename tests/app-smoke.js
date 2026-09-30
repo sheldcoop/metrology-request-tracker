@@ -144,12 +144,18 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   tcard('dark-teal').click();
   check('...a click switches at once (theme, scheme) and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'dark-teal' &&
         doc.documentElement.getAttribute('data-scheme') === 'dark' && storage['mrt.theme.' + MRT.store.currentUser().id] === 'dark-teal' && storage['mrt.theme.last'] === 'dark-teal');
-  tcard('signal').click();
-  check('...Signal marks the page high contrast', doc.documentElement.getAttribute('data-contrast') === 'high' && /#FFB224/.test(MRT.themes.css()));
   tcard('pure-white').click();
   check('...Pure White (light)', doc.documentElement.getAttribute('data-theme') === 'pure-white' && doc.documentElement.getAttribute('data-scheme') === 'light' &&
         doc.documentElement.getAttribute('data-contrast') === 'normal');
   buttonByText(thDlg, 'Done').click(); await settle();
+  doc.getElementById('userBtn').click(); await settle();
+  const hcSw = doc.body.querySelector('.menu').querySelectorAll('label').filter(l => /High contrast/.test(l.textContent))[0].querySelector('input');
+  hcSw.checked = true; hcSw.dispatch('change'); await settle();
+  check('...High contrast works on top of any theme and is remembered per user', doc.documentElement.getAttribute('data-contrast') === 'high' &&
+        doc.documentElement.getAttribute('data-theme') === 'pure-white' && storage['mrt.contrast.' + MRT.store.currentUser().id] === 'high');
+  hcSw.checked = false; hcSw.dispatch('change'); await settle();
+  check('...switching it back off restores normal contrast', doc.documentElement.getAttribute('data-contrast') === 'normal');
+  doc.getElementById('userBtn').click(); await settle();
   doc.getElementById('themeBtn').click(); await settle();
   const tmMenu = doc.body.querySelector('.menu');
   const tcard2 = k => (tmMenu.querySelectorAll('.tg-card').filter(c => c.dataset.key === k))[0];
@@ -348,14 +354,14 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
 
   await tab('look');
   const lookCard = k => doc.getElementById('main').querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
-  check('Settings > Look: every theme as a live sample, the office default marked, old keys still resolve', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.length && lookCard('ats').classList.contains('is-on') && MRT.themes.byKey('hc').key === 'signal' && MRT.themes.byKey('carbon-g100').key === 'dark-teal' && MRT.themes.byKey('gruvbox-light').key === 'pure-white' && MRT.themes.byKey('minimal').key === 'pure-white' && MRT.themes.byKey('deep-lab').key === 'dark-teal' && MRT.themes.byKey('cleanroom').key === 'pure-white');
-  lookCard('frost').click(); await settle();
-  check('...a click makes Frost the office default (audited)', MRT.store.getSetting('default_theme') === 'frost' && MRT.store.data().audit_log.slice(-1)[0].field === 'default_theme');
+  check('Settings > Look: every theme as a live sample, the office default marked, old keys still resolve', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.length && lookCard('ats').classList.contains('is-on') && MRT.themes.byKey('hc').key === 'dark-teal' && MRT.themes.byKey('carbon-g100').key === 'dark-teal' && MRT.themes.byKey('gruvbox-light').key === 'pure-white' && MRT.themes.byKey('minimal').key === 'pure-white' && MRT.themes.byKey('deep-lab').key === 'dark-teal' && MRT.themes.byKey('cleanroom').key === 'pure-white' && MRT.themes.byKey('signal').key === 'dark-teal' && MRT.themes.byKey('frost').key === 'pure-white');
+  lookCard('slate').click(); await settle();
+  check('...a click makes Slate the office default (audited)', MRT.store.getSetting('default_theme') === 'slate' && MRT.store.data().audit_log.slice(-1)[0].field === 'default_theme');
   doc.getElementById('userBtn').click(); await settle();
   buttonByText(doc.body.querySelector('.menu'), 'Theme: Pure White...').click(); await settle();
   const thDlg2 = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   thDlg2.querySelectorAll('.tg-card').filter(c => c.dataset.key === '')[0].click();
-  check('..."Office default" in the gallery follows it again', doc.documentElement.getAttribute('data-theme') === 'frost' && !storage['mrt.theme.' + MRT.store.currentUser().id]);
+  check('..."Office default" in the gallery follows it again', doc.documentElement.getAttribute('data-theme') === 'slate' && !storage['mrt.theme.' + MRT.store.currentUser().id]);
   buttonByText(thDlg2, 'Done').click(); await settle();
   lookCard('ats').click(); await settle();
   check('...back to AT&S: stored as "the app default", and I follow it at once', MRT.store.getSetting('default_theme') === null &&

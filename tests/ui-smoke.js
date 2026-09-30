@@ -170,7 +170,7 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const live=win.MRT.themes.list;
-  expect('the kit opens on all 7 themes side by side, with their contrast table',live.length===7&&root.querySelectorAll('.theme-scope').length===7&&
+  expect('the kit opens on all 5 themes side by side, with their contrast table',live.length===5&&root.querySelectorAll('.theme-scope').length===5&&
     root.querySelector('.kit-contrast').querySelectorAll('th').length===2+live.length);
   const sel=doc.getElementById('kitTheme');sel.value='dark-teal';sel.dispatch('change');flush();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
@@ -187,7 +187,7 @@ check('status badge',()=>{const b=put(ui.statusBadge('expired','Late'));expect('
 check('theme gallery',()=>{let got=null;const g=put(ui.themeGallery({themes:win.MRT.themes,value:'ats',onPick:k=>{got=k},extra:{key:'',name:'Office default',mood:'x'}}));
   const cards=g.node.querySelectorAll('.tg-card');expect('one card per theme + Office default, grouped',cards.length===win.MRT.themes.list.length+1&&g.node.querySelectorAll('.tg-group-title').length===1);
   expect('each sample carries its own theme',g.node.querySelectorAll('.tg-sample').filter(x=>x.getAttribute('data-theme')).length===win.MRT.themes.list.length);
-  cards.filter(c=>c.dataset.key==='signal')[0].click();expect('a click picks it',got==='signal'&&g.value()==='signal'&&cards.filter(c=>c.classList.contains('is-on')).length===1)});
+  cards.filter(c=>c.dataset.key==='slate')[0].click();expect('a click picks it',got==='slate'&&g.value()==='slate'&&cards.filter(c=>c.classList.contains('is-on')).length===1)});
 
 (async()=>{await dialogSubmitChecks().catch(e=>{errs++;console.log('ERR dialog submit',e.stack)});
 console.log('charts built',charts,'destroyed',destroyed);
