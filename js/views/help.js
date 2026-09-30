@@ -53,6 +53,24 @@ window.MRT.views.help = (function () {
         'Everyone can read everything. Changes are limited by role.'
       ] },
 
+    { id: 'lamps', title: 'Status lamps', icon: 'info',
+      intro: 'Every status has its own lamp shape and word - colour is never the only signal. The same lamps sit on Lab plates, cards, chips and the board.',
+      extra: function () {
+        return ui.el('ul', { class: 'help-tips' }, [
+          ['ok', 'OK', 'Up tools, finished steps.'],
+          ['warning', 'Warning', 'Maintenance tools, on hold requests, questions.'],
+          ['critical', 'Line stop', 'The most urgent requests - first in every queue.'],
+          ['expired', 'Late', 'Overdue requests, Down tools.'],
+          ['blocked', 'Blocked', 'Locked: nothing moves until it is cleared.']
+        ].map(function (row) {
+          return ui.el('li', {}, [ui.led(row[0], row[1]), ui.el('b', { text: ' ' + row[1] }), ui.el('span', { class: 'muted', text: ' — ' + row[2] })]);
+        }));
+      },
+      steps: [
+        'Tick in a circle means OK; triangle with ! means warning; stop octagon with ! means line stop; clock means late; lock means blocked.',
+        'The word next to a lamp always says the same thing - when in doubt, read the word, not the colour.'
+      ],
+      link: ['Open Lab status', '#/lab'] },
     { id: 'lab', title: 'Lab status and tool status', icon: 'gauge',
       intro: 'Every tool as its nameplate: the tool drawing, its status, its quality engineers and what is set up for it.',
       steps: [
@@ -347,7 +365,8 @@ window.MRT.views.help = (function () {
                    [ui.icon(g.icon, 15), ui.el('span', { text: g.title })]);
     }));
     var sections = GUIDES.map(guide);
-    var none = ui.el('p', { class: 'muted', hidden: true, text: 'Nothing found. Try another word.' });
+    var none = ui.emptyState({ icon: 'search', title: 'Nothing found', text: 'Try another word.' });
+    none.hidden = true;
     main.appendChild(ui.el('div', { class: 'help-layout' }, [toc, ui.el('div', { class: 'help-body' }, sections.concat([none]))]));
 
     search.addEventListener('input', function () {
