@@ -149,7 +149,7 @@ window.MRT.ui = (function () {
     svg.setAttribute('height', s);
     svg.setAttribute('fill', 'none');
     svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '1.75');
+    svg.setAttribute('stroke-width', '1.5');
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
     svg.setAttribute('aria-hidden', 'true');
@@ -337,7 +337,7 @@ window.MRT.ui = (function () {
     var name = displayStatus(statusResult);
     var label = STATUS_LABEL[name] || STATUS_LABEL.neutral;
     return el('span', { class: 'chip ' + name + (name === 'blocked' ? ' has-icon' : '') }, [
-      name === 'blocked' ? icon('lock', 11) : null,
+      name === 'blocked' ? icon('lock', 12) : null,
       label
     ]);
   }
