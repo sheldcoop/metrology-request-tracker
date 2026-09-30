@@ -790,3 +790,13 @@ never the only signal - the text/label says the same thing.
   (existing mechanism, no change). `+ New` topbar button (canRequest,
   repainted in paintUser). Budgets: Home in dom-budget.js (150 ms,
   10,000 nodes).
+- **DASH-5** (dashboard-front-page, Step 5: card hover) Lift
+  (`translateY(-2px)`) + soft accent glow on `.home-card` and Lab
+  `.tool-plate`. transform/opacity only: the glow lives on an `::after`
+  overlay (`box-shadow: var(--accent-glow), 0 10px 30px
+  var(--accent-soft)`, theme tokens only) whose opacity fades in - no
+  box-shadow is ever transitioned. Stops under both switches: the global
+  `prefers-reduced-motion` / `[data-motion="reduce"]` rules already kill
+  transitions, plus explicit rules zero the hover end states so nothing
+  jumps. `.tool-plate` keeps its existing border/box transitions for
+  state changes (is-selected etc.); transform appended for the lift.
