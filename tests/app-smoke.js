@@ -40,7 +40,7 @@ console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
 ['js/config.js', 'js/themes.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js', 'js/analytics.js',
- 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js', 'js/ui/theme-gallery.js', 'js/exporter.js',
+ 'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/request-box.js', 'js/ui/hirata.js', 'js/ui/theme-gallery.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
  'js/views/settings-data.js', 'js/views/settings-look.js', 'js/views/settings-emails.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/results.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/views/home.js', 'js/app.js', 'tests/memory-storage.js'
@@ -744,31 +744,49 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   setVal(openDialog().querySelector('textarea'), 'ordered twice'); buttonByText(openDialog(), 'Cancel request').click(); await settle();
   check('...cancel works, request closed for the engineer', MRT.store.byId('requests', edReq.id).status === 'cancelled');
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
-  const qRows = $$('#main .q-row');
-  check('My queue: Olga\'s FIB requests, the Line stop on top (M2-5)', qRows.length === 2 && qRows[0].textContent.indexOf(qL.request_no) !== -1 && qRows[0].classList.contains('prio-1'));
-  check('..."assigned to you" first, one-click Accept on the row (Start waits for the panels)', /Assigned to you/.test(mainText()) && !!buttonByText(qRows[0], 'Accept') && !buttonByText(qRows[0], 'Start'));
-  qRows.forEach(tr => { const cb = tr.querySelector('input'); cb.checked = true; cb.dispatch('change'); });
+  const qBoxes = $$('#main .qbox');
+  check('My queue: Olga\'s FIB requests as boxes, the Line stop on top (M2-5)', qBoxes.length === 2 && qBoxes[0].textContent.indexOf(qL.request_no) !== -1 && qBoxes[0].classList.contains('prio-1'));
+  check('...grouped under Line stop, one-click Accept on the box (Start waits for the panels)', /Line stop/.test(mainText()) && !!buttonByText(qBoxes[0], 'Accept') && !buttonByText(qBoxes[0], 'Start'));
+  qBoxes.forEach(b => { const cb = b.querySelector('input'); cb.checked = true; cb.dispatch('change'); });
   await settle();
-  check('...ticking two offers Accept all (2)', !!buttonByText($('#main .queue-bulk'), 'Accept all (2)'));
+  check('...ticking two shows "2 selected" with Accept all (2)', /2 selected:/.test($('#main .queue-bulk').textContent) && !!buttonByText($('#main .queue-bulk'), 'Accept all (2)'));
   buttonByText($('#main .queue-bulk'), 'Accept all (2)').click(); await settle(); await settle();
   check('...Accept all accepts both', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'accepted'));
   check('...one undo unit for the bulk', MRT.store.undoInfo() && MRT.store.undoInfo().label === '2 requests accepted');
   await MRT.store.undoLast();
   check('...Undo takes both back to Submitted (M2)', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'submitted'));
-  $$('#main .q-row').forEach(tr => { const cb = tr.querySelector('input'); cb.checked = true; cb.dispatch('change'); });
+  $$('#main .qbox').forEach(b => { const cb = b.querySelector('input'); cb.checked = true; cb.dispatch('change'); });
   await settle();
   buttonByText($('#main .queue-bulk'), 'Accept all (2)').click(); await settle(); await settle();
   check('...re-accepting restores both', [qN.id, qL.id].every(id => MRT.store.byId('requests', id).status === 'accepted'));
-  const qRowA = $$('#main .q-row')[0].textContent;
-  check('...row order: Receive & start, then Hold and Clarify', ['Receive & start', 'Hold', 'Needs clarification'].every((t, i, a) => !i || qRowA.indexOf(a[i - 1]) < qRowA.indexOf(t)));
-  const qLRow = $$('#main .q-row').filter(tr => tr.textContent.indexOf(qL.request_no) !== -1)[0];
-  { const cb = qLRow.querySelector('input'); cb.checked = true; cb.dispatch('change'); }
+  const qBoxA = $$('#main .qbox')[0].textContent;
+  check('...box order: Receive & start, then Hold and Clarify', ['Receive & start', 'Hold', 'Needs clarification'].every((t, i, a) => !i || qBoxA.indexOf(a[i - 1]) < qBoxA.indexOf(t)));
+  const qLBox = $$('#main .qbox').filter(b => b.textContent.indexOf(qL.request_no) !== -1)[0];
+  { const cb = qLBox.querySelector('input'); cb.checked = true; cb.dispatch('change'); }
   await settle();
-  check('...ticking one accepted offers Receive & start all (1)', !!buttonByText($('#main .queue-bulk'), 'Receive & start all (1)'));
+  check('...ticking one accepted shows "1 selected" with Receive & start all (1)', /1 selected:/.test($('#main .queue-bulk').textContent) && !!buttonByText($('#main .queue-bulk'), 'Receive & start all (1)'));
   buttonByText($('#main .queue-bulk'), 'Receive & start all (1)').click(); await settle();
   setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Receive & start all').click(); await settle(); await settle();
   check('...one shared place, received and started, the other untouched', MRT.store.byId('requests', qL.id).status === 'in_progress' &&
         MRT.store.byId('requests', qL.id).received_where === 'FIB cabinet' && MRT.store.byId('requests', qN.id).status === 'accepted');
+  const qLDone = $$('#main .qbox').filter(b => b.textContent.indexOf(qL.request_no) !== -1)[0];
+  buttonByText(qLDone, 'Complete').click(); await settle();
+  setVal(fieldIn(openDialog(), 'Results folder'), 'Z:\\lab\\fib'); buttonByText(openDialog(), 'Save').click();
+  // No settle() here: one flush() fires every fake timer at once, so the
+  // dialog close, the 1.2 s fade and the toast timeouts would all run
+  // together and the transient state could never be seen. Step by hand: one
+  // flush lets the dialog close, real time lets the promise chain finish.
+  // (The fade itself is Prince's browser check.)
+  let guard = 0;
+  while (guard++ < 20 && !$$('#main .qbox.is-done').length) { flush(); await new Promise(r => setTimeout(r, 5)); }
+  check('...Complete shows "Completed" on the box, an Undo toast and Done today (1)', $$('#main .qbox.is-done').length === 1 &&
+        $$('#toasts .toast').some(t => /completed/.test(t.textContent) && buttonByText(t, 'Undo')) && /Done today \(1\)/.test(mainText()));
+  buttonByText($$('#toasts .toast').filter(t => buttonByText(t, 'Undo'))[0], 'Undo').click();
+  guard = 0;
+  while (guard++ < 200 && MRT.store.byId('requests', qL.id).status !== 'in_progress') await new Promise(r => setTimeout(r, 3));
+  await settle();
+  check('...Undo brings it back In progress and withdraws Done today', MRT.store.byId('requests', qL.id).status === 'in_progress' &&
+        $$('#main .qbox').some(b => b.textContent.indexOf(qL.request_no) !== -1) && !/Done today/.test(mainText()));
   MRT.store.setCurrentUser(meP); await MRT.store.saveEntry('users', { id: meP, fields: { email: 'prince@example.com' } }); MRT.store.setCurrentUser(olga.id);
   const offer = MRT.requestActions.emailOffer(MRT.store.byId('requests', qN.id), 'clarify');
   check('Clarify offers a ready Outlook draft to the requester (M4-4)', !!offer && /^Email Prince/.test(offer.label));
