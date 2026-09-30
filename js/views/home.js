@@ -74,7 +74,7 @@ window.MRT.views.home = (function () {
         n: store.health().issues.filter(function (x) { return x.severity === 'problem'; }).length, unit: 'problems' }
     ].filter(Boolean);
 
-    main.appendChild(ui.pageHead('Home', 'Your doors into the lab — only what your role may use.'));
+    main.appendChild(ui.pageHead('Home', 'Your doors into the lab.'));
     main.appendChild(ui.el('div', { class: 'home-grid' }, cards.map(card)));
   }
 
