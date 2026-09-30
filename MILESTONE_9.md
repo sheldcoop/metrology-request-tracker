@@ -28,3 +28,10 @@ All five DoD items verified; one stale comment fixed.
 ## Gates
 run-tests 683, app-smoke 303, ui-smoke, css-check, contrast, preview-smoke,
 dom-budget green.
+
+## Addendum — Step 1, dashboard-front-page branch
+Theme list is now 7 (ats DEFAULT, frost, signal, dark-teal, pure-white,
+slate, quant); deep-lab/cleanroom/minimal retired with ALIASES kept.
+`tests/contrast.js` still dynamic (0 fails); app-smoke/preview-smoke
+expectations updated to the new keys. Original record above stands as
+verified at the time.
