@@ -2045,6 +2045,22 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 [data-motion="reduce"] .home-card:hover, [data-motion="reduce"] .tool-plate:hover { transform: none; }
 [data-motion="reduce"] .home-card:hover::after, [data-motion="reduce"] .tool-plate:hover::after { opacity: 0; }
 
+/* Home hover scenes (D-WEBGL-1): the canvas covers the card and fades in
+   while the text fades out; transform/opacity only, like everything else.
+   No scene on reduced motion or light schemes - the static card stays. */
+.home-card .home-scene { position: absolute; inset: 0; width: 100%; height: 100%;
+  border-radius: inherit; pointer-events: none; opacity: 0;
+  transition: opacity var(--t-fast) var(--ease); }
+.home-card.is-live .home-scene { opacity: 1; }
+.home-card.is-live .home-tx, .home-card.is-live .home-n { opacity: 0; }
+.home-card .home-tx, .home-card .home-n { transition: opacity var(--t-fast) var(--ease); }
+.home-card.is-leaving .home-scene { opacity: 0; }
+.home-card.is-leaving .home-tx, .home-card.is-leaving .home-n { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .home-card .home-scene { display: none; }
+}
+[data-motion="reduce"] .home-card .home-scene { display: none; }
+
 /* ================================================================== *
  * Status icons (Prince, 2026-09-25: "status always has icon + text, never colour alone")
  * One shape per meaning, the same in every theme, drawn as inline SVG masks in the status colour:

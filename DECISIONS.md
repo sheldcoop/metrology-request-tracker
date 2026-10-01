@@ -884,6 +884,7 @@ never the only signal - the text/label says the same thing.
   774 px, 7 take 1086 px (150 px columns + 6 px gaps) - both fit 1440 px
   with the nav open. Lane headers slide under the sticky stations instead
   of a second brittle sticky offset.
+
 - **DASH-12** (dashboard-front-page, redesign Step 7: request page) Above
   the fold: head, traveller facts, one action bar - at most two buttons
   (the primary workflow action from `requestActions.primary()`, Copy
@@ -926,3 +927,16 @@ never the only signal - the text/label says the same thing.
   7 cols 1110 px - still inside 1440 px); empty cells say "Nothing
   here". The `.q-clock` rules are retired (traveller clocks are
   `.tr-clock`).
+- **D-WEBGL-1** (home-3d, Step 1: Home hover scenes) WebGL is allowed on
+  Home cards only - one shared renderer, hover-only scenes, calm and
+  capped at 1.5 pixel ratio for weak lab PCs. Everything else keeps
+  transform/opacity motion. No WebGL, software rendering, or slow frames
+  (> 40 ms over 1 s) keeps the static card for the session; reduced
+  motion renders one still frame; light schemes stay static. Off in one
+  place: `MRT.config.features.home3d`. Pinned local UMD
+  `vendor/three.min.js` (r160, last UMD release), lazy-loaded on the
+  first card hover, never in index.html.
+- **D-WEBGL-2** (home-3d, Step 5: the rest of the cards) All seven Home
+  cards get a scene (new, mine, queue, board join aoi, bars, dice); the
+  Board scene stays (a calm tile grid). Icons are unchanged, light
+  schemes stay static.

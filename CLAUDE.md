@@ -46,6 +46,8 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
   `js/themes.js`** (DECISIONS T-1..T-4): CSS keys only on data-scheme / data-contrast, never a theme name. Desk PCs first (1920x1080, 1440x900).
 - **Purposeful motion:** only `transform`/`opacity` animate; `[data-motion="reduce"]` and
   `prefers-reduced-motion` turn it off; pause off-screen animation. Same feel as ABF.
+  One exception (DECISIONS D-WEBGL-1): WebGL hover scenes on Home cards only, calm,
+  switchable off in one place (`MRT.config.features.home3d`).
 - **Everything configurable in Settings** (admin PIN): tools, measurement types per tool, per-tool
   extra fields, BKM library, projects, build-ups, operators (primary/backup), priorities, working
   hours/holidays, results roots, users + Windows IDs + roles. No code change to add a tool or field.
@@ -54,7 +56,8 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
 - Vanilla JS, classic `<script src>` in dependency order; runs from `file://` on the shared drive in
   Chrome/Edge. No frameworks, no CDN, no npm runtime, no server, no internet.
 - Local vendor files only: `vendor/chart.umd.min.js` (Chart.js 4), optional `vendor/xlsx.full.min.js`
-  (SheetJS; CSV fallback), a local QR/barcode generator.
+  (SheetJS; CSV fallback), `vendor/three.min.js` (pinned UMD r160, lazy-loaded on the
+  first Home card hover only, never in `index.html`), a local QR/barcode generator.
 - Fonts: system stacks ("Segoe UI Variable", "Segoe UI", system-ui); numbers "Cascadia Mono",
   Consolas, monospace, tabular-nums. Icons: inline SVG only. No emojis.
 - Safety: user text never reaches `innerHTML` (use `el()`/textContent or `esc()`); event delegation

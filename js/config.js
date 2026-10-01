@@ -22,6 +22,11 @@ window.MRT.config = Object.freeze({
   undo_ms: 10000,                     // Undo / Ctrl+Z window after a change
   revision_poll_ms: 30000,            // "someone else saved" check
 
+  // Switches. home3d turns the Home card hover scenes off in one place.
+  features: Object.freeze({
+    home3d: true                       // false: Home cards always stay static
+  }),
+
   // Which adapter does the talking. Change here, never in a screen.
   adapters: Object.freeze({
     storage: 'folder',                // 'folder' today; 'api' after the server move

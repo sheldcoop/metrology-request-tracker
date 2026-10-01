@@ -265,6 +265,16 @@
         ['plus-circle', 'list', 'inbox', 'activity', 'kanban', 'bar-chart', 'layers', 'circle-help', 'settings'].map(function (n) {
           return el('span', { class: 'kit-icon-cell', title: n }, [ui.icon(n, 24), el('span', { class: 'kit-label', text: n })]);
         }))),
+      labelled('Home card (static sample; hover plays the scene where WebGL exists)',
+        ui.el('a', { class: 'home-card', href: '#/lab', dataset: { scene: 'aoi' }, style: { maxWidth: '460px' } }, [
+          ui.el('span', { class: 'home-ic', 'aria-hidden': 'true' }, ui.icon('activity', 28)),
+          ui.el('span', { class: 'home-tx' }, [
+            ui.el('b', { text: 'Lab status' }),
+            ui.el('span', { class: 'home-d', text: 'Open requests in the lab' })]),
+          ui.el('span', { class: 'home-n' }, [
+            ui.el('b', { class: 'num', text: '4' }),
+            ui.el('span', { text: 'open' })])
+        ])),
       labelled('Hero cards (the tool is the anchor: big glyph, lamp, key facts)', el('div', { class: 'cx-tool-hero' }, [
         { key: 'fib', state: 'live', lamp: 'ok', name: 'FIB', facts: ['Up · Via cross-section', 'Queue 3 · oldest 5 h'] },
         { key: 'qvm', state: 'idle', lamp: 'ok', name: 'QVM', facts: ['Up · Via diameter', 'Queue 11 · oldest 2 h'] },

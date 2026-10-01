@@ -46,6 +46,7 @@ re-render a panel or rebuild data in a tick.
 | a status | `ui.statusChip(status)`, `ui.led(status, label)` |
 | a number that matters | `ui.kpiTile({label, value, status, icon, sub})` |
 | a chart | `ui.chart(theme => config, {height, onPick, format, expand: true})` |
+| a Home hover scene | `MRT.scene3d.register(key, create)` in `js/ui/scenes/<key>.js`: `create(ctx)` → `{update(dt, t), dispose()}` with `ctx = {T, tokens, rand, view, onResize}`; colours from `tokens`, ≤ ~250 lines, off via `config.features.home3d` |
 | a grid of counts | `ui.heatmap({rows, cols, values, label, unit})` |
 | tabs / dialog / toast / tooltip / menu | `ui.tabs`, `ui.dialog` (with `submit` to keep it open on an error), `ui.confirm`, `ui.promptReason`, `ui.toast`, `ui.bindTips`, `ui.menu` |
 | copy a share path | `ui.copyText(text, label)` |

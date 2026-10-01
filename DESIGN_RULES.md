@@ -48,3 +48,6 @@ Calm, clinical, uncluttered. Desk PCs first (1440x900, 1920x1080).
 ## Motion
 - `transform` / `opacity` only. Honours `prefers-reduced-motion` and
   `data-motion="reduce"`.
+- One exception (D-WEBGL-1): Home card hover scenes render WebGL, calm
+  and hover-only. Reduced motion shows one still frame; everywhere else
+  the transform/opacity rule stands.
