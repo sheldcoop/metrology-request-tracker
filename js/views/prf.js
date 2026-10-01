@@ -68,7 +68,7 @@ window.MRT.views.prf = (function () {
     var firstLot = lots.length ? result.lots[lots[0]] : { project: '', part: '' };
 
     return {
-      lotName: '', process: 'Post DSM',
+      lotName: '', process: 'Post DSM', buFilter: '',
       metaAuto: true, metaOverride: { project: firstLot.project || '', part: firstLot.part || '', lot: lots[0] || '', buildup: '' },
       panelsFound: panelsList, panelsOn: panelsList.slice(),
       sides: { Front: emptySideSettings(foundBySide.Front), Back: emptySideSettings(foundBySide.Back) },
@@ -374,11 +374,12 @@ window.MRT.views.prf = (function () {
     var lots = Object.keys(state.result.lots);
     var body = [];
     if (s.metaAuto) {
+      var busFound = unique(state.result.sides.map(function (row) { return row.buLabel; }).filter(Boolean));
       body.push(ui.el('dl', { class: 'prf-meta' }, [
         ui.el('dt', { text: 'Project' }), ui.el('dd', { text: s.metaOverride.project || '-' }),
         ui.el('dt', { text: 'Part number' }), ui.el('dd', { text: s.metaOverride.part || '-' }),
         ui.el('dt', { text: 'Lot' }), ui.el('dd', { text: lots.join(', ') || '(none in path - paste the full path under Step 1)' }),
-        ui.el('dt', { text: 'Build-up' }), ui.el('dd', { text: s.metaOverride.buildup || '(read per panel)' })
+        ui.el('dt', { text: 'Build-up' }), ui.el('dd', { text: busFound.join(', ') || '-' })
       ]));
       body.push(ui.el('p', {}, ui.el('a', { href: '#', class: 'link', text: 'Edit',
         onclick: function (e) { e.preventDefault(); s.metaAuto = false; draw(); } })));
@@ -396,29 +397,63 @@ window.MRT.views.prf = (function () {
     lotName.input.addEventListener('input', function () { s.lotName = lotName.input.value; });
     body.push(lotName.node);
     body.push(ui.el('p', { class: 'ifield-msg', text: 'Process: ' + s.process + ' (change under Advanced)' }));
-    return ui.panel({ title: 'Metadata', icon: 'tag', body: body }).node;
+    return ui.el('div', {}, body);
   }
 
-  function panelsPanel() {
-    var s = state.settings;
-    var boxes = s.panelsFound.map(function (p) {
-      var t = ui.toggle({ label: 'Panel ' + p, checked: s.panelsOn.indexOf(p) !== -1,
-        onChange: function (on) {
-          var i = s.panelsOn.indexOf(p);
-          if (on && i === -1) s.panelsOn.push(p);
-          if (!on && i !== -1) s.panelsOn.splice(i, 1);
-          refreshRun();
-        } });
-      return t.node;
+  /** A choice button (panels, build-ups): pressed = chosen. */
+  function pickBtn(label, on, onClick, title) {
+    var b = ui.button(label, { size: 'sm', cls: 'prf-pick' + (on ? ' is-picked' : ''), onClick: onClick, title: title || null });
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    return b;
+  }
+
+  function panelsOf(bu) {
+    return state.settings.panelsFound.filter(function (p) {
+      return bu === '' || state.result.sides.some(function (r) { return r.panel === p && r.bu === bu; });
     });
-    var body = [
-      ui.el('div', { class: 'prf-panel-actions' }, [
-        ui.button('All', { size: 'sm', onClick: function () { s.panelsOn = s.panelsFound.slice(); draw(); } }),
-        ui.button('None', { size: 'sm', onClick: function () { s.panelsOn = []; draw(); } })
-      ]),
-      ui.el('div', { class: 'prf-panel-grid' }, boxes)
-    ];
-    return ui.panel({ title: 'Panels', icon: 'grid', body: body }).node;
+  }
+
+  function panelsBox() {
+    var s = state.settings;
+    var bus = unique(state.result.sides.map(function (r) { return r.bu; })
+      .filter(function (b) { return b !== null && b !== undefined; })).sort(function (a, b) { return a - b; });
+    function tick(p) {
+      var i = s.panelsOn.indexOf(p);
+      if (i === -1) s.panelsOn.push(p); else s.panelsOn.splice(i, 1);
+      s.panelsOn.sort(function (a, b) { return a - b; });
+      refreshRun();
+    }
+    var shown = panelsOf(s.buFilter);
+    var body = [];
+    if (bus.length > 1) {
+      body.push(ui.el('div', { class: 'prf-panel-actions' }, [{ value: '', label: 'All' }]
+        .concat(bus.map(function (b) { return { value: b, label: P.buLabel(b) }; }))
+        .map(function (o) {
+          return pickBtn(o.label, s.buFilter === o.value, function () {
+            s.buFilter = o.value;
+            s.panelsOn = panelsOf(o.value).slice();
+            draw();
+          }, o.value === '' ? 'Every build-up' : 'Only this build-up');
+        })));
+    }
+    body.push(ui.el('div', { class: 'prf-panel-actions' }, [
+      ui.button('All', { size: 'sm', onClick: function () { s.panelsOn = shown.slice(); refreshRun(); } }),
+      ui.button('None', { size: 'sm', onClick: function () { s.panelsOn = []; refreshRun(); } })
+    ]));
+    body.push(ui.el('div', { class: 'prf-panel-grid' }, shown.map(function (p) {
+      return pickBtn('Panel ' + p, s.panelsOn.indexOf(p) !== -1, function () { tick(p); });
+    })));
+    if (!shown.length) body.push(ui.el('p', { class: 'muted', text: 'No panels in this build-up.' }));
+    return ui.el('div', {}, body);
+  }
+
+  function lotPanelsPanel() {
+    return ui.panel({ title: 'Lot & panels', icon: 'grid', body: [
+      ui.el('div', { class: 'prf-sides2' }, [
+        ui.el('div', {}, [ui.el('h3', { class: 'prf-advanced-sub', text: 'Metadata' }), metaPanel()]),
+        ui.el('div', {}, [ui.el('h3', { class: 'prf-advanced-sub', text: 'Build-up & panels' }), panelsBox()])
+      ])
+    ] }).node;
   }
 
   function unitsField(side, kind, label) {
@@ -431,33 +466,35 @@ window.MRT.views.prf = (function () {
   function roughnessSubsection(side) {
     var s = state.settings.sides[side];
     var r = s.roughness;
-    var t = ui.toggle({ label: 'Roughness', checked: r.enabled, onChange: function (on) { r.enabled = on; draw(); } });
-    var inner = [];
-    if (r.enabled) {
-      inner.push(unitsField(side, 'roughness', 'Units (measurement order)'));
-      var pos = ui.field({ label: 'Position names (in order, comma separated)', value: r.positions,
-        hint: 'One name per roughness site in a unit, e.g. "Next to Via, Next to Via".' });
-      pos.input.addEventListener('input', function () { r.positions = pos.input.value; });
-      inner.push(pos.node);
-    }
-    return ui.el('div', { class: 'prf-subsection' }, [t.node, inner.length ? ui.el('div', { class: 'prf-subsection-body' }, inner) : null]);
+    if (!r.enabled) return null;   // no roughness files on this side: nothing to set up
+    var inner = [unitsField(side, 'roughness', 'Units (measurement order)')];
+    var pos = ui.field({ label: 'Position names (in order, comma separated)', value: r.positions,
+      hint: 'One name per roughness site in a unit, e.g. "Next to Via, Next to Via".' });
+    pos.input.addEventListener('input', function () { r.positions = pos.input.value; });
+    inner.push(pos.node);
+    return ui.el('div', { class: 'prf-subsection' }, [ui.el('h3', { class: 'prf-advanced-sub', text: 'Roughness' }),
+      ui.el('div', { class: 'prf-subsection-body' }, inner)]);
   }
 
   function viaSubsection(side) {
     var s = state.settings.sides[side];
     var v = s.via;
-    var t = ui.toggle({ label: 'Via', checked: v.enabled, onChange: function (on) { v.enabled = on; draw(); } });
+    if (!v.enabled) return null;   // no via files on this side: nothing to set up
+    var r = s.roughness;
     var inner = [];
-    if (v.enabled) {
-      var same = ui.toggle({ label: 'Same units as roughness', checked: v.sameAsRoughness,
-        onChange: function (on) { v.sameAsRoughness = on; draw(); } });
-      inner.push(same.node);
-      if (!v.sameAsRoughness) inner.push(unitsField(side, 'via', 'Via units (measurement order)'));
-      var seg = ui.segmented({ label: 'How are vias split', value: v.split, options: [
+    if (r.enabled) {
+      var seg = ui.segmented({ label: 'Via units', value: v.sameAsRoughness ? 'same' : 'own', options: [
+        { value: 'same', label: 'Same as roughness' }, { value: 'own', label: 'Own units' }
+      ], onChange: function (val) { v.sameAsRoughness = val === 'same'; draw(); } });
+      inner.push(seg.node);
+    }
+    if (!v.sameAsRoughness || !r.enabled) inner.push(unitsField(side, 'via', 'Via units (measurement order)'));
+    {
+      var split = ui.segmented({ label: 'How are vias split', value: v.split, options: [
         { value: VIA_SPLIT.EVEN, label: 'Evenly' }, { value: VIA_SPLIT.FIXED, label: 'Fixed per unit' },
         { value: VIA_SPLIT.SEQUENCE, label: 'Custom sequence' }
       ], onChange: function (val) { v.split = val; draw(); } });
-      inner.push(seg.node);
+      inner.push(split.node);
       if (v.split === VIA_SPLIT.FIXED) {
         var pu = ui.field({ label: 'Vias per unit', type: 'number', value: v.perUnit });
         pu.input.addEventListener('input', function () { v.perUnit = pu.input.value; });
@@ -475,24 +512,20 @@ window.MRT.views.prf = (function () {
         inner.push(seqField.node);
       }
     }
-    return ui.el('div', { class: 'prf-subsection' }, [t.node, inner.length ? ui.el('div', { class: 'prf-subsection-body' }, inner) : null]);
+    return ui.el('div', { class: 'prf-subsection' }, [ui.el('h3', { class: 'prf-advanced-sub', text: 'Via' }),
+      ui.el('div', { class: 'prf-subsection-body' }, inner)]);
   }
 
   function sidePanel(side) {
-    var s = state.settings.sides[side];
-    var t = ui.toggle({ label: side, kind: 'switch', checked: s.enabled, onChange: function (on) { s.enabled = on; draw(); } });
-    var body = [t.node];
-    if (s.enabled) { body.push(roughnessSubsection(side)); body.push(viaSubsection(side)); }
-    return ui.el('div', { class: 'prf-side' }, body);
+    // no switches: the scan found this side's files, so it is set up; sides without data are not shown at all
+    return ui.el('div', { class: 'prf-side' }, [roughnessSubsection(side), viaSubsection(side)].filter(Boolean));
   }
 
   function sidesPanel() {
-    // each side is its own expander: a switched-off side stays collapsed,
-    // a switched-on one opens by itself
-    return ui.el('div', { class: 'prf-sides2' }, ['Front', 'Back'].map(function (side) {
-      var s = state.settings.sides[side];
-      return ui.panel({ title: side, icon: 'sliders', collapsible: true, collapsed: !s.enabled,
-        body: [sidePanel(side)] }).node;
+    var sides = ['Front', 'Back'].filter(function (side) { return state.settings.sides[side].enabled; });
+    if (!sides.length) return ui.el('p', { class: 'muted', text: 'No measurement files found - nothing to set up.' });
+    return ui.el('div', { class: 'prf-sides2' }, sides.map(function (side) {
+      return ui.panel({ title: side, icon: 'sliders', body: [sidePanel(side)] }).node;
     }));
   }
 
@@ -535,7 +568,7 @@ window.MRT.views.prf = (function () {
 
   function settingsPanel() {
     if (!state.result || !state.settings) return null;
-    return ui.el('div', { class: 'prf-settings' }, [metaPanel(), panelsPanel(), sidesPanel()]);
+    return ui.el('div', { class: 'prf-settings' }, [lotPanelsPanel(), sidesPanel()]);
   }
 
   /* =====================================================================
@@ -556,7 +589,8 @@ window.MRT.views.prf = (function () {
     var r = sideSettings.roughness, v = sideSettings.via;
     var roughnessUnits = r.enabled ? r.units.slice() : [];
     var positions = r.enabled ? parsePositions(r.positions) : [];
-    var viaUnits = v.enabled ? (v.sameAsRoughness || !v.units.length ? roughnessUnits.slice() : v.units.slice()) : [];
+    // "same as roughness" only wins when roughness actually has units; otherwise own typed units apply
+    var viaUnits = v.enabled ? ((v.sameAsRoughness && roughnessUnits.length) || !v.units.length ? roughnessUnits.slice() : v.units.slice()) : [];
     if (r.enabled && !roughnessUnits.length) roughnessUnits = viaUnits.slice();   // py: each side falls back to the other
     var sequence = null, counts = null, seqError = null;
     if (v.enabled && v.split === VIA_SPLIT.SEQUENCE && v.sequenceText.trim()) {
@@ -606,6 +640,7 @@ window.MRT.views.prf = (function () {
         var row = byPanelSide[panel + '|' + side];
         if (!row) { addLog(panel, side, 'WARNING', 'No log folder found. Side skipped.'); return; }
         if (lotFilter && row.lot !== lotFilter) return;
+        if (s.buFilter !== '' && s.buFilter !== null && s.buFilter !== undefined && row.bu !== s.buFilter) return;
         if (row.tooMany) return;    // already a problem from the scan; side skipped
 
         var meta = sideMeta(panel, row);
@@ -780,20 +815,16 @@ window.MRT.views.prf = (function () {
 
   /* --- panels: output folder, Preview plan, Run, results ----------------- */
 
-  function outputPanel() {
-    if (!state.result || !state.settings) return null;
-    var body = [];
-    if (!adapter.isSupported()) return null;   // the root panel already explains this
-    body.push(ui.el('p', { class: 'muted', text: 'Where the Excel report is saved.' }));
-    body.push(ui.el('div', { class: 'prf-folder-row' }, [
+  /** Output folder picker + Run on one line; warnings sit in the Run label itself. */
+  function outputBits() {
+    return [
       state.outputConnected ? ui.el('span', { class: 'mono' }, state.outputLabel || '(connected)') : null,
       !state.outputConnected && state.savedOutputHint ? ui.el('span', { class: 'muted' }, 'Last used: ' + state.savedOutputHint) : null,
       !state.outputConnected && state.savedOutputHint ? ui.button('Reconnect', { kind: 'primary', icon: 'refresh', onClick: reconnectOutput }) : null,
       ui.button(state.outputConnected ? 'Change output folder' : 'Choose output folder', {
         kind: state.outputConnected ? undefined : (state.savedOutputHint ? undefined : 'primary'), icon: 'folder', onClick: connectOutput
       })
-    ]));
-    return ui.panel({ title: 'Output folder', icon: 'folder', body: body }).node;
+    ];
   }
 
   /**
@@ -823,9 +854,16 @@ window.MRT.views.prf = (function () {
     return rows;
   }
 
+  var planHost = null;   // the live Plan slot, refreshed with the Run slot on every change
+
   /** The plan, computed live from the current ticks and settings - what Run would do. */
   function previewPlanPanel() {
-    if (!state.result || !state.settings || state.scanning) return null;
+    if (!state.result || !state.settings || state.scanning) { planHost = null; return null; }
+    planHost = ui.el('div', {}, planPanelBody());
+    return planHost;
+  }
+
+  function planPanelBody() {
     var out = null;
     try { out = runAll(); } catch (e) { out = null; }
     if (!out) return ui.panel({ title: 'Plan', icon: 'search', body: [
@@ -861,12 +899,11 @@ window.MRT.views.prf = (function () {
     ]);
   }
 
-  /** What still stops Run, in plain words ([] = ready). Lot name is optional (Prince, 2026-10-01). */
+  /** What still stops Run, in plain words ([] = ready). Lot name is optional (Prince, 2026-10-01). Sides follow the scan, not switches. */
   function runBlockers() {
     var s = state.settings, reasons = [];
     if (!s) return ['scan a folder first'];
-    if (!s.panelsOn.length) reasons.push('tick at least one panel');
-    if (!(s.sides.Front.enabled || s.sides.Back.enabled)) reasons.push('tick Front or Back');
+    if (!s.panelsOn.length) reasons.push('pick at least one panel');
     if (!state.outputConnected) reasons.push('pick an output folder');
     return reasons;
   }
@@ -907,10 +944,12 @@ window.MRT.views.prf = (function () {
   function runPanelBody() {
     if (state.runResult && !state.running) {
       var r = state.runResult;
-      return ui.panel({ title: 'Run', icon: 'save', body: [
+      return ui.panel({ title: 'Output & run', icon: 'save', body: [
+        ui.el('div', { class: 'prf-folder-row' }, outputBits().concat([
+          ui.button('Run again', { kind: 'primary', icon: 'save', onClick: runReport })
+        ])),
         ui.el('p', {}, [ui.el('span', { class: 'chip ' + (r.status === 'OK' ? 'ok' : 'warning'), text: r.status }),
           ' Saved as ' + r.written.name + ' (' + r.written.format + ').']),
-        ui.button('Run again', { kind: 'primary', icon: 'save', onClick: runReport }),
         trendCharts(r.out),
         statTable(r.summary, SHEET_COLS.Summary, 'Summary'),
         statTable(r.comparison, SHEET_COLS.Comparison, 'Front vs Back'),
@@ -920,21 +959,27 @@ window.MRT.views.prf = (function () {
       ].filter(Boolean) }).node;
     }
     var reasons = runBlockers();
-    return ui.panel({ title: 'Run', icon: 'save', body: [
-      ui.button(reasons.length ? 'Run — ' + reasons.join(', ') : 'Run', { kind: 'primary', icon: 'save',
-        disabled: !!reasons.length || state.running, onClick: runReport }),
+    return ui.panel({ title: 'Output & run', icon: 'save', body: [
+      ui.el('div', { class: 'prf-folder-row' }, outputBits().concat([
+        ui.button(reasons.length ? 'Run — ' + reasons.join(', ') : 'Run', { kind: 'primary', icon: 'save',
+          disabled: !!reasons.length || state.running, onClick: runReport })
+      ])),
       state.running ? ui.el('p', { class: 'muted' }, 'Working...') : null
     ] }).node;
   }
 
   function runPanel() {
     if (!state.result || !state.settings) { runHost = null; return null; }
+    if (!adapter.isSupported()) return null;   // the folder step already explains this
     runHost = ui.el('div', {}, runPanelBody());
     return runHost;
   }
 
-  /** Re-paint only the Run panel: typing or ticking must not rebuild the page (focus would jump). */
-  function refreshRun() { if (runHost) ui.mount(runHost, runPanelBody()); }
+  /** Re-paint the Run + Plan slots: ticking must not rebuild the page (focus would jump). */
+  function refreshRun() {
+    if (runHost) ui.mount(runHost, runPanelBody());
+    if (planHost) ui.mount(planHost, planPanelBody());
+  }
 
   function statTable(rows, cols, title) {
     if (!rows.length) return null;
@@ -956,7 +1001,7 @@ window.MRT.views.prf = (function () {
   function stepHead() {
     var s = state.settings;
     var done1 = !!state.result;
-    var done2 = done1 && !!s && s.panelsOn.length > 0 && (s.sides.Front.enabled || s.sides.Back.enabled);
+    var done2 = done1 && !!s && s.panelsOn.length > 0;
     var done3 = !!state.runResult;
     var now = done1 ? (done2 ? 3 : 2) : 1;
     var steps = [['Folder', done1], ['What to run', done2], ['Run', done3]];
@@ -976,7 +1021,7 @@ window.MRT.views.prf = (function () {
     ui.mount(holder, [stepHead(),
       ui.el('p', { class: 'prf-step-label', text: 'Step 1 · Folder' }), folderPanel(),
       ui.el('p', { class: 'prf-step-label', text: 'Step 2 · What to run' }), previewPanel(), settingsPanel(),
-      ui.el('p', { class: 'prf-step-label', text: 'Step 3 · Run' }), outputPanel(), previewPlanPanel(), runPanel(),
+      ui.el('p', { class: 'prf-step-label', text: 'Step 3 · Run' }), previewPlanPanel(), runPanel(),
       (state.result && state.settings) ? advancedPanel() : null
     ].filter(Boolean));
   }

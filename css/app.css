@@ -589,6 +589,7 @@ table.grid tbody tr[tabindex]:focus-visible { outline-offset: -2px; }
 .prf-meta dd { margin: 0; font-size: 14px; }
 .prf-panel-actions { display: flex; gap: 8px; margin-bottom: 10px; }
 .prf-panel-grid { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.prf-pick.is-picked { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .prf-side { padding: 12px 0; border-top: 1px solid var(--line); }
 .prf-side:first-child { border-top: none; padding-top: 0; }
 .prf-subsection { margin: 10px 0 0 24px; padding-left: 12px; border-left: 2px solid var(--line); }

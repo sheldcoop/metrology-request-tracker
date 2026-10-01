@@ -87,6 +87,14 @@ function fakeSettings(result) {
   badSeq.sides.Front.via.sequenceText = 'not a sequence';
   const cfg4 = T.resolveSideConfig(badSeq.sides.Front);
   ok('a bad sequence is reported, not silently dropped', cfg4.sequence === null && /Bad via sequence/.test(cfg4.seqError));
+
+  const noRough = JSON.parse(JSON.stringify(settings));
+  noRough.sides.Front.roughness.enabled = false;
+  noRough.sides.Front.roughness.units = [];
+  noRough.sides.Front.via.sameAsRoughness = true;
+  noRough.sides.Front.via.units = [7];
+  const cfg5 = T.resolveSideConfig(noRough.sides.Front);
+  eq('"same as roughness" with no roughness units falls back to the typed via units', cfg5.viaUnits, [7]);
 }
 
 /* ---------------- runAll: aggregation across panels ---------------- */
@@ -124,6 +132,15 @@ function fakeSettings(result) {
   view._state.settings = fs2;
   const out3 = T.runAll();
   ok('a typed lot number processes only that lot (py lot_number forces one lot)', out3.rough.every(r => r.Lot_Number === '12345'));
+
+  view._state.result = result;
+  view._state.settings = fakeSettings(result);
+  view._state.settings.buFilter = 999;
+  const out4 = T.runAll();
+  ok('a build-up choice processes only that build-up', out4.rough.length === 0 && out4.t2b.length === 0);
+  view._state.settings.buFilter = '';
+  const out5 = T.runAll();
+  ok('...and All processes everything again', out5.rough.length === 1 && out5.t2b.length === 2);
 }
 
 /* ---------------- planRows: the live Plan table ---------------- */
@@ -165,8 +182,7 @@ function fakeSettings(result) {
   view._state.outputConnected = false;
   eq('no output folder blocks Run, and says so', T.runBlockers(), ['pick an output folder']);
   view._state.settings.panelsOn = [];
-  view._state.settings.sides.Front.enabled = false;
-  eq('every reason is listed', T.runBlockers(), ['tick at least one panel', 'tick Front or Back', 'pick an output folder']);
+  eq('every reason is listed (sides follow the scan, no switches)', T.runBlockers(), ['pick at least one panel', 'pick an output folder']);
 }
 
 /* ---------------- picked BU-01 + the pasted full path (Prince's case) ---------------- */
