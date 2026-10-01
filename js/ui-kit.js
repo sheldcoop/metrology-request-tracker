@@ -374,11 +374,11 @@
     ]);
   }
 
-  /** My queue in isolation: the linked shift strip, one group, two boxes, the bulk bar. */
+  /** My queue in isolation: the counts line, one group, two boxes, the bulk bar. */
   function queueDemo() {
     function stat(v, label, bad, filter) {
-      return el('a', { class: 'qs' + (bad ? ' is-bad' : ''), href: '#/queue/' + filter }, [
-        el('span', { class: 'qs-n num', text: String(v) }), ' ', el('span', { class: 'qs-l', text: label })]);
+      return el('a', { href: '#/queue/' + filter, class: bad ? 'is-bad' : null }, [
+        el('span', { class: 'num', text: String(v) }), ' ' + label]);
     }
     function sampleBox(no, level, late) {
       return ui.requestBox({ id: 'demo-' + no, request_no: no }, {
@@ -392,7 +392,8 @@
       });
     }
     return el('div', {}, [
-      labelled('Shift strip', el('div', { class: 'queue-shift' }, [stat(12, 'open', false, 'open'), stat(3, 'late', true, 'late')])),
+      labelled('Counts line', el('div', { class: 'queue-counts' }, [stat(2, 'Line stop', true, 'linestop'), ' · ',
+        stat(8, 'Late', true, 'late'), ' · ', stat(5, 'On hold', false, 'on_hold'), ' · ', stat(3, 'Needs clarification', false, 'clarification')])),
       labelled('Group + boxes', el('div', { class: 'queue-list' }, [
         el('div', { class: 'qgroup' }, ['Line stop  ·  ', el('span', { class: 'num', text: '1' })]),
         sampleBox('FIB-260925-01', 1, true),
@@ -506,7 +507,7 @@
       el('span', { class: 'user-avatar', text: 'PK' }), el('span', { class: 'user-name', text: 'Prince Khurana' }), ui.icon('chevron_down', 16)]);
     menuBtn.addEventListener('click', function () {
       ui.menu(menuBtn, [{ node: ui.toggle({ kind: 'switch', label: 'Reduce motion' }).node }, { sep: true },
-        { label: 'Keyboard shortcuts', icon: 'keyboard', aside: '?' }, { label: 'Change data folder', icon: 'folder' }, { label: 'Change user', icon: 'user' }],
+        { label: 'Keyboard shortcuts', icon: 'keyboard', aside: '?' }, { label: 'Change data folder', icon: 'folder' }, { label: 'Sign out', icon: 'user' }],
         [el('b', { text: 'Prince Khurana' }), el('span', { text: 'Admin' })]);
     });
     var tries = 0;
@@ -573,7 +574,7 @@
       section('Hirata code (ui.copperPanel, ui.hirataFields, ui.hirataGrid)', hirataDemo(), 'Copper stays copper in every theme. The grid blocks any dot that would take a column above 9; the bottom row is the baseline.'),
       section('Traveller card (ui.traveller)', travellerDemo(), 'One drawing, four sizes: full (request page), mini (form preview), card (board), slip (print). Priority stripe per level; Line stop pulses while open.'),
       section('Board (stations + lane headers + cards)', boardDemo(), 'Numbered stations with tallies, one slim lane header per tool, cards with stripe, ID, lot and one chip. Colour only on attention.'),
-      section('Queue shift (strip + boxes)', queueDemo(), 'Your shift in one glance - open, late (red only when nonzero), yours - then one box per request under neutral group headers. Stripe for Line stop and Hot only.'),
+      section('Queue counts (links + boxes)', queueDemo(), 'One line of filter links - Line stop, Late, On hold, Needs clarification (late colour only above zero) - then one box per request under neutral group headers. Stripe for Line stop and Hot only.'),
       section('Magazine slots', el('div', { class: 'kit-grid' }, [
           labelled('Pick: press and drag over slots; slots 9-10 taken by another request', ui.magazineSlots({ magazine: { code: 'M70345', slots: 24 }, picked: [3, 4],
             labels: { 3: '3252', 4: '3253' }, taken: { 9: 'FIB-260924-01', 10: 'FIB-260924-01' } }).node),
