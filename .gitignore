@@ -12,3 +12,5 @@ backups/
 .DS_Store
 _preview.html
 .claude/
+# Made-up PRF log folder (node tests/make-prf-demo.js); the demo mrt_data.json above stays tracked.
+demo-data/prf-logs/
