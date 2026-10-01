@@ -1073,3 +1073,12 @@ never the only signal - the text/label says the same thing.
   Text straight on the page (titles, hero, empty states) reads in dark
   ink - white on white is impossible. Themes without `page` are
   unchanged (both copies equal). contrast.js checks both zones.
+- **HOME-12** (home-final: card layout back + New request scene, 2026-10-01,
+  Prince) The Home card keeps the studio layout Prince designed from
+  (Lucide icon top-left, title, one line at the bottom); the scene plays
+  in a layer BEHIND the words, all the time - the HOME-10 stage on top of
+  the card is dropped. Scene redesign goes card by card, each movement
+  showing the card's purpose. New request = option B "the form fills
+  itself": a traveller card slides in blank, tool glyph pops in and its
+  line types on, the panels pop in one by one, the priority stripe runs
+  down the edge, a stamp drops and lands, the card flies off to the lab.

@@ -142,7 +142,7 @@ window.MRT.scene3d = (function () {
   }
 
   function measure(e) {
-    var r = { width: 300, height: 136 };
+    var r = { width: 340, height: 200 };
     try { var b = e.stage.getBoundingClientRect(); if (b.width > 0 && b.height > 0) r = b; } catch (x) {}
     e.w = Math.round(r.width); e.h = Math.round(r.height);
     var pr = pixelRatio();

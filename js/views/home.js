@@ -25,12 +25,12 @@ window.MRT.views.home = (function () {
   /* Cards carry no counts (Step 4): a Home card is a door, not a dashboard.
    * The counting functions (stripCounts, toolQueueStats, notificationsFor)
    * stay untouched - the nav badge, bell and queue counts line still use
-   * them. Every card has a stage on top (HOME-10): its scene plays there
-   * all the time, the big icon is the still picture under it. */
+   * them. Icon top-left, title, one line at the bottom; the stage behind
+   * them plays the card's scene all the time (HOME-10). */
   function card(o) {
     return ui.el('a', { class: 'home-card', href: '#/' + o.key, dataset: o.scene ? { scene: o.scene } : null }, [
-      ui.el('span', { class: 'home-stage', 'aria-hidden': 'true' },
-        ui.el('span', { class: 'home-ic' }, ui.icon(o.icon, 44))),
+      ui.el('span', { class: 'home-stage', 'aria-hidden': 'true' }),
+      ui.el('span', { class: 'home-ic', 'aria-hidden': 'true' }, ui.icon(o.icon, 28)),
       ui.el('span', { class: 'home-tx' }, [
         ui.el('b', { text: o.title }),
         ui.el('span', { class: 'home-d', text: o.desc })
