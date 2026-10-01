@@ -25,12 +25,12 @@ window.MRT.views.help = (function () {
         'Open the app with "Metrology Tool.cmd" (next to index.html). It starts Edge and tells the app your Windows user name.',
         'The first time on a PC, click Choose data folder and pick the folder "data". Next time it is one click (Reconnect) or none.',
         'First time ever? Say who you are. If an admin already added you, pick your name ("Is this you?"). Otherwise you are added as an Engineer and an admin sets your roles.',
-        'Every change is saved at once - there is no Save button. The lamp next to the logo shows it: green = saved, red = not saved.'
+        'Every change is saved at once - there is no Save button. Top right, “Saved” appears briefly after each save; “Saving…” or “Not saved · retry” shows in colour only when something needs you.'
       ],
       tips: [
-        'Made a mistake? Click Undo next to the lamp, or press Ctrl+Z, within ' + cfg.undo_ms / 1000 + ' seconds.',
-        'The strip under the top bar counts what needs attention - Line stop, Late, On hold, Needs clarification - for your tools (quality engineers) or your own requests. Click a count to see those requests.',
-        'On a shared PC, use your name (top right) > Change user.'
+        'Made a mistake? Click Undo in the top bar, or press Ctrl+Z, within ' + cfg.undo_ms / 1000 + ' seconds.',
+        'My queue carries its attention on the menu badge (Line stop + Late on your tools); the counts line at the top of My queue filters the list. An open Line stop also shows one slim banner under the top bar - dismiss it per request.',
+        'On a shared PC, use your name (top right) > Sign out.'
       ],
       link: ['Open Lab status', '#/lab'] },
 
@@ -242,7 +242,7 @@ window.MRT.views.help = (function () {
       steps: [
         'Each change is written to the data file at once, and recorded in the audit log.',
         'Before saving, the app checks nobody else saved in the meantime. If someone did, it stops and offers Reload - it never overwrites their work.',
-        'If a save fails (the share is offline or read-only), the lamp turns red and a message offers Retry and Download as file. Nothing is lost.',
+        'If a save fails (the share is offline or read-only), “Not saved · retry” shows in red and a message offers Retry and Download as file. Nothing is lost.',
         'The first change of each day copies the file into data\\' + cfg.backup_dir + '\\ first; the last ' + cfg.backup_keep + ' days are kept.'
       ] },
 
