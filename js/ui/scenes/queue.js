@@ -1,9 +1,10 @@
 /**
  * Metrology Request Tracker - js/ui/scenes/queue.js
  *
- * Queue card scene: three tool lanes, one request block travelling the
- * middle lane per 9 s loop. It flashes bright as it arrives, then a new
- * one starts dim. Solid lit meshes, no textures, no shadows.
+ * Queue card scene: three tool lanes, one glowing request block travelling
+ * the middle lane with two fading echoes behind it. It hops lightly as it
+ * arrives, flashes bright, then a new one starts dim. Solid lit meshes,
+ * transparent background, no shadows.
  */
 window.MRT = window.MRT || {};
 window.MRT.scene3d.register('queue', function create(ctx) {
@@ -15,7 +16,7 @@ window.MRT.scene3d.register('queue', function create(ctx) {
   camera.position.set(0, 2.4, 3.2);
   camera.lookAt(0, 0, 0);
 
-  scene.add(new T.HemisphereLight(0xffffff, 0x0a1a2e, 0.7));
+  scene.add(new T.HemisphereLight(0xffffff, new T.Color(ctx.tokens.surface), 0.75));
   var key = new T.DirectionalLight(0xffffff, 1.1);
   key.position.set(3, 5, 4);
   scene.add(key);
@@ -31,9 +32,14 @@ window.MRT.scene3d.register('queue', function create(ctx) {
     color: new T.Color(ctx.tokens.accent),
     emissive: new T.Color(ctx.tokens.bright), emissiveIntensity: 0.25, roughness: 0.55
   });
+  var ghostMat = function (op) {
+    return new T.MeshBasicMaterial({ color: new T.Color(ctx.tokens.accent), transparent: true, opacity: op });
+  };
   var block = new T.Mesh(new T.BoxGeometry(0.4, 0.22, 0.26), blockMat);
+  var echo1 = new T.Mesh(new T.BoxGeometry(0.4, 0.22, 0.26), ghostMat(0.22));
+  var echo2 = new T.Mesh(new T.BoxGeometry(0.4, 0.22, 0.26), ghostMat(0.1));
   block.position.y = 0.11;
-  scene.add(block);
+  scene.add(block); scene.add(echo1); scene.add(echo2);
 
   ctx.onResize(function (w, h) {
     camera.aspect = w / h;
@@ -45,9 +51,13 @@ window.MRT.scene3d.register('queue', function create(ctx) {
     camera: camera,
     update: function (dt, t) {
       var p = ((t % LOOP) + LOOP) % LOOP / LOOP;
-      block.position.x = -1.3 + 2.6 * p;        // one calm trip down the lane
-      var d = (p - 0.92) / 0.05;               // arrival flash, then restart
-      blockMat.emissiveIntensity = 0.25 + 2.4 * Math.exp(-d * d);
+      var x = -1.3 + 2.6 * p;                  // one calm trip down the lane
+      var hop = Math.exp(-Math.pow((p - 0.92) / 0.05, 2));   // arrival hop
+      block.position.x = x;
+      block.position.y = 0.11 + 0.12 * hop;
+      echo1.position.set(x - 0.28, 0.11, 0);
+      echo2.position.set(x - 0.56, 0.11, 0);
+      blockMat.emissiveIntensity = 0.25 + 2.4 * hop;         // arrival flash
     },
     dispose: function () {
       while (scene.children.length) scene.remove(scene.children[0]);
