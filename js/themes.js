@@ -11,7 +11,7 @@
  * everyone), ui-kit.html and tests/contrast.js all read this list.
  *
  * The themes (2026-09-30, Prince, redesign Step 1): five - AT&S (the default,
- * company identity, dark navy), Pure White, Dark Teal, Slate and Quant.
+ * company identity; since 2026-10-01 white room, #262626 ink, dark Home tiles), Pure White, Dark Teal, Slate and Quant.
  * Dark Teal, Slate and Quant match the studio website tokens (studio
  * src/tailwind.config.ts .dark / .slate / .quant, HSL converted to hex by
  * script); their AA-tuned text shades stay one step off the raw tokens where
@@ -76,22 +76,25 @@ window.MRT.themes = (function () {
    */
   var THEMES = [
 
-    { key: 'ats', name: 'AT&S', scheme: 'dark', group: 'Main',
-      mood: 'Company identity: deep navy room, white writing; corporate red only where it hurts (late, danger).',
-      swatches: ['#082B4F', '#0C3D6E', '#FFFFFF', '#B9CBE0'],
-      p: { bg: '#082B4F', surface: '#0C3D6E', 'surface-2': '#10487F', 'surface-3': '#15538C', inset: '#082B4F',
-           fg: '#FFFFFF', 'fg-muted': '#B9CBE0', 'fg-faint': '#A3B8D2',
-           line: '#2A5A8C', 'line-strong': '#41719F', 'line-hi': '#8FC1F0', bracket: '#41719F',
-           accent: '#FFFFFF', 'accent-fill': '#FFFFFF', 'accent-fg': '#082B4F', 'accent-soft': 'rgba(255, 255, 255, .14)',
-           'accent-glow': '0 0 0 1px #FFFFFF',
-           ok: '#5CCB8A', 'ok-fg': '#7CE3A6', 'ok-bg': '#0A3520',
-           warning: '#F2B84B', 'warning-fg': '#F6C963', 'warning-bg': '#3A2A00',
-           critical: '#FF832B', 'critical-fg': '#FFA76B', 'critical-bg': '#3E1A00',
-           expired: '#FF7A70', 'expired-fg': '#FF9A92', 'expired-bg': '#4A1210',
-           danger: '#FF7A70', 'danger-fg': '#FF9A92', 'danger-bg': '#4A1210', 'on-danger': '#260606',
-           blocked: '#6F6F6F', 'blocked-fg': '#C6C6C6', 'blocked-bg': '#2A3F58',
-           'c-blue': '#8FC1F0', 'c-teal': '#5CC8C8', 'c-pink': '#F49AC2',
-           shadow: '0 12px 32px rgba(0, 0, 0, .5)', 'shadow-pop': '0 18px 50px rgba(0, 0, 0, .6)', scrim: 'rgba(4, 10, 20, .66)' } },
+    { key: 'ats', name: 'AT&S', scheme: 'light', group: 'Main',
+      mood: 'Company identity: white room, #262626 ink, dark Home tiles with white writing; red only where it hurts (late, danger).',
+      swatches: ['#FFFFFF', '#262626', '#FFFFFF', '#5C5C5C'],
+      p: { bg: '#FFFFFF', surface: '#FFFFFF', 'surface-2': '#F7F7F7', 'surface-3': '#EDEDED', inset: '#FFFFFF',
+           fg: '#262626', 'fg-muted': '#5C5C5C', 'fg-faint': '#525252',
+           line: '#E0E0E0', 'line-strong': '#C6C6C6', 'line-hi': '#262626', bracket: '#C6C6C6',
+           accent: '#262626', 'accent-fill': '#262626', 'accent-fg': '#FFFFFF', 'accent-soft': 'rgba(38, 38, 38, .08)',
+           'accent-glow': '0 0 0 1px #262626',
+           ok: '#1F7A4D', 'ok-fg': '#14532F', 'ok-bg': '#E2F2E8',
+           warning: '#F1C21B', 'warning-fg': '#7A5410', 'warning-bg': '#FCF4D6',
+           critical: '#FF832B', 'critical-fg': '#BA4E00', 'critical-bg': '#FFF2E8',
+           expired: '#B42318', 'expired-fg': '#7A1A12', 'expired-bg': '#FBE7E5',
+           danger: '#B42318', 'danger-fg': '#7A1A12', 'danger-bg': '#FBE7E5', 'on-danger': '#FFFFFF',
+           blocked: '#8D8D8D', 'blocked-fg': '#525252', 'blocked-bg': '#E0E0E0',
+           'c-blue': '#0043CE', 'c-teal': '#007D79', 'c-pink': '#D02670',
+           tile: '#262626', 'tile-fg': '#FFFFFF', 'tile-fg-muted': '#C6C6C6', 'tile-accent': '#FFFFFF',
+           'tile-line': '#262626', 'scene-ink': '#FFFFFF', 'scene-line': '#6F6F6F',
+           shadow: '0 1px 2px rgba(38, 38, 38, .06), 0 8px 24px rgba(38, 38, 38, .08)',
+           'shadow-pop': '0 4px 8px rgba(38, 38, 38, .08), 0 16px 40px rgba(38, 38, 38, .16)', scrim: 'rgba(38, 38, 38, .45)' } },
     { key: 'dark-teal', name: 'Dark Teal', scheme: 'dark', group: 'Main',
       mood: 'Studio .dark tokens: near-black room, teal actions.',
       swatches: ['#020A1D', '#061027', '#02E8CD', '#F8FAFC'],
@@ -196,6 +199,13 @@ window.MRT.themes = (function () {
       o.scrim = 'rgba(' + f + ', .35)';
     }
     o['accent-fill'] = p.accent;           // buttons and other filled accents; a theme can set its own (Carbon dark)
+    /* Home tiles and their scenes (HOME-10): a tile is a surface unless the theme
+       says otherwise (AT&S: dark tiles on a white room). Scene ink is the living
+       element - the accent in dark schemes, near-black in light ones. */
+    o.tile = p.surface; o['tile-fg'] = p.fg; o['tile-fg-muted'] = p['fg-muted'];
+    o['tile-accent'] = p.accent; o['tile-line'] = dark ? o.line : p.line;
+    o['scene-ink'] = dark ? p.accent : '#111111';
+    o['scene-line'] = dark ? o['line-strong'] : '#9A9A9A';
     Object.keys(p).forEach(function (k) { if (k !== 'ink') o[k] = p[k]; });    // the theme's own values win
     return o;
   }
