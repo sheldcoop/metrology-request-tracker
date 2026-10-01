@@ -101,6 +101,16 @@ window.MRT.views.home = (function () {
   function render(main) {
     var me = store.currentUser();
     var now = Date.now();
+    /* Sign-in slot (Step 3): unknown user, content waiting from the app -
+     * hero and sentence above, the Who-are-you form instead of cards. */
+    var waiting = !me && window.MRT.app && window.MRT.app.slot ? window.MRT.app.slot() : null;
+    main.appendChild(hero());
+    if (waiting) {
+      var box = ui.el('div', { class: 'home-slot' }, waiting);
+      main.appendChild(box);
+      try { var f = box.querySelector('input, .btn-primary'); if (f) f.focus(); } catch (e) {}
+      return;
+    }
     var requests = store.data().requests || [];
     var strip = D.stripCounts(stripArgs(me, now));
     var mineAll = store.visibleRequests(function (r) { return r.requester_id === me.id; });
@@ -132,7 +142,6 @@ window.MRT.views.home = (function () {
         n: store.health().issues.filter(function (x) { return x.severity === 'problem'; }).length, unit: 'problems' }
     ].filter(Boolean);
 
-    main.appendChild(hero());
     main.appendChild(ui.el('div', { class: 'home-grid' }, cards.map(card)));
     if (window.MRT.scene3d) { try { window.MRT.scene3d.mountAll(main); } catch (e) {} }
   }

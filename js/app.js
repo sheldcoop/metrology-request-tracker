@@ -69,6 +69,19 @@ window.MRT.app = (function () {
     currentView: null
   };
 
+  /* The sign-in content waiting on Home (Step 3): the Who-are-you forms
+   * render in a slot on the Home page instead of the gate overlay. While
+   * it is set and nobody is signed in, the router shows Home with the slot
+   * and no cards; signing in clears it and the cards fade in. */
+  var pendingSlot = null;
+
+  function showInSlot(children) {
+    pendingSlot = children;
+    if (document.getElementById('shell').hidden) { openShell(); return; }
+    if (parseHash().route !== 'home') { location.hash = '#/home'; return; }
+    route();
+  }
+
   /* ------------------------------------------------------------------ *
    * Per-PC preferences (localStorage, keyed per user)
    * ------------------------------------------------------------------ */
@@ -299,6 +312,7 @@ window.MRT.app = (function () {
   function signIn(ident) {
     var user = store.findUserByIdentity(ident);
     if (user) {
+      pendingSlot = null;
       store.setCurrentUser(user.id);
       return openShell();
     }
@@ -378,7 +392,7 @@ window.MRT.app = (function () {
 
   function showAskId(message) {
     var wid = ui.field({ label: 'Windows user name', mono: true, hint: 'As you log in to Windows, e.g. pkhurana.' });
-    gate([
+    showInSlot([
       ui.el('h1', { text: 'Who are you?' }),
       lead('Next time, open the app with "Metrology Tool.cmd" next to index.html - it tells the app who you are.'),
       problem(message),
@@ -394,7 +408,7 @@ window.MRT.app = (function () {
   function showWhoAreYou(ident) {
     var name = ui.field({ label: 'Your name', placeholder: 'First and last name' });
     var email = ui.field({ label: 'Company email (optional)', type: 'email' });
-    gate([
+    showInSlot([
       ui.el('h1', { text: 'Who are you?' }),
       lead('Your Windows user name ' + (ident.domain ? ident.domain + '\\' : '') + ident.windows_id +
            ' is not known here yet. Tell us your name - you are asked only once.'),
@@ -411,7 +425,7 @@ window.MRT.app = (function () {
 
   function showIsThisYou(ident, name, email, matches) {
     var err = ui.el('div');
-    gate([
+    showInSlot([
       ui.el('h1', { text: 'Is this you?' }),
       lead('There is already someone called ' + name.trim() + '. If it is you, pick it, and your Windows user name is linked to it.'),
       ui.el('div', { class: 'user-list' }, matches.map(function (u) {
@@ -445,6 +459,7 @@ window.MRT.app = (function () {
     return store.selfRegister({ name: name, windows_id: ident.windows_id, domain: ident.domain,
                                 email: email, confirmed_new: confirmed }).then(function () {
       ui.toast({ kind: 'success', timeout_ms: 8000, message: 'Welcome. You were added as an Engineer; an admin will check your roles.' });
+      pendingSlot = null;
       openShell();
     });
   }
@@ -571,10 +586,12 @@ window.MRT.app = (function () {
   }
 
   function route() {
-    if (!store.status().loaded || !store.currentUser()) return;
+    if (!store.status().loaded) return;
+    var slot = pendingSlot && !store.currentUser();
+    if (!store.currentUser() && !slot) return;
     var parsed = parseHash();
     var entry = navEntry(parsed.route);
-    app.route = entry ? parsed.route : 'lab';
+    app.route = slot ? 'home' : (entry ? parsed.route : 'lab');
 
     var menuKey = (navEntry(app.route) || {}).menu || app.route;
     document.querySelectorAll('.nav-item[data-route]').forEach(function (a) {
@@ -1270,6 +1287,7 @@ window.MRT.app = (function () {
   return {
     boot: boot,
     route: route,
+    slot: function () { return pendingSlot; },
     reloadData: reloadData,
     reportSaveFailure: reportSaveFailure,
     paintBanner: paintBanner,

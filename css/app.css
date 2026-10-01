@@ -2097,6 +2097,9 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
   background: var(--accent); animation: home-blink 1s steps(2, start) infinite; }
 @keyframes home-blink { to { opacity: 0; } }
 .home-sub { font-size: 13px; color: var(--fg-muted); margin: 8px 0 0; }
+.home-slot { max-width: 560px; margin: 24px auto; padding: 24px 24px 20px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius-panel); }
+.home-slot h1 { font-size: 20px; margin: 0 0 8px; }
 .home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; margin-top: 16px; }
 .home-card { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px; text-decoration: none;
   color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-panel);
