@@ -69,7 +69,7 @@
 }
 [data-contrast="high"] { --focus-w: 3px; }
 /* the drawing's ink: 2px outlines on the things you read and click */
-[data-contrast="high"] :is(.panel, .tm, .bcard, .board-cell, .board-lane, .board-colhead, dialog.modal, dialog.drawer, .btn, .btn-primary, .chip, input, select, textarea, table.grid) { border-width: 2px; }
+[data-contrast="high"] :is(.panel, .tm, .bcard, .board-cell, .board-colhead, dialog.modal, dialog.drawer, .btn, .btn-primary, .chip, input, select, textarea, table.grid) { border-width: 2px; }
 
 /* ================================================================== *
  * 2. Base
@@ -1561,46 +1561,27 @@ a.path-link:hover { text-decoration: underline; }
 .q-clock.is-soon { color: var(--warning-fg); }
 .q-clock.is-late { color: var(--expired-fg); font-weight: 700; }
 
-/* Board (M3-8): the wall. Machine nameplates x a station rail; tickets flow left to right.
-   Colour stays quiet until it matters: neutral edges everywhere, red/amber only on attention. */
+/* Board (M3-8, Step 6b): numbered station columns, one slim lane header per
+   tool. Colour stays quiet until it matters: neutral edges everywhere,
+   red/amber only on attention (chips, the Line stop stripe and glow). */
 .board-wrap { overflow-x: auto; }
-.board { display: grid; gap: 8px 6px; min-width: 1010px; align-items: stretch; }
-.board-corner { display: flex; align-items: end; padding: 0 8px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--fg-faint); }
-/* Stations: a ghost numeral, the name, a tally. The top edge names the state. */
-.board-colhead { position: sticky; top: 0; z-index: 1; display: flex; align-items: baseline; gap: 10px; padding: 10px 12px 9px;
-  border: 1px solid var(--line); border-top: 3px solid var(--line-strong); border-radius: var(--radius) var(--radius) 0 0;
+.board { display: grid; gap: 8px 6px; align-items: stretch; }
+/* Stations: a ghost numeral, the name, a tally. Numerals stay quiet. */
+.board-colhead { position: sticky; top: 0; z-index: 1; display: flex; align-items: baseline; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--surface-2); font-size: 13px; }
 .board-step { font: 700 20px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg-faint); }
-.board-colhead.is-in_progress .board-step { color: var(--accent); }
-.board-colhead.is-waiting .board-step { color: var(--warning-fg); }
-.board-colhead.is-completed .board-step { color: var(--ok-fg); }
 .board-count { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--surface-3); text-align: center; font-weight: 700; font-size: 12px; }
 .board-count.is-zero { background: none; color: var(--fg-faint); font-weight: 600; }
-/* Nameplates: engraved code, lamp with the state word, open tally. Colour only on attention. */
-.board-lane { display: grid; grid-template-columns: auto 1fr; align-content: start; align-items: center; column-gap: 8px; row-gap: 4px; padding: 8px 12px;
-  border: 1px solid var(--line-strong); border-left: 4px solid var(--line-strong); border-radius: var(--radius); background: var(--surface-2); }
-.board-lane.is-maintenance { border-left-color: var(--warning); }
-.board-lane.is-down { border-left-color: var(--critical); }
-.board-lane-name { display: grid; gap: 2px; min-width: 0; }
-.board-lane-name .mono { font-size: 15px; font-weight: 700; letter-spacing: .08em; }
-.board-lane-open { grid-column: 1 / -1; font-size: 12px; }
-.board-lamp { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fg-muted); }
-.board-lamp i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft, transparent); }
-.board-lamp.is-maintenance i { background: var(--warning); }
-.board-lamp.is-down i { background: var(--critical); animation: pulse 1.4s ease-in-out infinite; }
-.board-lane.is-empty { padding: 4px 10px; opacity: .75; }
-.board-lane.is-empty .board-lamp span { display: none; }
-.board-lane.is-empty .board-lane-name { grid-auto-flow: column; justify-content: start; gap: 8px; align-items: center; }
-.board-fold { display: flex; align-items: center; padding: 0 12px; border: 1px dashed var(--line); border-radius: var(--radius);
-  color: var(--fg-faint); font-size: 12px; }
+/* Lane headers: glyph, code, open count. Sticky under the stations; an empty
+   lane is this strip only. */
+.board-lanehead { position: sticky; top: 0; z-index: 0; display: flex; align-items: center; gap: 8px; padding: 6px 4px;
+  background: var(--bg); font-size: 13px; }
+.board-lanehead .mono { font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+.board-lanehead .muted { font-size: 12px; }
 .board-cell { display: grid; align-content: start; gap: 6px; min-height: 90px; padding: 6px; border: 1px solid var(--line); border-radius: var(--radius);
   background: repeating-linear-gradient(0deg, transparent 0 21px, var(--line) 21px 22px); background-color: var(--bg); }
 [data-contrast="high"] .board-cell { background: var(--bg); }
-.bgauge { display: block; flex: 1; height: 4px; border-radius: var(--radius); background: var(--surface-3); overflow: hidden; }
-.bgauge i { display: block; height: 100%; background: var(--ok); transform-origin: left; transform: scaleX(0); transition: transform var(--t) var(--ease); }
-.bgauge.is-soon i { background: var(--warning); }
-.bgauge.is-late i { background: var(--expired); animation: pulse 1.4s ease-in-out infinite; }
-.bgauge.is-paused i { background: repeating-linear-gradient(90deg, var(--fg-faint) 0 6px, transparent 6px 10px); }
 /* Side panel (ui.drawer) */
 dialog.drawer { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(560px, 100vw); height: 100vh; max-height: none; padding: 0;
   display: flex; flex-direction: column; border: 0; border-left: 1px solid var(--line-strong); background: var(--surface); color: var(--fg);
@@ -1617,15 +1598,15 @@ dialog.drawer::backdrop { background: rgba(0,0,0,.28); }
   background: var(--surface); color: var(--fg); text-decoration: none; font-size: 12px; transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease); }
 .bcard:hover { transform: translateY(-1px); border-color: var(--accent); }
 .bcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.bcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: var(--radius-panel) 0 0 var(--radius-panel); background: var(--ok); }
+.bcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: var(--radius-panel) 0 0 var(--radius-panel); background: transparent; }
 .bcard.prio-1::before { background: var(--critical); }
 .bcard.prio-2::before { background: var(--warning); }
-.bcard.prio-4::before { background: var(--fg-faint); }
 .bcard.is-urgent::after { content: ""; position: absolute; inset: -1px; border-radius: var(--radius-panel); box-shadow: 0 0 10px 1px var(--critical); opacity: .2;
   animation: stripe-pulse 1.6s ease-in-out infinite; pointer-events: none; }
-.bcard.is-late { border-color: var(--expired); }
-.bcard-top { display: flex; justify-content: space-between; gap: 6px; }
-.bcard-prio { font-weight: 700; }
+.bcard-prio { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.bcard.prio-1 .bcard-prio { color: var(--critical-fg); }
+.bcard.prio-2 .bcard-prio { color: var(--warning-fg); }
+.bcard-id { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; }
 .bcard-line { display: flex; align-items: center; gap: 6px; color: var(--fg-muted); }
 .bcard-who { margin-left: auto; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-3); color: var(--fg); font-size: 10px; font-weight: 700; }
 
@@ -1964,9 +1945,6 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 .toast-icon { display: inline-flex; }
 .bell-btn.is-ringing svg { transform-origin: 50% 10%; animation: bell-swing 800ms ease-in-out; }
 @keyframes bell-swing { 15% { transform: rotate(16deg); } 35% { transform: rotate(-12deg); } 55% { transform: rotate(7deg); } 75% { transform: rotate(-3deg); } 100% { transform: none; } }
-.board-lamp.is-maintenance i { animation: pulse 2.4s ease-in-out infinite; }
-.board-lamp.is-down i { box-shadow: 0 0 8px 2px color-mix(in srgb, var(--critical) 60%, transparent); }
-[data-contrast="high"] .board-lamp i { box-shadow: 0 0 0 1px var(--fg); }
 .health-fixed { text-decoration: line-through; color: var(--fg-muted); }
 .away-swap { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 12px; color: var(--fg-muted); }
 .away-arrow { display: inline-block; color: var(--accent); font-weight: 700; animation: away-swap 1.2s var(--ease-out) 1 both; }
@@ -2116,18 +2094,6 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 /* "late 3 h": the clock icon before the words */
 :is(.q-clock, .tr-clock).is-late::before { content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 4px; vertical-align: -1px;
   background: currentColor; -webkit-mask: var(--ic-late) center / contain no-repeat; mask: var(--ic-late) center / contain no-repeat; }
-/* tool lamps on the board: Up = tick, Maintenance = triangle, Down = stop octagon (the words stay beside them);
-   the lamp itself is see-through, its shape is the ::before, and the glow (drop-shadow) follows the shape */
-.board-lamp i { position: relative; width: 10px; height: 10px; border-radius: 0; background: none; box-shadow: none !important;
-  color: var(--ok); filter: drop-shadow(0 0 3px currentColor); }
-.board-lamp.is-maintenance i { color: var(--warning); }
-.board-lamp.is-down i { color: var(--critical); }
-.board-lamp i::before { content: ""; position: absolute; inset: 0; background: currentColor;
-  -webkit-mask: var(--ic-ok) center / contain no-repeat; mask: var(--ic-ok) center / contain no-repeat; }
-.board-lamp.is-maintenance i::before { -webkit-mask-image: var(--ic-warning); mask-image: var(--ic-warning); }
-.board-lamp.is-down i::before { -webkit-mask-image: var(--ic-critical); mask-image: var(--ic-critical); }
-[data-contrast="high"] .board-lamp i, [data-scheme="light"] .board-lamp i { filter: none; }
-
 /* the status icon alone (ui.statusIcon), beside words already shown: KPI tiles, table cells */
 .st-ic { display: inline-block; flex: none; width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px;
   -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
