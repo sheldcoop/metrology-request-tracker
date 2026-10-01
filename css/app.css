@@ -2100,17 +2100,17 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 .home-slot { max-width: 560px; margin: 24px auto; padding: 24px 24px 20px; background: var(--surface);
   border: 1px solid var(--line); border-radius: var(--radius-panel); }
 .home-slot h1 { font-size: 20px; margin: 0 0 8px; }
-.home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; margin-top: 16px; }
-.home-card { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px; text-decoration: none;
+.home-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 24px; }
+.home-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; flex: 0 1 calc(33.333% - 11px);
+  max-width: 380px; min-width: 240px; min-height: 168px; padding: 20px; text-decoration: none;
   color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-panel);
   transition: transform var(--t-fast) var(--ease); }
+@media (max-width: 1100px) { .home-card { flex-basis: calc(50% - 8px); } }
+@media (max-width: 700px) { .home-card { flex-basis: 100%; max-width: none; } }
 .home-ic { display: flex; color: var(--accent); }
-.home-tx { display: grid; gap: 2px; min-width: 0; }
-.home-tx b { font-size: 15px; }
-.home-d { font-size: 12px; color: var(--fg-muted); }
-.home-n { margin-left: auto; text-align: right; }
-.home-n b { font-size: 28px; font-variant-numeric: tabular-nums; }
-.home-n span { display: block; font-size: 12px; color: var(--fg-muted); }
+.home-tx { display: grid; gap: 4px; min-width: 0; }
+.home-tx b { font-size: 16px; }
+.home-d { font-size: 13px; color: var(--fg-muted); margin-top: auto; padding-top: 16px; }
 
 /* Card hover (Step 5): lift + soft accent glow on Home cards and Lab tool
    cards. transform/opacity only: the glow lives on an ::after overlay whose
@@ -2139,10 +2139,10 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
   border-radius: inherit; pointer-events: none; opacity: 0;
   transition: opacity var(--t-fast) var(--ease); }
 .home-card.is-live .home-scene { opacity: 1; }
-.home-card.is-live .home-tx, .home-card.is-live .home-n { opacity: 0; }
-.home-card .home-tx, .home-card .home-n { transition: opacity var(--t-fast) var(--ease); }
+.home-card.is-live .home-tx { opacity: 0; }
+.home-card .home-tx { transition: opacity var(--t-fast) var(--ease); }
 .home-card.is-leaving .home-scene { opacity: 0; }
-.home-card.is-leaving .home-tx, .home-card.is-leaving .home-n { opacity: 1; }
+.home-card.is-leaving .home-tx { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   .home-card .home-scene { display: none; }
 }

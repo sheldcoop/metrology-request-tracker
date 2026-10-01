@@ -1,15 +1,15 @@
 /**
  * Metrology Request Tracker - views/home.js
  *
- * Home (#/home): one door per page - icon, title, one line, live count.
+ * Home (#/home): one door per page - icon, title, one line. No counts:
+ * a card is a place to start work, not a dashboard (Step 4 reverses DASH-4;
+ * the counting functions stay for the nav badge, bell and queue counts).
  * A card shows only when its domain.js gate allows it (New request:
- * canRequest, My queue + Board: canMeasure, Analytics: canSeeManagement,
- * Lots: canRegisterLot, Settings: canUseSettings); Lab status, My requests
- * and Help are read surfaces, open to every signed-in person. The counts
- * reuse the existing functions only (stripCounts, toolQueueStats,
- * notificationsFor, analytics.get) plus the same store reads the pages
- * themselves use - no new maths here. Every card except Lots and
- * Settings carries a data-scene key for the hover scenes (js/ui/scene3d.js).
+ * canRequest, My queue + Board: canMeasure, Analytics: canSeeManagement);
+ * Lab status, My requests and Help are read surfaces, open to every
+ * signed-in person. Lots, Settings, Results and Hirata stay sidebar-only.
+ * Every card carries a data-scene key for the hover scenes
+ * (js/ui/scene3d.js).
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -20,23 +20,17 @@ window.MRT.views.home = (function () {
   var D = window.MRT.domain;
   var store = window.MRT.store;
 
-  function levelOf(r) { var p = store.byId('priorities', r.priority_id); return p ? p.level : 99; }
-
-  function stripArgs(me, now) {
-    return { user: me, tools: store.list('tools'), requests: store.data().requests || [], now_ts: now,
-             cal: store.calendar(), levelOf: levelOf };
-  }
-
+  /* Cards carry no counts (Step 4): a Home card is a door, not a dashboard.
+   * The counting functions (stripCounts, toolQueueStats, notificationsFor)
+   * stay untouched - the nav badge, bell and queue counts line still use
+   * them. Scene audit: Lots and Settings had no scene; new, mine, queue,
+   * board, aoi (Lab), bars (Analytics) and dice (Help) are all still bound. */
   function card(o) {
     return ui.el('a', { class: 'home-card', href: '#/' + o.key, dataset: o.scene ? { scene: o.scene } : null }, [
       ui.el('span', { class: 'home-ic', 'aria-hidden': 'true' }, ui.icon(o.icon, 28)),
       ui.el('span', { class: 'home-tx' }, [
         ui.el('b', { text: o.title }),
         ui.el('span', { class: 'home-d', text: o.desc })
-      ]),
-      ui.el('span', { class: 'home-n' }, [
-        ui.el('b', { class: 'num', text: String(o.n) }),
-        ui.el('span', { text: o.unit })
       ])
     ]);
   }
@@ -100,7 +94,6 @@ window.MRT.views.home = (function () {
 
   function render(main) {
     var me = store.currentUser();
-    var now = Date.now();
     /* Sign-in slot (Step 3): unknown user, content waiting from the app -
      * hero and sentence above, the Who-are-you form instead of cards. */
     var waiting = !me && window.MRT.app && window.MRT.app.slot ? window.MRT.app.slot() : null;
@@ -111,35 +104,21 @@ window.MRT.views.home = (function () {
       try { var f = box.querySelector('input, .btn-primary'); if (f) f.focus(); } catch (e) {}
       return;
     }
-    var requests = store.data().requests || [];
-    var strip = D.stripCounts(stripArgs(me, now));
-    var mineAll = store.visibleRequests(function (r) { return r.requester_id === me.id; });
-    var labOpen = store.list('tools').reduce(function (n, t) {
-      return n + D.toolQueueStats(requests, t.id, now, store.calendar(), D.holidaySet(store.data().holidays)).open;
-    }, 0);
-
     var cards = [
       D.canRequest(me) && { key: 'new', icon: 'plus-circle', title: 'New request', scene: 'new',
-        desc: 'Unfinished drafts — continue one or start new', n: mineAll.filter(function (r) { return D.isOldDraft(r, now); }).length, unit: 'drafts' },
+        desc: 'Ask the lab to measure your panels' },
       { key: 'requests', icon: 'list', title: 'My requests', scene: 'mine',
-        desc: 'Your requests — updates in the last 7 days',
-        n: D.notificationsFor(me, store.data(), { since_ts: now - 7 * 86400000, limit: 40 }).length, unit: 'updates' },
+        desc: 'Follow your requests from submit to result' },
       D.canMeasure(me) && { key: 'queue', icon: 'inbox', title: 'My queue', scene: 'queue',
-        desc: 'Open for your tools, most urgent first', n: strip.open, unit: 'open' },
-      { key: 'lab', icon: 'activity', title: 'Lab status', scene: 'aoi',
-        desc: 'Open requests in the lab', n: labOpen, unit: 'open' },
+        desc: 'Work the open requests of your tools' },
       D.canMeasure(me) && { key: 'board', icon: 'kanban', title: 'Board', scene: 'board',
-        desc: 'Line stop comes first', n: strip.line_stop, unit: 'line stop' },
+        desc: 'Every open request, by tool and stage' },
+      { key: 'lab', icon: 'activity', title: 'Lab status', scene: 'aoi',
+        desc: 'Which tools are up, and how busy' },
       D.canSeeManagement(me) && { key: 'analytics', icon: 'bar-chart', title: 'Analytics', scene: 'bars',
-        desc: 'Completed in the last 90 days',
-        n: window.MRT.analytics.get(window.MRT.analytics.defaultFilter(now)).counts.done, unit: 'done' },
-      D.canRegisterLot(me) && { key: 'lots', icon: 'layers', title: 'Lots',
-        desc: 'Lots on file — register a new one', n: store.list('lots').length, unit: 'lots' },
+        desc: 'Turnaround, load and trends' },
       { key: 'help', icon: 'circle-help', title: 'Help', scene: 'dice',
-        desc: 'Step-by-step guides', n: window.MRT.views.help.GUIDES.length, unit: 'guides' },
-      D.canUseSettings(me) && { key: 'settings', icon: 'settings', title: 'Settings',
-        desc: 'Setup problems needing an admin',
-        n: store.health().issues.filter(function (x) { return x.severity === 'problem'; }).length, unit: 'problems' }
+        desc: 'Step-by-step guides for every task' }
     ].filter(Boolean);
 
     main.appendChild(ui.el('div', { class: 'home-grid' }, cards.map(card)));

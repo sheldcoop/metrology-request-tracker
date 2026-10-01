@@ -270,10 +270,7 @@
           ui.el('span', { class: 'home-ic', 'aria-hidden': 'true' }, ui.icon('activity', 28)),
           ui.el('span', { class: 'home-tx' }, [
             ui.el('b', { text: 'Lab status' }),
-            ui.el('span', { class: 'home-d', text: 'Open requests in the lab' })]),
-          ui.el('span', { class: 'home-n' }, [
-            ui.el('b', { class: 'num', text: '4' }),
-            ui.el('span', { text: 'open' })])
+            ui.el('span', { class: 'home-d', text: 'Which tools are up, and how busy' })])
         ])),
       labelled('Hero cards (the tool is the anchor: big glyph, lamp, key facts)', el('div', { class: 'cx-tool-hero' }, [
         { key: 'fib', state: 'live', lamp: 'ok', name: 'FIB', facts: ['Up · Via cross-section', 'Queue 3 · oldest 5 h'] },
