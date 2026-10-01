@@ -1,0 +1,10 @@
+# Live data, backups and local history never go into the image.
+data
+backups
+mrt_data*.json
+*.prev.json
+.git
+node_modules
+tests
+demo-data
+MRT-Test
