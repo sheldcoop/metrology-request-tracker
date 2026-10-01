@@ -827,31 +827,38 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(openDialog(), 'Delete').click(); await settle();
   check('...delete from the box removes the draft', !MRT.store.data().requests.some(r => r.id === rowDraft.id) && $$('#main .qbox').length === 0);
 
-  // --- the board (M3 step 4)
+  // --- the board (Step 6b: lane headers, slim cards, done off by default)
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
-  check('Board: a lane per tool, seven columns, one accepted + one in-progress FIB card', $$('#main .board-lane').length === 5 && $$('#main .board-colhead').length === 7 &&
+  check('Board: a lane header per tool, five numbered stations, one accepted + one in-progress FIB card', $$('#main .board-lanehead').length === 5 &&
+        $$('#main .board-colhead').length === 5 && $$('#main .board-colhead')[0].textContent.indexOf('01') !== -1 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
-  const anCell = $$('#main .board-cell').filter(c => c.dataset.col === 'analyzed' && c.dataset.tool === fib().id)[0];
-  check('...the Analyzed column holds the analyzed request (analyst lives in the drawer, not the card)', anCell.querySelectorAll('.bcard').length === 1 &&
-        anCell.querySelectorAll('.bcard')[0].dataset.id === req2.id && !anCell.querySelector('.bcard-who'));
   const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
-  check('...the Line stop card pulses, has a needed-by gauge, nothing is draggable', lsCard.classList.contains('is-urgent') && !!lsCard.querySelector('.bgauge') &&
-        $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
+  check('...the Line stop card: stripe, priority word, truncated ID with full title, lot, clock, no gauge or initials, nothing draggable',
+    lsCard.classList.contains('is-urgent') && lsCard.classList.contains('prio-1') && /Line stop/.test(lsCard.textContent) &&
+    lsCard.querySelector('.bcard-id').getAttribute('title') === qL.request_no && /18178/.test(lsCard.textContent) &&
+    !!lsCard.querySelector('.q-clock') && !lsCard.querySelector('.bgauge') && !lsCard.querySelector('.bcard-who') &&
+    $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
+  await MRT.store.requestAction(qN.id, 'hold', { hold_reason_id: MRT.store.list('hold_reasons')[0].id, note: 'test only' });
+  win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
+  const holdCard = $$('#main .bcard').filter(c => c.dataset.id === qN.id)[0];
+  check('...fresh on hold: On hold chip, no Stuck yet', /On hold/.test(holdCard.textContent) && !/Stuck/.test(holdCard.textContent));
+  await MRT.store.requestAction(qN.id, 'resume', {});
+  win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
+  check('...resumed back to Accepted', MRT.store.byId('requests', qN.id).status === 'accepted');
   $$('#main .bcard').filter(c => c.dataset.id === qN.id)[0].dispatch('click'); await settle();
   const drw = win.document.querySelector('dialog.drawer');
-  check('...a click opens the side panel with the traveller and Receive & start (P5-3)', !!drw && !!buttonByText(drw, 'Receive & start') && /Open full page/.test(drw.textContent));
+  check('...a click opens the side panel with the traveller, Receive & start and an Open page link (P5-3)', !!drw && !!buttonByText(drw, 'Receive & start') && /Open page/.test(drw.textContent));
   buttonByText(drw, 'Receive & start').click(); await settle();
   setVal(fieldIn(openDialog(), 'Kept where'), 'FIB cabinet'); buttonByText(openDialog(), 'Save').click(); await settle(); await settle();
   check('...received and started, both cards In progress, the panel closes', MRT.store.byId('requests', qN.id).status === 'in_progress' && !win.document.querySelector('dialog.drawer') &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 2);
-  check('...tools with nothing on them fold to one line', $$('#main .board-fold').length === $$('#main .board-lane.is-empty').length);
-  const fibPick = $$('#main .tool-pick').filter(b => b.dataset.pick === fib().id)[0];
-  fibPick.click(); await settle();
-  check('Board tool picker: one tool shows only its lane (Prince)', $$('#main .board-lane').length === 1 && /FIB/.test($('#main .board-lane').textContent) &&
-        $$('#main .tool-pick.is-on')[0].dataset.pick === fib().id);
-  $$('#main .tool-pick').filter(b => b.dataset.pick === 'all')[0].click(); await settle();
-  check('...All tools brings every lane back', $$('#main .board-lane').length === 5);
+  check('...tools with nothing on them are a thin header strip', $$('#main .board-lanehead').length === 5 &&
+        $$('#main .board-lanehead').filter(h => !/ open/.test(h.textContent) || /^[^0-9]*0 open/.test(h.textContent)).length >= 1);
+  setVal(fieldIn(doc.getElementById('main'), 'Tool'), fib().id); await settle();
+  check('Board tool dropdown: one tool shows only its lane', $$('#main .board-lanehead').length === 1 && /FIB/.test($$('#main .board-lanehead')[0].textContent));
+  setVal(fieldIn(doc.getElementById('main'), 'Tool'), ''); await settle();
+  check('...All tools brings every lane back', $$('#main .board-lanehead').length === 5);
   $$('#main .tool-pick').filter(b => b.dataset.only === 'linestop')[0].click(); await settle();
   check('Board "Show Line stop": only Line stop cards (P5-5)', $$('#main .bcard').length >= 1 && $$('#main .bcard').every(c => c.classList.contains('prio-1')));
   $$('#main .tool-pick').filter(b => b.dataset.only === 'all')[0].click(); await settle();
@@ -860,10 +867,12 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         $$('#main .bcard.is-miss').length === $$('#main .bcard').length - 1);
   bs.value = ''; bs.dispatch('input');
   const doneSw = $$('#main input').filter(i => i.getAttribute('role') === 'switch')[0];
-  doneSw.checked = false; doneSw.dispatch('change'); await settle();
-  check('Board: the done columns can be hidden (P5-7)', $$('#main .board-colhead').length === 5 && !$$('#main .board-cell').some(c => c.dataset.col === 'completed' || c.dataset.col === 'analyzed'));
+  doneSw.checked = true; doneSw.dispatch('change'); await settle();
+  check('Board: the done columns can be shown (P5-7)', $$('#main .board-colhead').length === 7 &&
+        $$('#main .board-cell').filter(c => c.dataset.col === 'analyzed' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1 &&
+        $$('#main .board-cell').filter(c => c.dataset.col === 'analyzed' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard')[0].dataset.id === req2.id);
   const doneSw2 = $$('#main input').filter(i => i.getAttribute('role') === 'switch')[0];
-  doneSw2.checked = true; doneSw2.dispatch('change'); await settle();
+  doneSw2.checked = false; doneSw2.dispatch('change'); await settle();
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id); win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
   win.setHash('#/lab'); await settle();
   const fibPlateQ = $$('#main .tool-plate').filter(p => /FIB/.test(p.textContent))[0];
