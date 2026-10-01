@@ -898,9 +898,32 @@ window.MRT.views.prf = (function () {
     return ui.panel({ title: '9. Results', icon: 'check', body: body }).node;
   }
 
+  /** Three steps across the top: Folder, What to run, Run. Done states follow the state. */
+  function stepHead() {
+    var s = state.settings;
+    var done1 = !!state.result;
+    var done2 = done1 && !!s && s.panelsOn.length > 0 && (s.sides.Front.enabled || s.sides.Back.enabled);
+    var done3 = !!state.runResult;
+    var now = done1 ? (done2 ? 3 : 2) : 1;
+    var steps = [['Folder', done1], ['What to run', done2], ['Run', done3]];
+    var body = [];
+    steps.forEach(function (st, i) {
+      if (i) body.push(ui.el('span', { class: 'prf-step-link' }));
+      body.push(ui.el('span', { class: 'prf-step' + (st[1] ? ' is-done' : '') + (i + 1 === now && !st[1] ? ' is-now' : '') }, [
+        ui.el('span', { class: 'prf-step-n', text: String(i + 1) }),
+        ui.el('span', { text: st[0] })
+      ]));
+    });
+    return ui.el('div', { class: 'prf-steps' }, body);
+  }
+
   function draw() {
     if (!holder) return;
-    ui.mount(holder, [folderPanel(), previewPanel(), settingsPanel(), outputPanel(), previewPlanPanel(), runPanel(), resultsPanel()].filter(Boolean));
+    ui.mount(holder, [stepHead(),
+      ui.el('p', { class: 'prf-step-label', text: 'Step 1 · Folder' }), folderPanel(),
+      ui.el('p', { class: 'prf-step-label', text: 'Step 2 · What to run' }), previewPanel(), settingsPanel(),
+      ui.el('p', { class: 'prf-step-label', text: 'Step 3 · Run' }), outputPanel(), previewPlanPanel(), runPanel(), resultsPanel()
+    ].filter(Boolean));
   }
 
   function render(main) {

@@ -599,6 +599,18 @@ table.grid tbody tr[tabindex]:focus-visible { outline-offset: -2px; }
 .prf-spec-grid { display: grid; gap: 6px; }
 .prf-spec-row { display: grid; grid-template-columns: 1fr 100px 100px; gap: 10px; align-items: end; }
 .prf-spec-label { font-size: 12px; color: var(--fg-muted); align-self: center; font-family: var(--font-mono, monospace); }
+.prf-steps { display: flex; align-items: center; margin: 6px 0 2px; }
+.prf-step { display: flex; align-items: center; gap: 8px; color: var(--fg-muted); font-size: 13px; white-space: nowrap; }
+.prf-step-n { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--line); font-size: 12px; }
+.prf-step.is-done { color: var(--fg); }
+.prf-step.is-done .prf-step-n { border-color: var(--ok-fg); color: var(--ok-fg); }
+.prf-step.is-now { color: var(--fg); font-weight: 600; }
+.prf-step.is-now .prf-step-n { border-color: var(--accent); color: var(--accent); }
+.prf-step-link { flex: 1; height: 1px; background: var(--line); margin: 0 12px; min-width: 12px; }
+.prf-step-label { color: var(--fg-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 -8px; }
+.prf-sides2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 1200px) { .prf-sides2 { grid-template-columns: 1fr; } }
 
 /* --- Tabs with a sliding underline ---------------------------------- */
 .tab-bar {
