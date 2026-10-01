@@ -1,0 +1,75 @@
+# =====================================================================
+#  HRM AutoLot - settings
+#  Run:  python HRM-AutoLot_v2.py            (uses HRM-settings_v2.yaml)
+#        python HRM-AutoLot_v2.py other.yaml (uses another settings file)
+# =====================================================================
+
+# --- Folders --------------------------------------------------------
+# Lot folder, e.g. L:\ale\...\Chiplet4Future\FHR0020\19197
+# Leave empty ('') -> a folder picker pops up.
+root_folder: ''
+# Where the Excel + log .txt are saved. Empty -> folder picker.
+output_folder: 'C:\Users\khurana\OneDrive - Ats\Desktop\BU02'
+
+# --- Metadata -------------------------------------------------------
+# 'auto' = read from the path (lot = root folder, part = folder above,
+# project = folder above part). Type a value to force it.
+project_name: 'auto'
+part_number:  'auto'
+lot_number:   'auto'
+lot_name:     'DOE Lot'        # not in the path -> always typed
+
+# --- Filters: 'all' or a list ----------------------------------------
+buildup: 'all'                      # e.g. ['BU-03']   (BU01 / BU 1 also ok)
+process: 'all'                      # e.g. ['Post FET', 'Post DDV']
+panels:  'all'                      # e.g. [28, 30]
+
+# Sides every panel should have (Coupon is always optional).
+# A missing one is shown in Summary and logged as WARNING.
+expected_sides: ['Front', 'Back']
+
+# --- Files ----------------------------------------------------------
+file_pattern: '*_Summary.xlsx'      # case-insensitive
+duplicates: 'newest'                # 'newest' or 'all'
+
+# If a pad block has Radius but no Diameter, write Diameter = 2 x Radius
+derive_diameter: true
+
+# --- Block label mapping --------------------------------------------
+# Block label in the file (number removed, lower case) -> output sheet.
+# Add new labels here; unknown labels go to the 'Unmapped' sheet.
+label_map:
+  'pad':        {sheet: 'Pad', category: 'Pad'}
+  'pad pos':    {sheet: 'Pad', category: 'Pad'}
+  'sr pad':     {sheet: 'Pad', category: 'SR Pad'}
+  'sr pad pos': {sheet: 'Pad', category: 'SR Pad'}
+  'trace':      {sheet: 'Trace'}
+  'trace pos':  {sheet: 'Trace'}
+  'via':        {sheet: 'Via'}
+  'via pos':    {sheet: 'Via'}
+  'roughness':  {sheet: 'Roughness'}
+
+# --- QC flags (values are never changed) ------------------------------
+qc:
+  order_check: true                 # Min <= Mean <= Max
+  negative_check: true              # any value < 0
+  diameter_tolerance_pct: 1.0       # measured Diameter vs 2 x Radius; null = off
+  # Optional sanity limits per output column. Leave null = no check.
+  # These are NOT spec limits (USL/LSL stay in your Reference tables).
+  plausible_range:
+    'Mean_Stepheight (µm)': {min: null, max: null}
+    'Min_Stepheight (µm)':  {min: null, max: null}
+    'Max_Stepheight (µm)':  {min: null, max: null}
+    'Diameter (µm)':        {min: null, max: null}
+    'Width (µm)':           {min: null, max: null}
+    'Space (µm)':           {min: null, max: null}
+    'Ra_Mean (nm)':         {min: null, max: null}
+    'Rz_Mean (nm)':         {min: null, max: null}
+
+# --- Log ------------------------------------------------------------
+# 'normal' -> Excel gets only the 'Issues' sheet (errors + warnings)
+# 'full'   -> plus a complete 'Log' sheet. The .txt log is always complete.
+log_level: 'normal'
+
+# --- Output ---------------------------------------------------------
+decimals: 3                         # display only; full precision is stored
