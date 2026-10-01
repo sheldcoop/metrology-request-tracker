@@ -11,7 +11,7 @@
  * everyone), ui-kit.html and tests/contrast.js all read this list.
  *
  * The themes (2026-09-30, Prince, redesign Step 1): five - AT&S (the default,
- * company identity; since 2026-10-01 white room, #262626 ink, dark Home tiles), Pure White, Dark Teal, Slate and Quant.
+ * company identity; since 2026-10-01 a white room with AT&S blue panels and tiles, white writing), Pure White, Dark Teal, Slate and Quant.
  * Dark Teal, Slate and Quant match the studio website tokens (studio
  * src/tailwind.config.ts .dark / .slate / .quant, HSL converted to hex by
  * script); their AA-tuned text shades stay one step off the raw tokens where
@@ -76,25 +76,22 @@ window.MRT.themes = (function () {
    */
   var THEMES = [
 
-    { key: 'ats', name: 'AT&S', scheme: 'light', group: 'Main',
-      mood: 'Company identity: white room, #262626 ink, dark Home tiles with white writing; red only where it hurts (late, danger).',
-      swatches: ['#FFFFFF', '#262626', '#FFFFFF', '#5C5C5C'],
-      p: { bg: '#FFFFFF', surface: '#FFFFFF', 'surface-2': '#F7F7F7', 'surface-3': '#EDEDED', inset: '#FFFFFF',
-           fg: '#262626', 'fg-muted': '#5C5C5C', 'fg-faint': '#525252',
-           line: '#E0E0E0', 'line-strong': '#C6C6C6', 'line-hi': '#262626', bracket: '#C6C6C6',
-           accent: '#262626', 'accent-fill': '#262626', 'accent-fg': '#FFFFFF', 'accent-soft': 'rgba(38, 38, 38, .08)',
-           'accent-glow': '0 0 0 1px #262626',
-           ok: '#1F7A4D', 'ok-fg': '#14532F', 'ok-bg': '#E2F2E8',
-           warning: '#F1C21B', 'warning-fg': '#7A5410', 'warning-bg': '#FCF4D6',
-           critical: '#FF832B', 'critical-fg': '#BA4E00', 'critical-bg': '#FFF2E8',
-           expired: '#B42318', 'expired-fg': '#7A1A12', 'expired-bg': '#FBE7E5',
-           danger: '#B42318', 'danger-fg': '#7A1A12', 'danger-bg': '#FBE7E5', 'on-danger': '#FFFFFF',
-           blocked: '#8D8D8D', 'blocked-fg': '#525252', 'blocked-bg': '#E0E0E0',
-           'c-blue': '#0043CE', 'c-teal': '#007D79', 'c-pink': '#D02670',
-           tile: '#262626', 'tile-fg': '#FFFFFF', 'tile-fg-muted': '#C6C6C6', 'tile-accent': '#FFFFFF',
-           'tile-line': '#262626', 'scene-ink': '#FFFFFF', 'scene-line': '#6F6F6F',
-           shadow: '0 1px 2px rgba(38, 38, 38, .06), 0 8px 24px rgba(38, 38, 38, .08)',
-           'shadow-pop': '0 4px 8px rgba(38, 38, 38, .08), 0 16px 40px rgba(38, 38, 38, .16)', scrim: 'rgba(38, 38, 38, .45)' } },
+    { key: 'ats', name: 'AT&S', scheme: 'dark', group: 'Main', page: 'pure-white',
+      mood: 'Company identity: white room, AT&S blue panels and tiles with white writing; red only where it hurts (late, danger).',
+      swatches: ['#FFFFFF', '#0C3D6E', '#FFFFFF', '#B9CBE0'],
+      p: { bg: '#FFFFFF', surface: '#0C3D6E', 'surface-2': '#10487F', 'surface-3': '#15538C', inset: '#082B4F',
+           fg: '#FFFFFF', 'fg-muted': '#B9CBE0', 'fg-faint': '#A3B8D2',
+           line: '#2A5A8C', 'line-strong': '#41719F', 'line-hi': '#8FC1F0', bracket: '#41719F',
+           accent: '#FFFFFF', 'accent-fill': '#FFFFFF', 'accent-fg': '#082B4F', 'accent-soft': 'rgba(255, 255, 255, .14)',
+           'accent-glow': '0 0 0 1px #FFFFFF',
+           ok: '#5CCB8A', 'ok-fg': '#7CE3A6', 'ok-bg': '#0A3520',
+           warning: '#F2B84B', 'warning-fg': '#F6C963', 'warning-bg': '#3A2A00',
+           critical: '#FF832B', 'critical-fg': '#FFA76B', 'critical-bg': '#3E1A00',
+           expired: '#FF7A70', 'expired-fg': '#FF9A92', 'expired-bg': '#4A1210',
+           danger: '#FF7A70', 'danger-fg': '#FF9A92', 'danger-bg': '#4A1210', 'on-danger': '#260606',
+           blocked: '#6F6F6F', 'blocked-fg': '#C6C6C6', 'blocked-bg': '#2A3F58',
+           'c-blue': '#8FC1F0', 'c-teal': '#5CC8C8', 'c-pink': '#F49AC2',
+           shadow: '0 8px 24px rgba(8, 43, 79, .22)', 'shadow-pop': '0 18px 50px rgba(8, 43, 79, .35)', scrim: 'rgba(4, 10, 20, .55)' } },
     { key: 'dark-teal', name: 'Dark Teal', scheme: 'dark', group: 'Main',
       mood: 'Studio .dark tokens: near-black room, teal actions.',
       swatches: ['#020A1D', '#061027', '#02E8CD', '#F8FAFC'],
@@ -167,8 +164,25 @@ window.MRT.themes = (function () {
     return [n >> 16, n >> 8 & 255, n & 255].join(', ');
   }
 
+  /* Two zones (HOME-11): a theme may paint its page (the room around the panels)
+     with another theme's palette - AT&S: white page (pure-white) around blue
+     panels. Every theme emits --pg-* (page) and --pn-* (panel) copies of these
+     keys; css/app.css swaps them in on .main and back on the panel-like boxes.
+     Without `page` both copies are the theme's own tokens, so nothing changes. */
+  var ZONE = ['fg', 'fg-muted', 'fg-faint', 'accent', 'accent-fill', 'accent-fg', 'accent-soft', 'accent-glow',
+              'surface', 'surface-2', 'surface-3', 'inset', 'line', 'line-strong', 'line-hi', 'bracket',
+              'ok', 'ok-fg', 'ok-bg', 'warning', 'warning-fg', 'warning-bg', 'critical', 'critical-fg', 'critical-bg',
+              'expired', 'expired-fg', 'expired-bg', 'blocked', 'blocked-fg', 'blocked-bg',
+              'danger', 'danger-fg', 'danger-bg', 'on-danger', 'c-blue', 'c-teal', 'c-pink'];
+
   /** Every token of a theme, as {name: value} (names without the leading --). */
   function tokens(t) {
+    var o = own(t), pg = t.page ? own(byKey(t.page)) : o;
+    ZONE.forEach(function (k) { o['pn-' + k] = o[k]; o['pg-' + k] = pg[k]; });
+    return o;
+  }
+
+  function own(t) {
     var p = t.p, dark = t.scheme === 'dark', o = {};
     var s = STATUS[t.scheme];
     Object.keys(s).forEach(function (k) { o[k] = s[k]; });

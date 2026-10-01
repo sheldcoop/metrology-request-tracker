@@ -21,6 +21,7 @@ if (depth) { console.log('unclosed { at end of file'); bad++; }
 // one or more key selectors per component; add yours when you add one
 const REQUIRED = {
   tokens: [':root, [data-theme]', '[data-scheme="light"]', '[data-contrast="high"]'],   // the theme colours: js/themes.js
+  zones: ['--fg: var(--pg-fg)', '--fg: var(--pn-fg)', '.home-card {'],   // page vs panel palette (HOME-11)
   themeGallery: ['.tg-card.is-on', '.tg-sample', '.tg-s-lamps .is-ok'],
   statusIcons: ['--ic-ok:', '--ic-warning:', '--ic-critical:', '--ic-late:', '--ic-blocked:', '--ic-hot:', '.chip:is(.ok, .warning, .critical, .expired, .blocked)::before',
                 '.led:is(.ok, .warning, .critical, .expired, .blocked)::before', '.tr-clock.is-late::before', '.prio-1 .bcard-prio::before', '.st-ic.is-expired', '.tool-plate-facts dd.is-late::before'],

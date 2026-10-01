@@ -16,7 +16,8 @@ const ratio=(a,b)=>{const x=L(a),y=L(b);return(Math.max(x,y)+.05)/(Math.min(x,y)
 const pairs=[['fg','surface'],['fg-muted','surface'],['fg-muted','surface-2'],['fg-faint','surface'],['fg-faint','surface-2'],['fg-muted','bg'],['accent','surface'],['accent-fg','accent-fill'],['on-danger','danger'],['danger-fg','surface'],['danger-fg','danger-bg'],
 ...['ok','warning','critical','expired','blocked'].flatMap(s=>[[s+'-fg','surface'],[s+'-fg','surface-2'],[s+'-fg',s+'-bg']]),['c-blue','surface'],['c-teal','surface'],['c-pink','surface'],['fg','inset'],['accent','inset'],['tile-fg','tile'],['tile-fg-muted','tile']];
 let bad=0;const all=process.argv[2];
-for(const[t,v]of Object.entries(T))for(const[f,b]of pairs){let bg=parse(v[b]);if(bg[3]<1)bg=over(bg,parse(v.surface));let fg=parse(v[f]);if(fg[3]<1)fg=over(fg,bg);const r=ratio(fg,bg);if(r<4.5)bad++;if(r<4.5||all)console.log(t.padEnd(8),(f+' on '+b).padEnd(30),r.toFixed(2),r>=4.5?'AA':'FAIL')}
+// Two zones (HOME-11): text on the page uses the --pg-* copies, text in panels the --pn-* ones; the page bg only meets page text.
+for(const[t,v]of Object.entries(T))for(const z of['pg','pn'])for(const[f,b]of pairs){if(z==='pn'&&b==='bg')continue;const k=x=>v[z+'-'+x]!==undefined?v[z+'-'+x]:v[x];let bg=parse(k(b));if(bg[3]<1)bg=over(bg,parse(k('surface')));let fg=parse(k(f));if(fg[3]<1)fg=over(fg,bg);const r=ratio(fg,bg);if(r<4.5)bad++;if(r<4.5||all)console.log((t+' '+z).padEnd(14),(f+' on '+b).padEnd(30),r.toFixed(2),r>=4.5?'AA':'FAIL')}
 
 // Status colours must stay clearly apart (Prince, 2026-09-25): Line stop / Late / Hot / Warning / OK.
 // CIEDE2000 colour difference; fills (lamps, stripes, card edges - read at a glance) >= 15,

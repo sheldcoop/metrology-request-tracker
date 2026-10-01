@@ -1061,3 +1061,15 @@ never the only signal - the text/label says the same thing.
   white scenes (`--tile`, `--tile-fg`, `--tile-fg-muted`, `--tile-accent`,
   `--scene-ink` in themes.js; every theme defaults them from its own
   surface/fg/accent). Other panels in AT&S are white with #262626 ink.
+- **HOME-11** (home-final: AT&S blue, 2026-10-01, Prince, option A) AT&S
+  is a white page with AT&S blue (#0C3D6E) panels, tiles, top bar and
+  sidebar, all writing and scenes white inside them. This replaces the
+  #262626 look of HOME-10 the same day. Mechanism, theme-neutral: a theme
+  may name a `page` palette (AT&S: pure-white); themes.js emits --pg-*
+  and --pn-* copies of the colour keys (ZONE) for every theme; .main
+  swaps to the page copy, the panel-like boxes (list in css/app.css,
+  guarded by css-check) swap back. Controls take the zone they sit in, so
+  a button or field straight on the page is light, inside a panel blue.
+  Text straight on the page (titles, hero, empty states) reads in dark
+  ink - white on white is impossible. Themes without `page` are
+  unchanged (both copies equal). contrast.js checks both zones.

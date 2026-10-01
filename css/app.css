@@ -96,6 +96,49 @@ body,
   -webkit-font-smoothing: antialiased;
 }
 
+/* Two zones (HOME-11, js/themes.js ZONE): the page around the panels may wear
+   another palette (AT&S: white page, blue panels). .main switches to the page
+   copy (--pg-*), the panel-like boxes switch back (--pn-*). Controls (buttons,
+   fields, chips) have no rule here: they take the zone they sit in. For themes
+   without a page palette both copies are equal, so nothing changes. Keep this
+   list in step with new panel-like boxes (tests/css-check.js). */
+.main {
+  --fg: var(--pg-fg); --fg-muted: var(--pg-fg-muted); --fg-faint: var(--pg-fg-faint);
+  --accent: var(--pg-accent); --accent-fill: var(--pg-accent-fill); --accent-fg: var(--pg-accent-fg);
+  --accent-soft: var(--pg-accent-soft); --accent-glow: var(--pg-accent-glow); --surface: var(--pg-surface);
+  --surface-2: var(--pg-surface-2); --surface-3: var(--pg-surface-3); --inset: var(--pg-inset);
+  --line: var(--pg-line); --line-strong: var(--pg-line-strong); --line-hi: var(--pg-line-hi);
+  --bracket: var(--pg-bracket); --ok: var(--pg-ok); --ok-fg: var(--pg-ok-fg); --ok-bg: var(--pg-ok-bg);
+  --warning: var(--pg-warning); --warning-fg: var(--pg-warning-fg); --warning-bg: var(--pg-warning-bg);
+  --critical: var(--pg-critical); --critical-fg: var(--pg-critical-fg); --critical-bg: var(--pg-critical-bg);
+  --expired: var(--pg-expired); --expired-fg: var(--pg-expired-fg); --expired-bg: var(--pg-expired-bg);
+  --blocked: var(--pg-blocked); --blocked-fg: var(--pg-blocked-fg); --blocked-bg: var(--pg-blocked-bg);
+  --danger: var(--pg-danger); --danger-fg: var(--pg-danger-fg); --danger-bg: var(--pg-danger-bg);
+  --on-danger: var(--pg-on-danger); --c-blue: var(--pg-c-blue); --c-teal: var(--pg-c-teal);
+  --c-pink: var(--pg-c-pink);
+  color: var(--fg);
+}
+.panel, .card, .combo-pop, .kpi-tile, .table-wrap, dialog.modal, dialog.drawer, .chart-expand,
+.toast, .tip-card, .menu, .search-results, .gate-card, .user-pick, .topbar, .nav, .alert-banner,
+.conflict-banner, .tool-plate, .wz-step, .traveller-mini, .traveller, .path-block, .req-actbar,
+.qbox, .board-colhead, .board-cell, .bcard, .mz-frame, .panel-map, .help-roles, .slip, .panel-tray,
+.tpl-pick, .tool-pick, .board-search, .tg-card, .tg-s-panel, .tg-s-bar, .home-slot, .home-card {
+  --fg: var(--pn-fg); --fg-muted: var(--pn-fg-muted); --fg-faint: var(--pn-fg-faint);
+  --accent: var(--pn-accent); --accent-fill: var(--pn-accent-fill); --accent-fg: var(--pn-accent-fg);
+  --accent-soft: var(--pn-accent-soft); --accent-glow: var(--pn-accent-glow); --surface: var(--pn-surface);
+  --surface-2: var(--pn-surface-2); --surface-3: var(--pn-surface-3); --inset: var(--pn-inset);
+  --line: var(--pn-line); --line-strong: var(--pn-line-strong); --line-hi: var(--pn-line-hi);
+  --bracket: var(--pn-bracket); --ok: var(--pn-ok); --ok-fg: var(--pn-ok-fg); --ok-bg: var(--pn-ok-bg);
+  --warning: var(--pn-warning); --warning-fg: var(--pn-warning-fg); --warning-bg: var(--pn-warning-bg);
+  --critical: var(--pn-critical); --critical-fg: var(--pn-critical-fg); --critical-bg: var(--pn-critical-bg);
+  --expired: var(--pn-expired); --expired-fg: var(--pn-expired-fg); --expired-bg: var(--pn-expired-bg);
+  --blocked: var(--pn-blocked); --blocked-fg: var(--pn-blocked-fg); --blocked-bg: var(--pn-blocked-bg);
+  --danger: var(--pn-danger); --danger-fg: var(--pn-danger-fg); --danger-bg: var(--pn-danger-bg);
+  --on-danger: var(--pn-on-danger); --c-blue: var(--pn-c-blue); --c-teal: var(--pn-c-teal);
+  --c-pink: var(--pn-c-pink);
+  color: var(--fg);
+}
+
 /* Numbers: mono, tabular, so digits never jump as they tick. */
 .num, .tnum, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
