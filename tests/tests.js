@@ -913,9 +913,9 @@
 
     group('Capacity per tool (C-1, C-2)');
     var cCal = { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' };
-    eq('lab days: Mon 21 - Fri 25 Sept = 5; Mon - Sun = 5; a holiday out', [D.labDaysBetween('2026-09-21', '2026-09-25', cCal, {}), D.labDaysBetween('2026-09-21', '2026-09-27', cCal, {}),
-       D.labDaysBetween('2026-09-21', '2026-09-25', cCal, { '2026-09-23': true })], [5, 5, 4]);
-    eq('...backwards or a bad date: 0', [D.labDaysBetween('2026-09-25', '2026-09-21', cCal, {}), D.labDaysBetween('x', '2026-09-21', cCal, {})], [0, 0]);
+    eq('lab days: Mon 21 - Fri 25 Sept = 5; Mon - Sun = 5; a holiday out', [D.labDaysBetweenYmd('2026-09-21', '2026-09-25', cCal, {}), D.labDaysBetweenYmd('2026-09-21', '2026-09-27', cCal, {}),
+       D.labDaysBetweenYmd('2026-09-21', '2026-09-25', cCal, { '2026-09-23': true })], [5, 5, 4]);
+    eq('...backwards or a bad date: 0', [D.labDaysBetweenYmd('2026-09-25', '2026-09-21', cCal, {}), D.labDaysBetweenYmd('x', '2026-09-21', cCal, {})], [0, 0]);
     var fibC = { code: 'FIB', capacity_per_day: 2 };
     eq('capacity: set or not', [D.capacityOf(fibC), D.capacityOf({ capacity_per_day: 0 }), D.capacityOf({}), D.capacityOf(null)], [2, null, null, null]);
     eq('queue days: 7 open at 2 a day = 3.5', [D.queueDays(7, fibC), D.queueDays(7, {})], [3.5, null]);

@@ -1330,7 +1330,7 @@ window.MRT.domain = (function () {
       demand_by_tool: counted(byToolSub),
       capacity_by_tool: (function () {
         var fromY = f.from_ymd || viennaYmd(now - 89 * 86400000), toY = f.to_ymd || viennaYmd(now);
-        var labDays = labDaysBetween(fromY, toY, cal, hs);
+        var labDays = labDaysBetweenYmd(fromY, toY, cal, hs);
         return (d.tools || []).filter(function (t) { return t.active !== false && (!f.tool_id || t.id === f.tool_id); }).map(function (t) {
           var dem = (byToolSub[t.id] || []).length, cap = capacityOf(t);
           var capN = cap === null ? null : Math.round(cap * labDays * 10) / 10;
@@ -1350,7 +1350,8 @@ window.MRT.domain = (function () {
    * ------------------------------------------------------------------ */
 
   /** Lab days from one date to another, both included (lab days minus holidays). */
-  function labDaysBetween(fromYmd, toYmd, cal, hs) {
+  /** Lab days from one date to another, both included (capacity counting; the timestamp one below skips the start day). */
+  function labDaysBetweenYmd(fromYmd, toYmd, cal, hs) {
     if (!isYmd(fromYmd) || !isYmd(toYmd) || toYmd < fromYmd) return 0;
     var n = 0, d = fromYmd;
     for (var guard = 0; d <= toYmd && guard < 4000; guard++) { if (isLabDay(d, cal, hs || {})) n++; d = addDaysYmd(d, 1); }
@@ -1383,7 +1384,7 @@ window.MRT.domain = (function () {
   function capacityNote(tool, openCount, todayYmd, neededYmd, cal, hs) {
     var days = queueDays(openCount, tool);
     if (days === null || !neededYmd || !isYmd(neededYmd)) return null;
-    var left = labDaysBetween(todayYmd, neededYmd, cal, hs);
+    var left = labDaysBetweenYmd(todayYmd, neededYmd, cal, hs);
     if (days <= left) return null;
     return tool.code + ' has about ' + days + ' lab day' + (days === 1 ? '' : 's') + ' of work queued - your date may be tight (' + left +
       ' lab day' + (left === 1 ? '' : 's') + ' left). You can still submit.';
@@ -2082,7 +2083,7 @@ window.MRT.domain = (function () {
     findMentions: findMentions,
     TRANSITIONS: TRANSITIONS,
     isLate: isLate,
-    labDaysBetween: labDaysBetween,
+    labDaysBetweenYmd: labDaysBetweenYmd,
     capacityOf: capacityOf,
     queueDays: queueDays,
     capacityLoad: capacityLoad,
