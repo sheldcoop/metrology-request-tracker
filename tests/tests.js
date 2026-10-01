@@ -321,7 +321,7 @@
        { id: 'c', status: 'submitted', magazine_id: 'm1', slots: [5], request_no: 'X-3' }], 'm1', 'c'), { 3: 'X-1' });
     ok('magazine numbers: M and digits', D.isMagazineCode('M70345') && !D.isMagazineCode('70345') && !D.isMagazineCode('M-1'));
     eq('start page by role (M3-12): QE -> My queue, engineer -> My requests, else Lab status', [D.homeFor(qe1), D.homeFor(eng1), D.homeFor({ roles: ['manager'], active: true })], ['queue', 'requests', 'lab']);
-    (function () {   // HOME-17: six Home doors, five shared + the role's main job
+    (function () {   // HOME-17/23: six Home doors (five shared + the role's main job), admins nine
       var mk = function (roles) { return { roles: roles, active: true }; };
       eq('role door: QE queue, engineer/admin new, manager analytics, operator/analyst requests',
         ['quality', 'engineer', 'admin', 'manager', 'operator', 'analyst'].map(function (r) { return D.homeRoleDoor(mk([r])); }),
@@ -330,9 +330,13 @@
         [D.homeRoleDoor(mk(['engineer', 'quality'])), D.homeRoleDoor(mk(['manager', 'engineer'])), D.homeRoleDoor(mk(['manager', 'operator']))],
         ['queue', 'new', 'analytics']);
       eq('six doors, the shared five for everyone', D.homeDoors(mk(['operator'])), ['requests', 'board', 'lab', 'results', 'hirata', 'help']);
+      eq('...engineers get Lots in place of Results', D.homeDoors(mk(['engineer'])), ['new', 'board', 'lab', 'lots', 'hirata', 'help']);
+      eq('...admins see nine, a full 3 x 3', D.homeDoors(mk(['admin', 'engineer'])),
+        ['new', 'requests', 'analytics', 'board', 'lab', 'results', 'lots', 'hirata', 'help']);
       ok('...never a page the role cannot open (QE gets no New request)',
         D.homeDoors(mk(['quality'])).indexOf('new') === -1 && D.homeDoors(mk(['manager'])).indexOf('new') === -1 &&
-        D.homeDoors(mk(['engineer'])).indexOf('queue') === -1 && D.homeDoors(mk(['engineer'])).indexOf('analytics') === -1);
+        D.homeDoors(mk(['engineer'])).indexOf('queue') === -1 && D.homeDoors(mk(['engineer'])).indexOf('analytics') === -1 &&
+        D.homeDoors(mk(['operator'])).indexOf('lots') === -1);
     })();
     eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
        D.nextRequestNo('QVM', '2026-09-24', ['FIB-260924-01']), D.nextRequestNo('FIB', '2026-09-25', ['FIB-260924-09']), D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-09'])],

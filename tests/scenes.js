@@ -1,7 +1,7 @@
 /**
  * tests/scenes.js - dev only, no dependencies:  node tests/scenes.js
  *
- * The ten Home scenes (aoi, bars, dice, new, mine, queue, board, results, hirata, welcome) against a fake THREE:
+ * The eleven Home scenes (aoi, bars, dice, new, mine, queue, board, results, hirata, lots, welcome) against a fake THREE:
  * every scene registers, returns { scene, camera, update, dispose },
  * survives a full loop sweep including the wrap with no throw, answers
  * resize, and empties its scene on dispose. Each file stays <= 250 lines.
@@ -63,7 +63,7 @@ function loadScenes() {
       return { fillRect: function () {}, beginPath: function () {}, arc: function () {}, fill: function () {},
         clearRect: function () {}, fillText: function () {} }; } }; } };
   const ctx = vm.createContext(win);
-  ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board', 'results', 'hirata', 'welcome'].forEach(k =>
+  ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board', 'results', 'hirata', 'lots', 'welcome'].forEach(k =>
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/ui/scenes/' + k + '.js'), 'utf8'), ctx, { filename: k }));
   return registry;
 }
@@ -76,9 +76,9 @@ function mkctx(T) {
 }
 
 (function run() {
-  const keys = ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board', 'results', 'hirata', 'welcome'];
+  const keys = ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board', 'results', 'hirata', 'lots', 'welcome'];
   const registry = loadScenes();
-  check('all ten scenes register', keys.every(k => typeof registry[k] === 'function'),
+  check('all eleven scenes register', keys.every(k => typeof registry[k] === 'function'),
     Object.keys(registry).join(','));
 
   keys.forEach(function (key) {

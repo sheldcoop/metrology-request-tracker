@@ -109,6 +109,7 @@ window.MRT.themes = (function () {
            danger: '#B42318', 'danger-fg': '#7A1A12', 'danger-bg': '#FBE7E5', 'on-danger': '#FFFFFF',
            blocked: '#8D8D8D', 'blocked-fg': '#525252', 'blocked-bg': '#E0E0E0',
            'c-blue': '#0043CE', 'c-teal': '#007D79', 'c-pink': '#D02670',
+           tile: '#F3F6FA', 'tile-line': '#C7D3E2',    // HOME-23: the tiles read as objects on the white page
            shadow: '0 1px 2px rgba(16, 24, 40, .06), 0 8px 24px rgba(16, 24, 40, .08)',
            'shadow-pop': '0 4px 8px rgba(16, 24, 40, .08), 0 16px 40px rgba(16, 24, 40, .16)', scrim: 'rgba(16, 24, 40, .45)' } },
     { key: 'slate', name: 'Slate', scheme: 'dark', group: 'Main',

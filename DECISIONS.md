@@ -1175,3 +1175,12 @@ never the only signal - the text/label says the same thing.
   per person per PC (`welcomed` pref in localStorage - no schema change;
   moves to the user record with the server login). The "You are not in
   yet" sign-in slot wears the same card and scene.
+- **HOME-23** (home-final: admin nine, engineer Lots, 2026-10-01, Prince)
+  Admins see all nine doors on Home, a full 3 x 3 (New request, My
+  requests, Analytics, Board, Lab status, Results, Lots, Hirata, Help).
+  Engineers get Lots in place of Results (lot status matters more to
+  them). Lots has a scene again, "the lot tower": eight copper panels fly
+  in and stack with a bounce, a laser runs up and reads each edge, the
+  stack fans into a turning spiral, folds back and scatters for the next
+  lot. Pure White tiles get a soft grey-blue #F3F6FA with a #C7D3E2 edge
+  so they read as objects on the white page; scenes stay black.

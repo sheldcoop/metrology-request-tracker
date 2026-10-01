@@ -1576,20 +1576,26 @@ window.MRT.domain = (function () {
   /** The start page for a person (Q16, M3-12): quality engineers -> My queue, engineers -> My requests, else Lab status. */
   function homeFor(user) { return canMeasure(user) ? 'queue' : (hasRole(user, 'engineer') || hasRole(user, 'analyst')) ? 'requests' : 'lab'; }
 
-  /* Home doors (HOME-17): six cards for everyone. Board, Lab status,
-   * Results, Hirata and Help are open to every signed-in person; the sixth
-   * is the person's main job, never a page they cannot use: My queue
-   * (quality), else New request (engineer, admin), else Analytics
-   * (manager), else My requests (operator, analyst). Lots and My requests
-   * stay in the sidebar. */
+  /* Home doors (HOME-17, HOME-23): six cards for everyone. Board, Lab
+   * status, Results, Hirata and Help are open to every signed-in person;
+   * the sixth is the person's main job, never a page they cannot use: My
+   * queue (quality), else New request (engineer, admin), else Analytics
+   * (manager), else My requests (operator, analyst). Engineers get Lots in
+   * place of Results (their lots matter more than the lab handover list).
+   * Admins see nine - every door, a full 3 x 3. */
   var HOME_SHARED = ['board', 'lab', 'results', 'hirata', 'help'];
+  var HOME_ADMIN = ['new', 'requests', 'analytics', 'board', 'lab', 'results', 'lots', 'hirata', 'help'];
   function homeRoleDoor(user) {
     if (canMeasure(user)) return 'queue';
     if (canRequest(user)) return 'new';
     if (canSeeManagement(user)) return 'analytics';
     return 'requests';
   }
-  function homeDoors(user) { return [homeRoleDoor(user)].concat(HOME_SHARED); }
+  function homeDoors(user) {
+    if (hasRole(user, 'admin')) return HOME_ADMIN.slice();
+    var eng = hasRole(user, 'engineer');
+    return [homeRoleDoor(user)].concat(HOME_SHARED.map(function (k) { return k === 'results' && eng ? 'lots' : k; }));
+  }
 
   /**
    * @mentions in a comment (Q11): "@Anna Berger" (full name) or "@aberger"

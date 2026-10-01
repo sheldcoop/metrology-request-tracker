@@ -42,7 +42,7 @@ const ctx = vm.createContext(win);
 ['js/config.js', 'js/themes.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/prf-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js', 'js/analytics.js',
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/chips.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/request-box.js', 'js/ui/hirata.js', 'js/ui/theme-gallery.js', 'js/ui/scene3d.js',
     'js/ui/scenes/aoi.js', 'js/ui/scenes/bars.js', 'js/ui/scenes/dice.js',
-    'js/ui/scenes/new.js', 'js/ui/scenes/mine.js', 'js/ui/scenes/queue.js', 'js/ui/scenes/board.js', 'js/ui/scenes/results.js', 'js/ui/scenes/hirata.js', 'js/ui/scenes/welcome.js', 'js/exporter.js',
+    'js/ui/scenes/new.js', 'js/ui/scenes/mine.js', 'js/ui/scenes/queue.js', 'js/ui/scenes/board.js', 'js/ui/scenes/results.js', 'js/ui/scenes/hirata.js', 'js/ui/scenes/lots.js', 'js/ui/scenes/welcome.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
  'js/views/settings-data.js', 'js/views/settings-look.js', 'js/views/settings-emails.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/results.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/prf.js', 'js/views/help.js', 'js/views/home.js', 'js/app.js', 'tests/memory-storage.js'
@@ -106,9 +106,9 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   check('first visit: Home opens on the welcome, no tiles yet (HOME-22)', !!$$('#main .home-welcome.is-first')[0] && $$('#main .home-card').length === 0 &&
         /Welcome, Prince/.test(doc.getElementById('main').textContent) && $$('#main .welcome-steps li').length === 3);
   buttonByText(doc.getElementById('main'), "Let's go").click(); await settle();
-  check("...Let's go: the welcome folds away, his six tiles come in", !$$('#main .home-welcome')[0] && $$('#main .home-card').length === 6);
+  check("...Let's go: the welcome folds away, his nine admin tiles come in", !$$('#main .home-welcome')[0] && $$('#main .home-card').length === 9);
   win.setHash('#/lab'); await settle(); win.setHash('#/home'); await settle();
-  check('...and never again for him', !$$('#main .home-welcome')[0] && $$('#main .home-card').length === 6);
+  check('...and never again for him', !$$('#main .home-welcome')[0] && $$('#main .home-card').length === 9);
   win.setHash('#/lab'); await settle();
   check('five tool plates', $$('.tool-plate').length === 5, $$('.tool-plate').length);
   check('each plate draws its tool glyph', $$('.tool-plate').filter(p => p.querySelector('svg.tool-glyph')).length === 5);
@@ -190,8 +190,8 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   check('...clicking the button again closes it', !doc.body.querySelector('.menu'));
   win.setHash('#/home'); await settle();
   const homeCards = doc.getElementById('main').querySelectorAll('.home-card').map(c => c.getAttribute('href'));
-  check('Home shows his six doors (new + board, lab, results, hirata, help)',
-        homeCards.join() === '#/new,#/board,#/lab,#/results,#/hirata,#/help', homeCards.join());
+  check('Home shows his nine admin doors (HOME-23)',
+        homeCards.join() === '#/new,#/requests,#/analytics,#/board,#/lab,#/results,#/lots,#/hirata,#/help', homeCards.join());
   check('...Scripts under the tiles: PRF Insight opens #/prf, HRM AutoLot is coming soon (no link)', (function () {
     const ch = doc.getElementById('main').querySelectorAll('.script-chip');
     return ch.length === 2 && ch[0].getAttribute('href') === '#/prf' && !ch[1].getAttribute('href') && ch[1].classList.contains('is-soon');

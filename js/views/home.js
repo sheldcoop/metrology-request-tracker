@@ -4,10 +4,10 @@
  * Home (#/home): one door per page - icon, title, one line. No counts:
  * a card is a place to start work, not a dashboard (Step 4 reverses DASH-4;
  * the counting functions stay for the nav badge, bell and queue counts).
- * Six doors, always (HOME-17, domain.homeDoors): Board, Lab status,
- * Results, Hirata and Help for everyone, plus the role's main job (My
+ * Six doors (HOME-17/23, domain.homeDoors): Board, Lab status, Results
+ * (Lots for engineers), Hirata and Help, plus the role's main job (My
  * queue, New request, Analytics or My requests) - never a page the role
- * cannot use. Lots, My requests and Settings stay in the sidebar. Under
+ * cannot use. Admins see all nine. Settings stays in the sidebar. Under
  * the tiles: the Scripts launchers (PRF Insight, HRM AutoLot). Every card carries a
  * data-scene key; its scene plays in the card's stage all the time,
  * livelier on hover (js/ui/scene3d.js, HOME-10).
@@ -192,6 +192,7 @@ window.MRT.views.home = (function () {
     board: { key: 'board', icon: 'kanban', title: 'Board', scene: 'board', desc: 'Every open request, by tool and stage' },
     lab: { key: 'lab', icon: 'activity', title: 'Lab status', scene: 'aoi', desc: 'Which tools are up, and how busy' },
     results: { key: 'results', icon: 'folder', title: 'Results', scene: 'results', desc: 'Result folders handed back by the lab' },
+    lots: { key: 'lots', icon: 'lots', title: 'Lots', scene: 'lots', desc: 'Register lots and see where they stand' },
     hirata: { key: 'hirata', icon: 'hirata', title: 'Hirata tools', scene: 'hirata', desc: 'Read a panel dot code' },
     help: { key: 'help', icon: 'circle-help', title: 'Help', scene: 'dice', desc: 'Step-by-step guides for every task' }
   };
