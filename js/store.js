@@ -2077,7 +2077,8 @@ window.MRT.store = (function () {
 
   /** Health and the setup to-do list (Settings > Health), as of today in Vienna. */
   function health() {
-    var o = { today_ymd: D.viennaYmd(Date.now()), calendar_confirmed: !!getSetting('calendar_confirmed') };
+    var o = { today_ymd: D.viennaYmd(Date.now()), calendar_confirmed: !!getSetting('calendar_confirmed'),
+      cal: calendar(), hs: D.holidaySet(state.data.holidays || []) };
     return { todo: D.setupTodo(state.data, o), issues: D.healthIssues(state.data, o) };
   }
 
