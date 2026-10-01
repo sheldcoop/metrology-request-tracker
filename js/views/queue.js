@@ -59,7 +59,7 @@ window.MRT.views.queue = (function () {
 
   function render(main, ctx) {
     var me = store.currentUser();
-    // #/queue/late (the alert strip's links): open on that filter
+    // #/queue/late (the counts line's filter links): open on that filter
     var want = ctx && ctx.subpath;
     if (want && STATUS_FILTER.some(function (f) { return f.value === want; })) { view.status = want; view.shown = PAGE; }
     var tools = myTools(me);
@@ -101,8 +101,12 @@ window.MRT.views.queue = (function () {
       Object.keys(picked).forEach(function (id) { if (!all.some(function (r) { return r.id === id; })) delete picked[id]; });
       var list = all.slice(0, view.shown);
       var late = all.filter(function (r) { return D.isLate(r, now, cal); }).length;
-      var mineCount = all.filter(function (r) { return r.assigned_to === me.id; }).length;
-      var nodes = [shiftStrip(all.length, late, mineCount)];
+      var nodes = [countsLine({
+        line_stop: all.filter(function (r) { return levelOf(r) === 1; }).length,
+        late: late,
+        on_hold: all.filter(function (r) { return r.status === 'on_hold'; }).length,
+        clarification: all.filter(function (r) { return r.status === 'clarification'; }).length
+      })];
       if (!all.length && !Object.keys(justDone).length) {
         nodes.push(ui.emptyState({ icon: 'inbox', title: 'Nothing waiting', text: 'No open requests match.' }));
       } else {
@@ -197,18 +201,23 @@ window.MRT.views.queue = (function () {
       }).catch(function (e) { ui.toastError(e.message, e); });
     }
 
-    /** Your shift in one glance: counts that filter the list. */
-    function shiftStrip(n, late, mine) {
-      function stat(v, label, bad, filter) {
-        return ui.el('a', { class: 'qs' + (bad ? ' is-bad' : ''), href: '#/queue/' + filter,
-                            'aria-label': v + ' ' + label + ' - show' }, [
-          ui.el('span', { class: 'qs-n num', text: String(v) }), ' ', ui.el('span', { class: 'qs-l', text: label })]);
+    /** The counts line (Part A): plain filter links, one line. Line stop
+        and Late numbers take the late colour, only when above zero. */
+    function countsLine(c) {
+      function link(label, n, filter, bad) {
+        return ui.el('a', { href: '#/queue/' + filter, class: bad ? 'is-bad' : null,
+                            'aria-label': n + ' ' + label + ' - show' }, [
+          ui.el('span', { class: 'num', text: String(n) }), ' ' + label]);
       }
-      return ui.el('div', { class: 'queue-shift', 'aria-live': 'polite' }, [
-        stat(n, 'open', false, 'open'),
-        late ? stat(late, 'late', true, 'late') : null,
-        mine ? stat(mine, 'yours', false, 'mine') : null
-      ]);
+      var parts = [
+        link('Line stop', c.line_stop, 'linestop', c.line_stop > 0),
+        link('Late', c.late, 'late', c.late > 0),
+        link('On hold', c.on_hold, 'on_hold', false),
+        link('Needs clarification', c.clarification, 'clarification', false)
+      ];
+      var out = [parts[0]];
+      for (var i = 1; i < parts.length; i++) { out.push(' · '); out.push(parts[i]); }
+      return ui.el('div', { class: 'queue-counts', 'aria-live': 'polite' }, out);
     }
 
     /** Bottom line of the box: one filled primary, quiet Hold/clarify, the rest behind "...". */
