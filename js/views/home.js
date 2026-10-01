@@ -115,7 +115,7 @@ window.MRT.views.home = (function () {
         desc: 'Every open request, by tool and stage' },
       { key: 'lab', icon: 'activity', title: 'Lab status', scene: 'aoi',
         desc: 'Which tools are up, and how busy' },
-      D.canSeeManagement(me) && { key: 'analytics', icon: 'bar-chart', title: 'Analytics', scene: 'bars',
+      D.canSeeManagement(me) && { key: 'analytics', icon: 'chart-column', title: 'Analytics', scene: 'bars',
         desc: 'Turnaround, load and trends' },
       { key: 'help', icon: 'circle-help', title: 'Help', scene: 'dice',
         desc: 'Step-by-step guides for every task' }

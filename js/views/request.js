@@ -403,7 +403,7 @@ window.MRT.views.request = (function () {
   /** One timeline row: status changes here, comments in their own panel last. */
   function eventRow(e, me) {
     var icon = { comment: 'edit', created: 'plus', assign: 'user', panels: 'inbox', edit: 'edit' }[e.kind] ||
-      (e.to === 'cancelled' ? 'close' : e.to === 'on_hold' ? 'clock' : e.to === 'clarification' ? 'help' : 'check');
+      (e.to === 'cancelled' ? 'close' : e.to === 'on_hold' ? 'clock' : e.to === 'clarification' ? 'circle-help' : 'check');
     var editable = e.kind === 'comment' && D.canEditComment(me, e);
     return ui.el('li', { class: 'tl-item is-' + e.kind + (e.to ? ' to-' + e.to : '') }, [
       ui.el('span', { class: 'tl-icon', 'aria-hidden': 'true' }, ui.icon(icon, 14)),

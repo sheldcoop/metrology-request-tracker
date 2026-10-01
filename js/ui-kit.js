@@ -261,8 +261,8 @@
            'With Reduce motion each shows its last frame. Sizes: 18 (search), 24 (queue), 28 (Settings table), 40 (gate), 56 (Lab status nameplate).'),
       el('div', { class: 'kit-row', style: { marginTop: '8px' } }, ui.GLYPHS.map(function (g) { return ui.toolGlyph(g.key, { size: 96, state: 'live', label: g.label + ', working' }); })),
       el('div', { class: 'kit-row', style: { marginTop: '8px' } }, [18, 28, 40, 56, 72].map(function (n) { return ui.toolGlyph('fib', { size: n }); })),
-      labelled('Home card icons (Lucide-style outline, 24 grid, currentColor)', el('div', { class: 'kit-row' },
-        ['plus-circle', 'list', 'inbox', 'activity', 'kanban', 'bar-chart', 'layers', 'circle-help', 'settings'].map(function (n) {
+      labelled('Home card icons (Lucide outline, 24 grid, currentColor)', el('div', { class: 'kit-row' },
+        ['plus-circle', 'list', 'inbox', 'activity', 'kanban', 'chart-column', 'layers', 'circle-help', 'settings'].map(function (n) {
           return el('span', { class: 'kit-icon-cell', title: n }, [ui.icon(n, 24), el('span', { class: 'kit-label', text: n })]);
         }))),
       labelled('Home card (static sample; hover plays the scene where WebGL exists)',
@@ -309,7 +309,7 @@
     return el('div', {}, [
       ui.hasChartJs() ? null : note('vendor/chart.umd.min.js was not found, so each chart shows the notice below.'),
       el('div', { class: 'kit-grid', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))' } }, [
-        box('Requests per week', 'chart', perWeek, 'Stacked by tool, gradient fill. Click a bar.'),
+        box('Requests per week', 'chart-column', perWeek, 'Stacked by tool, gradient fill. Click a bar.'),
         box('Turnaround', 'clock', tat, 'Draws in point by point; full-screen button top right.')
       ])
     ]);

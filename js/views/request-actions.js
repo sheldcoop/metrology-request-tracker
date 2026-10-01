@@ -21,7 +21,7 @@ window.MRT.requestActions = (function () {
   var store = window.MRT.store;
   var D = window.MRT.domain;
 
-  var ICON = { accept: 'check', receive: 'inbox', start: 'activity', hold: 'clock', resume: 'refresh', clarify: 'help', answer: 'edit',
+  var ICON = { accept: 'check', receive: 'inbox', start: 'activity', hold: 'clock', resume: 'refresh', clarify: 'circle-help', answer: 'edit',
                complete: 'check', analyze: 'check', reopen: 'restore', take: 'user', receive_start: 'activity' };
   var PRIMARY = { accept: true, receive: true, start: true, complete: true, answer: true, analyze: true, receive_start: true };
 
@@ -189,7 +189,7 @@ window.MRT.requestActions = (function () {
           .then(function (res) { return res ? done(res, 'on hold.') : null; });
         break;
       case 'clarify':
-        p = ask(r.request_no + ' needs clarification', 'help', [
+        p = ask(r.request_no + ' needs clarification', 'circle-help', [
           { key: 'text', label: 'What is missing or unclear?', kind: 'longtext' }
         ], {}, function (v) { return store.requestAction(r.id, 'clarify', v); }, function (v) { return v.text ? null : ['text', 'Say what is missing']; },
         'It goes back to the engineer; when they answer, it comes back to where it was.')

@@ -203,7 +203,7 @@ window.MRT.views.help = (function () {
              'A template whose tool is out of use cannot be started, only deleted.'],
       link: ['New request', '#/new'] },
 
-    { id: 'analytics', title: 'Analytics', icon: 'analytics',
+    { id: 'analytics', title: 'Analytics', icon: 'chart-column',
       intro: 'Numbers about the lab, in lab time (lab days and hours, holidays out). Click any number, bar or row to see the requests behind it - with Download.',
       steps: [
         'Pick the range (default: the last 90 days), a tool or a project at the top; "Last 90 days" resets.',

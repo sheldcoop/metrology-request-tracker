@@ -157,7 +157,7 @@
     var box = el('div', { class: 'chart-box', style: { height: (o.height || 240) + 'px' } });
     if (!hasChartJs()) {
       mount(box, el('div', { class: 'chart-missing' }, [
-        icon('chart', 20),
+        icon('chart-column', 20),
         el('div', {}, [el('b', { text: 'Chart library not found' }),
           el('span', { text: 'Put chart.umd.min.js (Chart.js 4) in the vendor folder.' })])
       ]));

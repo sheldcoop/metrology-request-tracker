@@ -30,7 +30,7 @@ window.MRT.views.analytics = (function () {
     { key: 'work', label: 'My work', icon: 'inbox' },
     { key: 'mine', label: 'My requests', icon: 'requests' },
     { key: 'lab', label: 'Lab', icon: 'gauge', manager: true },
-    { key: 'mgmt', label: 'Management', icon: 'analytics', manager: true }
+    { key: 'mgmt', label: 'Management', icon: 'chart-column', manager: true }
   ];
   var state = { tab: null, filter: null, lot_id: '' };
 
@@ -296,10 +296,10 @@ window.MRT.views.analytics = (function () {
       }), { valueLabel: 'On time %', labelHead: 'Tool', unit: '%', note: 'Completed by the end of the needed-by lab day; requests without a date are not counted.' })
     ]));
     body.appendChild(ui.el('div', { class: 'an-grid' }, [
-      tablePanel('Clarification rate per tool', 'help', ['Tool', 'Requests', 'With a question', 'Rate'], a.clarification_by_tool.map(function (x) {
+      tablePanel('Clarification rate per tool', 'circle-help', ['Tool', 'Requests', 'With a question', 'Rate'], a.clarification_by_tool.map(function (x) {
         return { cells: [codeOf('tools', x.tool_id), x.n, x.with_clarification, pct(x.pct)], ids: x.ids };
       })),
-      tablePanel('Clarification rate per BKM', 'help', ['BKM', 'Requests', 'With a question', 'Rate'], a.clarification_by_bkm.map(function (x) {
+      tablePanel('Clarification rate per BKM', 'circle-help', ['BKM', 'Requests', 'With a question', 'Rate'], a.clarification_by_bkm.map(function (x) {
         return { cells: [x.bkm_id === 'own' ? 'own BKM (path)' : x.bkm_id === 'none' ? 'no BKM' : nameOf('bkms', x.bkm_id), x.n, x.with_clarification, pct(x.pct)], ids: x.ids };
       })),
       tablePanel('On-hold reasons', 'wrench', ['Reason', 'Times put on hold'], a.hold_reasons.map(function (x) {
@@ -343,7 +343,7 @@ window.MRT.views.analytics = (function () {
       a.per_month_project.filter(function (x) { return x.month === m; }).forEach(function (x) { it['p_' + (x.project_id || 'none')] = x.n; it.ids = it.ids.concat(x.ids); });
       return it;
     });
-    body.appendChild(barPanel('Requests per month, by project', 'analytics', items, { stacked: true, labelHead: 'Month',
+    body.appendChild(barPanel('Requests per month, by project', 'chart-column', items, { stacked: true, labelHead: 'Month',
       series: projects.map(function (p) { return { label: p ? codeOf('projects', p) : 'no project', key: 'p_' + (p || 'none') }; }) }));
     body.appendChild(ui.el('div', { class: 'an-grid' }, [
       barPanel('Demand per tool', 'wrench', a.demand_by_tool.map(function (x) { return { label: codeOf('tools', x.key), value: x.n, ids: x.ids }; }),
