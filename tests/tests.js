@@ -1738,6 +1738,104 @@
     eq('...a file whose magazine list stayed empty gets the 20 sample magazines', v9b.magazines.length, 20);
   }
 
+  /* ---------------- PRF data: js/prf.js (a port of PRF_Insight.py) ---------------- */
+  function prfTests() {
+    var P = window.MRT.prf;
+
+    group('PRF data - numbers');
+    eq('toFloat reads numbers like python float()', [P.toFloat('1.5'), P.toFloat(' -2e3 '), P.toFloat('.5'), P.toFloat('1_0')], [1.5, -2000, 0.5, 10]);
+    eq('toFloat: empty and text are NOT numbers (JS Number("") would be 0)', [P.toFloat(''), P.toFloat('abc'), P.toFloat('1,5'), P.toFloat('--1')], [null, null, null, null]);
+    ok('toFloat: nan / inf like python', isNaN(P.toFloat('nan')) && P.toFloat('-inf') === -Infinity && P.toFloat('Infinity') === Infinity);
+    eq('round to 6 digits', [P.round(1.23456789, 6), P.round(-1.23456789, 6), P.round(2, 6)], [1.234568, -1.234568, 2]);
+    ok('round keeps NaN', isNaN(P.round(NaN, 6)));
+    eq('mean', P.mean([1, 2, 3, 4]), 2.5);
+    eq('std is the SAMPLE std (pandas ddof=1)', P.round(P.std([2, 4, 4, 4, 5, 5, 7, 9], 1), 6), 2.13809);
+    eq('std with ddof=0 is the population std', P.std([2, 4, 4, 4, 5, 5, 7, 9], 0), 2);
+    ok('std of one value with ddof=1 is NaN (the script then shows a blank)', isNaN(P.std([5], 1)));
+    eq('median odd / even', [P.median([3, 1, 2]), P.median([4, 1, 3, 2])], [2, 2.5]);
+    ok('mean / min / max of nothing are NaN', isNaN(P.mean([])) && isNaN(P.minOf([])) && isNaN(P.maxOf([])));
+
+    group('PRF data - path: build-up, panel, side, lot');
+    eq('buNumber reads BU-01 / BU01 / bu 1 / BU_2', ['BU-01', 'BU01', 'bu 1', 'BU_2', 'XBU3', 'Bu-12 done'].map(P.buNumber), [1, 1, 1, 2, null, 12]);
+    eq('buLabel', [P.buLabel(1), P.buLabel(12), P.buLabel(null)], ['BU01', 'BU12', '']);
+    eq('panel and side from folder names', P.panelSideFromPath(['Post DSM', 'Panel 28', 'Front', 'log']), { panels: [28], sides: ['Front'] });
+    eq('...also "Panel 1_Front - done"', P.panelSideFromPath(['Panel 1_Front - done']), { panels: [1], sides: ['Front'] });
+    eq('...a folder called "Backup" is not Back', P.panelSideFromPath(['Panel 3', 'Backup']).sides, []);
+    eq('...both sides in a path are both reported', P.panelSideFromPath(['Panel 3', 'Front', 'Back']).sides, ['Front', 'Back']);
+    eq('lot = the 5-digit folder; part before, project before that', P.lotFromPath(['L', 'ProjX', 'PN-7', '12345', 'BU-01']), { part: 'PN-7', project: 'ProjX', lot: '12345' });
+    eq('...a lot like 12345.1 counts', P.lotFromPath(['PN', '12345.1']).lot, '12345.1');
+    eq('...no 5-digit folder: the folder above PRF / BU is the lot', P.lotFromPath(['Proj', 'PN', 'LOTX', 'PRF', 'Panel 1']), { part: 'PN', project: 'Proj', lot: 'LOTX' });
+    eq('...two different lots in one path = several', P.lotFromPath(['12345', 'x', '54321']), 'several');
+    eq('...none = null', P.lotFromPath(['a', 'b']), null);
+
+    group('PRF data - find log folders (index)');
+    var idx = P.indexLogs('Root', [
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 1', 'Front'], ref: 'r1' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 1', 'Back'], ref: 'r2' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 2'], ref: 'r3' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 1', 'Front', 'again'], ref: 'r4' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 1', 'BU-02', 'Back'], ref: 'r5' },
+      { rel: ['Proj', 'PN1', '12345', 'Panel 3', 'Front'], ref: 'r6' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 4', 'Front', 'Panel 5'], ref: 'r7' }
+    ]);
+    eq('lots found with project and part', idx.lots, { '12345': { project: 'Proj', part: 'PN1' } });
+    eq('a side folder is keyed by lot, build-up, panel, side', Object.keys(idx.index).sort(), ['12345|1|1|Back', '12345|1|1|Front', '12345||3|Front'].sort());
+    eq('two log folders for one panel + side are kept together', idx.index['12345|1|1|Front'].refs, ['r1', 'r4']);
+    eq('problems: no Front/Back, two build-ups, several panels', idx.problems, [
+      'No Front/Back in path, skipped: r3', 'Several buildups in path, skipped: r5', 'Several panel number in path, skipped: r7']);
+    var rootIsPanel = P.indexLogs('Panel 9 Front', [{ rel: [], ref: 'x' }]);
+    eq('root = a panel/side folder: panel and side come from the root name', Object.keys(rootIsPanel.index), ['||9|Front']);
+    eq('siteNumber = last number in the file name', [P.siteNumber('C:/a/Site_12.txt'), P.siteNumber('a3_b45.csv'), P.siteNumber('none.txt')], [12, 45, -1]);
+
+    group('PRF data - reading and sorting files');
+    eq('lines: CRLF, trailing empty line dropped', P.textToLines('a\r\nb\r\n'), ['a', 'b']);
+    eq('lines: a blank line inside stays, bad-byte characters are dropped', P.textToLines('a\n\nb\uFFFD'), ['a', '', 'b']);
+    eq('lines: empty text has no lines (py "".splitlines())', P.textToLines(''), []);
+    eq('split: tab if there is a tab, else comma, cells trimmed', [P.splitLine('a\t b ,c'), P.splitLine('a, b ,c')], [['a', 'b ,c'], ['a', 'b', 'c']]);
+    var rough = ['Some header', 'Ra\tRq\tRz\tRpv\tRku', '0.1\t0.2\t0.5\t0.6\t3', '0.2\t0.3\t0.7\t0.8\t3.1', 'Min\t0.1'];
+    var via = ['Diamond Area 0.5', 'Index,CenterX,CenterY,MajorAxis,MinorAxis,AvgHeight,MinHeight,MaxHeight', '1,0,0,50,48,-30,-31,-29'];
+    eq('classify: roughness', P.classify(rough), 'roughness');
+    eq('classify: via (Diamond Area, or Index + CenterX)', [P.classify(via), P.classify(['Index\tCenterX'])], ['via', 'via']);
+    eq('classify: unknown', P.classify(['hello', 'world']), 'unknown');
+    eq('classify: via is checked before roughness', P.classify(rough.concat(['Diamond Area'])), 'via');
+    eq('parseRoughness stops at the Min / Max / Mean row', P.parseRoughness(rough).rows.length, 2);
+    eq('parseRoughness reads the columns by name', P.parseRoughness(rough).rows[1], { Ra: 0.2, Rq: 0.3, Rz: 0.7, Rpv: 0.8, Rku: 3.1 });
+    eq('parseRoughness drops lines that are not numbers', P.parseRoughness(['Ra,Rq', '1,2', 'x,3', '4,5']).rows.length, 2);
+    var bad = 'none'; try { P.parseRoughness(['x']); } catch (e) { bad = e.message; }
+    eq('parseRoughness without a header says so', bad, 'roughness header not found');
+    eq('parseVia reads a circle row', P.parseVia(via).rows, [{ Index: 1, CenterX: 0, CenterY: 0, MajorAxis: 50, MinorAxis: 48, AvgHeight: -30, MinHeight: -31, MaxHeight: -29 }]);
+    eq('parseVia ignores rows whose first cell is not an integer', P.parseVia(['Index,CenterX', 'x,1', '2,5']).rows.length, 1);
+    var bad2 = 'none'; try { P.need({ a: 1 }, 'Rpv'); } catch (e) { bad2 = e.message; }
+    eq('a missing column is an error named like the script ("\'Rpv\'")', bad2, "'Rpv'");
+
+    group('PRF data - unit labels');
+    eq('unitType: number = Unit, letter first = Coupon', [P.unitType(3), P.unitType('C1'), P.unitType('-2')], ['Unit', 'Coupon', 'Unit']);
+    eq('asLabel keeps numbers as numbers, coupons as text', [P.asLabel('7'), P.asLabel('C3'), P.asLabel(' 12 ')], [7, 'C3', 12]);
+    eq('units: the typed ORDER is kept, never sorted', P.parseUnits('5,4,2,3,6').units, [5, 4, 2, 3, 6]);
+    eq('units: commas, spaces or both; numbers above 9 are one unit', P.parseUnits('12  3, 10;C1').units, [12, 3, 10, 'C1']);
+    eq('units: anything else is reported, not guessed', P.parseUnits('1, x, 2-3').bad, ['x', '2-3']);
+    eq('sequence text 3x3, 2x4, C1x5', P.parseSequence('3x3, 2x4, C1x5').items, [['3', 3], ['2', 4], ['C1', 5]]);
+    eq('sequence list form', P.parseSequence([[3, 3], ['C1', 5]]).items, [['3', 3], ['C1', 5]]);
+    eq('sequence: X and * work too', P.parseSequence('3X2;4*1').items, [['3', 2], ['4', 1]]);
+    eq('sequence: empty = none, no message', [P.parseSequence('').items, P.parseSequence('').error], [null, '']);
+    ok('sequence: a bad part ignores the whole sequence and says why', P.parseSequence('3x3, abc').items === null && /Bad via sequence part "abc"/.test(P.parseSequence('3x3, abc').error));
+    ok('sequence: count 0 is refused', /1 or more/.test(P.parseSequence('3x0').error));
+    eq('sequenceText', P.sequenceText([['3', 3], ['C1', 5]]), '3x3, C1x5');
+
+    group('PRF data - how vias are split over units');
+    eq('even split: 6 files / 3 units = 2 each, in unit order (never sorted)', P.viaLabels(6, [5, 4, 2], null, null).labels, [[5, 1], [5, 2], [4, 1], [4, 2], [2, 1], [2, 2]]);
+    eq('...the message says so', P.viaLabels(6, [5, 4, 2], null, null).messages, [{ level: 'INFO', text: '6 via files / 3 units = 2 vias per unit' }]);
+    eq('even split that does not fit = error, nothing labelled', [P.viaLabels(7, [1, 2], null, null).labels, P.viaLabels(7, [1, 2], null, null).messages[0].level], [[], 'ERROR']);
+    eq('...no units at all = error', P.viaLabels(4, [], null, null).labels, []);
+    eq('fixed per unit / coupon', P.viaLabels(5, [], null, P.countsFromDefaults([1, 'C1'], 3, 2)).labels, [[1, 1], [1, 2], [1, 3], ['C1', 1], ['C1', 2]]);
+    eq('countsFromDefaults: coupon count defaults to the unit count; none without units', [P.countsFromDefaults([1, 'C1'], 4, 0), P.countsFromDefaults([], 4, 0), P.countsFromDefaults([1], 0, 0)], [[[1, 4], ['C1', 4]], null, null]);
+    eq('sequence wins over the other splits', P.viaLabels(3, [1], [['3', 2], ['C1', 1]], P.countsFromDefaults([1], 9, 0)).labels, [['3', 1], ['3', 2], ['C1', 1]]);
+    eq('sequence that does not fit = error', P.viaLabels(5, [1], [['3', 2]], null).messages[0].level, 'ERROR');
+    eq('counts that do not fit = error', P.viaLabels(5, [1], null, [[1, 2]]).messages[0].level, 'ERROR');
+    eq('compress 1,2,3,7,9,10', P.compress([10, 1, 2, 3, 7, 9]), '1-3, 7, 9-10');
+  }
+  prfTests();
+
   T.done = run().catch(function (e) {
     T.failed++;
     (current || (group('Runner'), current)).rows.push({ ok: false, name: 'the test run crashed', detail: String(e && e.stack || e) });
