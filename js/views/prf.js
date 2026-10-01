@@ -30,6 +30,7 @@ window.MRT.views.prf = (function () {
     progress: null,     // {done, total} while reading files
     result: null,       // {sides: [...], problems: [], lots: {}} once scanned
     error: null,
+    savedRootHint: null, // name of a remembered root folder whose permission lapsed
     settings: null,     // built once from result (defaultSettings) - see below
     advancedOpen: false
   };
@@ -177,13 +178,36 @@ window.MRT.views.prf = (function () {
     });
   }
 
+  /**
+   * A folder was picked before (IndexedDB remembers the handle), but Chrome's
+   * PERMISSION on it can lapse between visits - that is Chrome's rule, not
+   * something this page controls. Try a silent reconnect first (no prompt at
+   * all); if that fails, offer one-click Reconnect (just the permission
+   * prompt) instead of making the person navigate the whole folder tree
+   * again. "Choose a different folder" always stays next to it.
+   */
   function trySilentReconnect() {
     return adapter.hasSavedRoot().then(function (has) {
       if (!has) return;
-      return adapter.reconnectRoot({ silent: true }).then(function (ok) {
-        if (ok) { state.connected = true; state.rootLabel = adapter.rootLabel(); }
-      });
+      return adapter.savedRootLabel().then(function (name) { state.savedRootHint = name; })
+        .then(function () { return adapter.reconnectRoot({ silent: true }); })
+        .then(function (ok) { if (ok) { state.connected = true; state.rootLabel = adapter.rootLabel(); } });
     }).catch(function () {});
+  }
+
+  function reconnectRoot() {
+    state.error = null;
+    return adapter.reconnectRoot({ silent: false }).then(function (ok) {
+      if (!ok) { state.error = 'Permission was not given. Use "Choose root folder" instead.'; draw(); return; }
+      state.connected = true;
+      state.rootLabel = adapter.rootLabel();
+      state.result = null;
+      draw();
+      return runScan();
+    }).catch(function (e) {
+      state.error = e.message || String(e);
+      draw();
+    });
   }
 
   /* --- rendering ----------------------------------------------------------- */
@@ -197,11 +221,14 @@ window.MRT.views.prf = (function () {
       body.push(ui.emptyState({ icon: 'alert', title: 'Not available in this browser', text: adapter.unsupportedMessage() }));
     } else {
       body.push(ui.el('p', { class: 'muted', text: 'Pick the folder that contains the panels - any layout works, ' +
-        'the scan finds every "log" folder underneath. You can pick a different folder each time; nothing is remembered that you have to clear.' }));
+        'the scan finds every "log" folder underneath. For Project/Part number/Lot to be read automatically, point here ' +
+        'at the Lot folder or above it; lower than that, type them in under Metadata > Edit. You can pick a different folder any time.' }));
       body.push(ui.el('div', { class: 'prf-folder-row' }, [
         state.connected ? ui.el('span', { class: 'mono' }, state.rootLabel || '(connected)') : null,
+        !state.connected && state.savedRootHint ? ui.el('span', { class: 'muted' }, 'Last used: ' + state.savedRootHint) : null,
+        !state.connected && state.savedRootHint ? ui.button('Reconnect', { kind: 'primary', icon: 'refresh', onClick: reconnectRoot }) : null,
         ui.button(state.connected ? 'Change root folder' : 'Choose root folder', {
-          kind: state.connected ? undefined : 'primary', icon: 'folder', onClick: connectRoot
+          kind: state.connected ? undefined : (state.savedRootHint ? undefined : 'primary'), icon: 'folder', onClick: connectRoot
         }),
         state.connected ? ui.button('Scan again', { icon: 'refresh', disabled: state.scanning, onClick: runScan }) : null
       ]));
