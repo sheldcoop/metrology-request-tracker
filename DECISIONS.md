@@ -1159,3 +1159,8 @@ never the only signal - the text/label says the same thing.
   harder while it is there. Help = "the dice become help": two dice always
   land on FIVE; their ten pips fly up into a glowing question mark in a
   halo, then fly home and the dice lift away.
+- **HOME-21** (home-final: AT&S retired, 2026-10-01, Prince) AT&S is
+  retired ("not good"); its key aliases to dark-teal. Dark Teal is the new
+  default ("dark theme first", Mission Control). Five themes: Dark Teal,
+  Pure White, Slate, Neutral, Copper. The page/panel zone mechanism
+  (HOME-11) stays in themes.js/app.css; no theme uses a `page` palette now.

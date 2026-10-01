@@ -148,11 +148,11 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   const menu = doc.body.querySelector('.menu');
   check('the user menu opens with theme, start page, Help and Sign out', !!menu && /Theme/.test(menu.textContent) && /Start page/.test(menu.textContent) && /Help/.test(menu.textContent) && /Sign out/.test(menu.textContent));
   check('...and shows the roles', !!menu && /Admin/.test(menu.textContent));
-  buttonByText(menu, 'Theme: AT&S...').click(); await settle();
+  buttonByText(menu, 'Theme: Dark Teal...').click(); await settle();
   const thDlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   const tcard = k => thDlg.querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
   check('Theme... opens the gallery: every theme of js/themes.js as a live sample, plus "Office default"',
-        !!thDlg && thDlg.querySelectorAll('.tg-card').length === MRT.themes.list.length + 1 && thDlg.querySelectorAll('.tg-sample[data-theme="ats"]').length === 1);
+        !!thDlg && thDlg.querySelectorAll('.tg-card').length === MRT.themes.list.length + 1 && thDlg.querySelectorAll('.tg-sample[data-theme="dark-teal"]').length === 1);
   tcard('dark-teal').click();
   check('...a click switches at once (theme, scheme) and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'dark-teal' &&
         doc.documentElement.getAttribute('data-scheme') === 'dark' && storage['mrt.theme.' + MRT.store.currentUser().id] === 'dark-teal' && storage['mrt.theme.last'] === 'dark-teal');
@@ -405,7 +405,7 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
 
   await tab('look');
   const lookCard = k => doc.getElementById('main').querySelectorAll('.tg-card').filter(c => c.dataset.key === k)[0];
-  check('Settings > Look: every theme as a live sample, the office default marked, old keys still resolve', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.length && lookCard('ats').classList.contains('is-on') && MRT.themes.byKey('hc').key === 'dark-teal' && MRT.themes.byKey('carbon-g100').key === 'dark-teal' && MRT.themes.byKey('gruvbox-light').key === 'pure-white' && MRT.themes.byKey('minimal').key === 'pure-white' && MRT.themes.byKey('deep-lab').key === 'dark-teal' && MRT.themes.byKey('cleanroom').key === 'pure-white' && MRT.themes.byKey('signal').key === 'dark-teal' && MRT.themes.byKey('frost').key === 'pure-white');
+  check('Settings > Look: every theme as a live sample, the office default marked, old keys still resolve', doc.getElementById('main').querySelectorAll('.tg-card').length === MRT.themes.list.length && lookCard('dark-teal').classList.contains('is-on') && MRT.themes.byKey('hc').key === 'dark-teal' && MRT.themes.byKey('carbon-g100').key === 'dark-teal' && MRT.themes.byKey('gruvbox-light').key === 'pure-white' && MRT.themes.byKey('minimal').key === 'pure-white' && MRT.themes.byKey('deep-lab').key === 'dark-teal' && MRT.themes.byKey('cleanroom').key === 'pure-white' && MRT.themes.byKey('signal').key === 'dark-teal' && MRT.themes.byKey('frost').key === 'pure-white');
   lookCard('slate').click(); await settle();
   check('...a click makes Slate the office default (audited)', MRT.store.getSetting('default_theme') === 'slate' && MRT.store.data().audit_log.slice(-1)[0].field === 'default_theme');
   doc.getElementById('userBtn').click(); await settle();
@@ -414,9 +414,9 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   thDlg2.querySelectorAll('.tg-card').filter(c => c.dataset.key === '')[0].click();
   check('..."Office default" in the gallery follows it again', doc.documentElement.getAttribute('data-theme') === 'slate' && !storage['mrt.theme.' + MRT.store.currentUser().id]);
   buttonByText(thDlg2, 'Done').click(); await settle();
-  lookCard('ats').click(); await settle();
-  check('...back to AT&S: stored as "the app default", and I follow it at once', MRT.store.getSetting('default_theme') === null &&
-        doc.documentElement.getAttribute('data-theme') === 'ats');
+  lookCard('dark-teal').click(); await settle();
+  check('...back to Dark Teal: stored as "the app default", and I follow it at once', MRT.store.getSetting('default_theme') === null &&
+        doc.documentElement.getAttribute('data-theme') === 'dark-teal');
   await tab('data');
   check('Data & PIN shows the file and today\'s backup', /mrt_data.json/.test(mainText()) && /latest/.test(mainText()));
   buttonByText(doc.getElementById('main'), 'Download a copy now').click(); await settle();

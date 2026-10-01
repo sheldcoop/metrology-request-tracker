@@ -10,13 +10,14 @@
  * The user menu's theme gallery, Settings > Look (the default theme for
  * everyone), ui-kit.html and tests/contrast.js all read this list.
  *
- * The themes (2026-09-30, Prince, redesign Step 1; 2026-10-01 HOME-19: Quant -> Neutral, + Copper): six - AT&S (the default,
- * company identity; since 2026-10-01 a white room with AT&S blue panels and tiles, white writing), Pure White, Dark Teal, Slate, Neutral and Copper.
+ * The themes (2026-09-30, Prince, redesign Step 1; 2026-10-01 HOME-19/21:
+ * Quant -> Neutral, + Copper, AT&S retired): five - Dark Teal (the default),
+ * Pure White, Slate, Neutral and Copper.
  * Dark Teal and Slate match the studio website tokens (studio
  * src/tailwind.config.ts .dark / .slate, HSL converted to hex by
  * script); their AA-tuned text shades stay one step off the raw tokens where
  * tests/contrast.js fails. Signal and Frost are retired; their keys (and every
- * older key) map onto the six (ALIASES), so nobody's saved choice breaks.
+ * older key, ats and quant included) map onto the five (ALIASES), so nobody's saved choice breaks.
  * Status tokens keep OK / Warning / Line stop / Late clearly apart and
  * readable in every theme.
  *
@@ -33,7 +34,7 @@ window.MRT = window.MRT || {};
 window.MRT.themes = (function () {
   'use strict';
 
-  var DEFAULT = 'ats';
+  var DEFAULT = 'dark-teal';
   /** Keys of the retired themes (2026-09-28) -> today's, so a saved choice keeps working. */
   var ALIASES = { dark: 'dark-teal', ocean: 'dark-teal', galaxy: 'dark-teal', forest: 'dark-teal', tech: 'dark-teal',
                   'carbon-g100': 'dark-teal', 'catppuccin-mocha': 'dark-teal', 'deep-lab': 'dark-teal',
@@ -42,7 +43,7 @@ window.MRT.themes = (function () {
                   'carbon-white': 'pure-white', 'gruvbox-light': 'pure-white', cleanroom: 'pure-white', minimal: 'pure-white',
                   frost: 'pure-white',
                   hc: 'dark-teal', 'primer-hc': 'dark-teal',
-                  quant: 'neutral' };
+                  quant: 'neutral', ats: 'dark-teal' };
   var LAST_KEY = 'mrt.theme.last';
 
   /* Status colours per scheme: the meaning never changes, only the shade that reads well. */
@@ -77,24 +78,8 @@ window.MRT.themes = (function () {
    */
   var THEMES = [
 
-    { key: 'ats', name: 'AT&S', scheme: 'dark', group: 'Main', page: 'pure-white',
-      mood: 'Company identity: white room, AT&S blue panels and tiles with white writing; red only where it hurts (late, danger).',
-      swatches: ['#FFFFFF', '#0C3D6E', '#FFFFFF', '#B9CBE0'],
-      p: { bg: '#FFFFFF', surface: '#0C3D6E', 'surface-2': '#10487F', 'surface-3': '#15538C', inset: '#082B4F',
-           fg: '#FFFFFF', 'fg-muted': '#B9CBE0', 'fg-faint': '#A3B8D2',
-           line: '#2A5A8C', 'line-strong': '#41719F', 'line-hi': '#8FC1F0', bracket: '#41719F',
-           accent: '#FFFFFF', 'accent-fill': '#FFFFFF', 'accent-fg': '#082B4F', 'accent-soft': 'rgba(255, 255, 255, .14)',
-           'accent-glow': '0 0 0 1px #FFFFFF',
-           ok: '#5CCB8A', 'ok-fg': '#7CE3A6', 'ok-bg': '#0A3520',
-           warning: '#F2B84B', 'warning-fg': '#F6C963', 'warning-bg': '#3A2A00',
-           critical: '#FF832B', 'critical-fg': '#FFA76B', 'critical-bg': '#3E1A00',
-           expired: '#FF7A70', 'expired-fg': '#FF9A92', 'expired-bg': '#4A1210',
-           danger: '#FF7A70', 'danger-fg': '#FF9A92', 'danger-bg': '#4A1210', 'on-danger': '#260606',
-           blocked: '#6F6F6F', 'blocked-fg': '#C6C6C6', 'blocked-bg': '#2A3F58',
-           'c-blue': '#8FC1F0', 'c-teal': '#5CC8C8', 'c-pink': '#F49AC2',
-           shadow: '0 8px 24px rgba(8, 43, 79, .22)', 'shadow-pop': '0 18px 50px rgba(8, 43, 79, .35)', scrim: 'rgba(4, 10, 20, .55)' } },
     { key: 'dark-teal', name: 'Dark Teal', scheme: 'dark', group: 'Main',
-      mood: 'Studio .dark tokens: near-black room, teal actions.',
+      mood: 'Mission Control: near-black room, glowing teal actions. The default.',
       swatches: ['#020A1D', '#061027', '#02E8CD', '#F8FAFC'],
       p: { bg: '#020A1D', surface: '#061027', 'surface-2': '#1D283A', 'surface-3': '#26344B', inset: '#020A1D',
            fg: '#F8FAFC', 'fg-muted': '#94A3B8', 'fg-faint': '#7F91AA',

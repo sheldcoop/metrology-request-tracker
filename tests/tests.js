@@ -1520,12 +1520,12 @@
     eq('an admin sets one, audited', [ST.getSetting('default_theme'), ST.data().audit_log.slice(-1)[0].new_value], ['slate', 'slate']);
     await refused('...not a theme that does not exist', ST.setDefaultTheme('neon-pink', 'x'), 'invalid');
     await refused('...the same again is "nothing changed"', ST.setDefaultTheme('slate', 'x'), 'no_change');
-    eq('retired keys still resolve to the five (signal/frost retired in Step 1)',
+    eq('retired keys still resolve to the five (signal/frost Step 1, ats/quant HOME-19/21)',
        [window.MRT.themes.byKey('carbon-g100').key, window.MRT.themes.byKey('carbon-white').key, window.MRT.themes.byKey('primer-hc').key,
         window.MRT.themes.byKey('hc').key, window.MRT.themes.byKey('catppuccin-mocha').key, window.MRT.themes.byKey('gruvbox-light').key,
         window.MRT.themes.byKey('minimal').key, window.MRT.themes.byKey('signal').key, window.MRT.themes.byKey('frost').key,
-        window.MRT.themes.DEFAULT],
-       ['dark-teal', 'pure-white', 'dark-teal', 'dark-teal', 'dark-teal', 'pure-white', 'pure-white', 'dark-teal', 'pure-white', 'ats']);
+        window.MRT.themes.byKey('ats').key, window.MRT.themes.byKey('quant').key, window.MRT.themes.DEFAULT],
+       ['dark-teal', 'pure-white', 'dark-teal', 'dark-teal', 'dark-teal', 'pure-white', 'pure-white', 'dark-teal', 'pure-white', 'dark-teal', 'neutral', 'dark-teal']);
     var themeCss = window.MRT.themes.css();
     ok('the default theme CSS comes first, so a picked theme paints over it (its :root rule ties [data-theme] on specificity)',
       themeCss.indexOf(':root,') === 0 && themeCss.indexOf(':root,', 1) === -1);

@@ -183,7 +183,7 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const live=win.MRT.themes.list;
-  expect('the kit opens on all 6 themes side by side, with their contrast table',live.length===6&&root.querySelectorAll('.theme-scope').length===6&&
+  expect('the kit opens on all 5 themes side by side, with their contrast table',live.length===5&&root.querySelectorAll('.theme-scope').length===5&&
     root.querySelector('.kit-contrast').querySelectorAll('th').length===2+live.length);
   const sel=doc.getElementById('kitTheme');sel.value='dark-teal';sel.dispatch('change');flush();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
@@ -192,12 +192,12 @@ if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.rea
   for(const b of root.querySelectorAll('button')){try{b.dispatch('click');flush()}catch(e){errs++;console.log('ERR kit button',b.textContent,e.message)}}
   sel.value='all';sel.dispatch('change');flush();
   expect('the kit renders every theme of the app side by side',root.querySelectorAll('.theme-scope').length===live.length);
-  sel.value='ats';sel.dispatch('change');flush();expect('...or one of them',doc.documentElement.getAttribute('data-theme')==='ats')})}
+  sel.value='copper';sel.dispatch('change');flush();expect('...or one of them',doc.documentElement.getAttribute('data-theme')==='copper')})}
 check('status badge',()=>{const b=put(ui.statusBadge('expired','Late'));expect('statusBadge: a chip with the status class (its icon) and the word',b.classList.contains('chip')&&b.classList.contains('expired')&&b.textContent==='Late');
   expect('...an unknown status falls back to neutral',ui.statusBadge('nope','x').classList.contains('neutral'));
   const i=put(ui.statusIcon('critical'));expect('statusIcon: the icon alone, hidden from screen readers (the word is beside it)',i.classList.contains('is-critical')&&i.getAttribute('aria-hidden')==='true');
   const k=put(ui.kpiTile({label:'Late',value:2,status:'expired'}));expect('a KPI tile with a status shows its icon before the label',!!k.node.querySelector('.st-ic.is-expired'))});
-check('theme gallery',()=>{let got=null;const g=put(ui.themeGallery({themes:win.MRT.themes,value:'ats',onPick:k=>{got=k},extra:{key:'',name:'Office default',mood:'x'}}));
+check('theme gallery',()=>{let got=null;const g=put(ui.themeGallery({themes:win.MRT.themes,value:'dark-teal',onPick:k=>{got=k},extra:{key:'',name:'Office default',mood:'x'}}));
   const cards=g.node.querySelectorAll('.tg-card');expect('one card per theme + Office default, grouped',cards.length===win.MRT.themes.list.length+1&&g.node.querySelectorAll('.tg-group-title').length===1);
   expect('each sample carries its own theme',g.node.querySelectorAll('.tg-sample').filter(x=>x.getAttribute('data-theme')).length===win.MRT.themes.list.length);
   cards.filter(c=>c.dataset.key==='slate')[0].click();expect('a click picks it',got==='slate'&&g.value()==='slate'&&cards.filter(c=>c.classList.contains('is-on')).length===1)});

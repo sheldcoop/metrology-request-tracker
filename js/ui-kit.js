@@ -612,7 +612,7 @@
       TH.setOn(document.documentElement, TH.DEFAULT);
       document.documentElement.removeAttribute('data-concept');
       ui.mount(root, [el('div', { style: { gridColumn: '1 / -1', padding: '20px 20px 0' } }, [
-        el('p', { class: 'muted', text: 'Every theme of js/themes.js side by side: AT&S (default), Dark Teal, Pure White, Slate, Quant. Status = icon + word in every theme.' }),
+        el('p', { class: 'muted', text: 'Every theme of js/themes.js side by side: Dark Teal (default), Pure White, Slate, Neutral, Copper. Status = icon + word in every theme.' }),
         contrastTable()
       ])].concat(THEMES.map(function (t) {
         var scope = el('div', { class: 'theme-scope' }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));
