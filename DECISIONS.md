@@ -948,3 +948,10 @@ never the only signal - the text/label says the same thing.
   deep-lab, cleanroom and minimal. Verified 2026-10-01: all 20 retired keys
   resolve through `byKey`, so a saved choice always lands somewhere
   sensible; no code change needed. Nobody "restores" frost/signal as themes.
+- **HOME-2** (home-final, Step 2: hero tagline) Centred hero above the grid:
+  typing tagline through four lines settling on "From Request to Result",
+  which stays permanently (never loops, cursor stops - a loop is tiring in
+  a tool opened all day). Key nouns in accent; quiet muted sentence under;
+  Home only. Vanilla `setTimeout` driver (`tagNext`, pure and unit-tested:
+  settled state is a fixed point, no timer scheduled on settle); hidden tab
+  pauses. Reduced motion shows only the final line, no cursor.
