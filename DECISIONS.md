@@ -1030,3 +1030,15 @@ never the only signal - the text/label says the same thing.
   plate with an accent edge stripe. New: sheet rises, lines type on, plus
   badge pops. Analytics: the wave. Hemisphere ground follows the theme
   (was hardcoded dark navy). Test stub mirrors the canvas/texture API.
+- **HOME-9** (home-final: six doors per role) Every role sees exactly six
+  Home cards (full 3+3 grid, no orphan row). New gates in `domain.js`
+  (unit-tested): `boardFor` (quality/manager/operator/analyst - the route
+  was never guarded), `resultsFor` (all but engineers - their own results
+  live on My requests), `hirataFor` (engineer/operator/analyst - whoever
+  handles panels). Sets: Engineer new/requests/lab/lots/hirata/help; QE
+  requests/queue/board/lab/results/help; Manager
+  requests/board/lab/results/analytics/help; Admin
+  new/requests/lab/results/lots/help; Operator and Analyst
+  requests/board/lab/results/hirata/help. Lots keeps `canRegisterLot`;
+  Settings stays sidebar-only. Lots/results/hirata cards are static (no
+  scene); the seven scene cards untouched.
