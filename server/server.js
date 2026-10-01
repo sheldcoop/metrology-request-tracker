@@ -12,6 +12,24 @@ const path = require('node:path');
 const http = require('node:http');
 const { journalMode, sqliteVersion } = require('./db');
 const { initDoc, getDoc, putDoc } = require('./doc-store');
+const { loadDomain, checkWrite } = require('./rules');
+
+var domainCache = null;
+function domain(root) {
+  if (!domainCache) domainCache = loadDomain(root);
+  return domainCache;
+}
+
+/** Who is writing: the dev/test header today, login or a proxy header later. */
+function writerOf(req) {
+  const h = (req.headers || {})['x-mrt-user'];
+  return typeof h === 'string' && h ? h : null;
+}
+
+function userPublic(u) {
+  return { id: u.id, name: u.name, roles: u.roles || [], windows_id: u.windows_id || null,
+    domain: u.domain || null, email: u.email || null, active: u.active !== false };
+}
 
 /** Request bodies are small JSON docs; refuse anything absurd. */
 const MAX_BODY = 25 * 1024 * 1024;
@@ -134,9 +152,33 @@ async function handleRequest(root, db, dataDir, req, res) {
       return send(res, 200, 'application/json; charset=utf-8',
         JSON.stringify({ ok: true, revision: row.revision, saved_by: row.saved_by, saved_ts: row.saved_ts, doc: row.body }));
     }
+    if (url.pathname === '/api/me' && req.method === 'GET') {
+      const row = getDoc(db);
+      const users = (row && JSON.parse(row.body).users) || [];
+      const me = users.filter((u) => u && u.id === writerOf(req))[0];
+      if (!me) return send(res, 401, 'application/json; charset=utf-8', JSON.stringify({ ok: false, code: 'unknown_user' }));
+      return send(res, 200, 'application/json; charset=utf-8', JSON.stringify({ ok: true, me: userPublic(me) }));
+    }
     if (url.pathname === '/api/doc' && req.method === 'PUT') {
       const parsed = await readJson(req, res);
       if (!parsed) return;
+      const current = getDoc(db);
+      const writerId = writerOf(req);
+      if (current) {
+        if (!writerId) {
+          return send(res, 401, 'application/json; charset=utf-8', JSON.stringify({ ok: false, code: 'unknown_user' }));
+        }
+        let oldDoc = null;
+        try { oldDoc = JSON.parse(current.body); } catch (e) { oldDoc = {}; }
+        const refused = checkWrite(domain(root), oldDoc, parsed.doc, writerId);
+        if (refused && refused.code === 'unknown_user') {
+          return send(res, 403, 'application/json; charset=utf-8', JSON.stringify({ ok: false, code: 'unknown_user' }));
+        }
+        if (refused) {
+          return send(res, 403, 'application/json; charset=utf-8',
+            JSON.stringify({ ok: false, code: 'forbidden', reason: refused.reason }));
+        }
+      }
       const r = putDoc(db, parsed.expected_revision, parsed.doc, parsed.saved_by);
       if (r.code) return send(res, 400, 'application/json; charset=utf-8', JSON.stringify({ ok: false, code: r.code }));
       if (r.conflict) {
