@@ -96,8 +96,10 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   check('thin dividers between the five groups', doc.getElementById('navItems').querySelectorAll('.nav-div').length === 4);
   check('nothing greyed any more', items.filter(i => i.classList.contains('is-soon') || i.getAttribute('aria-disabled') === 'true').length === 0);
 
-  // --- Lab status
-  check('start page is Lab status', win.location.hash === '#/lab', win.location.hash);
+  // --- Home is the start page (Step 9), Lab status one click away
+  check('start page is Home', win.location.hash === '#/home', win.location.hash);
+  check('Home opens with his doors', $$('#main .home-card').length > 0);
+  win.setHash('#/lab'); await settle();
   check('five tool plates', $$('.tool-plate').length === 5, $$('.tool-plate').length);
   check('each plate draws its tool glyph', $$('.tool-plate').filter(p => p.querySelector('svg.tool-glyph')).length === 5);
   check('the destructive FIB plate draws the cut variant at base rate', (function () { var g = $$('.tool-plate').filter(p => /FIB/.test(p.textContent))[0].querySelector('svg.tool-glyph'); return g.dataset.glyph === 'fib-destructive' && g.style['--tx-rate'] === 1; })());
