@@ -966,3 +966,14 @@ never the only signal - the text/label says the same thing.
   NOT BUILT HERE: no PIN, accounts, password, guest mode or schema change
   (see OPEN_QUESTIONS #9) - the server login will drop into this slot
   with no layout change.
+- **HOME-4** (home-final, Step 4: the cards) Seven tall cards, 3-wide grid
+  (2 medium, 1 mobile; short last row centred): 28px accent icon top-left,
+  title, one bottom line; hover lift + glow; scenes untouched. This
+  REVERSES DASH-4 deliberately: the live counts made Home feel like a
+  dashboard instead of a welcome page - counts stay on the real pages and
+  the nav badge. Removed the Lots and Settings cards (sidebar-only, like
+  Results and Hirata; neither had a scene). Scene audit: new, mine,
+  queue, board, aoi (Lab), bars (Analytics), dice (Help) all still bound;
+  no scene orphaned, no card sceneless. Display only: `stripCounts`,
+  `toolQueueStats`, `notificationsFor` untouched (nav badge + queue counts
+  line verified in the gate).

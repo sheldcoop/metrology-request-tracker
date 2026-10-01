@@ -35,6 +35,14 @@ Calm, clinical, uncluttered. Desk PCs first (1440x900, 1920x1080).
 - Traveller stamp (`js/ui/traveller.js`) — traveller / request only.
 - Removed: LEDs-as-text, "OK" circles, initials on board cards.
 
+## Home cards
+- A Home card is a door, not a dashboard: 28px accent icon top-left,
+  title, ONE line of description pinned to the bottom. No counts, no hints.
+- Tall (`min-height` 168px), generous padding (20px), thin border.
+- Grid: exactly 3-wide on desktop, 2 on medium, 1 on mobile; a short last
+  row is centred, never stretched.
+- Hover lift + soft accent glow; the 3D hover scenes keep working as built.
+
 ## Icons
 - Lucide-style inline SVG (`ui.icon`), `stroke="currentColor"`, fill none,
   1.5px, round caps.
