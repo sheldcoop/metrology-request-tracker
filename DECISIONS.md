@@ -1184,3 +1184,14 @@ never the only signal - the text/label says the same thing.
   stack fans into a turning spiral, folds back and scatters for the next
   lot. Pure White tiles get a soft grey-blue #F3F6FA with a #C7D3E2 edge
   so they read as objects on the white page; scenes stay black.
+- **HOME-24** (home-final: New request is the flagship + welcome copy,
+  2026-10-01, Prince: "new request should be the greatest") New request =
+  "pick, build, launch": a copper panel with a 6 x 4 pad grid; a targeting
+  ring picks five pads that pop up as glowing cubes; the cubes spiral
+  together and build the traveller card (edges draw on, red priority
+  stripe ignites, three lines type on); two rings converge as it charges;
+  it launches on an arc with a light trail and sparks into a turning lab
+  portal, which flashes, fires a shock ring and shows a check. Replaces
+  HOME-12's "form fills itself". Welcome copy gets a line with a smile per
+  role; admins get their own ("You hold the keys to the whole lab. No
+  pressure - there is a daily backup.") with Settings-first steps.

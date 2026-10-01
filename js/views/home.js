@@ -140,25 +140,35 @@ window.MRT.views.home = (function () {
     ]);
   }
 
-  /* What each role does most, by its Home door (display copy, not rules). */
+  /* What each role does most, by its Home door, plus a line with a smile
+   * (display copy, not rules). Admins get their own: they hold the keys. */
   var FIRST_STEPS = {
-    queue: [['inbox', 'Pick up the requests for your tools in My queue'], ['check', 'Measure and hand back the results folder'],
-            ['kanban', 'See every open request on the Board']],
-    'new': [['plus-circle', 'Ask the lab to measure your panels with New request'], ['list', 'Follow each request until the results are back'],
-            ['hirata', 'Read a panel ID with Hirata tools']],
-    analytics: [['chart-column', 'Turnaround, load and trends in Analytics'], ['kanban', 'Every open request on the Board'],
-                ['activity', 'Which tools are up in Lab status']],
-    requests: [['list', 'Follow requests on My requests'], ['kanban', 'Every open request on the Board'],
-               ['activity', 'Which tools are up in Lab status']]
+    admin: { line: 'You hold the keys to the whole lab. No pressure - there is a daily backup.',
+      steps: [['users', 'Add people and give them their roles in Settings'], ['wrench', 'Tools, measurement types and lists - all yours to shape'],
+              ['dashboard', 'Every door is open to you. All nine of them.']] },
+    queue: { line: 'Your queue has been waiting. It is very patient, but not that patient.',
+      steps: [['inbox', 'Pick up the requests for your tools in My queue'], ['check', 'Measure and hand back the results folder'],
+              ['kanban', 'See every open request on the Board']] },
+    'new': { line: 'Panels in, answers out. The lab is ready when you are.',
+      steps: [['plus-circle', 'Ask the lab to measure your panels with New request'], ['list', 'Follow each request until the results are back'],
+              ['hirata', 'Read a panel ID with Hirata tools']] },
+    analytics: { line: 'All the numbers, none of the spreadsheets.',
+      steps: [['chart-column', 'Turnaround, load and trends in Analytics'], ['kanban', 'Every open request on the Board'],
+              ['activity', 'Which tools are up in Lab status']] },
+    requests: { line: 'Everything that moves in the lab, in one place.',
+      steps: [['list', 'Follow requests on My requests'], ['kanban', 'Every open request on the Board'],
+              ['activity', 'Which tools are up in Lab status']] }
   };
 
   function welcome(main, me) {
     var first = String(me.name || '').split(' ')[0] || 'there';
-    var steps = FIRST_STEPS[D.homeRoleDoor(me)] || FIRST_STEPS.requests;
+    var copy = D.hasRole(me, 'admin') ? FIRST_STEPS.admin : (FIRST_STEPS[D.homeRoleDoor(me)] || FIRST_STEPS.requests);
+    var steps = copy.steps;
     var go = ui.button("Let's go", { kind: 'primary' });
     var box = welcomeBox('is-first', [
       ui.el('p', { class: 'welcome-eyebrow', text: 'Metrology Request Tracker' }),
       ui.el('h1', { class: 'welcome-title', text: 'Welcome, ' + first }),
+      ui.el('p', { class: 'welcome-line', text: copy.line }),
       ui.el('div', { class: 'welcome-roles' }, (me.roles || []).map(function (r) {
         return ui.el('span', { class: 'welcome-role', text: D.ROLE_LABEL[r] || r });
       })),
