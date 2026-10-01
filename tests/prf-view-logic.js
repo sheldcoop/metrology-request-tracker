@@ -126,6 +126,18 @@ function fakeSettings(result) {
   ok('a typed lot number processes only that lot (py lot_number forces one lot)', out3.rough.every(r => r.Lot_Number === '12345'));
 }
 
+/* ---------------- planRows: the live Plan table ---------------- */
+
+{
+  const result = fakeResult();
+  view._state.result = result;
+  view._state.settings = fakeSettings(result);
+  const rows = T.planRows(T.runAll());
+  eq('the plan lists every assignment row: 1 roughness + 2 via, panel 1 Front, site order',
+    rows.map(r => [r.panel, r.side, r.site, r.kind, r.unit]),
+    [[1, 'Front', 10, 'Roughness', 'Unit 5'], [1, 'Front', 11, 'Via', 'Unit 5'], [1, 'Front', 12, 'Via', 'Unit 5']]);
+}
+
 /* ---------------- Run: what blocks it (Lot name is optional, 2026-10-01) ---------------- */
 
 {

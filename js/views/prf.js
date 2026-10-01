@@ -36,7 +36,6 @@ window.MRT.views.prf = (function () {
     settings: null,     // built once from result (defaultSettings) - see below
     advancedOpen: false,
     outputConnected: false, outputLabel: null, savedOutputHint: null,
-    previewOut: null,    // runAll() result, shown as the plan (Preview button)
     running: false, runResult: null,  // {out, summary, comparison, status, written} after Run
     openPanels: {}                    // panel expanders the person closed
   };
@@ -188,7 +187,7 @@ window.MRT.views.prf = (function () {
     } else {
       state.settings = fresh;
     }
-    state.previewOut = null;
+    state.runResult = null;
     draw();
   }
 
@@ -196,7 +195,7 @@ window.MRT.views.prf = (function () {
     state.scanning = true;
     state.error = null;
     state.progress = { done: 0, total: 0 };
-    state.previewOut = null;
+    state.runResult = null;
     draw();
 
     return adapter.scanRoot(pcfg.log_folder_name).then(function (scan) {
@@ -761,11 +760,6 @@ window.MRT.views.prf = (function () {
 
   /* --- Preview and Run ---------------------------------------------------- */
 
-  function runPreview() {
-    state.previewOut = runAll();
-    draw();
-  }
-
   function runReport() {
     state.running = true;
     state.error = null;
@@ -819,7 +813,7 @@ window.MRT.views.prf = (function () {
         kind: state.outputConnected ? undefined : (state.savedOutputHint ? undefined : 'primary'), icon: 'folder', onClick: connectOutput
       })
     ]));
-    return ui.panel({ title: '6. Output folder', icon: 'folder', body: body }).node;
+    return ui.panel({ title: 'Output folder', icon: 'folder', body: body }).node;
   }
 
   function planRows(out) {
@@ -830,25 +824,32 @@ window.MRT.views.prf = (function () {
     return rows;
   }
 
+  /** The plan, computed live from the current ticks and settings - what Run would do. */
   function previewPlanPanel() {
-    if (!state.result || !state.settings) return null;
-    var body = [ui.button('Preview the plan', { icon: 'search', onClick: runPreview })];
-    if (state.previewOut) {
-      var out = state.previewOut;
-      var rows = planRows(out);
-      if (rows.length) {
-        body.push(ui.el('div', { class: 'table-wrap' }, ui.el('table', { class: 'grid' }, [
+    if (!state.result || !state.settings || state.scanning) return null;
+    var out = null;
+    try { out = runAll(); } catch (e) { out = null; }
+    if (!out) return ui.panel({ title: 'Plan', icon: 'search', body: [
+      ui.emptyState({ icon: 'search', title: 'Nothing would be assigned', text: 'Check the ticked panels, sides and units above.' })
+    ] }).node;
+    var rows = planRows(out);
+    var panels = unique(out.t2b.concat(out.rough).map(function (r) { return r.Panel; }));
+    var body = [ui.el('p', { class: 'muted', text: rows.length
+      ? out.t2b.length + ' via + ' + out.rough.length + ' roughness rows across ' + panels.length + ' panel(s)' +
+        (out.log.length ? ', ' + out.log.length + ' message(s)' : '') + '.'
+      : 'Nothing would be assigned - check the ticked panels, sides and units above.' })];
+    if (rows.length) {
+      body.push(ui.panel({ title: 'Details (' + rows.length + ' rows)', icon: 'search', collapsible: true, collapsed: true, body: [
+        ui.el('div', { class: 'table-wrap' }, ui.el('table', { class: 'grid' }, [
           ui.el('thead', {}, ui.el('tr', {}, ['Panel', 'Side', 'Site', 'Kind', 'Unit', 'Detail'].map(function (h) { return ui.el('th', { scope: 'col', text: h }); }))),
           ui.el('tbody', {}, rows.map(function (r) {
             return ui.el('tr', {}, [r.panel, r.side, r.site, r.kind, r.unit, r.detail].map(function (v) { return ui.el('td', {}, String(v)); }));
           }))
-        ])));
-      } else {
-        body.push(ui.emptyState({ icon: 'search', title: 'Nothing would be assigned', text: 'Check the ticked panels, sides and units below.' }));
-      }
-      if (out.log.length) body.push(logList(out.log, 'Messages for this plan'));
+        ]))
+      ] }).node);
     }
-    return ui.panel({ title: '7. Preview', icon: 'search', body: body }).node;
+    if (out.log.length) body.push(logList(out.log, 'Messages'));
+    return ui.panel({ title: 'Plan', icon: 'search', body: body }).node;
   }
 
   function logList(log, title) {
@@ -876,11 +877,24 @@ window.MRT.views.prf = (function () {
   var runHost = null;   // the Run panel's slot, refreshed alone on every change (refreshRun)
 
   function runPanelBody() {
+    if (state.runResult && !state.running) {
+      var r = state.runResult;
+      return ui.panel({ title: 'Run', icon: 'save', body: [
+        ui.el('p', {}, [ui.el('span', { class: 'chip ' + (r.status === 'OK' ? 'ok' : 'warning'), text: r.status }),
+          ' Saved as ' + r.written.name + ' (' + r.written.format + ').']),
+        ui.button('Run again', { kind: 'primary', icon: 'save', onClick: runReport }),
+        statTable(r.summary, SHEET_COLS.Summary, 'Summary'),
+        statTable(r.comparison, SHEET_COLS.Comparison, 'Front vs Back'),
+        statTable(r.out.t2b, SHEET_COLS.T2B, 'T2B'),
+        statTable(r.out.rough, SHEET_COLS.Roughness, 'Roughness'),
+        r.out.log.length ? logList(r.out.log, 'Log') : null
+      ].filter(Boolean) }).node;
+    }
     var reasons = runBlockers();
-    return ui.panel({ title: '8. Run', icon: 'save', body: [
-      ui.button('Run', { kind: 'primary', icon: 'save', disabled: !!reasons.length || state.running, onClick: runReport }),
-      state.running ? ui.el('p', { class: 'muted' }, 'Working...') : null,
-      reasons.length ? ui.el('p', { class: 'ifield-msg', text: 'Before Run: ' + reasons.join(', ') + '.' }) : null
+    return ui.panel({ title: 'Run', icon: 'save', body: [
+      ui.button(reasons.length ? 'Run — ' + reasons.join(', ') : 'Run', { kind: 'primary', icon: 'save',
+        disabled: !!reasons.length || state.running, onClick: runReport }),
+      state.running ? ui.el('p', { class: 'muted' }, 'Working...') : null
     ] }).node;
   }
 
@@ -909,21 +923,6 @@ window.MRT.views.prf = (function () {
     ]);
   }
 
-  function resultsPanel() {
-    if (!state.runResult) return null;
-    var r = state.runResult;
-    var body = [
-      ui.el('p', {}, [ui.el('span', { class: 'chip ' + (r.status === 'OK' ? 'ok' : 'warning'), text: r.status }),
-        ' Saved as ' + r.written.name + ' (' + r.written.format + ').']),
-      statTable(r.summary, SHEET_COLS.Summary, 'Summary'),
-      statTable(r.comparison, SHEET_COLS.Comparison, 'Front vs Back'),
-      statTable(r.out.t2b, SHEET_COLS.T2B, 'T2B'),
-      statTable(r.out.rough, SHEET_COLS.Roughness, 'Roughness'),
-      r.out.log.length ? logList(r.out.log, 'Log') : null
-    ].filter(Boolean);
-    return ui.panel({ title: '9. Results', icon: 'check', body: body }).node;
-  }
-
   /** Three steps across the top: Folder, What to run, Run. Done states follow the state. */
   function stepHead() {
     var s = state.settings;
@@ -948,7 +947,7 @@ window.MRT.views.prf = (function () {
     ui.mount(holder, [stepHead(),
       ui.el('p', { class: 'prf-step-label', text: 'Step 1 · Folder' }), folderPanel(),
       ui.el('p', { class: 'prf-step-label', text: 'Step 2 · What to run' }), previewPanel(), settingsPanel(),
-      ui.el('p', { class: 'prf-step-label', text: 'Step 3 · Run' }), outputPanel(), previewPlanPanel(), runPanel(), resultsPanel()
+      ui.el('p', { class: 'prf-step-label', text: 'Step 3 · Run' }), outputPanel(), previewPlanPanel(), runPanel()
     ].filter(Boolean));
   }
 
@@ -981,6 +980,7 @@ window.MRT.views.prf = (function () {
     // _pure): pure-enough functions that touch no DOM, so the aggregation
     // and the sheet layout can be checked without a real browser/adapter.
     _test: { resolveSideConfig: resolveSideConfig, runAll: runAll, buildResult: buildResult, applyPath: applyPath, runBlockers: runBlockers, sheetRows: sheetRows, buildSheets: buildSheets,
+             planRows: planRows,
              defaultSettings: defaultSettings, SHEET_COLS: SHEET_COLS, VIA_SPLIT: VIA_SPLIT }
   };
 })();
