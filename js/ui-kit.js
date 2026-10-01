@@ -265,9 +265,9 @@
         ['plus-circle', 'list', 'inbox', 'activity', 'kanban', 'chart-column', 'layers', 'circle-help', 'settings'].map(function (n) {
           return el('span', { class: 'kit-icon-cell', title: n }, [ui.icon(n, 24), el('span', { class: 'kit-label', text: n })]);
         }))),
-      labelled('Home card (static sample; hover plays the scene where WebGL exists)',
+      labelled('Home card (still icon in the stage; on Home the scene plays there, livelier on hover)',
         ui.el('a', { class: 'home-card', href: '#/lab', dataset: { scene: 'aoi' }, style: { maxWidth: '460px' } }, [
-          ui.el('span', { class: 'home-ic', 'aria-hidden': 'true' }, ui.icon('activity', 28)),
+          ui.el('span', { class: 'home-stage', 'aria-hidden': 'true' }, ui.el('span', { class: 'home-ic' }, ui.icon('activity', 44))),
           ui.el('span', { class: 'home-tx' }, [
             ui.el('b', { text: 'Lab status' }),
             ui.el('span', { class: 'home-d', text: 'Which tools are up, and how busy' })])

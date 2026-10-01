@@ -2101,16 +2101,20 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
   border: 1px solid var(--line); border-radius: var(--radius-panel); }
 .home-slot h1 { font-size: 20px; margin: 0 0 8px; }
 .home-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 24px; }
-.home-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; flex: 0 1 calc(33.333% - 11px);
-  max-width: 380px; min-width: 240px; min-height: 168px; padding: 20px; text-decoration: none;
-  color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-panel);
+.home-card { position: relative; display: flex; flex-direction: column; align-items: stretch; flex: 0 1 calc(33.333% - 11px);
+  max-width: 380px; min-width: 240px; padding: 0; overflow: hidden; text-decoration: none;
+  color: var(--tile-fg); background: var(--tile); border: 1px solid var(--tile-line); border-radius: var(--radius-panel);
   transition: transform var(--t-fast) var(--ease); }
 @media (max-width: 1100px) { .home-card { flex-basis: calc(50% - 8px); } }
 @media (max-width: 700px) { .home-card { flex-basis: 100%; max-width: none; } }
-.home-ic { display: flex; color: var(--accent); }
-.home-tx { display: grid; gap: 4px; min-width: 0; }
+/* The stage (HOME-10): the scene plays here all the time; the big icon is the
+   still picture under it (no WebGL, weak PC, reduced motion). */
+.home-stage { position: relative; height: 136px; display: flex; align-items: center; justify-content: center;
+  border-bottom: 1px solid var(--tile-line); }
+.home-ic { display: flex; color: var(--tile-accent); transition: opacity var(--t) var(--ease); }
+.home-tx { display: grid; gap: 4px; min-width: 0; padding: 14px 20px 18px; }
 .home-tx b { font-size: 16px; }
-.home-d { font-size: 13px; color: var(--fg-muted); margin-top: auto; padding-top: 16px; }
+.home-d { font-size: 13px; color: var(--tile-fg-muted); }
 
 /* Card hover (Step 5): lift + soft accent glow on Home cards and Lab tool
    cards. transform/opacity only: the glow lives on an ::after overlay whose
@@ -2132,21 +2136,19 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 [data-motion="reduce"] .home-card:hover, [data-motion="reduce"] .tool-plate:hover { transform: none; }
 [data-motion="reduce"] .home-card:hover::after, [data-motion="reduce"] .tool-plate:hover::after { opacity: 0; }
 
-/* Home hover scenes (D-WEBGL-1): the canvas covers the card and fades in
-   while the text fades out; transform/opacity only, like everything else.
-   No scene on reduced motion or light schemes - the static card stays. */
+/* Home scenes (D-WEBGL-1, HOME-10): the canvas fills the stage and fades in
+   over the still icon once the first frame is drawn; transform/opacity only.
+   No scene on reduced motion - the still icon stays. */
 .home-card .home-scene { position: absolute; inset: 0; width: 100%; height: 100%;
-  border-radius: inherit; pointer-events: none; opacity: 0;
-  transition: opacity var(--t-fast) var(--ease); }
+  pointer-events: none; opacity: 0; transition: opacity var(--t) var(--ease); }
 .home-card.is-live .home-scene { opacity: 1; }
-.home-card.is-live .home-tx { opacity: 0; }
-.home-card .home-tx { transition: opacity var(--t-fast) var(--ease); }
-.home-card.is-leaving .home-scene { opacity: 0; }
-.home-card.is-leaving .home-tx { opacity: 1; }
+.home-card.is-live .home-ic { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   .home-card .home-scene { display: none; }
+  .home-card.is-live .home-ic { opacity: 1; }
 }
 [data-motion="reduce"] .home-card .home-scene { display: none; }
+[data-motion="reduce"] .home-card.is-live .home-ic { opacity: 1; }
 
 /* ================================================================== *
  * Status icons (Prince, 2026-09-25: "status always has icon + text, never colour alone")

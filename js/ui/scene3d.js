@@ -1,38 +1,43 @@
 /**
  * Metrology Request Tracker - js/ui/scene3d.js
  *
- * Home card hover scenes (DECISIONS D-WEBGL-1): the ONLY WebGL in the app.
- * One shared WebGLRenderer, one live scene at a time. Each scene file
- * registers create(ctx) -> { scene, camera, update(dt, t), dispose() } with
- * ctx = { T: THREE, tokens, rand, view, onResize }. The engine renders
- * scene through camera after every update; scenes only move objects.
+ * Home card scenes (DECISIONS D-WEBGL-1, HOME-10): the ONLY WebGL in the
+ * app. Every Home card plays its scene all the time in its stage - a calm,
+ * slow loop that gets livelier while the pointer (or focus) is on the card.
+ * Each scene file registers create(ctx) -> { scene, camera, update(dt, t,
+ * energy), dispose() } with ctx = { T: THREE, tokens, rand, view,
+ * onResize }; energy runs 0 (calm) .. 1 (hovered). Scenes only move
+ * objects; the engine owns rendering.
+ *
+ * One shared WebGLRenderer draws off-screen; each card's frame is copied
+ * into the card's own 2D canvas, so any number of cards costs one GL
+ * context. Calm cards draw at 30 fps, the hovered one every frame. Cards
+ * off-screen or a hidden tab pause; cards that leave the page are torn
+ * down (geometries, materials, textures).
  *
  * Loaded as a static classic script but touches no THREE at load: the
- * vendor build (vendor/three.min.js) is injected on the first card hover
- * only, after a 150 ms delay. No WebGL, software rendering, or slow
+ * vendor build (vendor/three.min.js) is injected shortly after Home shows
+ * scene cards, never in index.html. No WebGL, software rendering, or slow
  * frames (> 40 ms average over 1 s) disables scenes for the session and
- * the cards stay static. Reduced motion renders one still frame; light
- * colour schemes stay static. Everything is torn down (geometries,
- * materials, textures) on leave, blur, hide, or off-screen.
+ * the cards keep their still icon. Reduced motion: no scenes at all.
+ * Light schemes draw in near-black ink (tokens from themes.js).
  */
 window.MRT = window.MRT || {};
 window.MRT.scene3d = (function () {
   'use strict';
 
-  var HOVER_MS = 150, FADE_MS = 260, SLOW_MS = 40, SLOW_WINDOW_MS = 1000, MAX_PR = 1.5;
+  var LOAD_MS = 200, SLOW_MS = 40, SLOW_WINDOW_MS = 1000, MAX_PR = 1.5, IDLE_FPS = 30;
+  var SPEED_CALM = 0.55, SPEED_HOVER = 1.6, EASE_PER_S = 3;
 
   var registry = {};          // scene key -> create(ctx)
-  var renderer = null, canvas = null, threePromise = null;
-  var live = null;            // { card, key, inst, scene, raf, ro, io, resizeFns, tracked, fadeTimer, slow }
-  var sessionOff = false;     // fallback for this session: keep the static card
+  var renderer = null, glCanvas = null, threePromise = null;
+  var cards = [];             // { card, key, stage, view, g2d, inst, tracked, visible, hover, energy, t, w, h, resizeFns, io, ro, drawn }
+  var loop = { raf: 0, timer: 0, last: 0, idle: 0, slow: { acc: 0, n: 0, t0: 0 } };
+  var glSize = { w: 0, h: 0 };
+  var sessionOff = false;     // fallback for this session: keep the still icons
 
   function featuresOn() {
     try { return !window.MRT.config || !window.MRT.config.features || window.MRT.config.features.home3d !== false; }
-    catch (e) { return true; }
-  }
-
-  function darkScheme() {
-    try { return (document.documentElement.getAttribute('data-scheme') || 'dark') === 'dark'; }
     catch (e) { return true; }
   }
 
@@ -46,16 +51,17 @@ window.MRT.scene3d = (function () {
     } catch (e) { return false; }
   }
 
-  function tokens() {
+  /** The card's colours (custom properties inherit, so per-theme tile tokens apply). */
+  function tokens(card) {
     var out = { accent: '#02E8CD', bright: '#02E8CD', danger: '#DA1E28', surface: '#0C3D6E', line: '#2A5A8C' };
     try {
-      var cs = window.getComputedStyle(document.documentElement);
-      var g = function (k, fb) { var v = (cs.getPropertyValue(k) || '').trim(); return v || fb; };
-      out.accent = g('--accent-fill', g('--accent', out.accent));
-      out.bright = g('--accent-bright', out.accent);
+      var cs = window.getComputedStyle(card || document.documentElement);
+      var g = function (k, fb) { var v = (cs.getPropertyValue(k) || '').trim(); return v && v !== 'x' ? v : fb; };
+      out.accent = g('--scene-ink', g('--accent-fill', out.accent));
+      out.bright = out.accent;
       out.danger = g('--danger', out.danger);
-      out.surface = g('--surface', out.surface);
-      out.line = g('--line-strong', g('--line', out.line));
+      out.surface = g('--tile', g('--surface', out.surface));
+      out.line = g('--scene-line', g('--line-strong', out.line));
     } catch (e) { /* defaults above */ }
     return out;
   }
@@ -83,14 +89,17 @@ window.MRT.scene3d = (function () {
     } catch (e) { return false; }
   }
 
+  function pixelRatio() {
+    try { return Math.min(window.devicePixelRatio || 1, MAX_PR); } catch (e) { return 1; }
+  }
+
   function ensureRenderer() {
     if (renderer) return renderer;
     var T = window.THREE;
-    canvas = document.createElement('canvas');
-    canvas.className = 'home-scene';
-    canvas.setAttribute('aria-hidden', 'true');
-    renderer = new T.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
-    if (softwareGL(renderer.getContext())) throw new Error('software WebGL');
+    glCanvas = document.createElement('canvas');
+    renderer = new T.WebGLRenderer({ canvas: glCanvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+    if (softwareGL(renderer.getContext())) { renderer = null; throw new Error('software WebGL'); }
+    try { renderer.setPixelRatio(pixelRatio()); } catch (e) {}
     return renderer;
   }
 
@@ -116,188 +125,229 @@ window.MRT.scene3d = (function () {
     set.clear();
   }
 
-  function teardown() {
-    if (live && live.fadeTimer) { try { clearTimeout(live.fadeTimer); } catch (e) {} }
-    var l = live;
-    live = null;
-    if (!l) return;
-    try { if (l.raf && window.cancelAnimationFrame) window.cancelAnimationFrame(l.raf); } catch (e) {}
-    try { if (l.ro && l.ro.disconnect) l.ro.disconnect(); } catch (e) {}
-    try { if (l.io && l.io.disconnect) l.io.disconnect(); } catch (e) {}
-    try { if (l.inst && l.inst.dispose) l.inst.dispose(); } catch (e) {}
-    disposeSet(l.tracked);
-    try { if (renderer) renderer.clear(); } catch (e) {}
-    try { if (l.card) l.card.classList.remove('is-live'); } catch (e) {}
-    try { if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas); } catch (e) {}
+  /** Drop one card's scene (the card itself stays, with its still icon). */
+  function unbuild(e) {
+    try { if (e.inst && e.inst.dispose) e.inst.dispose(); } catch (x) {}
+    if (e.tracked) disposeSet(e.tracked);
+    try { if (e.ro && e.ro.disconnect) e.ro.disconnect(); } catch (x) {}
+    try { if (e.view && e.view.parentNode) e.view.parentNode.removeChild(e.view); } catch (x) {}
+    try { e.card.classList.remove('is-live'); } catch (x) {}
+    e.inst = null; e.view = null; e.g2d = null; e.ro = null; e.drawn = false; e.resizeFns = [];
   }
 
-  /** Ease out, then tear everything down. */
-  function stop() {
-    if (!live) return;
-    var l = live;
-    try { if (l.raf && window.cancelAnimationFrame) window.cancelAnimationFrame(l.raf); } catch (e) {}
-    l.raf = 0;
-    try { l.card.classList.add('is-leaving'); l.card.classList.remove('is-live'); } catch (e) {}
-    l.fadeTimer = setTimeout(function () {
-      if (live !== l) return;
-      try { l.card.classList.remove('is-leaving'); } catch (e) {}
-      teardown();
-    }, FADE_MS);
+  function forget(e) {
+    unbuild(e);
+    try { if (e.io && e.io.disconnect) e.io.disconnect(); } catch (x) {}
+    e.io = null;
   }
 
-  function sizeTo(card) {
-    var r = { width: 280, height: 120 };
-    try { var b = card.getBoundingClientRect(); if (b.width > 0) r = b; } catch (e) {}
-    var pr = MAX_PR;
-    try { pr = Math.min(window.devicePixelRatio || 1, MAX_PR); } catch (e) {}
+  function measure(e) {
+    var r = { width: 300, height: 136 };
+    try { var b = e.stage.getBoundingClientRect(); if (b.width > 0 && b.height > 0) r = b; } catch (x) {}
+    e.w = Math.round(r.width); e.h = Math.round(r.height);
+    var pr = pixelRatio();
+    try { e.view.width = Math.round(e.w * pr); e.view.height = Math.round(e.h * pr); } catch (x) {}
+  }
+
+  function build(e) {
+    var create = registry[e.key];
+    if (!create || !renderer) return false;
+    e.tracked = new Set();
+    e.resizeFns = [];
     try {
-      renderer.setPixelRatio(pr);
-      renderer.setSize(r.width || 280, r.height || 120, false);
-    } catch (e) {}
-    return { w: r.width || 280, h: r.height || 120 };
-  }
-
-  function start(card, key, T) {
-    teardown();
-    var create = registry[key];
-    if (!create) return;   // no scene for this card yet: stay static
-    var tracked = new Set();
-    var resizeFns = [];
-    var v = sizeTo(card);
-    var ctx = { T: T, tokens: tokens(), rand: Math.random,
-      view: { w: v.w, h: v.h }, onResize: function (fn) { resizeFns.push(fn); } };
-    var inst;
+      e.view = document.createElement('canvas');
+      e.view.className = 'home-scene';
+      e.view.setAttribute('aria-hidden', 'true');
+      e.g2d = e.view.getContext ? e.view.getContext('2d') : null;
+    } catch (x) { e.g2d = null; }
+    measure(e);
+    var ctx = { T: window.THREE, tokens: tokens(e.card), rand: Math.random,
+      view: { w: e.w, h: e.h }, onResize: function (fn) { e.resizeFns.push(fn); } };
     try {
-      inst = create(ctx) || {};
-      track(inst.scene, tracked);
-    } catch (e) { teardown(); return; }
-    try { card.appendChild(canvas); } catch (e) { teardown(); return; }
-    try { card.classList.add('is-live'); card.classList.remove('is-leaving'); } catch (e) {}
-    var l = live = { card: card, key: key, inst: inst, tracked: tracked, raf: 0, fadeTimer: 0,
-      slow: { acc: 0, n: 0, t0: 0 } };
+      e.inst = create(ctx) || {};
+      track(e.inst.scene, e.tracked);
+      e.stage.appendChild(e.view);
+    } catch (x) { unbuild(e); e.failed = true; return false; }
     try {
       if ('ResizeObserver' in window) {
-        l.ro = new ResizeObserver(function () {
-          if (live !== l) return;
-          var s = sizeTo(card);
-          resizeFns.forEach(function (fn) { try { fn(s.w, s.h); } catch (e) {} });
-          if (reduced()) { try { inst.update(0, 0); } catch (e) {} }
+        e.ro = new ResizeObserver(function () {
+          if (!e.inst) return;
+          measure(e);
+          e.resizeFns.forEach(function (fn) { try { fn(e.w, e.h); } catch (x) {} });
         });
-        l.ro.observe(card);
+        e.ro.observe(e.stage);
       }
-    } catch (e) {}
+    } catch (x) {}
+    return true;
+  }
+
+  /** Scenes move objects; the engine owns the render and the copy into the card. */
+  function draw(e) {
+    var pr = pixelRatio(), w = e.w, h = e.h;
+    if (w > glSize.w || h > glSize.h) {
+      glSize.w = Math.max(glSize.w, w); glSize.h = Math.max(glSize.h, h);
+      try { renderer.setPixelRatio(pr); renderer.setSize(glSize.w, glSize.h, false); } catch (x) {}
+    }
     try {
-      if ('IntersectionObserver' in window) {
-        l.io = new IntersectionObserver(function (es) {
-          if (live === l && es.length && !es[es.length - 1].isIntersecting) stop();
-        });
-        l.io.observe(card);
-      }
-    } catch (e) {}
-    if (reduced()) {   // one still frame instead of animating
-      try { inst.update(0, 0); render(inst); } catch (e) { teardown(); }
-      return;
+      if (renderer.setViewport) renderer.setViewport(0, 0, w, h);
+      if (renderer.setScissor) { renderer.setScissor(0, 0, w, h); renderer.setScissorTest(true); }
+      renderer.clear();
+      if (e.inst.camera) renderer.render(e.inst.scene, e.inst.camera);
+    } catch (x) {}
+    if (e.g2d && glCanvas) {
+      try {
+        var sw = Math.round(w * pr), sh = Math.round(h * pr);
+        e.g2d.clearRect(0, 0, e.view.width, e.view.height);
+        e.g2d.drawImage(glCanvas, 0, glCanvas.height - sh, sw, sh, 0, 0, e.view.width, e.view.height);
+      } catch (x) {}
     }
-    var last = 0;
-    l.slow.t0 = now();
-    function frame(t) {
-      if (live !== l) return;
-      var dt = last ? Math.min((t - last) / 1000, 0.1) : 0.016;
-      last = t;
-      var s = l.slow;
-      s.acc += dt * 1000; s.n++;
-      if (t - s.t0 >= SLOW_WINDOW_MS) {
-        if (s.n > 5 && s.acc / s.n > SLOW_MS) { sessionOff = true; teardown(); return; }  // weak PC: static cards
-        s.acc = 0; s.n = 0; s.t0 = t;
-      }
-      try { inst.update(dt, t / 1000); render(inst); }
-      catch (e) { teardown(); return; }
-      try { l.raf = window.requestAnimationFrame(frame); } catch (e) { teardown(); }
-    }
-    try { l.raf = window.requestAnimationFrame(frame); }
-    catch (e) { try { inst.update(0.016, 0); render(inst); } catch (e2) { teardown(); } }
+    if (!e.drawn) { e.drawn = true; try { e.card.classList.add('is-live'); } catch (x) {} }
   }
 
   function now() {
     try { return window.performance.now(); } catch (e) { return Date.now(); }
   }
 
-  /** Scenes move objects; the engine owns the single render call. */
-  function render(inst) {
-    try {
-      if (inst && inst.camera && renderer && renderer.render) renderer.render(inst.scene, inst.camera);
-    } catch (e) {}
+  function canRun() {
+    return featuresOn() && !sessionOff && !reduced();
   }
 
-  function begin(card, key) {
-    if (!featuresOn() || sessionOff || live || !darkScheme()) return;
-    loadThree().then(function (T) {
-      if (!T || live) return;
-      try { ensureRenderer(); }
-      catch (e) { sessionOff = true; return; }   // no WebGL or software rendering: static cards
-      start(card, key, T);
-    }).catch(function () { /* vendor failed: stay static */ });
+  function stopLoop() {
+    try { if (loop.raf && window.cancelAnimationFrame) window.cancelAnimationFrame(loop.raf); } catch (e) {}
+    loop.raf = 0; loop.last = 0;
   }
 
-  var hoverTimer = 0;
-
-  function schedule(card, key) {
-    cancel();
-    try {
-      hoverTimer = setTimeout(function () { hoverTimer = 0; begin(card, key); }, HOVER_MS);
-    } catch (e) { begin(card, key); }
+  function frame(ts) {
+    loop.raf = 0;
+    cards = cards.filter(function (e) {
+      if (e.card.isConnected) return true;
+      forget(e);
+      return false;
+    });
+    if (!cards.length || !renderer || !canRun()) { stopLoop(); return; }
+    try { if (document.hidden) { stopLoop(); return; } } catch (x) {}
+    var dt = loop.last ? Math.max(0, Math.min((ts - loop.last) / 1000, 0.1)) : 0.016;
+    loop.last = ts;
+    var s = loop.slow;
+    s.acc += dt * 1000; s.n++;
+    if (ts - s.t0 >= SLOW_WINDOW_MS) {
+      if (s.n > 5 && s.acc / s.n > SLOW_MS) { sessionOff = true; teardown(); return; }   // weak PC: still icons
+      s.acc = 0; s.n = 0; s.t0 = ts;
+    }
+    loop.idle += dt;
+    var idleDue = loop.idle >= 1 / IDLE_FPS;
+    if (idleDue) loop.idle = 0;
+    cards.forEach(function (e) {
+      var target = e.hover ? 1 : 0;
+      e.energy += (target - e.energy) * Math.min(1, dt * EASE_PER_S);
+      var step = dt * (SPEED_CALM + (SPEED_HOVER - SPEED_CALM) * e.energy);
+      e.t += step;
+      if (!e.visible || e.failed) { e.pend = 0; return; }
+      if (!e.inst && !build(e)) return;
+      e.pend = (e.pend || 0) + step;
+      if (!(idleDue || e.hover || e.energy > 0.02 || !e.drawn)) return;
+      try { e.inst.update(e.pend, e.t, e.energy); } catch (x) { unbuild(e); e.failed = true; return; }
+      e.pend = 0;
+      draw(e);
+    });
+    try { loop.raf = window.requestAnimationFrame(frame); } catch (x) { stopLoop(); }
   }
 
-  function cancel() {
-    if (hoverTimer) { try { clearTimeout(hoverTimer); } catch (e) {} hoverTimer = 0; }
+  function startLoop() {
+    if (loop.raf || !cards.length || !canRun()) return;
+    loop.slow = { acc: 0, n: 0, t0: now() };
+    loop.last = 0;
+    try { loop.raf = window.requestAnimationFrame(frame); } catch (x) {}
+  }
+
+  /** Load THREE once (shortly after Home shows), then run every mounted card. */
+  function kick() {
+    if (loop.timer || loop.raf || !cards.length || !canRun()) return;
+    var go = function () {
+      loop.timer = 0;
+      if (!cards.length || !canRun()) return;
+      loadThree().then(function (T) {
+        if (!T || !canRun()) return;
+        try { ensureRenderer(); }
+        catch (e) { sessionOff = true; return; }   // no WebGL or software rendering: still icons
+        startLoop();
+      }).catch(function () { /* vendor failed: still icons */ });
+    };
+    if (renderer) { go(); return; }
+    try { loop.timer = setTimeout(go, LOAD_MS); } catch (e) { go(); }
   }
 
   function mount(card, key) {
-    if (!card || !key || !card.addEventListener) return;
-    card.addEventListener('pointerenter', function () { schedule(card, key); });
-    card.addEventListener('pointerleave', function () { cancel(); stop(); });
-    card.addEventListener('focusin', function () { schedule(card, key); });
-    card.addEventListener('focusout', function () { cancel(); stop(); });
+    if (!card || !key || !card.addEventListener || card.__mrtScene) return;
+    var e = { card: card, key: key, stage: (card.querySelector && card.querySelector('.home-stage')) || card,
+      inst: null, view: null, g2d: null, tracked: null, visible: true, hover: false, energy: 0,
+      t: Math.random() * 20, w: 0, h: 0, resizeFns: [], io: null, ro: null, drawn: false, failed: false };
+    card.__mrtScene = e;
+    var on = function () { e.hover = true; }, off = function () { e.hover = false; };
+    card.addEventListener('pointerenter', on);
+    card.addEventListener('pointerleave', off);
+    card.addEventListener('focusin', on);
+    card.addEventListener('focusout', off);
+    try {
+      if ('IntersectionObserver' in window) {
+        e.io = new IntersectionObserver(function (es) {
+          if (es.length) e.visible = !!es[es.length - 1].isIntersecting;
+        });
+        e.io.observe(card);
+      }
+    } catch (x) {}
+    cards.push(e);
   }
 
   function mountAll(root) {
     if (!root || !root.querySelectorAll) return;
-    var cards = root.querySelectorAll('.home-card[data-scene]');
-    for (var i = 0; i < cards.length; i++) mount(cards[i], cards[i].getAttribute('data-scene'));
+    var list = root.querySelectorAll('.home-card[data-scene]');
+    for (var i = 0; i < list.length; i++) mount(list[i], list[i].getAttribute('data-scene'));
+    kick();
   }
 
-  // global exits: blur, hidden tab, theme switch (rebuild live in new colours)
+  /** Everything off: scenes disposed, cards back to their still icon. */
+  function teardown() {
+    stopLoop();
+    cards.forEach(forget);
+    cards.forEach(function (e) { try { delete e.card.__mrtScene; } catch (x) { e.card.__mrtScene = null; } });
+    cards = [];
+  }
+
+  // global: hidden tab pauses; theme switch rebuilds in the new colours; motion switch stops/starts
   var wired = false;
   function wireGlobal() {
     if (wired) return;
     wired = true;
     try {
-      window.addEventListener('blur', function () { cancel(); teardown(); });
-      document.addEventListener('visibilitychange', function () { if (document.hidden) { cancel(); teardown(); } });
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) stopLoop(); else kick();
+      });
     } catch (e) {}
     try {
       var mo = new MutationObserver(function () {
-        if (!live) return;
-        var l = live;
-        teardown();
-        begin(l.card, l.key);
+        cards.forEach(function (e) { unbuild(e); e.failed = false; });
+        if (!canRun()) stopLoop(); else kick();
       });
-      mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-scheme', 'data-motion'] });
     } catch (e) {}
   }
 
   return {
     register: function (key, fn) { registry[key] = fn; },
-    mount: function (card, key) { wireGlobal(); mount(card, key); },
+    mount: function (card, key) { wireGlobal(); mount(card, key); kick(); },
     mountAll: function (root) { wireGlobal(); mountAll(root); },
     teardown: teardown,
     debug: function () {
-      return { live: live ? 1 : 0, tracked: live ? live.tracked.size : 0,
+      var live = 0, tracked = 0;
+      cards.forEach(function (e) { if (e.inst) { live++; tracked += e.tracked ? e.tracked.size : 0; } });
+      return { live: live, tracked: tracked, cards: cards.length, running: loop.raf ? 1 : 0,
         sessionOff: sessionOff, scenes: Object.keys(registry).sort() };
     },
     _test: {
-      reset: function () { teardown(); sessionOff = false; threePromise = null; },
-      sessionOff: function () { return sessionOff; }
+      reset: function () { teardown(); sessionOff = false; threePromise = null; renderer = null; glCanvas = null; glSize = { w: 0, h: 0 }; },
+      sessionOff: function () { return sessionOff; },
+      hover: function (card) { return card && card.__mrtScene ? card.__mrtScene.energy : 0; }
     }
   };
 })();

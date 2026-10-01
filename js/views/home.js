@@ -9,9 +9,9 @@
  * canMeasure, Board: boardFor, Results: resultsFor, Analytics:
  * canSeeManagement, Lots: canRegisterLot, Hirata: hirataFor); Lab
  * status, My requests and Help are read surfaces, open to every
- * signed-in person. Settings stays sidebar-only. The seven scene cards
- * carry a data-scene key for the hover scenes (js/ui/scene3d.js);
- * lots/results/hirata are static.
+ * signed-in person. Settings stays sidebar-only. Every card carries a
+ * data-scene key; its scene plays in the card's stage all the time,
+ * livelier on hover (js/ui/scene3d.js, HOME-10).
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -25,11 +25,12 @@ window.MRT.views.home = (function () {
   /* Cards carry no counts (Step 4): a Home card is a door, not a dashboard.
    * The counting functions (stripCounts, toolQueueStats, notificationsFor)
    * stay untouched - the nav badge, bell and queue counts line still use
-   * them. Scene audit: Lots and Settings had no scene; new, mine, queue,
-   * board, aoi (Lab), bars (Analytics) and dice (Help) are all still bound. */
+   * them. Every card has a stage on top (HOME-10): its scene plays there
+   * all the time, the big icon is the still picture under it. */
   function card(o) {
     return ui.el('a', { class: 'home-card', href: '#/' + o.key, dataset: o.scene ? { scene: o.scene } : null }, [
-      ui.el('span', { class: 'home-ic', 'aria-hidden': 'true' }, ui.icon(o.icon, 28)),
+      ui.el('span', { class: 'home-stage', 'aria-hidden': 'true' },
+        ui.el('span', { class: 'home-ic' }, ui.icon(o.icon, 44))),
       ui.el('span', { class: 'home-tx' }, [
         ui.el('b', { text: o.title }),
         ui.el('span', { class: 'home-d', text: o.desc })
@@ -106,9 +107,7 @@ window.MRT.views.home = (function () {
       try { var f = box.querySelector('input, .btn-primary'); if (f) f.focus(); } catch (e) {}
       return;
     }
-    /* Six doors per role (HOME-9): lots/results/hirata fill each role to a
-     * full 3+3 grid. They carry no scene and stay static (the engine skips
-     * cards without one). */
+    /* Six doors per role (HOME-9); every door has its scene (HOME-10). */
     var cards = [
       D.canRequest(me) && { key: 'new', icon: 'plus-circle', title: 'New request', scene: 'new',
         desc: 'Ask the lab to measure your panels' },
@@ -120,13 +119,13 @@ window.MRT.views.home = (function () {
         desc: 'Every open request, by tool and stage' },
       { key: 'lab', icon: 'activity', title: 'Lab status', scene: 'aoi',
         desc: 'Which tools are up, and how busy' },
-      D.resultsFor(me) && { key: 'results', icon: 'folder', title: 'Results',
+      D.resultsFor(me) && { key: 'results', icon: 'folder', title: 'Results', scene: 'results',
         desc: 'Result folders handed back by the lab' },
       D.canSeeManagement(me) && { key: 'analytics', icon: 'chart-column', title: 'Analytics', scene: 'bars',
         desc: 'Turnaround, load and trends' },
-      D.canRegisterLot(me) && { key: 'lots', icon: 'lots', title: 'Lots',
+      D.canRegisterLot(me) && { key: 'lots', icon: 'lots', title: 'Lots', scene: 'lots',
         desc: 'Register lots and see them on file' },
-      D.hirataFor(me) && { key: 'hirata', icon: 'hirata', title: 'Hirata tools',
+      D.hirataFor(me) && { key: 'hirata', icon: 'hirata', title: 'Hirata tools', scene: 'hirata',
         desc: 'Read a panel dot code' },
       { key: 'help', icon: 'circle-help', title: 'Help', scene: 'dice',
         desc: 'Step-by-step guides for every task' }

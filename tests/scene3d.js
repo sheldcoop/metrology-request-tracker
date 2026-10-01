@@ -1,10 +1,12 @@
 /**
  * tests/scene3d.js - dev only, no dependencies:  node tests/scene3d.js
  *
- * The Home hover-scene engine (js/ui/scene3d.js) without WebGL: the fake
- * DOM has no canvas, no THREE and no observers, so this asserts the
- * fallback path (static cards, no crash) plus a 50-cycle hover/leave leak
- * test against a stub THREE that counts every created/disposed resource.
+ * The Home scene engine (js/ui/scene3d.js) without WebGL: the fake DOM has
+ * no canvas, no THREE and no observers, so this asserts the fallback path
+ * (still icons, no crash), always-on scenes on every card (HOME-10), light
+ * schemes running, reduced motion off, hover raising the energy, and a
+ * 50-cycle mount/leave-the-page leak test against a stub THREE that counts
+ * every created/disposed resource.
  * Exits 1 on any failure.
  */
 const vm = require('vm'), fs = require('fs'), path = require('path');
@@ -47,6 +49,7 @@ function stubThree(log, soft) {
   }
   function WebGLRenderer() {
     return { setPixelRatio: function () {}, setSize: function () {}, clear: function () { log.clears++; },
+      setViewport: function () {}, setScissor: function () {}, setScissorTest: function () {},
       render: function () { log.renders++; },
       getContext: function () {
         return { getExtension: function () {
@@ -74,95 +77,124 @@ function stubScene(log) {
 }
 
 (async function run() {
-  // --- 1. no THREE at all: hover stays static, nothing crashes
+  const newLog = () => ({ created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0, energy: [] });
+
+  // --- 1. no THREE at all: cards keep their still icon, nothing crashes
   {
     const { doc, flush, S } = boot();
     const c = card(doc, 'aoi');
     S.mountAll(doc.getElementById('main'));
-    c.dispatch('pointerenter');
     await settle(flush, 4);
-    c.dispatch('pointerleave');
-    await settle(flush, 2);
-    check('no THREE: hover/leave is a clean no-op', S.debug().live === 0 && c.children.length === 0);
+    check('no THREE: a clean no-op', S.debug().live === 0 && c.children.length === 0);
     check('...not a session fallback (a later load could still work)', S._test.sessionOff() === false);
   }
 
-  // --- 2. switch off in one place: features.home3d is honoured by default-on config
+  // --- 2. cards without a scene key are ignored
   {
     const { doc, flush, S } = boot();
     check('engine loads with no scenes registered', S.debug().scenes.length === 0 && S.debug().live === 0);
-    const c = card(doc, null);
+    card(doc, null);
     S.mountAll(doc.getElementById('main'));
-    c.dispatch('pointerenter');
     await settle(flush, 2);
-    check('cards without a scene key are ignored', S.debug().live === 0);
+    check('cards without a scene key are ignored', S.debug().cards === 0 && S.debug().live === 0);
   }
 
-  // --- 3. light scheme: static card
+  // --- 3. every card plays at once, no hover needed; light schemes too
   {
     const { win, doc, flush, S } = boot();
-    win.THREE = stubThree({ created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 });
-    S.register('t', stubScene({ created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 }));
+    const log = newLog();
+    win.THREE = stubThree(log);
+    S.register('t', stubScene(log));
     doc.documentElement.setAttribute('data-scheme', 'light');
+    const cs = [card(doc, 't'), card(doc, 't'), card(doc, 't')];
+    S.mountAll(doc.getElementById('main'));
+    await settle(flush, 4);
+    check('all three cards live without hover (light scheme)', S.debug().live === 3 && S.debug().running === 1, JSON.stringify(S.debug()));
+    check('...each card got its own canvas', cs.every(c => c.querySelectorAll('canvas').length === 1));
+    check('...scenes update and render', log.updates >= 3 && log.renders >= 3, log.updates + '/' + log.renders);
+    check('...drawn cards are marked live', cs.every(c => c.classList.contains('is-live')));
+    S.mountAll(doc.getElementById('main'));
+    check('...mounting again adds nothing', S.debug().cards === 3);
+  }
+
+  // --- 4. hover makes the card livelier, leaving calms it again
+  {
+    const { win, doc, flush, S } = boot();
+    const log = newLog();
+    win.THREE = stubThree(log);
+    S.register('t', stubScene(log));
     const c = card(doc, 't');
     S.mountAll(doc.getElementById('main'));
+    await settle(flush, 3);
+    const calm = S._test.hover(c);
     c.dispatch('pointerenter');
-    await settle(flush, 4);
-    check('light scheme: no scene starts', S.debug().live === 0 && c.children.length === 0);
+    await settle(flush, 2);
+    const up = S._test.hover(c);
+    check('hover raises the energy', calm < 0.01 && up > calm, calm + ' -> ' + up);
+    c.dispatch('pointerleave');
+    await settle(flush, 2);
+    check('...leave lets it fall again, the scene keeps playing', S._test.hover(c) < up && S.debug().live === 1);
   }
 
-  // --- 4. reduced motion: exactly one still frame, then clean teardown
+  // --- 5. reduced motion: no scene at all
   {
     const { win, doc, flush, S } = boot();
-    const log = { created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 };
+    const log = newLog();
     win.THREE = stubThree(log);
     S.register('t', stubScene(log));
     doc.documentElement.setAttribute('data-motion', 'reduce');
     const c = card(doc, 't');
     S.mountAll(doc.getElementById('main'));
-    c.dispatch('pointerenter');
     await settle(flush, 4);
-    check('reduced motion: one still frame, scene alive', S.debug().live === 1 && log.updates === 1);
-    check('...the still frame renders once through the scene camera', log.renders === 1, 'renders ' + log.renders);
-    c.dispatch('pointerleave');
-    await settle(flush, 3);
-    check('...leave tears it down with nothing live', S.debug().live === 0 && S.debug().tracked === 0 &&
-      log.created.length === log.disposed.length && log.created.length > 0, JSON.stringify(S.debug()));
+    check('reduced motion: nothing starts', S.debug().live === 0 && log.updates === 0 && c.children.length === 0);
   }
 
-  // --- 5. software WebGL: session fallback, static cards
+  // --- 6. software WebGL: session fallback, still icons
   {
     const { win, doc, flush, S } = boot();
-    const log = { created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 };
+    const log = newLog();
     win.THREE = stubThree(log, true);
     S.register('t', stubScene(log));
-    const c = card(doc, 't');
+    card(doc, 't');
     S.mountAll(doc.getElementById('main'));
-    c.dispatch('pointerenter');
     await settle(flush, 4);
     check('software GL: session fallback, nothing live', S._test.sessionOff() === true && S.debug().live === 0);
   }
 
-  // --- 6. fifty hover/leave cycles: no live objects left
+  // --- 7. fifty visits to Home and away: no live objects left
   {
     const { win, doc, flush, S } = boot();
-    const log = { created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 };
+    const log = newLog();
     win.THREE = stubThree(log);
     S.register('t', stubScene(log));
-    const c = card(doc, 't');
-    S.mountAll(doc.getElementById('main'));
+    const main = doc.getElementById('main');
     for (let i = 0; i < 50; i++) {
-      c.dispatch('pointerenter');
+      const c = card(doc, 't');
+      S.mountAll(main);
       await settle(flush, 3);
-      if (S.debug().live !== 1) { check('cycle ' + i + ': scene started', false, JSON.stringify(S.debug())); break; }
-      c.dispatch('pointerleave');
-      await settle(flush, 3);
+      if (S.debug().live !== 1) { check('visit ' + i + ': scene started', false, JSON.stringify(S.debug())); break; }
+      main.removeChild(c);
+      await settle(flush, 2);
     }
-    check('50 cycles: every scene disposed', log.scenes === 50, 'disposed ' + log.scenes);
+    check('50 visits: every scene disposed', log.scenes === 50, 'disposed ' + log.scenes);
     check('...every created resource disposed', log.created.length === log.disposed.length && log.created.length === 50 * 5,
       'created ' + log.created.length + ' disposed ' + log.disposed.length);
-    check('...nothing live afterwards', S.debug().live === 0 && S.debug().tracked === 0 && c.children.length === 0,
-      JSON.stringify(S.debug()));
+    check('...nothing live afterwards, loop stopped', S.debug().live === 0 && S.debug().tracked === 0 &&
+      S.debug().cards === 0 && S.debug().running === 0, JSON.stringify(S.debug()));
+  }
+
+  // --- 8. teardown: everything disposed, cards back to the still icon
+  {
+    const { win, doc, flush, S } = boot();
+    const log = newLog();
+    win.THREE = stubThree(log);
+    S.register('t', stubScene(log));
+    const cs = [card(doc, 't'), card(doc, 't')];
+    S.mountAll(doc.getElementById('main'));
+    await settle(flush, 3);
+    S.teardown();
+    check('teardown disposes every scene', log.scenes === 2 && log.created.length === log.disposed.length &&
+      cs.every(c => c.children.length === 0 && !c.classList.contains('is-live')), JSON.stringify(S.debug()));
   }
 
   console.log(passed + ' passed, ' + failures + ' failed');
