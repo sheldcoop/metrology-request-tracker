@@ -1094,3 +1094,12 @@ never the only signal - the text/label says the same thing.
   under the gantry tool head, the head lowers, a laser line sweeps it, the
   block turns from outline to solid ink with a pop, the head lifts and the
   belt carries it out while a new request joins at the back.
+- **HOME-15** (home-final: Board scene + the rule, 2026-10-01, Prince) Rule
+  for every scene from now on: COOL FIRST, the exact job second (Prince:
+  "does not have to show exactly what my queue does but should be
+  cooler"). Board = option A "the live board": tilted 3D board, lanes x
+  stages with glowing grid lines; cards hop column to column in arcs with
+  a fading trail, lanes staggered so something always moves; landing
+  ripple rings; cards drop in at the first column and lift off past the
+  last; a red late card pulses; a scan light sweeps the columns; slow sway.
+  My queue (HOME-14) is reopened for a cooler design.
