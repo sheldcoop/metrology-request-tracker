@@ -884,3 +884,12 @@ never the only signal - the text/label says the same thing.
   774 px, 7 take 1086 px (150 px columns + 6 px gaps) - both fit 1440 px
   with the nav open. Lane headers slide under the sticky stations instead
   of a second brittle sticky offset.
+- **D-WEBGL-1** (home-3d, Step 1: Home hover scenes) WebGL is allowed on
+  Home cards only - one shared renderer, hover-only scenes, calm and
+  capped at 1.5 pixel ratio for weak lab PCs. Everything else keeps
+  transform/opacity motion. No WebGL, software rendering, or slow frames
+  (> 40 ms over 1 s) keeps the static card for the session; reduced
+  motion renders one still frame; light schemes stay static. Off in one
+  place: `MRT.config.features.home3d`. Pinned local UMD
+  `vendor/three.min.js` (r160, last UMD release), lazy-loaded on the
+  first card hover, never in index.html.

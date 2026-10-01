@@ -72,6 +72,8 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `js/ui/panelmap.js` | Panel picker (unused since form v2; kept for Q22). |
 | `js/ui/barcode.js` | Code 128 for slips. |
 | `js/ui/magazine.js` | Magazine slot picker. |
+| `js/ui/scene3d.js` | Home hover-scene engine: one shared renderer, lazy THREE, full disposal, static fallback. |
+| `js/ui/scenes/*.js` | One hover scene each (`create(ctx)` → `{update, dispose}`), ≤ ~250 lines. |
 | `js/ui/traveller.js` | Traveller card (full/mini/card/slip sizes). |
 | `js/ui/hirata.js` | Copper panels, decoded fields, dot grid. |
 | `js/ui/theme-gallery.js` | Theme picker cards. |
@@ -97,6 +99,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `Metrology Tool.cmd` | Share launcher: opens the app, passes `%USERNAME%`. |
 | `vendor/chart.umd.min.js` | Chart.js 4, local copy. |
 | `vendor/xlsx.full.min.js` | SheetJS, local copy (CSV fallback without it). |
+| `vendor/three.min.js` + `three.README.md` | Three.js r160 UMD (last UMD release), lazy-loaded on first Home hover only. |
 
 ## Tests (dev only, `node tests/<file>.js`)
 
@@ -112,6 +115,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `tests/preview-smoke.js` + `preview.js`/`preview.html` | Preview page checks. |
 | `tests/a11y-audit.js` | Accessibility audit. |
 | `tests/fake-dom.js` | The fake browser. |
+| `tests/scene3d.js` | Engine fallback path + 50-cycle hover/leave leak test (stub THREE). |
 | `tests/memory-storage.js` | In-memory storage adapter (proves the adapter interface swaps). |
 | `tests/make-demo-data.js`, `make-preview.js` | Generators. |
 
