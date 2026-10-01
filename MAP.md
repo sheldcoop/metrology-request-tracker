@@ -73,7 +73,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `js/ui/barcode.js` | Code 128 for slips. |
 | `js/ui/magazine.js` | Magazine slot picker. |
 | `js/ui/scene3d.js` | Home hover-scene engine: one shared renderer, lazy THREE, full disposal, static fallback. |
-| `js/ui/scenes/*.js` | One hover scene each (`create(ctx)` → `{update, dispose}`), ≤ ~250 lines. |
+| `js/ui/scenes/*.js` | One hover scene each (`create(ctx)` → `{scene, camera, update, dispose}`; engine renders), ≤ ~250 lines: `aoi` (9 s scan + red flash), `bars` (9.5 s breathe + bright flash), `dice` (7.5 s turn + answer pip). |
 | `js/ui/traveller.js` | Traveller card (full/mini/card/slip sizes). |
 | `js/ui/hirata.js` | Copper panels, decoded fields, dot grid. |
 | `js/ui/theme-gallery.js` | Theme picker cards. |
@@ -116,6 +116,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `tests/a11y-audit.js` | Accessibility audit. |
 | `tests/fake-dom.js` | The fake browser. |
 | `tests/scene3d.js` | Engine fallback path + 50-cycle hover/leave leak test (stub THREE). |
+| `tests/scenes.js` | Scene contract: register, loop sweep + resize, dispose empties, size cap (fake THREE). |
 | `tests/memory-storage.js` | In-memory storage adapter (proves the adapter interface swaps). |
 | `tests/make-demo-data.js`, `make-preview.js` | Generators. |
 
