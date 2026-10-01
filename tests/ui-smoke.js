@@ -140,7 +140,7 @@ check('glyphs',()=>{expect('seven glyphs',ui.GLYPHS.length===7);
   const d=ui.toolGlyph('xyz');expect('unknown glyph -> generic',d.dataset.glyph==='generic'&&d.getAttribute('aria-hidden')==='true');
   ui.toolGlyphState(d,'off');expect('state change',d.classList.contains('is-off')&&!d.classList.contains('is-idle'));
   ui.toolGlyphState(d,'bogus');expect('bad state -> idle',d.classList.contains('is-idle'))});
-check('icons',()=>{['logo','requests','request_new','board','bell','copy','wrench','users','calendar','gauge','inbox','lots','analytics','settings','help'].forEach(n=>{const i=ui.icon(n);expect('icon '+n,i.innerHTML.length>10)})});
+check('icons',()=>{const miss=ui.icon('__no_such_icon__').innerHTML;['logo','requests','request_new','board','bell','copy','wrench','users','calendar','gauge','inbox','lots','chart-column','settings','circle-help','clock','contrast','motion','hirata'].forEach(n=>{const i=ui.icon(n);expect('icon '+n,i.innerHTML.length>10&&i.innerHTML!==miss)})});
 check('format',()=>{expect('formatTs',ui.formatTs('2026-09-24T08:05:00Z')==='24.09.2026 10:05');expect('duration',ui.formatDurationH(1.5)==='1 h 30 min');expect('initials',ui.initials('Prince Khurana')==='PK')});
 check('esc',()=>{expect('esc',ui.esc('<b a="1">&')==='&lt;b a=&quot;1&quot;&gt;&amp;')});
 check('charts',()=>{const c=ui.chart(t=>({type:'bar',data:{labels:['a','b'],datasets:[{label:'x',data:[1,2],backgroundColor:t.color('accent')}]},options:{}}),{height:200,expand:true,onPick(){}});root.appendChild(c.node);c.refresh&&c.refresh()});
