@@ -60,8 +60,11 @@ const $ = sel => doc.querySelector(sel);
 const $$ = sel => doc.querySelectorAll(sel);
 const text = id => doc.getElementById(id).textContent;
 const visible = id => !doc.getElementById(id).hidden;
-function gateInputs() { return doc.getElementById('gateCard').querySelectorAll('input'); }
-function submitGate() { doc.getElementById('gateCard').querySelector('form').dispatch('submit'); }
+function gateInputs() { return gateRoot().querySelectorAll('input'); }
+function submitGate() { gateRoot().querySelector('form').dispatch('submit'); }
+// sign-in forms live in the Home slot; first-run stays in the gate overlay
+function gateRoot() { return doc.getElementById('main').querySelector('.home-slot') || doc.getElementById('gateCard'); }
+function slotText() { return text('main'); }
 function action(name) { const b = new El('button'); b.dataset.action = name; doc.body.appendChild(b); b.click(); doc.body.removeChild(b); }
 function buttonByText(root, t) { return root.querySelectorAll('button').filter(b => b.textContent.trim() === t)[0]; }
 function openMore() { buttonByText($('#main .req-actbar'), '...').click(); }
@@ -228,11 +231,14 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
 
   // --- change user; an unknown Windows ID signs up
   action('change-user'); await settle();
-  check('change user asks who you are', visible('gate') && /Who are you\?/.test(text('gateCard')));
+  check('change user asks who you are in the Home slot, no cards', visible('shell') && /Who are you\?/.test(slotText()) &&
+        doc.getElementById('main').querySelectorAll('.home-card').length === 0, win.location.hash);
   gateInputs()[0].value = 'thuber'; submitGate(); await settle();
-  check('an unknown ID is asked for a name', /not known here yet/.test(text('gateCard')), text('gateCard').slice(0, 120));
+  check('an unknown ID is asked for a name', /not known here yet/.test(slotText()), slotText().slice(0, 120));
   gateInputs()[0].value = 'Tom Huber'; submitGate(); await settle();
   check('Tom is in, as Engineer only', visible('shell') && MRT.store.currentUser().name === 'Tom Huber' && MRT.store.currentUser().roles.join() === 'engineer');
+  check('...the slot is gone and his cards are in, same page', !doc.getElementById('main').querySelector('.home-slot') &&
+        doc.getElementById('main').querySelectorAll('.home-card').length > 0, win.location.hash);
   check('...marked New for the admins', MRT.store.currentUser().needs_review === true);
   check('an engineer cannot set tool status', doc.getElementById('main').querySelectorAll('button').filter(b => /Set status/.test(b.textContent)).length === 0);
 
@@ -240,10 +246,10 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   action('change-user'); await settle();
   gateInputs()[0].value = 'thuber2'; submitGate(); await settle();
   gateInputs()[0].value = 'tom  HUBER'; submitGate(); await settle();
-  check('a known name asks "Is this you?"', /Is this you\?/.test(text('gateCard')));
-  check('...and shows Tom as already linked', /linked to another Windows ID/.test(text('gateCard')));
-  buttonByText(doc.getElementById('gateCard'), 'Back').click(); await settle();
-  check('Back returns to the name form', /not known here yet/.test(text('gateCard')));
+  check('a known name asks "Is this you?"', /Is this you\?/.test(slotText()));
+  check('...and shows Tom as already linked', /linked to another Windows ID/.test(slotText()));
+  buttonByText(gateRoot(), 'Back').click(); await settle();
+  check('Back returns to the name form', /not known here yet/.test(slotText()));
 
   // --- back to Prince by typing the Windows ID
   action('change-user'); await settle();
