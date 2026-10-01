@@ -24,7 +24,7 @@ window.MRT.views.help = (function () {
       steps: [
         'Open the app with "Metrology Tool.cmd" (next to index.html). It starts Edge and tells the app your Windows user name.',
         'The first time on a PC, click Choose data folder and pick the folder "data". Next time it is one click (Reconnect) or none.',
-        'First time ever? Say who you are. If an admin already added you, pick your name ("Is this you?"). Otherwise you are added as an Engineer and an admin sets your roles.',
+        'First time ever? Type your Windows user name. Only people an admin added in Settings > People get in - anyone else sees "You are not in yet" and asks an admin.',
         'Every change is saved at once - there is no Save button. Top right, “Saved” appears briefly after each save; “Saving…” or “Not saved · retry” shows in colour only when something needs you.'
       ],
       tips: [

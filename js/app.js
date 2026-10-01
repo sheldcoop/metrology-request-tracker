@@ -324,7 +324,22 @@ window.MRT.app = (function () {
         ui.el('div', { class: 'gate-actions' }, [ui.button('Not me - change user', { kind: 'ghost', dataset: { action: 'change-user' } })])
       ]);
     }
-    showWhoAreYou(ident);
+    showNotAllowed(ident);
+  }
+
+  /* Unknown Windows ID: nobody gets in unless an admin put them in
+   * Settings > People first (no self-registration until real login).
+   * Same Home slot as the Who-are-you form it replaces. */
+  function showNotAllowed(ident) {
+    var who = (ident.domain ? ident.domain + '\\' : '') + ident.windows_id;
+    showInSlot([
+      ui.el('h1', { text: 'You are not in yet' }),
+      lead(who + ' is not in Settings > People. Ask an admin to add you, then continue below.'),
+      ui.el('div', { class: 'gate-actions' }, [
+        ui.button('I was added - continue', { kind: 'primary', onClick: function () { signIn(ident); } }),
+        ui.button('Not me - change user', { kind: 'ghost', dataset: { action: 'change-user' } })
+      ])
+    ]);
   }
 
   /** A small form inside the gate card: fields + submit, errors shown inline. */
@@ -405,64 +420,10 @@ window.MRT.app = (function () {
     ]);
   }
 
-  function showWhoAreYou(ident) {
-    var name = ui.field({ label: 'Your name', placeholder: 'First and last name' });
-    var email = ui.field({ label: 'Company email (optional)', type: 'email' });
-    showInSlot([
-      ui.el('h1', { text: 'Who are you?' }),
-      lead('Your Windows user name ' + (ident.domain ? ident.domain + '\\' : '') + ident.windows_id +
-           ' is not known here yet. Tell us your name - you are asked only once.'),
-      gateForm([name, email], 'Continue', function () {
-        name.setState(null); email.setState(null);
-        if (!name.value().trim()) fail(name, 'Enter your name');
-        if (email.value().trim() && !D.isEmail(email.value().trim())) fail(email, 'That email address does not look right');
-        var matches = store.nameMatches(name.value());
-        if (matches.length) return showIsThisYou(ident, name.value(), email.value(), matches);
-        return register(ident, name.value(), email.value(), false);
-      }, ui.button('Not me - change user', { kind: 'ghost', dataset: { action: 'change-user' } }))
-    ]);
-  }
-
-  function showIsThisYou(ident, name, email, matches) {
-    var err = ui.el('div');
-    showInSlot([
-      ui.el('h1', { text: 'Is this you?' }),
-      lead('There is already someone called ' + name.trim() + '. If it is you, pick it, and your Windows user name is linked to it.'),
-      ui.el('div', { class: 'user-list' }, matches.map(function (u) {
-        var linked = !!u.windows_id;
-        return ui.el('button', {
-          class: 'user-pick', type: 'button', disabled: linked,
-          onclick: linked ? null : function () {
-            store.linkIdentity(u.id, ident).then(function () {
-              ui.toast({ kind: 'success', message: 'Welcome back, ' + u.name + '.' });
-              openShell();
-            }).catch(function (e) { ui.mount(err, problem(e.message)); });
-          }
-        }, [
-          ui.el('span', { class: 'user-avatar', text: ui.initials(u.name) }),
-          ui.el('span', { text: u.name }),
-          ui.el('span', { class: 'role', text: linked ? 'linked to another Windows ID - ask an admin'
-            : (u.roles || []).map(function (r) { return D.ROLE_LABEL[r]; }).join(', ') })
-        ]);
-      })),
-      err,
-      ui.el('div', { class: 'gate-actions' }, [
-        ui.button('No, I am someone else - add me', { onClick: function () {
-          register(ident, name, email, true).catch(function (e) { ui.mount(err, problem(e.message)); });
-        } }),
-        ui.button('Back', { kind: 'ghost', onClick: function () { showWhoAreYou(ident); } })
-      ])
-    ]);
-  }
-
-  function register(ident, name, email, confirmed) {
-    return store.selfRegister({ name: name, windows_id: ident.windows_id, domain: ident.domain,
-                                email: email, confirmed_new: confirmed }).then(function () {
-      ui.toast({ kind: 'success', timeout_ms: 8000, message: 'Welcome. You were added as an Engineer; an admin will check your roles.' });
-      pendingSlot = null;
-      openShell();
-    });
-  }
+  /* Self-registration removed 2026-10-01 (HOME-6): unknown IDs stop at
+   * showNotAllowed until an admin adds them in Settings > People. The
+   * store keeps selfRegister/linkIdentity/nameMatches for the server
+   * login later; nothing in the app calls them. */
 
   /** Pick another data folder (the wrong one was picked, or the share moved). */
   function changeFolder() {
