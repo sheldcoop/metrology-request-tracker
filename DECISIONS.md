@@ -1088,3 +1088,9 @@ never the only signal - the text/label says the same thing.
   behind it, stations light and pulse on arrival; at Measuring a probe
   dips and a scan line sweeps the card; at Done a check mark pops with a
   burst; then the next card starts.
+- **HOME-14** (home-final: My queue scene, 2026-10-01, Prince, option A
+  "the tool at work") Request blocks wait on a conveyor in priority order
+  (urgent one with a red stripe); each cycle the belt steps the next block
+  under the gantry tool head, the head lowers, a laser line sweeps it, the
+  block turns from outline to solid ink with a pop, the head lifts and the
+  belt carries it out while a new request joins at the back.
