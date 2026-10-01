@@ -581,6 +581,22 @@ table.grid tbody tr[tabindex]:focus-visible { outline-offset: -2px; }
 .prf-problems ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .prf-problems li { display: flex; gap: 6px; align-items: flex-start; font-size: 13px; color: var(--fg-muted); }
 .prf-problems li svg { flex: none; color: var(--warning-fg); margin-top: 2px; }
+.prf-settings { display: grid; gap: 16px; }
+.prf-meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
+.prf-meta dt { color: var(--fg-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.prf-meta dd { margin: 0; font-size: 14px; }
+.prf-panel-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+.prf-panel-grid { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.prf-side { padding: 12px 0; border-top: 1px solid var(--line); }
+.prf-side:first-child { border-top: none; padding-top: 0; }
+.prf-subsection { margin: 10px 0 0 24px; padding-left: 12px; border-left: 2px solid var(--line); }
+.prf-subsection-body { display: grid; gap: 10px; margin-top: 8px; max-width: 480px; }
+.prf-field-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.prf-field-row > * { flex: 1; min-width: 160px; }
+.prf-advanced-sub { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-muted); margin: 12px 0 4px; }
+.prf-spec-grid { display: grid; gap: 6px; }
+.prf-spec-row { display: grid; grid-template-columns: 1fr 100px 100px; gap: 10px; align-items: end; }
+.prf-spec-label { font-size: 12px; color: var(--fg-muted); align-self: center; font-family: var(--font-mono, monospace); }
 
 /* --- Tabs with a sliding underline ---------------------------------- */
 .tab-bar {

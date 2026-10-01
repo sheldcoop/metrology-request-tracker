@@ -680,6 +680,7 @@ window.MRT.prf = (function () {
     sequenceText: sequenceText, countsFromDefaults: countsFromDefaults, viaLabels: viaLabels, compress: compress,
     roughnessRow: roughnessRow, processRoughness: processRoughness, circleValues: circleValues,
     viaRow: viaRow, processVia: processVia, checkSites: checkSites,
-    pretty: pretty, getLimits: getLimits, buildSummary: buildSummary, buildComparison: buildComparison
+    pretty: pretty, getLimits: getLimits, buildSummary: buildSummary, buildComparison: buildComparison,
+    SPEC_KEYS: Object.keys(SPEC_KEYS)
   };
 })();
