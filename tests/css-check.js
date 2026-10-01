@@ -23,7 +23,7 @@ const REQUIRED = {
   tokens: [':root, [data-theme]', '[data-scheme="light"]', '[data-contrast="high"]'],   // the theme colours: js/themes.js
   themeGallery: ['.tg-card.is-on', '.tg-sample', '.tg-s-lamps .is-ok'],
   statusIcons: ['--ic-ok:', '--ic-warning:', '--ic-critical:', '--ic-late:', '--ic-blocked:', '--ic-hot:', '.chip:is(.ok, .warning, .critical, .expired, .blocked)::before',
-                '.led:is(.ok, .warning, .critical, .expired, .blocked)::before', ':is(.q-clock, .tr-clock).is-late::before', '.prio-1 .bcard-prio::before', '.board-lamp.is-down i::before', '.st-ic.is-expired', '.tool-plate-facts dd.is-late::before'],
+                '.led:is(.ok, .warning, .critical, .expired, .blocked)::before', ':is(.q-clock, .tr-clock).is-late::before', '.prio-1 .bcard-prio::before', '.st-ic.is-expired', '.tool-plate-facts dd.is-late::before'],
   panel: ['.panel-head', '.panel-title'], led: ['.led.live::after'],
   buttons: ['.btn-primary', '.btn-danger', '.btn-ghost'], segmented: ['.seg-opt input:checked + span'],
   field: ['.ifield-box', '.ifield.is-invalid'], chip: ['.chip.expired'],
@@ -38,7 +38,7 @@ const REQUIRED = {
   lots: ['.lots-tools', '.cell-note'],
   request: ['.req-layout', '.tool-bank', '.tool-bench::after', '.tool-bank .tool-pick-opt.is-on::after', '.tool-pick-opt.is-on', '.traveller-mini::before', '.req-errors', '.wz-step.is-done .wz-no', '.wz-dot.is-now', '.lot-main-row', '.layer-chip.is-on', '.panel-chip.is-scrapped'],
   queue: ['.queue-bulk', '.q-clock.is-late', '.queue-list', '.qbox', '.qbox.prio-1::before', '.qgroup', '.qbox.is-done', '.done-today'],
-  board: ['.board-fold', '.bgauge.is-late i', 'dialog.drawer[open]', '.bcard.is-urgent::after', '.bcard::before'],
+  board: ['.board-lanehead', '.bcard-id', '.bcard-prio', 'dialog.drawer[open]', '.bcard.is-urgent::after', '.bcard::before'],
   slip: ['.slip::before', '.slip-code .barcode', '.slip-warn'],
   bell: ['.bell-count', '.bell-btn'],
   magazine: ['.mz-frame', '.mz-slot.is-picked .mz-panel', '.mz-slot.is-taken .mz-panel'],
