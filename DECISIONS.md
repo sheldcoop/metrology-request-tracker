@@ -1042,3 +1042,22 @@ never the only signal - the text/label says the same thing.
   requests/board/lab/results/hirata/help. Lots keeps `canRegisterLot`;
   Settings stays sidebar-only. Lots/results/hirata cards are static (no
   scene); the seven scene cards untouched.
+- **HOME-10** (home-final: always-on scenes, AT&S white, 2026-10-01, Prince)
+  Every Home card has a scene and it plays ALL THE TIME in a stage on top
+  of the card (calm loop at 30 fps; livelier on hover/focus - the engine
+  passes `energy` 0..1 and speeds the clock). New scenes: Results
+  (plinko-style wireframe height map, ripple grows on hover), Lots (panels
+  load a cassette, the lot moves on), Hirata (dot code read by a scan
+  bar). Light schemes animate too, in near-black ink (`--scene-ink`).
+  Engine: one off-screen WebGLRenderer, each card's frame copied into its
+  own 2D canvas (one GL context for all cards); off-screen cards and a
+  hidden tab pause; cards that leave the page are disposed. THREE loads
+  ~200 ms after Home shows scene cards (was: first hover), still never in
+  index.html. Unchanged: slow-frame / software-GL fallback to the still
+  icon, reduced motion = no scene, off in one place (`features.home3d`).
+  This replaces D-WEBGL-1's "hover-only" and "light schemes stay static".
+  AT&S (option B): white room, #262626 replaces the navy for text,
+  actions and lines; Home tiles are dark #262626 with white writing and
+  white scenes (`--tile`, `--tile-fg`, `--tile-fg-muted`, `--tile-accent`,
+  `--scene-ink` in themes.js; every theme defaults them from its own
+  surface/fg/accent). Other panels in AT&S are white with #262626 ink.

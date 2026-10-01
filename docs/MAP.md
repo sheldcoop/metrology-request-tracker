@@ -77,8 +77,8 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `js/ui/panelmap.js` | Panel picker (unused since form v2; kept for Q22). |
 | `js/ui/barcode.js` | Code 128 for slips. |
 | `js/ui/magazine.js` | Magazine slot picker. |
-| `js/ui/scene3d.js` | Home hover-scene engine: one shared renderer, lazy THREE, full disposal, static fallback. |
-| `js/ui/scenes/*.js` | One hover scene each (`create(ctx)` → `{scene, camera, update, dispose}`; engine renders), ≤ ~250 lines: `aoi` (9 s scan + red flash), `bars` (9.5 s breathe + bright flash), `dice` (7.5 s turn + answer pip), `new` (8 s sheet + badge flash), `mine` (8.5 s plate slide), `queue` (9 s lane trip), `board` (8 s tile pulse). Lots/Settings stay static. |
+| `js/ui/scene3d.js` | Home card scene engine: every card plays all the time (livelier on hover), one shared off-screen renderer copied into each card, lazy THREE, full disposal, still-icon fallback. |
+| `js/ui/scenes/*.js` | One card scene each (`create(ctx)` → `{scene, camera, update, dispose}`; engine renders), ≤ ~250 lines: `aoi` (9 s scan + red flash), `bars` (9.5 s breathe + bright flash), `dice` (7.5 s turn + answer pip), `new` (8 s sheet + badge flash), `mine` (8.5 s plate slide), `queue` (9 s lane trip), `board` (8 s tile pulse), `results` (wireframe height map, ripple grows on hover), `lots` (9 s panels load a cassette), `hirata` (6 s dot code read by a scan bar). Settings stays sidebar-only. |
 | `js/ui/traveller.js` | Traveller card (full/mini/card/slip sizes). |
 | `js/ui/hirata.js` | Copper panels, decoded fields, dot grid. |
 | `js/ui/theme-gallery.js` | Theme picker cards. |
@@ -129,7 +129,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `tests/preview-smoke.js` + `preview.js`/`preview.html` | Preview page checks. |
 | `tests/a11y-audit.js` | Accessibility audit. |
 | `tests/fake-dom.js` | The fake browser. |
-| `tests/scene3d.js` | Engine fallback path + 50-cycle hover/leave leak test (stub THREE). |
+| `tests/scene3d.js` | Engine fallback path, always-on cards, hover energy, reduced motion + 50-visit leak test (stub THREE). |
 | `tests/scenes.js` | Scene contract: register, loop sweep + resize, dispose empties, size cap (fake THREE). |
 | `tests/memory-storage.js` | In-memory storage adapter (proves the adapter interface swaps). |
 | `tests/prf-view-logic.js` | PRF page logic: scan counts, unit order, same-as-via, plan. |

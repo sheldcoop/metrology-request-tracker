@@ -1,7 +1,7 @@
 /**
  * tests/scenes.js - dev only, no dependencies:  node tests/scenes.js
  *
- * The three Home hover scenes (aoi, bars, dice) against a fake THREE:
+ * The ten Home card scenes (aoi, bars, dice, new, mine, queue, board, results, lots, hirata) against a fake THREE:
  * every scene registers, returns { scene, camera, update, dispose },
  * survives a full loop sweep including the wrap with no throw, answers
  * resize, and empties its scene on dispose. Each file stays <= 250 lines.
@@ -62,7 +62,7 @@ function loadScenes() {
     return { width: 0, height: 0, getContext: function () {
       return { fillRect: function () {}, beginPath: function () {}, arc: function () {}, fill: function () {} }; } }; } };
   const ctx = vm.createContext(win);
-  ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board'].forEach(k =>
+  ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board', 'results', 'lots', 'hirata'].forEach(k =>
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/ui/scenes/' + k + '.js'), 'utf8'), ctx, { filename: k }));
   return registry;
 }
@@ -75,9 +75,9 @@ function mkctx(T) {
 }
 
 (function run() {
-  const keys = ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board'];
+  const keys = ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board', 'results', 'lots', 'hirata'];
   const registry = loadScenes();
-  check('all seven scenes register', keys.every(k => typeof registry[k] === 'function'),
+  check('all ten scenes register', keys.every(k => typeof registry[k] === 'function'),
     Object.keys(registry).join(','));
 
   keys.forEach(function (key) {
@@ -89,7 +89,7 @@ function mkctx(T) {
     if (!inst || typeof inst.update !== 'function') return;
     let threw = null;
     try {
-      for (let t = 0; t <= 20; t += 0.25) inst.update(0.016, t);  // sweeps every loop wrap
+      for (let t = 0; t <= 20; t += 0.25) inst.update(0.016, t, (t % 4) / 4);  // sweeps every loop wrap, calm to hovered
       ctx._resizers.forEach(fn => { fn(300, 150); fn(200, 100); });
       for (let t = 0; t <= 20; t += 0.25) inst.update(0.016, t);
     } catch (e) { threw = e; }
