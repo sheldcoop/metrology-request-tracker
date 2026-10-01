@@ -1298,6 +1298,8 @@ a.path-link:hover { text-decoration: underline; }
 
 /* New request (M2 step 4): form on the left, traveller preview + your requests on the right */
 .req-layout { display: grid; grid-template-columns: minmax(0, 1fr) 430px; gap: 24px; align-items: start; }
+/* Request page (Step 7): paths, rail, details, people, timeline, comments. */
+.req-stack { display: grid; gap: 16px; align-items: start; }
 @media (max-width: 1280px) { .req-layout { grid-template-columns: minmax(0, 1fr); } }
 .req-form { display: grid; gap: 16px; }
 .req-side { display: grid; gap: 16px; position: sticky; top: 12px; }
