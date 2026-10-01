@@ -744,3 +744,13 @@ never the only signal - the text/label says the same thing.
   CORS problem, open #12). Socket binding is not provable in the dev
   sandbox (listen is blocked) — `tests/server-smoke.js` drives the
   handler directly; real binding is proven in the Phase 5 Docker step.
+- **D-SRV-2** (server-sqlite, Phase 2: Stage A adapter) `PUT /api/doc`
+  carries `expected_revision`; zero swapped rows → 409 with the same
+  `{revision, saved_by, saved_ts}` the file version carries, so the
+  `revision_conflict` banner works unchanged. The adapter sends
+  `expected_revision = revision - 1` and throws the same error code, so
+  no store, view or domain edit was needed. Backups/prev copies stay
+  files (`/api/files`, traversal-guarded). `tests/app-smoke.js` passes
+  321/321 both on the memory folder and over real SQLite
+  (`MRT_STORE=api`); the unit suite stays on memory (it pokes `.files`
+  directly — file-semantics tests by design).
