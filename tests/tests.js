@@ -1836,6 +1836,90 @@
   }
   prfTests();
 
+  function prfTests2() {
+    var P = window.MRT.prf;
+    var meta = { Lot_Number: '12345', Buildup: 'BU01', Panel: 3 };
+    var cfg = { flagFactor: 1.5, filterOutliers: false, nrSigma: 2 };
+
+    group('PRF data - roughness row');
+    var r1 = ['Ra\tRq\tRz\tRpv\tRku', '1\t2\t5\t6\t3', '1.2\t2.2\t30\t7\t3.1'];
+    var out = P.roughnessRow(r1, 5, 'Next to Via', 12, meta, 'Front', cfg);
+    eq('values are converted um -> nm (x1000) and rounded to 6', [out.row.Ra_Mean_nm, out.row.Rz_Mean_nm], [1100, 17500]);
+    eq('Unit/Type/Position/Site copied onto the row', [out.row.Unit, out.row.Type, out.row.Measurement_Position, out.row.Site], [5, 'Unit', 'Next to Via', 12]);
+    ok('a line whose Rz is > flag_factor x median Rz flags that line and the row', out.row.Flag === 'CHECK' && out.row.Lines_Flagged === 1 && /spiky line/.test(out.flagMessage));
+    eq('Std uses the SAMPLE std (ddof=1), not population', P.round(out.row.Ra_Std_nm, 4), P.round(P.std([1000, 1200], 1), 4));
+    eq('raw rows: one per line, nm, 6 decimals', out.raw.length, 2);
+    eq('a coupon label is typed as Coupon', P.roughnessRow(r1, 'C1', 'p', 1, meta, 'Front', cfg).row.Type, 'Coupon');
+
+    var r2 = ['Ra\tRq\tRz\tRpv\tRku', '1\t2\t5\t6\t3', '1.1\t2.1\t5.1\t6\t3', '1000\t200\t5\t6\t3'];
+    var outF = P.roughnessRow(r2, 1, 'p', 1, meta, 'Front', { flagFactor: 1.5, filterOutliers: true, nrSigma: 1 });
+    eq('outlier filter drops a line whose Ra OR Rz is off (both columns must pass, ddof=0)', outF.row.Lines_Used, 1);
+    var r3 = ['Ra\tRq\tRz\tRpv\tRku', '1\t2\t5\t6\t3'];
+    eq('filter_outliers does nothing with 2 or fewer lines (py "len(df) > 2")', P.roughnessRow(r3, 1, 'p', 1, meta, 'Front', { flagFactor: 1.5, filterOutliers: true, nrSigma: 2 }).row.Lines_Used, 1);
+
+    group('PRF data - processRoughness (file count vs units x positions)');
+    var files = [{ lines: r1, site: 1 }, { lines: r1, site: 2 }];
+    var pr = P.processRoughness(files, [5], ['A', 'B'], cfg, meta, 'Front');
+    eq('2 files = 1 unit x 2 positions: both labelled, unit-major then position', [pr.rows[0].Measurement_Position, pr.rows[1].Measurement_Position], ['A', 'B']);
+    var prBad = P.processRoughness(files, [5, 7], ['A', 'B'], cfg, meta, 'Front');
+    eq('a count mismatch is an ERROR and nothing is produced', [prBad.rows, prBad.messages[0].level], [[], 'ERROR']);
+    var prNoUnits = P.processRoughness(files, [], ['A'], cfg, meta, 'Front');
+    eq('no units set is also an ERROR', prNoUnits.messages[0].level, 'ERROR');
+
+    group('PRF data - via circle geometry');
+    eq('circle_values: D = (L+S)/2, roundness % (py 584)', P.circleValues({ MajorAxis: 100, MinorAxis: 96 }), { L: 100, S: 96, D: 98, R: (1 - 4 / 98) * 100 });
+    var viaLines = ['Index,CenterX,CenterY,MajorAxis,MinorAxis,AvgHeight,MinHeight,MaxHeight',
+      '1,0,0,100,96,0,0,0', '2,0,0,60,56,-50,-51,-49'];
+    var vr = P.viaRow(viaLines, 2, 1, 7, meta, 'Front');
+    eq('top = largest D, bottom = smallest D (sorted by D desc)', [vr.row.Top_Diameter_um, vr.row.Bottom_Diameter_um], [98, 58]);
+    eq('depth = |bottom AvgHeight|; taper = topD - bottomD', [vr.row.Average_Via_Depth_um, vr.row.Taper_um], [50, 40]);
+    eq('aspect ratio = depth / topD; bottom/top % = bottomD/topD x100', [vr.row.Aspect_Ratio, vr.row.Bottom_Top_Ratio_pct], [P.round(50 / 98, 6), P.round(58 / 98 * 100, 6)]);
+    eq('taper angle = atan(taper/(2*depth)) in degrees; wall = 90 - angle', [vr.row.Taper_Angle_deg, vr.row.Wall_Angle_deg], [P.round(Math.atan(40 / 100) * 180 / Math.PI, 6), P.round(90 - Math.atan(40 / 100) * 180 / Math.PI, 6)]);
+    ok('exactly 2 circles: no flag', vr.row.Flag === '' && !vr.flagMessage);
+    var vr3 = P.viaRow(viaLines.concat(['3,0,0,80,76,-20,-21,-19']), 2, 1, 7, meta, 'Front');
+    eq('3 circles: flagged "3 circles", middle one is Extra', [vr3.row.Flag, vr3.raw[1].Circle_Type], ['3 circles', 'Extra']);
+    var vr1 = P.viaRow([viaLines[0], viaLines[1]], 2, 1, 7, meta, 'Front');
+    ok('only 1 circle: top set, bottom (and depth/taper/...) stay blank, flagged', isNaN(vr1.row.Average_Via_Depth_um) && vr1.row.Flag === '1 circles' && P.isNum(vr1.row.Top_Diameter_um));
+    var viaZero = ['Index,CenterX,CenterY,MajorAxis,MinorAxis,AvgHeight,MinHeight,MaxHeight', '1,0,0,100,96,0,0,0', '2,0,0,60,56,0,-1,1'];
+    ok('depth = 0: aspect ratio / angles stay blank (py "if depth > 0")', isNaN(P.viaRow(viaZero, 2, 1, 7, meta, 'Front').row.Aspect_Ratio));
+
+    group('PRF data - processVia');
+    var vfiles = [{ lines: viaLines, site: 1 }, { lines: viaLines, site: 2 }];
+    var pv = P.processVia(vfiles, [5, 6], meta, 'Front', null, null);
+    eq('even split over 2 units, 1 via file each', [pv.rows[0].Unit, pv.rows[1].Unit], [5, 6]);
+    var pvBad = P.processVia(vfiles, [5, 6, 7], meta, 'Front', null, null);
+    eq('a split that does not fit produces nothing', pvBad.rows, []);
+
+    group('PRF data - check_sites');
+    eq('duplicates reported', P.checkSites([[1, 'R'], [1, 'R'], [2, 'V']], [1], [1], 1, null).filter(function (m) { return /Duplicate/.test(m.text); }).length, 1);
+    eq('missing sites (gap 1..highest)', P.checkSites([[1, 'R'], [3, 'V']], [1], [1], 1, null).filter(function (m) { return /Missing sites: 2/.test(m.text); }).length, 1);
+    eq('complete run says so', P.checkSites([[1, 'R'], [2, 'V']], [1], [1], 1, null).filter(function (m) { return /Sites complete: 1-2/.test(m.text); }).length, 1);
+    eq('roughness sites not consecutive within a group of n_pos', P.checkSites([[1, 'R'], [5, 'R']], [1], [1], 2, null).filter(function (m) { return /not consecutive/.test(m.text); }).length, 1);
+    eq('block pattern VVVVVRR x2 units: both blocks match = OK', P.checkSites([[1, 'V'], [2, 'V'], [3, 'R'], [4, 'V'], [5, 'V'], [6, 'R']], [1, 2], [1, 2], 1, null).filter(function (m) { return /Site pattern OK/.test(m.text); }).length, 1);
+    eq('block pattern differs between units = warning', P.checkSites([[1, 'V'], [2, 'R'], [3, 'V'], [4, 'V']], [1, 2], [1, 2], 1, null).filter(function (m) { return /differs from block 1/.test(m.text); }).length, 1);
+    eq('a via sequence skips the block check (uneven by design)', P.checkSites([[1, 'V'], [2, 'V'], [3, 'V']], [1], [1], 1, [['1', 3]]).filter(function (m) { return /skipped \(via sequence/.test(m.text); }).length, 1);
+
+    group('PRF data - summary and spec limits');
+    eq('pretty names: unit suffix -> unit text, special name for Bottom/Top', [P.pretty('Top_Diameter_um'), P.pretty('Bottom_Top_Ratio_pct'), P.pretty('Aspect_Ratio')], ['Top Diameter (µm)', 'Bottom/Top Ratio (%)', 'Aspect Ratio']);
+    var gl = P.getLimits({ via_depth: [10, 20], bad_key: [1, 2], aspect_ratio: [null, null] });
+    eq('getLimits keeps only known, non-empty keys; unknown keys warn', [gl.limits, gl.messages.length], [{ Average_Via_Depth_um: [10, 20] }, 1]);
+    var t2b = [
+      { Lot_Number: 'L', Buildup: 'B', Panel: 1, Side: 'Front', Average_Via_Depth_um: 10, Top_Diameter_um: 50, Bottom_Diameter_um: 40, Top_Roundness_pct: 99, Bottom_Roundness_pct: 98, Aspect_Ratio: 0.2, Bottom_Top_Ratio_pct: 80, Taper_um: 10, Taper_Angle_deg: 5, Wall_Angle_deg: 85 },
+      { Lot_Number: 'L', Buildup: 'B', Panel: 1, Side: 'Front', Average_Via_Depth_um: 30, Top_Diameter_um: 50, Bottom_Diameter_um: 40, Top_Roundness_pct: 99, Bottom_Roundness_pct: 98, Aspect_Ratio: 0.2, Bottom_Top_Ratio_pct: 80, Taper_um: 10, Taper_Angle_deg: 5, Wall_Angle_deg: 85 },
+      { Lot_Number: 'L', Buildup: 'B', Panel: 1, Side: 'Back', Average_Via_Depth_um: 50, Top_Diameter_um: 50, Bottom_Diameter_um: 40, Top_Roundness_pct: 99, Bottom_Roundness_pct: 98, Aspect_Ratio: 0.2, Bottom_Top_Ratio_pct: 80, Taper_um: 10, Taper_Angle_deg: 5, Wall_Angle_deg: 85 }
+    ];
+    var sum = P.buildSummary(t2b, [], { Average_Via_Depth_um: [5, 45] });
+    var frontDepth = sum.filter(function (r) { return r.Side === 'Front' && r.Parameter === 'Average Via Depth (µm)'; })[0];
+    eq('N / Mean / Std (sample) / Min / Max per group', [frontDepth.N, frontDepth.Mean, P.round(frontDepth.Std, 6), frontDepth.Min, frontDepth.Max], [2, 20, P.round(P.std([10, 30], 1), 6), 10, 30]);
+    eq('spec limits -> PASS/FAIL (min>=lo and max<=hi)', [frontDepth.Result, sum.filter(function (r) { return r.Side === 'Back' && r.Parameter === 'Average Via Depth (µm)'; })[0].Result], ['PASS', 'FAIL']);
+    eq('a parameter with no limit has no Result', sum.filter(function (r) { return r.Parameter === 'Top Diameter (µm)'; })[0].Result, '');
+    var cmp = P.buildComparison(sum);
+    var depthCmp = cmp.filter(function (r) { return r.Parameter === 'Average Via Depth (µm)'; })[0];
+    eq('Front vs Back: difference and % of Front', [depthCmp['Front Mean'], depthCmp['Back Mean'], depthCmp['Difference (Back - Front)'], depthCmp['Difference (%)']], [20, 50, 30, 150]);
+    eq('one side only -> no comparison rows', P.buildComparison(sum.filter(function (r) { return r.Side === 'Front'; })), []);
+  }
+  prfTests2();
+
   T.done = run().catch(function (e) {
     T.failed++;
     (current || (group('Runner'), current)).rows.push({ ok: false, name: 'the test run crashed', detail: String(e && e.stack || e) });
