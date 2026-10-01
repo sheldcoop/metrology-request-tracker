@@ -571,6 +571,17 @@ table.grid tbody tr.is-bad > td { background: var(--danger-bg); }
 table.grid tbody tr.is-change > td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
 table.grid tbody tr[tabindex]:focus-visible { outline-offset: -2px; }
 
+/* --- PRF data page ---------------------------------------------------- */
+.prf-page { display: grid; gap: 16px; }
+.prf-folder-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.prf-scan-progress { color: var(--fg-muted); font-size: 13px; margin-bottom: 8px; }
+.prf-lot-list { margin: 8px 0; padding-left: 20px; color: var(--fg-muted); font-size: 13px; }
+.prf-problems { margin-top: 16px; }
+.prf-problems h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--warning-fg); margin: 0 0 6px; }
+.prf-problems ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.prf-problems li { display: flex; gap: 6px; align-items: flex-start; font-size: 13px; color: var(--fg-muted); }
+.prf-problems li svg { flex: none; color: var(--warning-fg); margin-top: 2px; }
+
 /* --- Tabs with a sliding underline ---------------------------------- */
 .tab-bar {
   position: relative; display: flex; gap: 2px;

@@ -45,7 +45,7 @@ const ctx = vm.createContext(win);
     'js/ui/scenes/new.js', 'js/ui/scenes/mine.js', 'js/ui/scenes/queue.js', 'js/ui/scenes/board.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
- 'js/views/settings-data.js', 'js/views/settings-look.js', 'js/views/settings-emails.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/results.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/help.js', 'js/views/home.js', 'js/app.js', 'tests/memory-storage.js'
+ 'js/views/settings-data.js', 'js/views/settings-look.js', 'js/views/settings-emails.js', 'js/views/extra-fields.js', 'js/views/lots.js', 'js/views/new.js', 'js/views/request-actions.js', 'js/views/request.js', 'js/views/queue.js', 'js/views/requests.js', 'js/views/board.js', 'js/views/results.js', 'js/views/slip.js', 'js/views/templates.js', 'js/views/analytics.js', 'js/views/hirata.js', 'js/views/prf.js', 'js/views/help.js', 'js/views/home.js', 'js/app.js', 'tests/memory-storage.js'
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
@@ -92,9 +92,9 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
 
   // --- the side menu (M1-6, grouped in Step 3)
   const items = doc.getElementById('navItems').querySelectorAll('.nav-item');
-  check('twelve menu entries', items.length === 12, items.length);
+  check('thirteen menu entries', items.length === 13, items.length);
   check('grouped order: Home | request pages | lab pages | Analytics | Settings, Help',
-    items.map(i => i.dataset.route).join() === 'home,new,requests,queue,board,lab,lots,results,hirata,analytics,settings,help');
+    items.map(i => i.dataset.route).join() === 'home,new,requests,queue,board,lab,lots,results,hirata,prf,analytics,settings,help');
   check('thin dividers between the five groups', doc.getElementById('navItems').querySelectorAll('.nav-div').length === 4);
   check('nothing greyed any more', items.filter(i => i.classList.contains('is-soon') || i.getAttribute('aria-disabled') === 'true').length === 0);
 
@@ -1113,6 +1113,12 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
         /3407/.test(openDialog().querySelector('.panel-zoom-id').textContent));
   buttonByText(openDialog(), 'Close').click(); await settle();
   check('...and the 0-9 reference', $$('#main .hirata-ref-item').length === 10);
+
+  // --- PRF data (PRF-1..PRF-7): the page opens; File System Access is not in this fake browser
+  win.setHash('#/prf'); await settle();
+  check('PRF data opens, no role gate (PRF-5)', /PRF data/.test(mainText()));
+  check('...says plainly that this browser cannot do it (no File System Access here)', /Not available in this browser/.test(mainText()));
+  check('...and names Edge or Chrome, not a stack trace', /Edge|Chrome/.test(mainText()) && errors.length === 0);
 
   // --- personal request templates (Q28, T-1..T-3)
   const tplReq = MRT.store.visibleRequests(r => r.requester_id === MRT.store.currentUser().id && r.status !== 'draft')[0];
