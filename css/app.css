@@ -905,7 +905,7 @@ kbd {
 /* fingers: 44 px targets on coarse pointers (tablets) */
 @media (pointer: coarse) {
   .btn, .btn-primary, .btn-danger, .btn-ghost, .btn-icon, .tab-btn, .menu-item, .nav-item, .user-btn, .save-led,
-  .seg-opt span, .strip-seg { min-height: 44px; }
+  .seg-opt span, .queue-counts a { min-height: 44px; }
   .btn-icon { min-width: 44px; }
   .check input, .switch input { transform: scale(1.2); }
   table.grid td { padding-top: 12px; padding-bottom: 12px; }
@@ -975,12 +975,8 @@ kbd {
 .brand-mark { display: flex; filter: drop-shadow(0 0 6px rgba(56, 189, 248, .5)); }
 [data-scheme="light"] .brand-mark, [data-contrast="high"] .brand-mark { filter: none; }
 .brand-name { font-weight: 700; color: var(--fg); letter-spacing: .02em; }
-.brand-ver {
-  font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--accent);
-  border: 1px solid var(--line-hi); border-radius: var(--radius); padding: 0 5px;
-}
 
-.search { position: relative; flex: 1; max-width: 460px; display: flex; align-items: center; }
+.search { position: relative; flex: 1; max-width: 560px; margin-inline: auto; display: flex; align-items: center; }
 .search-icon { position: absolute; left: 10px; color: var(--fg-faint); pointer-events: none; }
 .search input {
   width: 100%; padding: 8px 36px 8px 34px;
@@ -1000,7 +996,7 @@ kbd {
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
 .user-btn {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 8px; min-height: 36px;
   padding: 3px 12px 3px 3px; border: 1px solid var(--line);
   border-radius: 999px; background: var(--surface-2); color: var(--fg);
   font: inherit; cursor: pointer;
@@ -1010,13 +1006,15 @@ kbd {
 .user-btn:active { transform: scale(.97); }
 .user-name { font-weight: 600; font-size: 13px; }
 
-/* save LED next to the brand */
+/* save state (Part A): quiet muted text, seen briefly after a save; colour
+   only while saving, failed, or in conflict */
 .save-led {
-  display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: var(--radius);
   border: 1px solid transparent; background: transparent; color: var(--fg-muted);
-  font: inherit; font-size: 12px; cursor: pointer;
+  font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
   transition: background-color var(--t) ease, border-color var(--t) ease;
 }
+.save-led[hidden] { display: none; }
 .save-led:hover { background: var(--accent-soft); border-color: var(--line); }
 .save-led.failed { color: var(--danger-fg); border-color: color-mix(in srgb, var(--danger) 50%, transparent);
   background: var(--danger-bg); font-weight: 700; }
@@ -1096,21 +1094,13 @@ kbd {
   padding: 8px 16px; border-bottom: 1px solid var(--line);
   background: var(--surface-2); font-size: 13px;
 }
-/* alert strip: one segment per status, LEDs pulse for Critical/Expired */
-.alert-banner { gap: 16px; padding: 6px 16px; background: color-mix(in srgb, var(--surface-2) 90%, transparent); }
-.strip-segs { display: flex; gap: 4px; flex-wrap: wrap; }
-.strip-seg {
-  display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px;
-  border-radius: 999px; border: 1px solid transparent;
-  color: var(--fg-muted); text-decoration: none; font-size: 12px;
-  transition: background-color var(--t) ease, border-color var(--t) ease;
-}
-.strip-seg b { color: var(--fg); font-size: 13px; }
-.strip-seg:hover { background: var(--accent-soft); border-color: var(--line); }
-.strip-seg.zero { opacity: .55; }
-.strip-seg.critical:not(.zero) b { color: var(--critical-fg); }
-.strip-seg.expired:not(.zero) b { color: var(--expired-fg); }
-.strip-seg.warning:not(.zero) b { color: var(--warning-fg); }
+/* line-stop banner (Part A): one slim calm line under the top bar, with a
+   thin Line-stop stripe and no pulse; the request opens on click */
+.alert-banner { gap: 10px; padding: 5px 16px; font-size: 12px; color: var(--fg-muted);
+  box-shadow: inset 3px 0 0 var(--critical); }
+.alert-banner a { color: var(--fg); font-weight: 600; text-decoration: none; }
+.alert-banner a:hover { text-decoration: underline; }
+.alert-banner .banner-dismiss { margin-left: auto; }
 .alert-banner .spacer, .conflict-banner .spacer { flex: 1; }
 .conflict-banner {
   background: var(--warning-bg); color: var(--warning-fg);
@@ -1144,7 +1134,7 @@ kbd {
   .nav-item .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .nav-item .nav-badge { position: absolute; margin: 0; top: 2px; right: 2px; min-width: 18px; padding: 0 4px; }
   .main { padding: 16px; }
-  .brand-ver, .search-kbd { display: none; }
+  .search-kbd { display: none; }
 }
 @media (max-width: 640px) {
   .user-name, .brand-name { display: none; }
@@ -1538,15 +1528,14 @@ a.path-link:hover { text-decoration: underline; }
 .done-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
 .queue-bulk { display: flex; align-items: center; gap: 10px; margin: 6px 0; padding: 8px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); }
 .queue-bulk[hidden] { display: none; }
-/* The shift strip: three numerals that say the morning. Red only when something is late. */
-.queue-shift { display: flex; align-items: baseline; gap: 32px; margin: 16px 0 6px; }
-.queue-shift .qs { display: grid; gap: 2px; }
-.queue-shift .qs-n { font: 800 28px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
-.queue-shift .qs-l { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--fg-muted); }
-.queue-shift .qs.is-bad .qs-n { color: var(--expired-fg); }
-.queue-shift .qs.is-bad .qs-l { color: var(--expired-fg); }
-.queue-shift .qs.is-warn .qs-n { color: var(--warning-fg); }
-.queue-shift .qs.is-warn .qs-l { color: var(--warning-fg); }
+/* The counts line (Part A): plain filter links, one line. Line stop and Late
+   numbers take the late colour, only when above zero. */
+.queue-counts { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; margin: 14px 0 4px;
+  font-size: 13px; color: var(--fg-muted); }
+.queue-counts a { color: var(--fg-muted); text-decoration: none; border-radius: var(--radius); }
+.queue-counts a:hover { color: var(--fg); text-decoration: underline; }
+.queue-counts .num { font-variant-numeric: tabular-nums; color: var(--fg); }
+.queue-counts .is-bad, .queue-counts .is-bad .num { color: var(--expired-fg); font-weight: 700; }
 .queue-sep td { padding-top: 16px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-muted); border-top: 2px solid var(--line-strong); }
 .queue-sep td .num { color: var(--fg); }
 .q-row > td:first-child { border-left: 4px solid var(--line-strong); }
@@ -1609,11 +1598,12 @@ dialog.drawer::backdrop { background: rgba(0,0,0,.28); }
 .bcard-line { display: flex; align-items: center; gap: 6px; color: var(--fg-muted); }
 .bcard-who { margin-left: auto; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-3); color: var(--fg); font-size: 10px; font-weight: 700; }
 
-/* The bell (M4) */
+/* The bell (Part A): a small dot while something is new; the count lives
+   inside the bell panel, not on the button */
 .bell-btn { position: relative; }
-.bell-count { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; box-sizing: border-box;
-  background: var(--danger); color: var(--on-danger); font: 700 10px/16px var(--font-mono); text-align: center; }
-.bell-count[hidden] { display: none; }
+.bell-dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.bell-dot[hidden] { display: none; }
 
 /* Magazine, front view (F-3): side walls, slots stacked from the top, a panel in each picked slot */
 .mz { display: inline-grid; gap: 6px; }
