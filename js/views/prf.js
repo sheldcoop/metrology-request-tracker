@@ -995,7 +995,7 @@ window.MRT.views.prf = (function () {
         ])),
         ui.el('p', {}, [ui.el('span', { class: 'chip ' + (r.status === 'OK' ? 'ok' : 'warning'), text: r.status }),
           ' Saved as ' + r.written.name + ' (' + r.written.format + ').']),
-        trendCharts(r.out),
+        // trend charts skipped for now - put trendCharts(r.out) back here to show them
         statTable(r.summary, SHEET_COLS.Summary, 'Summary'),
         statTable(r.comparison, SHEET_COLS.Comparison, 'Front vs Back'),
         statTable(r.out.t2b, SHEET_COLS.T2B, 'T2B'),
