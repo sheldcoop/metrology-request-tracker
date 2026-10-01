@@ -79,12 +79,12 @@ window.MRT.app = (function () {
     try { localStorage.setItem(prefKey(name, store.status().currentUserId), value); } catch (e) { /* private mode */ }
   }
 
-  /** The start page: the one picked in the user menu, else by role (Q16, M3-12). */
+  /** The start page (redesign Step 9): the one picked in the user menu,
+      else Home for everyone. D.homeFor stays for the domain rule (Q16). */
   function readHome(userId) {
     var v = readPref('home', userId);
     if (isLive(v) && v !== 'settings' && v !== 'help') return v;
-    var byRole = D.homeFor(store.byId('users', userId));
-    return isLive(byRole) ? byRole : 'lab';
+    return 'home';
   }
   /** The office default (Settings > Look), else the app's default. */
   function officeTheme() {
