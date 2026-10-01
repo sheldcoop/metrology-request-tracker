@@ -79,7 +79,8 @@ lists it until it is edited or deleted.
 - [ ] First run: enter your name and an admin PIN. Check your Windows user
       name is filled in (it comes from the launcher).
 - [ ] A colleague opens it on their PC: they should see "Who are you?", not
-      your name. After entering their name they are an Engineer.
+      your name. Unknown names are refused ("You are not in yet") until an
+      admin adds them in Settings > People.
 - [ ] Check `data\backups\` gets a file after the first change of the day.
 - [ ] Avoid `!` in the tool folder path (the launcher cannot handle it).
       Folder names with ä/ö/ü are untested.

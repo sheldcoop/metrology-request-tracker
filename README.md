@@ -157,9 +157,9 @@ the app changes it (git then shows it as modified): `git checkout demo-data` put
    later visits need one click ("Reconnect") at most.
 4. **First run** (empty `data`): enter your name and an admin PIN. You become
    the first Admin. Tools, lists and sample data are set up for you.
-5. **Everyone else**: the first time, say who you are. If an admin already
-   added you, pick your name ("Is this you?"); otherwise you are added as an
-   Engineer and an admin sets your roles.
+5. **Everyone else**: the first time, type your Windows user name. Only
+   people an admin added in Settings > People get in - anyone else is
+   refused until an admin adds them.
 
 Chrome works too, but the launcher opens Edge. Firefox and Safari cannot
 write to a folder, so they are not supported.

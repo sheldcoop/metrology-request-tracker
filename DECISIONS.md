@@ -1005,3 +1005,11 @@ never the only signal - the text/label says the same thing.
   keyboard -> keyboard, mail -> mail, plus-circle -> circle-plus, list ->
   list, kanban -> kanban, layers -> layers, circle-help -> circle-help,
   chart-column (new) -> chart-column.
+- **HOME-6** (home-final: People allowlist, no self-registration) Until
+  real login lands, only people an admin put in Settings > People get in.
+  Unknown Windows IDs stop at "You are not in yet" (same Home slot, with
+  an "I was added - continue" retry + change-user) and no user is created.
+  The Who-are-you name form, Is-this-you linking and self-registration
+  are removed from the app (the store keeps the API for the server login
+  later). First-run admin setup is unchanged. Help, README and the office
+  checklist say the same.
