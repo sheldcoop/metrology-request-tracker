@@ -289,8 +289,9 @@ window.MRT.views.prf = (function () {
     if (!adapter.isSupported()) {
       body.push(ui.emptyState({ icon: 'alert', title: 'Not available in this browser', text: adapter.unsupportedMessage() }));
     } else {
-      body.push(ui.el('p', { class: 'muted', text: 'Pick the folder with the panels in it - the scan finds every "log" folder ' +
-        'underneath and starts by itself. For Project, Part number and Lot, paste the folder\u2019s full path below.' }));
+      body.push(ui.el('p', { class: 'muted', text: 'Pick the project folder - the scan finds every "log" folder underneath ' +
+        'and Project, Part number and Lot fill in by themselves. The full path below is only needed ' +
+        'when you pick a folder deep inside (then pick from the lot down).' }));
       body.push(ui.el('div', { class: 'prf-folder-row' }, [
         state.connected ? ui.el('span', { class: 'mono' }, state.rootLabel || '(connected)') : null,
         !state.connected && state.savedRootHint ? ui.el('span', { class: 'muted' }, 'Last used: ' + state.savedRootHint) : null,
@@ -934,12 +935,14 @@ window.MRT.views.prf = (function () {
       }, { height: 220, label: title, expand: true });
       return ui.el('div', {}, [ui.el('h3', { class: 'prf-advanced-sub', text: title }), c.node]);
     }
-    return ui.el('div', {}, [
-      chartFor('ra', 'Roughness Ra by site', 'nm'),
-      chartFor('abf', 'ABF height (average via depth) by site', 'µm'),
-      chartFor('top', 'Via top diameter by site', 'µm'),
-      chartFor('bottom', 'Via bottom diameter by site', 'µm')
-    ]);
+    // a run with only via files (the usual Zeta run) shows no Ra chart, and vice versa
+    function hasPoints(field) { return pts.some(function (p) { return p[field] !== null; }); }
+    var charts = [];
+    if (hasPoints('ra')) charts.push(chartFor('ra', 'Roughness Ra by site', 'nm'));
+    if (hasPoints('abf')) charts.push(chartFor('abf', 'ABF height (average via depth) by site', 'µm'));
+    if (hasPoints('top')) charts.push(chartFor('top', 'Via top diameter by site', 'µm'));
+    if (hasPoints('bottom')) charts.push(chartFor('bottom', 'Via bottom diameter by site', 'µm'));
+    return ui.el('div', {}, charts);
   }
 
   function runPanelBody() {
