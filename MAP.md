@@ -80,7 +80,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | file | purpose |
 |---|---|
 | `js/adapters/storage-folder.js` | File System Access: read/write/list/remove. The ONLY filesystem touchpoint (M10 grep proof). |
-| `server/` | Node server (never in the browser): `index.js` (env, graceful shutdown), `server.js` (static + `/api/health` + `/api/doc` + `/api/files`), `db.js` (SQLite WAL open), `doc-store.js` (Stage A one-row compare-and-swap). No dependencies. |
+| `server/` | Node server (never in the browser): `index.js` (env, graceful shutdown), `server.js` (static + `/api/health` + `/api/doc` + `/api/files`), `db.js` (SQLite WAL open), `doc-store.js` (Stage A one-row compare-and-swap), `import.js` (one-time JSON import, read-only source), `backup.js` (nightly `VACUUM INTO` copy + prune). No dependencies. |
 | `js/adapters/storage-api.js` | Same 12-method interface over HTTP: the data file → `/api/doc` (409 on stale revision), the rest → `/api/files`. Picked by `config.adapters.storage`; no store edit. |
 | `js/adapters/mail.js` | Outlook draft via `mailto:` (later: server SMTP). |
 | `js/config.js` | Picks the adapters (`folder`/`api`, `outlook-draft`/`smtp`, `off`/`local-llm`) + file names, limits, time zone. No secrets. |
@@ -110,6 +110,8 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `tests/server-harness.js` | In-process server for tests: real handler + throwaway SQLite (never the repo); `fetch()` shim for adapter code. |
 | `tests/server-doc.js` | Stage A endpoints: first write, stale-409 shape, file round-trip, traversal refusal. |
 | `tests/storage-api.js` | The real API adapter vs the harness: contract, doc round-trip, conflict code. `MRT_STORE=api` runs app-smoke over it. |
+| `tests/server-import.js` | Import CLI on demo data (read-only source, old schema ok, refuse + `--force`). |
+| `tests/server-safety.js` | Concurrent saves serialize, torn writes roll back, nightly copy + prune. |
 | `tests/ui-smoke.js` | Every component/state built + clicked in a fake DOM. |
 | `tests/dom-budget.js` | M8: render ms + node counts per view, paging guard. |
 | `tests/css-check.js` | Brace balance, required selectors, no theme names in CSS. |
