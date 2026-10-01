@@ -754,3 +754,12 @@ never the only signal - the text/label says the same thing.
   321/321 both on the memory folder and over real SQLite
   (`MRT_STORE=api`); the unit suite stays on memory (it pokes `.files`
   directly — file-semantics tests by design).
+- **D-SRV-3** (server-sqlite, Phase 3: import, backups, restore) Import
+  reads the JSON once and refuses newer-than-app schemas; older schemas
+  import as-is (the app's own MIGRATIONS upgrade on load). Restore needs
+  no server work: it flows through the adapter's file endpoints like the
+  folder version. Torn writes are impossible by construction (single-row
+  compare-and-swap; `VACUUM INTO` snapshots stay consistent) and proven by
+  rollback + concurrency tests. Nightly copy is a host cron job calling
+  `server/backup.js`, never in-app. `node:sqlite` here has no `backup()`
+  API — `VACUUM INTO` instead.
