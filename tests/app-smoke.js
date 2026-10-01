@@ -229,27 +229,15 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   check('g a goes to Analytics', win.location.hash === '#/analytics');
   win.setHash('#/lab'); await settle();
 
-  // --- change user; an unknown Windows ID signs up
+  // --- change user; unknown Windows IDs are refused until an admin adds them
   action('change-user'); await settle();
   check('change user asks who you are in the Home slot, no cards', visible('shell') && /Who are you\?/.test(slotText()) &&
         doc.getElementById('main').querySelectorAll('.home-card').length === 0, win.location.hash);
   gateInputs()[0].value = 'thuber'; submitGate(); await settle();
-  check('an unknown ID is asked for a name', /not known here yet/.test(slotText()), slotText().slice(0, 120));
-  gateInputs()[0].value = 'Tom Huber'; submitGate(); await settle();
-  check('Tom is in, as Engineer only', visible('shell') && MRT.store.currentUser().name === 'Tom Huber' && MRT.store.currentUser().roles.join() === 'engineer');
-  check('...the slot is gone and his cards are in, same page', !doc.getElementById('main').querySelector('.home-slot') &&
-        doc.getElementById('main').querySelectorAll('.home-card').length > 0, win.location.hash);
-  check('...marked New for the admins', MRT.store.currentUser().needs_review === true);
-  check('an engineer cannot set tool status', doc.getElementById('main').querySelectorAll('button').filter(b => /Set status/.test(b.textContent)).length === 0);
-
-  // --- "Is this you?"
-  action('change-user'); await settle();
-  gateInputs()[0].value = 'thuber2'; submitGate(); await settle();
-  gateInputs()[0].value = 'tom  HUBER'; submitGate(); await settle();
-  check('a known name asks "Is this you?"', /Is this you\?/.test(slotText()));
-  check('...and shows Tom as already linked', /linked to another Windows ID/.test(slotText()));
-  buttonByText(gateRoot(), 'Back').click(); await settle();
-  check('Back returns to the name form', /not known here yet/.test(slotText()));
+  check('an unknown ID is refused with an admin hint, still no cards and no user created',
+    /not in yet/.test(slotText()) && /Settings > People/.test(slotText()) &&
+    !MRT.store.data().users.some(function (u) { return u.windows_id === 'thuber'; }) &&
+    doc.getElementById('main').querySelectorAll('.home-card').length === 0, slotText().slice(0, 160));
 
   // --- back to Prince by typing the Windows ID
   action('change-user'); await settle();
@@ -279,7 +267,23 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   const todoBefore = MRT.store.health().todo.length;
 
   await tab('users');
-  check('People lists Prince and Tom (New)', /Prince Khurana/.test(mainText()) && /Tom Huber/.test(mainText()) && /New/.test(mainText()));
+  check('People lists Prince, no Tom yet', /Prince Khurana/.test(mainText()) && !/Tom Huber/.test(mainText()));
+  buttonByText(doc.getElementById('main'), 'Add person').click(); await settle();
+  let dlgTom = openDialog();
+  setVal(fieldIn(dlgTom, 'Name'), 'Tom Huber'); setVal(fieldIn(dlgTom, 'Windows user name'), 'thuber');
+  buttonByText(dlgTom, 'Save').click(); await settle();
+  check('an admin adds Tom as Engineer, no New mark',
+    (function () { var t = MRT.store.data().users.filter(function (u) { return u.name === 'Tom Huber'; })[0];
+      return !!t && t.windows_id === 'thuber' && t.roles.join() === 'engineer' && t.needs_review !== true; })());
+  action('change-user'); await settle();
+  gateInputs()[0].value = 'thuber'; submitGate(); await settle();
+  check('Tom signs straight in once added', visible('shell') && MRT.store.currentUser().name === 'Tom Huber' &&
+        !doc.getElementById('main').querySelector('.home-slot'), win.location.hash);
+  check('an engineer cannot set tool status', doc.getElementById('main').querySelectorAll('button').filter(b => /Set status/.test(b.textContent)).length === 0);
+  action('change-user'); await settle();
+  gateInputs()[0].value = 'pkhurana'; submitGate(); await settle();
+  check('Prince is back in', MRT.store.currentUser().name === 'Prince Khurana');
+  await tab('users');
   buttonByText(doc.getElementById('main'), 'Add person').click(); await settle();
   let dlg2 = openDialog();
   check('five roles to tick, Quality engineer among them', ['Engineer', 'Quality engineer', 'Operator', 'Manager', 'Admin'].every(r => !!tickIn(dlg2, r)));
@@ -288,8 +292,12 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   buttonByText(dlg2, 'Save').click(); await settle();
   const olga = MRT.store.data().users.filter(u => u.name === 'Olga Quality')[0];
   check('an admin adds Olga as Quality engineer', !!olga && olga.roles.join() === 'quality' && olga.windows_id === 'olga');
-  buttonByText(doc.getElementById('main'), 'Reviewed').click(); await settle();
-  check('Reviewed clears Tom\'s New mark', MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].needs_review === false);
+  action('change-user'); await settle();
+  gateInputs()[0].value = 'olga'; submitGate(); await settle();
+  check('Olga signs straight in once added', MRT.store.currentUser().name === 'Olga Quality');
+  action('change-user'); await settle();
+  gateInputs()[0].value = 'pkhurana'; submitGate(); await settle();
+  check('Prince is back in again', MRT.store.currentUser().name === 'Prince Khurana');
 
   await tab('tools');
   check('Tools lists all five', ['HRM', 'AOI', 'PRF', 'QVM', 'FIB'].every(c => mainText().indexOf(c) !== -1));
