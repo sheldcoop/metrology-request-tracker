@@ -905,7 +905,7 @@ kbd {
 /* fingers: 44 px targets on coarse pointers (tablets) */
 @media (pointer: coarse) {
   .btn, .btn-primary, .btn-danger, .btn-ghost, .btn-icon, .tab-btn, .menu-item, .nav-item, .user-btn, .save-led,
-  .seg-opt span, .strip-seg { min-height: 44px; }
+  .seg-opt span, .queue-counts a { min-height: 44px; }
   .btn-icon { min-width: 44px; }
   .check input, .switch input { transform: scale(1.2); }
   table.grid td { padding-top: 12px; padding-bottom: 12px; }
@@ -975,12 +975,8 @@ kbd {
 .brand-mark { display: flex; filter: drop-shadow(0 0 6px rgba(56, 189, 248, .5)); }
 [data-scheme="light"] .brand-mark, [data-contrast="high"] .brand-mark { filter: none; }
 .brand-name { font-weight: 700; color: var(--fg); letter-spacing: .02em; }
-.brand-ver {
-  font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--accent);
-  border: 1px solid var(--line-hi); border-radius: var(--radius); padding: 0 5px;
-}
 
-.search { position: relative; flex: 1; max-width: 460px; display: flex; align-items: center; }
+.search { position: relative; flex: 1; max-width: 560px; margin-inline: auto; display: flex; align-items: center; }
 .search-icon { position: absolute; left: 10px; color: var(--fg-faint); pointer-events: none; }
 .search input {
   width: 100%; padding: 8px 36px 8px 34px;
@@ -1000,7 +996,7 @@ kbd {
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
 .user-btn {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 8px; min-height: 36px;
   padding: 3px 12px 3px 3px; border: 1px solid var(--line);
   border-radius: 999px; background: var(--surface-2); color: var(--fg);
   font: inherit; cursor: pointer;
@@ -1010,13 +1006,15 @@ kbd {
 .user-btn:active { transform: scale(.97); }
 .user-name { font-weight: 600; font-size: 13px; }
 
-/* save LED next to the brand */
+/* save state (Part A): quiet muted text, seen briefly after a save; colour
+   only while saving, failed, or in conflict */
 .save-led {
-  display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: var(--radius);
   border: 1px solid transparent; background: transparent; color: var(--fg-muted);
-  font: inherit; font-size: 12px; cursor: pointer;
+  font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
   transition: background-color var(--t) ease, border-color var(--t) ease;
 }
+.save-led[hidden] { display: none; }
 .save-led:hover { background: var(--accent-soft); border-color: var(--line); }
 .save-led.failed { color: var(--danger-fg); border-color: color-mix(in srgb, var(--danger) 50%, transparent);
   background: var(--danger-bg); font-weight: 700; }
@@ -1096,21 +1094,13 @@ kbd {
   padding: 8px 16px; border-bottom: 1px solid var(--line);
   background: var(--surface-2); font-size: 13px;
 }
-/* alert strip: one segment per status, LEDs pulse for Critical/Expired */
-.alert-banner { gap: 16px; padding: 6px 16px; background: color-mix(in srgb, var(--surface-2) 90%, transparent); }
-.strip-segs { display: flex; gap: 4px; flex-wrap: wrap; }
-.strip-seg {
-  display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px;
-  border-radius: 999px; border: 1px solid transparent;
-  color: var(--fg-muted); text-decoration: none; font-size: 12px;
-  transition: background-color var(--t) ease, border-color var(--t) ease;
-}
-.strip-seg b { color: var(--fg); font-size: 13px; }
-.strip-seg:hover { background: var(--accent-soft); border-color: var(--line); }
-.strip-seg.zero { opacity: .55; }
-.strip-seg.critical:not(.zero) b { color: var(--critical-fg); }
-.strip-seg.expired:not(.zero) b { color: var(--expired-fg); }
-.strip-seg.warning:not(.zero) b { color: var(--warning-fg); }
+/* line-stop banner (Part A): one slim calm line under the top bar, with a
+   thin Line-stop stripe and no pulse; the request opens on click */
+.alert-banner { gap: 10px; padding: 5px 16px; font-size: 12px; color: var(--fg-muted);
+  box-shadow: inset 3px 0 0 var(--critical); }
+.alert-banner a { color: var(--fg); font-weight: 600; text-decoration: none; }
+.alert-banner a:hover { text-decoration: underline; }
+.alert-banner .banner-dismiss { margin-left: auto; }
 .alert-banner .spacer, .conflict-banner .spacer { flex: 1; }
 .conflict-banner {
   background: var(--warning-bg); color: var(--warning-fg);
@@ -1144,7 +1134,7 @@ kbd {
   .nav-item .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .nav-item .nav-badge { position: absolute; margin: 0; top: 2px; right: 2px; min-width: 18px; padding: 0 4px; }
   .main { padding: 16px; }
-  .brand-ver, .search-kbd { display: none; }
+  .search-kbd { display: none; }
 }
 @media (max-width: 640px) {
   .user-name, .brand-name { display: none; }
@@ -1269,9 +1259,10 @@ table.grid tbody tr { scroll-margin: 80px; }
 .cell-path .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 a.path-link { color: var(--link, var(--accent)); text-decoration: none; border-bottom: 1px dotted var(--link, var(--accent)); }
 a.path-link:hover { text-decoration: underline; }
-/* Request page side: path rows take the full panel width, equal to the timeline's presence */
-.req-side .cell-path { display: flex; max-width: none; }
-.req-side .cell-path .mono { flex: 1 1 auto; min-width: 0; }
+/* Stacked panels (request page paths, new request below the form):
+   path rows take the full panel width */
+.req-stack .cell-path { display: flex; max-width: none; }
+.req-stack .cell-path .mono { flex: 1 1 auto; min-width: 0; }
 .prio-label { display: inline-flex; align-items: baseline; gap: 8px; }
 .prio-label b { font-size: 15px; }
 .prio-label .mono { font-size: 12px; }
@@ -1296,11 +1287,10 @@ a.path-link:hover { text-decoration: underline; }
 .lots-tools .ifield { flex: 0 1 420px; }
 .cell-note { display: inline-block; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 
-/* New request (M2 step 4): form on the left, traveller preview + your requests on the right */
-.req-layout { display: grid; grid-template-columns: minmax(0, 1fr) 430px; gap: 24px; align-items: start; }
-@media (max-width: 1280px) { .req-layout { grid-template-columns: minmax(0, 1fr); } }
+/* Request pages (Step 7 request, Step 8 new request): one stack of panels. */
+.req-stack { display: grid; gap: 16px; align-items: start; }
+.wz-main + .req-stack { margin-top: 16px; }
 .req-form { display: grid; gap: 16px; }
-.req-side { display: grid; gap: 16px; position: sticky; top: 12px; }
 .req-part { display: grid; gap: 12px; }
 .req-errors { margin-bottom: 14px; padding: 10px 14px; border: 1px solid var(--danger); border-radius: var(--radius);
   background: var(--danger-bg); color: var(--danger-fg); font-size: 13px; }
@@ -1324,10 +1314,9 @@ a.path-link:hover { text-decoration: underline; }
 .tool-pick-name { font-size: 12px; color: var(--fg-muted); max-width: 100%; text-align: center; line-height: 1.25;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* The guided form (F-4): a progress strip, then steps that fold to one line when done */
-.req-wizard { grid-template-columns: minmax(0, 1fr) 360px; }
+/* The guided form (F-4, Step 8 full page): a progress strip, then steps
+   that fold to one line when done; preview and your requests stack below */
 .wz-main { min-width: 0; }
-@media (max-width: 1280px) { .req-wizard { grid-template-columns: minmax(0, 1fr); } .req-wizard .req-side { position: static; } }
 .wz-progress { list-style: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 0 0 14px; padding: 0; }
 .wz-dot { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-top: 3px solid var(--line-strong);
   background: transparent; color: var(--fg-muted); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
@@ -1539,15 +1528,14 @@ a.path-link:hover { text-decoration: underline; }
 .done-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
 .queue-bulk { display: flex; align-items: center; gap: 10px; margin: 6px 0; padding: 8px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); }
 .queue-bulk[hidden] { display: none; }
-/* The shift strip: three numerals that say the morning. Red only when something is late. */
-.queue-shift { display: flex; align-items: baseline; gap: 32px; margin: 16px 0 6px; }
-.queue-shift .qs { display: grid; gap: 2px; }
-.queue-shift .qs-n { font: 800 28px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
-.queue-shift .qs-l { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--fg-muted); }
-.queue-shift .qs.is-bad .qs-n { color: var(--expired-fg); }
-.queue-shift .qs.is-bad .qs-l { color: var(--expired-fg); }
-.queue-shift .qs.is-warn .qs-n { color: var(--warning-fg); }
-.queue-shift .qs.is-warn .qs-l { color: var(--warning-fg); }
+/* The counts line (Part A): plain filter links, one line. Line stop and Late
+   numbers take the late colour, only when above zero. */
+.queue-counts { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; margin: 14px 0 4px;
+  font-size: 13px; color: var(--fg-muted); }
+.queue-counts a { color: var(--fg-muted); text-decoration: none; border-radius: var(--radius); }
+.queue-counts a:hover { color: var(--fg); text-decoration: underline; }
+.queue-counts .num { font-variant-numeric: tabular-nums; color: var(--fg); }
+.queue-counts .is-bad, .queue-counts .is-bad .num { color: var(--expired-fg); font-weight: 700; }
 .queue-sep td { padding-top: 16px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-muted); border-top: 2px solid var(--line-strong); }
 .queue-sep td .num { color: var(--fg); }
 .q-row > td:first-child { border-left: 4px solid var(--line-strong); }
@@ -1557,15 +1545,12 @@ a.path-link:hover { text-decoration: underline; }
 .q-prio { display: grid; line-height: 1.15; }
 .q-where { font-size: 12px; color: var(--fg-muted); }
 .q-prio .mono { font-size: 12px; }
-.q-clock { font: 12px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg-muted); }
-.q-clock.is-soon { color: var(--warning-fg); }
-.q-clock.is-late { color: var(--expired-fg); font-weight: 700; }
 
 /* Board (M3-8, Step 6b): numbered station columns, one slim lane header per
    tool. Colour stays quiet until it matters: neutral edges everywhere,
    red/amber only on attention (chips, the Line stop stripe and glow). */
 .board-wrap { overflow-x: auto; }
-.board { display: grid; gap: 8px 6px; align-items: stretch; }
+.board { display: grid; gap: 10px; align-items: stretch; }
 /* Stations: a ghost numeral, the name, a tally. Numerals stay quiet. */
 .board-colhead { position: sticky; top: 0; z-index: 1; display: flex; align-items: baseline; gap: 10px; padding: 10px 12px;
   border: 1px solid var(--line); border-radius: var(--radius);
@@ -1580,8 +1565,8 @@ a.path-link:hover { text-decoration: underline; }
 .board-lanehead .mono { font-size: 13px; font-weight: 700; letter-spacing: .08em; }
 .board-lanehead .muted { font-size: 12px; }
 .board-cell { display: grid; align-content: start; gap: 6px; min-height: 90px; padding: 6px; border: 1px solid var(--line); border-radius: var(--radius);
-  background: repeating-linear-gradient(0deg, transparent 0 21px, var(--line) 21px 22px); background-color: var(--bg); }
-[data-contrast="high"] .board-cell { background: var(--bg); }
+  background: var(--surface); }
+.board-cell > .muted { padding: 4px 2px; font-size: 12px; }
 /* Side panel (ui.drawer) */
 dialog.drawer { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(560px, 100vw); height: 100vh; max-height: none; padding: 0;
   display: flex; flex-direction: column; border: 0; border-left: 1px solid var(--line-strong); background: var(--surface); color: var(--fg);
@@ -1594,27 +1579,35 @@ dialog.drawer::backdrop { background: rgba(0,0,0,.28); }
 .drawer-body { flex: 1; overflow: auto; padding: 16px; }
 .drawer-foot { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--surface-2); }
 .drawer-foot .btn:last-child { margin-left: auto; }
-.bcard { position: relative; display: grid; gap: 3px; padding: 7px 8px 7px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-panel);
+/* Board cards (Part A): two lines at a fixed height. Line 1: short ID +
+   panel count (or the red late tag). Line 2: lot + build-up, P1/P2 and at
+   most one chip. Thin stripe for P1/P2 only. */
+.bcard { position: relative; display: grid; grid-template-rows: 1fr 1fr; gap: 2px; height: 58px; overflow: hidden;
+  padding: 6px 8px 6px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-panel);
   background: var(--surface); color: var(--fg); text-decoration: none; font-size: 12px; transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease); }
 .bcard:hover { transform: translateY(-1px); border-color: var(--accent); }
 .bcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.bcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: var(--radius-panel) 0 0 var(--radius-panel); background: transparent; }
+.bcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: var(--radius-panel) 0 0 var(--radius-panel); background: transparent; }
 .bcard.prio-1::before { background: var(--critical); }
 .bcard.prio-2::before { background: var(--warning); }
 .bcard.is-urgent::after { content: ""; position: absolute; inset: -1px; border-radius: var(--radius-panel); box-shadow: 0 0 10px 1px var(--critical); opacity: .2;
   animation: stripe-pulse 1.6s ease-in-out infinite; pointer-events: none; }
-.bcard-prio { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.bcard-prio { margin-left: auto; flex: none; font-size: 11px; font-weight: 700; color: var(--fg-muted); }
 .bcard.prio-1 .bcard-prio { color: var(--critical-fg); }
 .bcard.prio-2 .bcard-prio { color: var(--warning-fg); }
 .bcard-id { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; }
-.bcard-line { display: flex; align-items: center; gap: 6px; color: var(--fg-muted); }
-.bcard-who { margin-left: auto; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-3); color: var(--fg); font-size: 10px; font-weight: 700; }
+.bcard-line { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--fg-muted); }
+.bcard-line .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bcard-line .chip { flex: none; }
+.bcard-pnl { margin-left: auto; flex: none; font-variant-numeric: tabular-nums; }
+.bcard-late { margin-left: auto; flex: none; font-weight: 700; color: var(--expired-fg); }
 
-/* The bell (M4) */
+/* The bell (Part A): a small dot while something is new; the count lives
+   inside the bell panel, not on the button */
 .bell-btn { position: relative; }
-.bell-count { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; box-sizing: border-box;
-  background: var(--danger); color: var(--on-danger); font: 700 10px/16px var(--font-mono); text-align: center; }
-.bell-count[hidden] { display: none; }
+.bell-dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.bell-dot[hidden] { display: none; }
 
 /* Magazine, front view (F-3): side walls, slots stacked from the top, a panel in each picked slot */
 .mz { display: inline-grid; gap: 6px; }
@@ -1951,8 +1944,6 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 @keyframes away-swap { 0% { transform: translateX(-4px); opacity: 0; } 60% { transform: translateX(2px); opacity: 1; } 100% { transform: none; } }
 #main.is-rewind { animation: rewind 420ms var(--ease-out); }
 @keyframes rewind { 0% { transform: translateX(10px); opacity: .55; } 100% { transform: none; opacity: 1; } }
-.save-led.is-pulse .led { animation: save-pulse 700ms var(--ease-out) 1; }
-@keyframes save-pulse { 0% { transform: scale(1); } 35% { transform: scale(1.6); } 100% { transform: scale(1); } }
 
 /* Board tool picker (Prince, 2026-09-25) */
 .tool-picks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
@@ -2108,7 +2099,7 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 .prio-2 :is(.tm-prio, .tr-prio, .q-prio, .slip-prio) > b::before, .prio-2 .bcard-prio::before { --ic: var(--ic-hot); background: var(--warning-fg); }
 
 /* "late 3 h": the clock icon before the words */
-:is(.q-clock, .tr-clock).is-late::before { content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 4px; vertical-align: -1px;
+.tr-clock.is-late::before { content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 4px; vertical-align: -1px;
   background: currentColor; -webkit-mask: var(--ic-late) center / contain no-repeat; mask: var(--ic-late) center / contain no-repeat; }
 /* the status icon alone (ui.statusIcon), beside words already shown: KPI tiles, table cells */
 .st-ic { display: inline-block; flex: none; width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px;

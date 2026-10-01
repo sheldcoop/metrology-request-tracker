@@ -12,7 +12,7 @@
 const vm = require('vm'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 
-const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'brandVer', 'saveLed', 'undoBtn', 'searchIcon', 'search',
+const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'saveLed', 'undoBtn', 'searchIcon', 'search',
   'bellBtn', 'bellIcon', 'bellCount', 'themeBtn', 'newBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
   'navItems', 'navFolder', 'navRev', 'navCollapse', 'main', 'toasts', 'dialogHost'];
 const { win, doc, flush, tick, storage, El } = require('./fake-dom')({ ids: IDS, url: 'file:///Z:/Lab/MRT/index.html?who=ATS%5CPKhurana' });
@@ -63,6 +63,9 @@ function gateInputs() { return doc.getElementById('gateCard').querySelectorAll('
 function submitGate() { doc.getElementById('gateCard').querySelector('form').dispatch('submit'); }
 function action(name) { const b = new El('button'); b.dataset.action = name; doc.body.appendChild(b); b.click(); doc.body.removeChild(b); }
 function buttonByText(root, t) { return root.querySelectorAll('button').filter(b => b.textContent.trim() === t)[0]; }
+function openMore() { buttonByText($('#main .req-actbar'), '...').click(); }
+function menuItem(t) { const m = doc.body.querySelector('.menu'); return m && buttonByText(m, t); }
+async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); await settle(); }
 
 (async function run() {
   MRT.app.boot();
@@ -84,7 +87,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('one user, an Admin', MRT.store.data().users.length === 1 && MRT.store.currentUser().roles[0] === 'admin');
   check('the file was saved', JSON.parse(folder.files['mrt_data.json']).revision === 1);
   check('the top bar shows the name', text('userName') === 'Prince Khurana');
-  check('milestone tag M1', text('brandVer') === 'M1');
+  check('top bar has the mark, no milestone pill', !doc.getElementById('brandVer') && !!doc.getElementById('brandMark').querySelector('svg'));
 
   // --- the side menu (M1-6, grouped in Step 3)
   const items = doc.getElementById('navItems').querySelectorAll('.nav-item');
@@ -94,8 +97,10 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('thin dividers between the five groups', doc.getElementById('navItems').querySelectorAll('.nav-div').length === 4);
   check('nothing greyed any more', items.filter(i => i.classList.contains('is-soon') || i.getAttribute('aria-disabled') === 'true').length === 0);
 
-  // --- Lab status
-  check('start page is Lab status', win.location.hash === '#/lab', win.location.hash);
+  // --- Home is the start page (Step 9), Lab status one click away
+  check('start page is Home', win.location.hash === '#/home', win.location.hash);
+  check('Home opens with his doors', $$('#main .home-card').length > 0);
+  win.setHash('#/lab'); await settle();
   check('five tool plates', $$('.tool-plate').length === 5, $$('.tool-plate').length);
   check('each plate draws its tool glyph', $$('.tool-plate').filter(p => p.querySelector('svg.tool-glyph')).length === 5);
   check('the destructive FIB plate draws the cut variant at base rate', (function () { var g = $$('.tool-plate').filter(p => /FIB/.test(p.textContent))[0].querySelector('svg.tool-glyph'); return g.dataset.glyph === 'fib-destructive' && g.style['--tx-rate'] === 1; })());
@@ -137,7 +142,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // --- user menu, shortcuts, collapsing the menu
   doc.getElementById('userBtn').click(); await settle();
   const menu = doc.body.querySelector('.menu');
-  check('the user menu opens with theme, start page and Change user', !!menu && /Theme/.test(menu.textContent) && /Start page/.test(menu.textContent) && /Change user/.test(menu.textContent));
+  check('the user menu opens with theme, start page, Help and Sign out', !!menu && /Theme/.test(menu.textContent) && /Start page/.test(menu.textContent) && /Help/.test(menu.textContent) && /Sign out/.test(menu.textContent));
   check('...and shows the roles', !!menu && /Admin/.test(menu.textContent));
   buttonByText(menu, 'Theme: AT&S...').click(); await settle();
   const thDlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
@@ -543,13 +548,18 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         $$('#main .traveller .people-row').map(n => n.textContent).join('|') ===
         'Requested by' + who(req1.requester_id, '?') + '|Assigned to' + who(req1.assigned_to, 'nobody yet') +
         '|Analyzed by' + who(req1.analyzed_by, 'not analyzed yet') && !!$('#main .traveller .tr-cell.tr-right .people-stack'));
-  check('...sidebar keeps only the Quality engineers, no doubled names', ['Primary QE', 'Backup QE']
-        .every(t => $$('#main .req-side dt').map(n => n.textContent).indexOf(t) !== -1) &&
-        ['Requested by', 'Assigned to', 'Analyzed by'].every(t => $$('#main .req-side dt').map(n => n.textContent).indexOf(t) === -1));
+  check('...below the rail keeps only the Quality engineers, no doubled names', ['Primary QE', 'Backup QE']
+        .every(t => $$('#main .req-stack dt').map(n => n.textContent).indexOf(t) !== -1) &&
+        ['Requested by', 'Assigned to', 'Analyzed by'].every(t => $$('#main .req-stack dt').map(n => n.textContent).indexOf(t) === -1));
+  check('...paths, rail, details, people, timeline, comments in that order', (function () {
+    const kids = Array.prototype.slice.call($('#main .req-stack').children)
+      .map(n => n.getAttribute('aria-label') || n.getAttribute('class'));
+    return kids.join('|') === 'BKM and results|Status|Details|Quality engineers|Timeline|Comments'; })());
   setVal(fieldIn(doc.getElementById('main'), 'Add a comment'), 'Please cut near via 3, @olga');
   buttonByText(doc.getElementById('main'), 'Add comment').click(); await settle();
   const com = MRT.store.requestEvents(req1.id).filter(e => e.kind === 'comment')[0];
-  check('a comment joins the timeline, @olga is found as a mention', !!com && com.mentions.length === 1 && $$('#main .tl-item').length === 3 && !!$('#main .mention'));
+  check('a comment joins the comments last, @olga is found as a mention', !!com && com.mentions.length === 1 && $$('#main .tl-item').length === 3 && !!$('#main .mention') &&
+        mainText().indexOf('Timeline') < mainText().indexOf('Comments'));
   const sbox2 = doc.getElementById('search'); sbox2.value = req1.request_no.slice(0, 8); sbox2.dispatch('input'); await settle();
   check('the search finds the request by (part of) its ID (Q41)', doc.body.querySelector('.search-results').textContent.indexOf(req1.request_no) !== -1);
   sbox2.value = ''; sbox2.dispatch('input');
@@ -557,7 +567,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('...and by words in its comments (Q41)', doc.body.querySelector('.search-results').textContent.indexOf(req1.request_no) !== -1);
   sbox2.value = ''; sbox2.dispatch('input');
   check('...and its timeline has "created", "submitted", then the comment', MRT.store.requestEvents(req1.id).map(e => e.kind + ':' + (e.to || '')).join() === 'created:draft,status:submitted,comment:');
-  buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
+  openMore(); await settle();
+  buttonByText(doc.body.querySelector('.menu'), 'Copy this request').click(); await settle();
   check('"Copy this request" prefills tool, lot, panels and layers - not where the panels are', $$('#main .tool-pick-opt.is-on').length === 1 &&
         fieldIn(M(), 'Lot').value === '18178' && fieldIn(M(), 'Hirata IDs').value === '3252, 3253, 3254, 3255' && $$('#main .layer-chip.is-on').length === 1 &&
         fieldIn(M(), 'Magazine').value === '' && fieldIn(M(), 'Where the panels are now').value === '');
@@ -567,7 +578,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText(doc.getElementById('main'), 'Save draft').click(); await settle();
   const draft1 = MRT.store.data().requests.filter(r => r.status === 'draft')[0];
   check('Save draft needs only the tool, and opens the draft', !!draft1 && win.location.hash === '#/new/' + draft1.id && /Draft/.test(mainText()));
-  check('...listed under your drafts', /QVM draft/.test($('#main .req-side').textContent));
+  check('...listed under your drafts', /QVM draft/.test($('#main .req-stack').textContent));
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id);
   win.setHash('#/new/' + draft1.id); await settle();
   check('someone else\'s draft stays private (Q33)', /not your draft/.test(mainText()) && MRT.store.visibleRequests().every(r => r.status !== 'draft'));
@@ -579,11 +590,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // a lot that is not registered yet, typed in the form (F-5); just how many panels (F-1); a note instead of a magazine
   win.setHash('#/new?tool=' + MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id); await settle();
   check('?tool= picks the tool and opens step 2', $$('#main .tool-pick-opt.is-on').length === 1 && isOpenStep('lot'));
-  const prevPanel = $$('#main .req-side .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
+  const prevPanel = $$('#main .req-stack .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
   prevPanel.querySelector('.panel-collapse').click(); await settle();
   check('...the lab preview collapses', prevPanel.classList.contains('is-collapsed') && prevPanel.querySelector('.panel-collapse').getAttribute('aria-expanded') === 'false');
   win.setHash('#/lab'); await settle(); win.setHash('#/new?tool=' + MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id); await settle();
-  const prevPanel2 = $$('#main .req-side .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
+  const prevPanel2 = $$('#main .req-stack .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
   check('...and stays collapsed (remembered on this PC)', prevPanel2.classList.contains('is-collapsed'));
   prevPanel2.querySelector('.panel-collapse').click(); await settle();
   check('...panel logistics sit on one row', $('#main .where-row').querySelectorAll('.ifield').length === 3);
@@ -610,22 +621,26 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         MRT.store.list('panel_locations').some(x => x.name === 'with Anna'));
   await MRT.store.cancelRequest(reqNew.id, 'test only');
   win.setHash('#/request/' + req1.id); await settle();
-  buttonByText(doc.getElementById('main'), 'Cancel request').click(); await settle();
+  check('...the bar holds only "..." plus the primary when there is one', !!buttonByText($('#main .req-actbar'), '...'));
+  openMore(); await settle();
+  buttonByText(doc.body.querySelector('.menu'), 'Cancel request').click(); await settle();
   const rdlg = openDialog(); setVal(rdlg.querySelector('textarea') || rdlg.querySelector('input'), 'Wrong lot');
   buttonByText(rdlg, 'Cancel request').click(); await settle();
   check('the requester cancels with a reason (Q35): stamp Cancelled, rail shows it, never deleted',
         MRT.store.byId('requests', req1.id).status === 'cancelled' && $('#main .tr-stamp').textContent === 'Cancelled' && !!$('#main .rail-side') && /Wrong lot/.test(mainText()));
 
   // --- the workflow on the request page (M3 step 1)
-  buttonByText(doc.getElementById('main'), 'Copy this request').click(); await settle();
+  openMore(); await settle();
+  buttonByText(doc.body.querySelector('.menu'), 'Copy this request').click(); await settle();
       setVal(fieldIn(M(), 'Where the panels are now'), 'Magazine 15, top shelf');
   const dT2 = tickIn(doc.getElementById('main'), 'I know FIB'); dT2.checked = true; dT2.dispatch('change');
   buttonByText(doc.getElementById('main'), 'Submit').click(); await settle();
   if (openDialog()) { buttonByText(openDialog(), 'Submit anyway').click(); await settle(); }
   const req2 = MRT.store.data().requests.filter(r => r.status === 'submitted').slice(-1)[0];
   check('a second FIB request gets -02 and is assigned to Olga (primary, M3-7)', /-02$/.test(req2.request_no) && req2.assigned_to === olga.id && /Olga Quality/.test(mainText()));
-  check('...the requester sees Edit request', !!buttonByText(doc.getElementById('main'), 'Edit request'));
-  buttonByText(doc.getElementById('main'), 'Edit request').click(); await settle();
+  openMore(); await settle();
+  check('...the requester finds Edit request behind "..."', !!menuItem('Edit request'));
+  menuItem('Edit request').click(); await settle();
   check('Edit request opens the form, tool locked', mainText().indexOf('Edit ' + req2.request_no) !== -1 && $$('#main .tool-pick-opt').filter(b => b.disabled).length === 4);
       $$('#main .layer-chip').filter(b => b.textContent === '2B')[0].click(); await settle();
   buttonByText(doc.getElementById('main'), 'Save changes').click(); await settle();
@@ -634,7 +649,11 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
       check('...saved with a reason, the timeline says what changed', MRT.store.byId('requests', req2.id).layers.join() === '2F,2B' && /layers 2F -> 2F, 2B\. Reason: Core too/.test(mainText()));
   const meP = MRT.store.currentUser().id;
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + req2.id); await settle();
-  check('Olga sees Accept, Hold, Needs clarification - Start waits for the panels', ['Accept', 'Hold', 'Needs clarification'].every(t => !!buttonByText($('#main .req-actbar'), t)) && !buttonByText($('#main .req-actbar'), 'Start'));
+  check('Olga sees Accept up front, Hold and Needs clarification behind "..." - Start waits for the panels', !!buttonByText($('#main .req-actbar'), 'Accept') &&
+    !buttonByText($('#main .req-actbar'), 'Hold') && !buttonByText($('#main .req-actbar'), 'Start'));
+  openMore(); await settle();
+  check('......', !!menuItem('Hold') && !!menuItem('Needs clarification'));
+  await closeMore();
   buttonByText($('#main .req-actbar'), 'Accept').click(); await settle();
   setVal(fieldIn(openDialog(), 'Expected done'), '2030-01-10'); buttonByText(openDialog(), 'Save').click(); await settle();
   check('Accept with an expected done date: stamp Accepted, date on the card', MRT.store.byId('requests', req2.id).status === 'accepted' && $('#main .tr-stamp').textContent === 'Accepted' && /Expected done/.test($('#main .traveller').textContent));
@@ -676,7 +695,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   buttonByText($('#main .req-actbar'), 'Mark analyzed').click(); await settle();
   check('...a dialog asks the analyzed data folder, prefilled with the results folder', !!openDialog() && fieldIn(openDialog(), 'Analyzed data folder').value === MRT.store.byId('requests', req2.id).results_path);
   setVal(fieldIn(openDialog(), 'Analyzed data folder'), '\\\\srv\\lab\\FIB\\analysis'); buttonByText(openDialog(), 'Save').click(); await settle();
-  check('...Analyzed: stamp Closed', MRT.store.byId('requests', req2.id).status === 'analyzed' && $('#main .tr-stamp').textContent === 'Closed' && !$('#main .req-actbar'));
+  check('...Analyzed: stamp Closed, Copy results path up front', MRT.store.byId('requests', req2.id).status === 'analyzed' && $('#main .tr-stamp').textContent === 'Closed' &&
+    !!buttonByText($('#main .req-actbar'), 'Copy results path') && !buttonByText($('#main .req-actbar'), 'Mark analyzed'));
   win.setHash('#/results'); await settle();
   check('Results tab: the request with both paths, clickable', mainText().indexOf(req2.request_no) !== -1 && $$('#main a.path-link').length === 2 &&
         $$('#main a.path-link').every(a => /^file:/.test(a.getAttribute('href'))));
@@ -695,7 +715,8 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('no top banner (paths live in the card block only)', !$('#main .res-banner'));
   check('...path block: both folders with big Copy path buttons', $('#main .path-block').querySelectorAll('a.path-link').length === 2 &&
         $$('#main .path-block .folder-row').every(n => !!buttonByText(n, 'Copy path')));
-  buttonByText(doc.getElementById('main'), 'Print slip').click(); await settle();
+  openMore(); await settle();
+  menuItem('Print slip').click(); await settle();
   check('Print slip: the A6 traveller slip with the ID, its barcode and the panels (Q38)', !!$('#main .slip') && $('#main .slip-id').textContent === req2.request_no &&
         $('#main .barcode').querySelectorAll('rect').length > 30 && /DESTROYS THESE PANELS/.test($('#main .slip').textContent));
   check('...each panel drawn compactly in one row: copper + ID, no decoded fields (horizontal slip panels)', (req2.panels || []).length > 0 &&
@@ -722,33 +743,43 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   const rackA = MRT.store.list('panel_locations').filter(x => x.name === 'Rack A')[0].id;
   const qL = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panel_location_id: rackA, new_location: null, panels: [6], priority_id: prioBy('P1'), priority_reason: 'line 2 down' }) });
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
-  check('the bell shows Olga what is new: her tool\'s requests (M4)', visible('bellCount') && +text('bellCount') >= 2);
+  check('the bell shows Olga a dot, the count in its label (M4)', visible('bellCount') && (function () {
+    var m = /Notifications, (\d+) new/.exec(doc.getElementById('bellBtn').getAttribute('aria-label') || '');
+    return !!m && +m[1] >= 2;
+  })());
   const qBadge = doc.getElementById('navItems').querySelectorAll('.nav-item').filter(a => a.dataset.route === 'queue')[0].querySelector('.nav-badge');
-  check('...her queue carries the waiting-on-me badge', !qBadge.hidden && +qBadge.textContent >= 1 && /waiting on me/.test(qBadge.title));
+  check('...her queue badge carries line stop + late on her tools', !qBadge.hidden && +qBadge.textContent >= 1 && /line stop or late/.test(qBadge.title));
   doc.getElementById('bellBtn').click(); await settle();
   const bellMenu = doc.body.querySelector('.menu');
-  check('...opening it lists them, with the new request from Prince', !!bellMenu && bellMenu.textContent.indexOf('New request ' + qL.request_no) !== -1);
+  check('...opening it lists them with the count inside, new request from Prince first', !!bellMenu && (function () {
+    var m = /(\d+) new/.exec(bellMenu.textContent);
+    return !!m && +m[1] >= 2;
+  })() && bellMenu.textContent.indexOf('New request ' + qL.request_no) !== -1);
   buttonByText(bellMenu, 'Mark all as read').click(); await settle();
-  check('..."Mark all as read" clears the count', !visible('bellCount'));
-  check('...and the nav badges clear with it', doc.getElementById('navItems').querySelectorAll('.nav-badge').every(b => b.hidden));
+  check('..."Mark all as read" clears the dot', !visible('bellCount'));
+  check('...the queue badge keeps its attention count', !qBadge.hidden && +qBadge.textContent >= 1);
   // --- Pure engineer: Edit, Cancel, Copy, Print (+ Answer only when asked)
   MRT.store.setCurrentUser(meP);
   const ed = await MRT.store.saveEntry('users', { fields: { name: 'Ed Engineer', roles: ['engineer'] } });
   MRT.store.setCurrentUser(ed.id);
   const edReq = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panel_location_id: rackA, new_location: null, panels: [7], priority_id: prioBy('P3') }) });
   win.setHash('#/request/' + edReq.id); await settle();
-  check('engineer on own request: Edit, Cancel, Copy, Print - and no workflow bar at all',
-    ['Edit request', 'Print slip', 'Copy this request', 'Cancel request'].every(t => !!buttonByText(M(), t)) && !$('#main .req-actbar'));
+  openMore(); await settle();
+  check('engineer on own request: a lone "...", Edit, Cancel, Copy, Print behind it',
+    $('#main .req-actbar').querySelectorAll('button').length === 1 &&
+    ['Edit request', 'Print slip', 'Copy this request', 'Cancel request'].every(t => !!menuItem(t)));
+  await closeMore();
   MRT.store.setCurrentUser(olga.id);
   await MRT.store.requestAction(edReq.id, 'clarify', { text: 'Which panels?' });
   MRT.store.setCurrentUser(ed.id); win.setHash('#/lab'); await settle(); win.setHash('#/request/' + edReq.id); await settle();
   const edBar = () => $('#main .req-actbar');
-  check('...asked a question: only Answered appears',
-    !!edBar() && !!buttonByText(edBar(), 'Answered') && edBar().querySelectorAll('button').length === 1);
+  check('...asked a question: Answered up front, the rest behind "..."',
+    !!edBar() && !!buttonByText(edBar(), 'Answered') && edBar().querySelectorAll('button').length === 2);
   buttonByText(edBar(), 'Answered').click(); await settle();
   setVal(fieldIn(openDialog(), 'Your answer'), 'Panel 7'); buttonByText(openDialog(), 'Save').click(); await settle();
-  check('...answered: back with the lab, workflow bar gone again', MRT.store.byId('requests', edReq.id).status === 'submitted' && !$('#main .req-actbar'));
-  buttonByText(M(), 'Cancel request').click(); await settle();
+  check('...answered: back with the lab, Answered gone again', MRT.store.byId('requests', edReq.id).status === 'submitted' && !buttonByText($('#main .req-actbar'), 'Answered'));
+  openMore(); await settle();
+  menuItem('Cancel request').click(); await settle();
   setVal(openDialog().querySelector('textarea'), 'ordered twice'); buttonByText(openDialog(), 'Cancel request').click(); await settle();
   check('...cancel works, request closed for the engineer', MRT.store.byId('requests', edReq.id).status === 'cancelled');
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
@@ -837,11 +868,16 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
   const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
-  check('...the Line stop card: stripe, priority word, truncated ID with full title, lot, clock, no gauge or initials, nothing draggable',
-    lsCard.classList.contains('is-urgent') && lsCard.classList.contains('prio-1') && /Line stop/.test(lsCard.textContent) &&
-    lsCard.querySelector('.bcard-id').getAttribute('title') === qL.request_no && /18178/.test(lsCard.textContent) &&
-    !!lsCard.querySelector('.q-clock') && !lsCard.querySelector('.bgauge') && !lsCard.querySelector('.bcard-who') &&
+  const lsShort = qL.request_no.split('-').slice(1).join('-');
+  check('...the Line stop card: stripe, short ID, count, lot, P1 - tooltip carries the rest, nothing draggable',
+    lsCard.classList.contains('is-urgent') && lsCard.classList.contains('prio-1') &&
+    lsCard.querySelector('.bcard-id').textContent === lsShort && lsShort.indexOf('FIB') === -1 &&
+    /1 pnl/.test(lsCard.textContent) && /18178/.test(lsCard.textContent) &&
+    lsCard.querySelector('.bcard-prio').textContent === 'P1' &&
+    lsCard.getAttribute('title').indexOf(qL.request_no + ' · ') === 0 && /panels 6/.test(lsCard.getAttribute('title')) &&
+    !lsCard.querySelector('.q-clock') && !lsCard.querySelector('.bgauge') && !lsCard.querySelector('.bcard-who') &&
     $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
+  check('...empty cells say Nothing here', $$('#main .board-cell').some(c => /Nothing here/.test(c.textContent)));
   await MRT.store.requestAction(qN.id, 'hold', { hold_reason_id: MRT.store.list('hold_reasons')[0].id, note: 'test only' });
   win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
   const holdCard = $$('#main .bcard').filter(c => c.dataset.id === qN.id)[0];
@@ -1028,18 +1064,30 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
         reqSheet.length === MRT.store.data().requests.filter(r => r.status !== 'draft').length + 1, wbOut && wbOut.name);
   delete win.XLSX;
 
-  // --- the alert strip (M1-2, built in the M3 audit)
+  // --- the line-stop banner (Part A): one slim line, dismissible per request
+  const lsReq = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panel_location_id: rackA, new_location: null, panels: [9], priority_id: prioBy('P1'), priority_reason: 'banner smoke', needed_by: '2026-10-02' }) });
   win.setHash('#/lab'); await settle(); tick(); await settle();
-  const strip = doc.getElementById('alertBanner');
-  const cStrip = MRT.domain.stripCounts({ user: MRT.store.currentUser(), tools: MRT.store.list('tools'), requests: MRT.store.data().requests, now_ts: Date.now(),
-    cal: MRT.store.calendar(), levelOf: r => (MRT.store.byId('priorities', r.priority_id) || {}).level });
-  check('the strip shows on every page when something is open: counts only, same numbers as the rule', !strip.hidden &&
-        /Line stop/.test(strip.textContent) && /Late/.test(strip.textContent) && !/open/.test(strip.textContent));
-  const segs = strip.querySelectorAll('a').filter(a => a.classList.contains('strip-seg'));
-  check('...four counts, each a link into My queue or My requests', segs.length === 4 && segs.every(a => /^#\/(queue|requests)\//.test(a.getAttribute('href'))));
-  win.setHash(segs[1].getAttribute('href')); await settle();
-  check('..."Late" opens the list on that filter', /My queue|My requests/.test(mainText()) &&
-        (fieldIn(doc.getElementById('main'), 'Status') || { value: '' }).value === (cStrip.scope === 'tools' ? 'late' : 'open'));
+  const banner = doc.getElementById('alertBanner');
+  check('an open line stop shows one slim banner under the top bar', !banner.hidden &&
+        banner.textContent.indexOf('Line stop: ' + lsReq.request_no + ' · Open') !== -1);
+  banner.querySelectorAll('button').filter(b => /Dismiss line stop/.test(b.getAttribute('aria-label') || ''))[0].click(); await settle();
+  check('...dismiss drops it and shows the next undismissed one', banner.textContent.indexOf(lsReq.request_no) === -1 &&
+        /Line stop: /.test(banner.textContent));
+  for (let d = 0; d < 4 && !banner.hidden; d++) {
+    banner.querySelectorAll('button').filter(b => /Dismiss line stop/.test(b.getAttribute('aria-label') || ''))[0].click(); await settle();
+  }
+  check('...dismissing them all hides the banner', banner.hidden === true);
+  check('...remembered on this PC', (storage['mrt.lstop_off.' + MRT.store.currentUser().id] || '').indexOf(lsReq.id) !== -1);
+  win.setHash('#/queue'); await settle();
+  const countsLine = $('#main .queue-counts');
+  const countsLinks = countsLine.querySelectorAll('a');
+  check('...My queue opens with four plain filter links', !!countsLine &&
+        countsLinks.map(a => a.getAttribute('href')).join() === '#/queue/linestop,#/queue/late,#/queue/on_hold,#/queue/clarification');
+  check('...the line-stop number takes the late colour above zero', countsLinks[0].classList.contains('is-bad') &&
+        +countsLinks[0].querySelector('.num').textContent >= 1);
+  win.setHash(countsLinks[0].getAttribute('href')); await settle();
+  check('..."Line stop" opens the list on that filter', /My queue/.test(mainText()) &&
+        (fieldIn(doc.getElementById('main'), 'Status') || { value: '' }).value === 'linestop');
 
   // --- Hirata tools (H-1..H-3): read a panel, find a pattern
   win.setHash('#/hirata'); await settle();
@@ -1068,13 +1116,15 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   // --- personal request templates (Q28, T-1..T-3)
   const tplReq = MRT.store.visibleRequests(r => r.requester_id === MRT.store.currentUser().id && r.status !== 'draft')[0];
   win.setHash('#/request/' + tplReq.id); await settle();
-  buttonByText(doc.getElementById('main'), 'Save as template').click(); await settle();
+  openMore(); await settle();
+  menuItem('Save as template').click(); await settle();
   let tdlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   setVal(fieldIn(tdlg, 'Template name'), 'Smoke template'); buttonByText(tdlg, 'Save template').click(); await settle();
   const tpl = MRT.store.myTemplates(MRT.store.currentUser().id).filter(t => t.name === 'Smoke template')[0];
   check('request page > Save as template: saved with everything, lot and panels included', !!tpl && tpl.fields.tool_id === tplReq.tool_id &&
         tpl.fields.type_id === tplReq.type_id && tpl.fields.lot_id === tplReq.lot_id && (tpl.fields.panels || []).join() === (tplReq.panels || []).join());
-  buttonByText(doc.getElementById('main'), 'Save as template').click(); await settle();
+  openMore(); await settle();
+  menuItem('Save as template').click(); await settle();
   tdlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
   setVal(fieldIn(tdlg, 'Template name'), 'smoke TEMPLATE'); buttonByText(tdlg, 'Save template').click(); await settle();
   check('...the same name again stays in the dialog with the reason', /already/.test(tdlg.textContent) && tdlg.open);

@@ -66,6 +66,14 @@ window.MRT.requestActions = (function () {
     return D.TRANSITIONS[action].label;
   }
 
+  /** The one filled primary: the workflow step first, quiet actions last. */
+  var PRIMARY_ORDER = ['accept', 'receive_start', 'start', 'complete', 'reopen', 'answer', 'analyze', 'resume', 'take', 'hold', 'clarify'];
+  function primary(r) {
+    var avail = available(r);
+    for (var i = 0; i < PRIMARY_ORDER.length; i++) if (avail.indexOf(PRIMARY_ORDER[i]) !== -1) return PRIMARY_ORDER[i];
+    return avail[0] || null;
+  }
+
   function buttons(r, o) {
     o = o || {};
     var avail = available(r);
@@ -255,5 +263,5 @@ window.MRT.requestActions = (function () {
     return p.catch(fail);
   }
 
-  return { buttons: buttons, run: run, available: available, label: label, emailOffer: emailOffer, whereOf: whereOf, destinationOf: destinationOf, slotLabels: slotLabels };
+  return { buttons: buttons, run: run, available: available, primary: primary, PRIMARY_ORDER: PRIMARY_ORDER, label: label, emailOffer: emailOffer, whereOf: whereOf, destinationOf: destinationOf, slotLabels: slotLabels };
 })();

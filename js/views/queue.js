@@ -59,7 +59,7 @@ window.MRT.views.queue = (function () {
 
   function render(main, ctx) {
     var me = store.currentUser();
-    // #/queue/late (the alert strip's links): open on that filter
+    // #/queue/late (the counts line's filter links): open on that filter
     var want = ctx && ctx.subpath;
     if (want && STATUS_FILTER.some(function (f) { return f.value === want; })) { view.status = want; view.shown = PAGE; }
     var tools = myTools(me);
@@ -101,8 +101,12 @@ window.MRT.views.queue = (function () {
       Object.keys(picked).forEach(function (id) { if (!all.some(function (r) { return r.id === id; })) delete picked[id]; });
       var list = all.slice(0, view.shown);
       var late = all.filter(function (r) { return D.isLate(r, now, cal); }).length;
-      var mineCount = all.filter(function (r) { return r.assigned_to === me.id; }).length;
-      var nodes = [shiftStrip(all.length, late, mineCount)];
+      var nodes = [countsLine({
+        line_stop: all.filter(function (r) { return levelOf(r) === 1; }).length,
+        late: late,
+        on_hold: all.filter(function (r) { return r.status === 'on_hold'; }).length,
+        clarification: all.filter(function (r) { return r.status === 'clarification'; }).length
+      })];
       if (!all.length && !Object.keys(justDone).length) {
         nodes.push(ui.emptyState({ icon: 'inbox', title: 'Nothing waiting', text: 'No open requests match.' }));
       } else {
@@ -147,12 +151,11 @@ window.MRT.views.queue = (function () {
       }
       var more = null;
       if (options.length > 1) {
-        more = ui.button('...', { size: 'sm', ariaLabel: 'More bulk actions', title: 'More bulk actions' });
-        more.onclick = function () {
+        more = ui.button('...', { size: 'sm', ariaLabel: 'More bulk actions', title: 'More bulk actions', onClick: function () {
           ui.menu(more, options.slice(1).map(function (o) {
             return { label: o.label(o.list.length), onClick: function () { runBulk(o); } };
           }));
-        };
+        } });
       }
       ui.mount(bulk, ids.length ? [
         ui.el('span', { text: ids.length + ' selected:' }),
@@ -198,26 +201,29 @@ window.MRT.views.queue = (function () {
       }).catch(function (e) { ui.toastError(e.message, e); });
     }
 
-    /** Your shift in one glance: counts that filter the list. */
-    function shiftStrip(n, late, mine) {
-      function stat(v, label, bad, filter) {
-        return ui.el('a', { class: 'qs' + (bad ? ' is-bad' : ''), href: '#/queue/' + filter,
-                            'aria-label': v + ' ' + label + ' - show' }, [
-          ui.el('span', { class: 'qs-n num', text: String(v) }), ' ', ui.el('span', { class: 'qs-l', text: label })]);
+    /** The counts line (Part A): plain filter links, one line. Line stop
+        and Late numbers take the late colour, only when above zero. */
+    function countsLine(c) {
+      function link(label, n, filter, bad) {
+        return ui.el('a', { href: '#/queue/' + filter, class: bad ? 'is-bad' : null,
+                            'aria-label': n + ' ' + label + ' - show' }, [
+          ui.el('span', { class: 'num', text: String(n) }), ' ' + label]);
       }
-      return ui.el('div', { class: 'queue-shift', 'aria-live': 'polite' }, [
-        stat(n, 'open', false, 'open'),
-        late ? stat(late, 'late', true, 'late') : null,
-        mine ? stat(mine, 'yours', false, 'mine') : null
-      ]);
+      var parts = [
+        link('Line stop', c.line_stop, 'linestop', c.line_stop > 0),
+        link('Late', c.late, 'late', c.late > 0),
+        link('On hold', c.on_hold, 'on_hold', false),
+        link('Needs clarification', c.clarification, 'clarification', false)
+      ];
+      var out = [parts[0]];
+      for (var i = 1; i < parts.length; i++) { out.push(' · '); out.push(parts[i]); }
+      return ui.el('div', { class: 'queue-counts', 'aria-live': 'polite' }, out);
     }
-
-    var PRIMARY_ORDER = ['accept', 'receive_start', 'start', 'complete'];
 
     /** Bottom line of the box: one filled primary, quiet Hold/clarify, the rest behind "...". */
     function boxActions(r) {
       var avail = A.available(r);
-      var primary = PRIMARY_ORDER.filter(function (a) { return avail.indexOf(a) !== -1; })[0];
+      var primary = A.primary(r);
       var nodes = [];
       if (primary) {
         var btns = A.buttons(r, { only: [primary], after: primary === 'complete' ? onCompleted : null });
@@ -232,15 +238,15 @@ window.MRT.views.queue = (function () {
       if (avail.indexOf('take') !== -1) menuItems.push({ label: 'Take it', icon: 'user', onClick: function () { A.run('take', r); } });
       var bkm = byId('bkms', r.bkm_id), bkmPath = bkm ? bkm.path : r.bkm_path;
       if (bkmPath) menuItems.push({ label: 'Copy BKM path', icon: 'copy', onClick: function () { ui.copyText(bkmPath, 'BKM path copied'); } });
-      avail.filter(function (a) { return PRIMARY_ORDER.concat(['hold', 'clarify', 'take']).indexOf(a) === -1; }).forEach(function (a) {
+      avail.filter(function (a) { return a !== primary && ['hold', 'clarify', 'take'].indexOf(a) === -1; }).forEach(function (a) {
         menuItems.push({ label: A.label(a), onClick: function () { A.run(a, r); } });
       });
       if (D.canCancel(me, r, byId('tools', r.tool_id))) {
         menuItems.push({ label: 'Cancel request', icon: 'close', onClick: function () { cancelFor(r); } });
       }
       if (menuItems.length) {
-        var more = ui.button('...', { size: 'sm', kind: 'ghost', ariaLabel: 'More actions for ' + r.request_no, title: 'More actions' });
-        more.onclick = function () { ui.menu(more, menuItems); };
+        var more = ui.button('...', { size: 'sm', kind: 'ghost', ariaLabel: 'More actions for ' + r.request_no, title: 'More actions',
+          onClick: function () { ui.menu(more, menuItems); } });
         nodes.push(more);
       }
       return nodes;
@@ -276,8 +282,8 @@ window.MRT.views.queue = (function () {
 
     function doneTodaySection() {
       var toggle = ui.button('Done today (' + doneToday.length + ')', { size: 'sm', kind: 'ghost', icon: doneOpen ? 'chevron_down' : 'chevron_right',
-        ariaLabel: (doneOpen ? 'Hide' : 'Show') + ' requests completed today' });
-      toggle.onclick = function () { doneOpen = !doneOpen; draw(); };
+        ariaLabel: (doneOpen ? 'Hide' : 'Show') + ' requests completed today',
+        onClick: function () { doneOpen = !doneOpen; draw(); } });
       return ui.el('div', { class: 'done-today' }, [toggle,
         doneOpen ? ui.el('ul', { class: 'done-list' }, doneToday.map(function (d) {
           return ui.el('li', {}, [ui.el('span', { class: 'mono', text: d.no }),

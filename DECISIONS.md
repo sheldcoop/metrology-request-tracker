@@ -884,6 +884,49 @@ never the only signal - the text/label says the same thing.
   774 px, 7 take 1086 px (150 px columns + 6 px gaps) - both fit 1440 px
   with the nav open. Lane headers slide under the sticky stations instead
   of a second brittle sticky offset.
+
+- **DASH-12** (dashboard-front-page, redesign Step 7: request page) Above
+  the fold: head, traveller facts, one action bar - at most two buttons
+  (the primary workflow action from `requestActions.primary()`, Copy
+  results path) plus "..." with the rest of the workflow, Edit, Print,
+  Copy, templates and Cancel. Below in one stack: paths (one row each),
+  status rail, details, people, timeline of status changes, comments last.
+  The late countdown is one red line. Queue boxes use the same shared
+  primary, so both bars agree on what comes first.
+- **DASH-13** (dashboard-front-page, redesign Step 8: new request form)
+  The form takes the full page: progress strip plus folding steps, no
+  side column. "What the lab will see" and "Your requests" stack below
+  the form in the same `.req-stack` as the request page. The two-column
+  `.req-layout` / `.req-side` CSS is retired; path rows keep full width
+  via `.req-stack .cell-path`.
+- **DASH-14** (dashboard-front-page, redesign Step 9: home replacement)
+  Home (`#/home`) is the start page for everyone; the user menu's Start
+  page pick still wins. The role rule `domain.homeFor` stays untouched
+  (Q16, still unit-tested) but no longer picks the landing. This
+  supersedes the M3-12 landing part only.
+- **DASH-15** (dashboard-front-page, Part A frame) One top bar, 56 px:
+  mark + "Metrology" (M1 pill gone), search centred to 560 px ("Search
+  requests, lots, panels"), save state as quiet muted text (shows
+  "Saved" 4 s after a save; colour only for Saving/failed), "+ New" the
+  only filled button at full 36 px, bell dot with the count inside the
+  panel, avatar menu gains Help and "Sign out" (was "Change user";
+  Reduce motion, Reload, Change folder stay). All controls 36 px, 18 px
+  icons. The strip bar is gone with its clock (already clockless since
+  DASH-8): My queue badge carries Line stop + Late on the person's
+  tools, the queue page opens with a plain filter-link counts line
+  (late colour on Line stop/Late numbers above zero). One slim calm
+  line-stop banner under the bar for the first undismissed open Line
+  stop on the QE's tools, dismissed per request per person on the PC.
+- **DASH-16** (dashboard-front-page, Part A board) Cards are two lines at
+  58 px: short ID (no tool prefix) + "N pnl", or red "late N d" (calendar
+  days, like the request page) with the count moved to line 2; line 2 is
+  lot + build-up with P1/P2 code and at most one chip (Stuck covers On
+  hold). Thin 3 px stripe for P1/P2 only. Countdown and panels live in
+  the hover tooltip (repainted by the 1 s text-only tick) and the
+  drawer. Columns are plain `surface` with 10 px gaps (5 cols 790 px,
+  7 cols 1110 px - still inside 1440 px); empty cells say "Nothing
+  here". The `.q-clock` rules are retired (traveller clocks are
+  `.tr-clock`).
 - **D-WEBGL-1** (home-3d, Step 1: Home hover scenes) WebGL is allowed on
   Home cards only - one shared renderer, hover-only scenes, calm and
   capped at 1.5 pixel ratio for weak lab PCs. Everything else keeps
@@ -893,3 +936,7 @@ never the only signal - the text/label says the same thing.
   place: `MRT.config.features.home3d`. Pinned local UMD
   `vendor/three.min.js` (r160, last UMD release), lazy-loaded on the
   first card hover, never in index.html.
+- **D-WEBGL-2** (home-3d, Step 5: the rest of the cards) All seven Home
+  cards get a scene (new, mine, queue, board join aoi, bars, dice); the
+  Board scene stays (a calm tile grid). Icons are unchanged, light
+  schemes stay static.

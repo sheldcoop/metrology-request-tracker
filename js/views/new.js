@@ -24,8 +24,10 @@
  *   #/new/<request id>  edit a submitted, open request - not its tool - with a reason (Q14, M3-5)
  *   #/new?from=<id>     copy a request (Q28)
  *
- * The traveller card on the right builds up live: what the quality engineer
- * will see. User text only ever goes through textContent.
+ * The form takes the full page (redesign Step 8); below it, in one stack,
+ * the traveller card builds up live (what the quality engineer will see)
+ * and your drafts and latest requests. User text only ever goes through
+ * textContent.
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -146,8 +148,9 @@ window.MRT.views['new'] = (function () {
     var progress = ui.el('ol', { class: 'wz-progress', 'aria-label': 'Steps' });
     progress.style.gridTemplateColumns = 'repeat(' + STEPS.length + ', minmax(0, 1fr))';
     var formCol = ui.el('div', { class: 'wz-steps' });
-    var side = ui.el('aside', { class: 'req-side' });
-    main.appendChild(ui.el('div', { class: 'req-layout req-wizard' }, [ui.el('div', { class: 'wz-main' }, [progress, errorBox, formCol]), side]));
+    main.appendChild(ui.el('div', { class: 'wz-main' }, [progress, errorBox, formCol]));
+    var side = ui.el('div', { class: 'req-stack' });
+    main.appendChild(side);
 
     /* --- the steps: a head that folds to one line, and a body ----------- */
     var open = null, shown = {};                        // shown: steps the person has opened (done ones get a tick)
