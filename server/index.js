@@ -14,9 +14,10 @@ const { createServer } = require('./server');
 const ROOT = process.env.MRT_ROOT || path.join(__dirname, '..');
 const PORT = Number(process.env.MRT_PORT || 8080);
 const DB_FILE = process.env.MRT_DB || path.join(ROOT, 'data', 'mrt.sqlite3');
+const DATA_DIR = process.env.MRT_DATA_DIR || path.dirname(DB_FILE);
 
 const db = openDb(DB_FILE);
-const server = createServer(ROOT, db);
+const server = createServer(ROOT, db, DATA_DIR);
 server.listen(PORT, () => {
   console.log('MRT server on http://localhost:' + server.address().port + ' db=' + DB_FILE);
 });
