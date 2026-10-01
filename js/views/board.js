@@ -4,11 +4,13 @@
  * The lab board (#/board, Q22, M3-8, P5, redesign Step 6b): numbered status
  * columns, one slim sticky lane header per tool (glyph, code, count).
  * Empty lanes are a thin strip; Completed + Analyzed are off by default.
- * Cards carry a stripe (Line stop/Hot only), the priority word for those
- * two, the truncated mono ID, lot + build-up, the needed-by clock and one
- * status/Late chip - plus a Stuck badge after 2 lab days on hold (the same
- * rule as the Health page). Gauges, initials and dates live in the drawer.
- * Click opens the side panel with the full traveller and the usual action
+ * Cards are two lines at a fixed height (Part A): the short ID (no tool
+ * prefix - the lane shows the tool) with the panel count, or a red "late
+ * N d" tag when late; lot + build-up with P1/P2 and one status chip at
+ * most (Stuck covers On hold). Stripe for Line stop/Hot only. Countdown
+ * and panels live in the hover tooltip and the drawer, which the 1 s tick
+ * repaints as text. Click opens the side panel with the full traveller
+ * and the usual action
  * buttons (same rules, dialogs and audit as everywhere); the panel has an
  * explicit "Open page" link. Ctrl/middle click still opens the request
  * page. Nothing is dragged.
@@ -74,7 +76,7 @@ window.MRT.views.board = (function () {
       if (e.kind === 'status' && e.to === 'on_hold') holdSince[e.request_id] = e.ts;
     });
     var grid = ui.el('div', { class: 'board', style: { gridTemplateColumns: 'repeat(' + cols.length + ', minmax(' + COL_W + 'px, 1fr))',
-      minWidth: (cols.length * (COL_W + 6)) + 'px' } });
+      minWidth: (cols.length * (COL_W + 10)) + 'px' } });
     cols.forEach(function (c, i) {
       var n = reqs.filter(function (r) { return c.has.indexOf(r.status) !== -1 && lanes.some(function (t) { return t.id === r.tool_id; }); }).length;
       grid.appendChild(ui.el('div', { class: 'board-colhead' }, [ui.el('span', { class: 'board-step num', text: ('0' + (i + 1)).slice(-2) }),
@@ -91,8 +93,10 @@ window.MRT.views.board = (function () {
       if (!mine.length) return;   // a thin strip: the header only
       cols.forEach(function (c) {
         var cards = D.sortQueue(mine.filter(function (r) { return c.has.indexOf(r.status) !== -1; }), { now_ts: now, cal: cal, levelOf: levelOf });
-        grid.appendChild(ui.el('div', { class: 'board-cell', dataset: { col: c.key, tool: t.id }, 'aria-label': t.code + ' - ' + c.label },
-          cards.map(function (r) { return card(r, now, cal, hs, holdSince[r.id]); })));
+        var cell = ui.el('div', { class: 'board-cell', dataset: { col: c.key, tool: t.id }, 'aria-label': t.code + ' - ' + c.label },
+          cards.map(function (r) { return card(r, now, cal, hs, holdSince[r.id]); }));
+        if (!cards.length) cell.appendChild(ui.el('div', { class: 'muted', text: 'Nothing here' }));
+        grid.appendChild(cell);
       });
     });
     main.appendChild(ui.el('div', { class: 'board-wrap' }, grid));
@@ -162,37 +166,60 @@ window.MRT.views.board = (function () {
   }
 
   /**
-   * One card: stripe (Line stop/Hot only) + the tiny priority word for those
-   * two, the truncated mono ID (full in the tooltip), lot + build-up, the
-   * needed-by clock and one status/Late chip - plus Stuck past 2 lab days
-   * on hold. Gauges, initials and dates live in the drawer.
+   * One card (Part A): two lines at a fixed height. Line 1: the short ID
+   * (no tool prefix - the lane shows it) with the panel count, or a red
+   * "late N d" tag when late. Line 2: lot + build-up (plus the count when
+   * late) with P1/P2 and at most one status chip - Stuck covers On hold.
+   * The full ID, countdown and panels live in the tooltip (repainted by
+   * the tick) and the drawer.
    */
   function card(r, now, cal, hs, heldSinceTs) {
     var lot = byId('lots', r.lot_id), prio = byId('priorities', r.priority_id), bu = byId('buildups', r.buildup_id);
     var level = prio ? prio.level : 3;
     var late = D.isLate(r, now, cal);
     var stuck = r.status === 'on_hold' && D.holdLabDays(heldSinceTs, now, cal, hs) >= D.STUCK_HOLD_LAB_DAYS;
-    var clock = ui.el('span', { class: 'q-clock' });
-    clocks.push({ node: clock, r: r });
-    var chip = late ? ui.statusBadge('expired', 'Late')
-      : r.status === 'on_hold' ? ui.statusBadge('warning', 'On hold')
-      : r.status === 'clarification' ? ui.statusBadge('warning', 'Question') : null;
+    var pnl = D.panelCountOf(r);
+    var short = String(r.request_no || '').split('-').slice(1).join('-') || r.request_no;
+    var first = late ? ui.el('span', { class: 'bcard-late', text: lateTag(r, now, cal, hs) })
+      : ui.el('span', { class: 'bcard-pnl num', text: pnl + ' pnl' });
+    var chip = stuck ? ui.statusBadge('warning', 'Stuck', { title: 'On hold 2 lab days or more - check with the lab' })
+      : !late && r.status === 'on_hold' ? ui.statusBadge('warning', 'On hold')
+      : !late && r.status === 'clarification' ? ui.statusBadge('warning', 'Question') : null;
     var node = ui.el('a', { class: 'bcard prio-' + level + (level === 1 && D.isOpen(r) ? ' is-urgent' : ''), href: '#/request/' + r.id,
       'aria-label': r.request_no + ', ' + D.REQUEST_STATUS_LABEL[r.status] + (prio ? ', ' + prio.name : ''),
       dataset: { id: r.id, find: [r.request_no, lot ? lot.lot_number : '', (r.panels || []).join(' ')].join(' ').toLowerCase().replace(/\s+/g, '|') } }, [
-      level <= 2 && prio ? ui.el('span', { class: 'bcard-prio', text: prio.name }) : null,
-      ui.el('span', { class: 'mono bcard-id', text: r.request_no, title: r.request_no }),
-      ui.el('span', { class: 'bcard-line' }, [ui.el('span', { class: 'mono', text: lot ? lot.lot_number : '?' }),
-        bu ? ui.el('span', { class: 'muted', text: '  ·  ' + bu.code }) : null]),
-      ui.el('span', { class: 'bcard-line' }, [clock, chip,
-        stuck ? ui.statusBadge('warning', 'Stuck', { title: 'On hold 2 lab days or more - check with the lab' }) : null])
+      ui.el('span', { class: 'bcard-line' }, [
+        ui.el('span', { class: 'mono bcard-id', text: short }), first]),
+      ui.el('span', { class: 'bcard-line' }, [
+        ui.el('span', { class: 'mono', text: lot ? lot.lot_number : '?' }),
+        bu ? ui.el('span', { class: 'muted', text: '  ·  ' + bu.code }) : null,
+        late && pnl ? ui.el('span', { class: 'muted', text: '  ·  ' + pnl + ' pnl' }) : null,
+        chip,
+        level <= 2 && prio ? ui.el('span', { class: 'bcard-prio num', text: prio.code }) : null])
     ]);
+    clocks.push({ node: node, r: r });
+    paintTip(node, r, now, cal, hs);
     node.addEventListener('click', function (ev) {
       if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) return;   // a new tab still opens the page
       ev.preventDefault();
       show(r.id);
     });
     return node;
+  }
+
+  /** "late 3 d" for the line-1 tag (calendar days, like the request page). */
+  function lateTag(r, now, cal, hs) {
+    var cd = D.countdown(now, r.needed_by, cal, hs);
+    var d = cd ? -cd.days : 0;
+    return d >= 1 ? 'late ' + d + ' d' : 'late today';
+  }
+
+  /** The hover tooltip: full ID, countdown, panels. Text only. */
+  function paintTip(node, r, now, cal, hs) {
+    var cd = r.needed_by ? D.countdown(now, r.needed_by, cal, hs) : null;
+    var when = !cd ? 'no date' : cd.late ? 'late ' + ui.formatDurationH(cd.lab_ms / 3600000)
+      : ui.formatDurationH(cd.lab_ms / 3600000) + ' left';
+    node.title = r.request_no + ' · ' + when + ' · panels ' + D.panelsText(r);
   }
 
   /** The side panel: the full traveller and the action buttons. Also used by tests. */
@@ -207,18 +234,13 @@ window.MRT.views.board = (function () {
     return open;
   }
 
-  /** The 1 s tick: the needed-by clock text only - no gauges any more. */
+  /** The 1 s tick: the hover tooltip text only - the cards show no clock. */
   function tick() {
     if (!clocks.length) return;
     var now = Date.now(), cal = store.calendar(), hs = D.holidaySet(store.data().holidays);
     clocks.forEach(function (c) {
-      var r = c.r;
-      if (!D.isOpen(r) || r.status === 'on_hold' || !r.needed_by) { c.node.textContent = r.status === 'on_hold' ? 'paused' : ''; return; }
-      var cd = D.countdown(now, r.needed_by, cal, hs);
-      var h = ui.formatDurationH(cd.lab_ms / 3600000);
-      c.node.textContent = (cd.late ? 'late ' + h : h + ' left') + (cd.paused ? ' \u23F8\uFE0E' : '');
-      c.node.title = cd.paused ? 'Clock paused - outside lab hours' : '';
-      c.node.className = 'q-clock';
+      if (c.node.isConnected === false) return;
+      paintTip(c.node, c.r, now, cal, hs);
     });
   }
 
