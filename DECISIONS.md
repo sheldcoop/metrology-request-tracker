@@ -940,3 +940,11 @@ never the only signal - the text/label says the same thing.
   cards get a scene (new, mine, queue, board join aoi, bars, dice); the
   Board scene stays (a calm tile grid). Icons are unchanged, light
   schemes stay static.
+- **HOME-1** (home-final, Step 1: the theme set) The agreed set is FIVE keys:
+  ats (default), pure-white, dark-teal, slate, quant, plus the
+  high-contrast switch on top of any theme (`data-contrast`, per user).
+  This supersedes DASH-1's "final list (7)": frost and signal are correctly
+  retired as ALIASES (frost -> pure-white, signal -> dark-teal), with
+  deep-lab, cleanroom and minimal. Verified 2026-10-01: all 20 retired keys
+  resolve through `byKey`, so a saved choice always lands somewhere
+  sensible; no code change needed. Nobody "restores" frost/signal as themes.
