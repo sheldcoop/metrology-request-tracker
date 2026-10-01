@@ -4,12 +4,14 @@
  * Home (#/home): one door per page - icon, title, one line. No counts:
  * a card is a place to start work, not a dashboard (Step 4 reverses DASH-4;
  * the counting functions stay for the nav badge, bell and queue counts).
- * A card shows only when its domain.js gate allows it (New request:
- * canRequest, My queue + Board: canMeasure, Analytics: canSeeManagement);
- * Lab status, My requests and Help are read surfaces, open to every
- * signed-in person. Lots, Settings, Results and Hirata stay sidebar-only.
- * Every card carries a data-scene key for the hover scenes
- * (js/ui/scene3d.js).
+ * Six doors per role, always (HOME-9). A card shows only when its
+ * domain.js gate allows it (New request: canRequest, My queue:
+ * canMeasure, Board: boardFor, Results: resultsFor, Analytics:
+ * canSeeManagement, Lots: canRegisterLot, Hirata: hirataFor); Lab
+ * status, My requests and Help are read surfaces, open to every
+ * signed-in person. Settings stays sidebar-only. The seven scene cards
+ * carry a data-scene key for the hover scenes (js/ui/scene3d.js);
+ * lots/results/hirata are static.
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -104,6 +106,9 @@ window.MRT.views.home = (function () {
       try { var f = box.querySelector('input, .btn-primary'); if (f) f.focus(); } catch (e) {}
       return;
     }
+    /* Six doors per role (HOME-9): lots/results/hirata fill each role to a
+     * full 3+3 grid. They carry no scene and stay static (the engine skips
+     * cards without one). */
     var cards = [
       D.canRequest(me) && { key: 'new', icon: 'plus-circle', title: 'New request', scene: 'new',
         desc: 'Ask the lab to measure your panels' },
@@ -111,12 +116,18 @@ window.MRT.views.home = (function () {
         desc: 'Follow your requests from submit to result' },
       D.canMeasure(me) && { key: 'queue', icon: 'inbox', title: 'My queue', scene: 'queue',
         desc: 'Work the open requests of your tools' },
-      D.canMeasure(me) && { key: 'board', icon: 'kanban', title: 'Board', scene: 'board',
+      D.boardFor(me) && { key: 'board', icon: 'kanban', title: 'Board', scene: 'board',
         desc: 'Every open request, by tool and stage' },
       { key: 'lab', icon: 'activity', title: 'Lab status', scene: 'aoi',
         desc: 'Which tools are up, and how busy' },
+      D.resultsFor(me) && { key: 'results', icon: 'folder', title: 'Results',
+        desc: 'Result folders handed back by the lab' },
       D.canSeeManagement(me) && { key: 'analytics', icon: 'chart-column', title: 'Analytics', scene: 'bars',
         desc: 'Turnaround, load and trends' },
+      D.canRegisterLot(me) && { key: 'lots', icon: 'lots', title: 'Lots',
+        desc: 'Register lots and see them on file' },
+      D.hirataFor(me) && { key: 'hirata', icon: 'hirata', title: 'Hirata tools',
+        desc: 'Read a panel dot code' },
       { key: 'help', icon: 'circle-help', title: 'Help', scene: 'dice',
         desc: 'Step-by-step guides for every task' }
     ].filter(Boolean);

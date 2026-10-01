@@ -1576,6 +1576,22 @@ window.MRT.domain = (function () {
   /** The start page for a person (Q16, M3-12): quality engineers -> My queue, engineers -> My requests, else Lab status. */
   function homeFor(user) { return canMeasure(user) ? 'queue' : (hasRole(user, 'engineer') || hasRole(user, 'analyst')) ? 'requests' : 'lab'; }
 
+  /* Home card doors (HOME-9): every role sees exactly six cards (full 3+3
+   * grid, no orphan row). New/requests/queue/lab/analytics keep their old
+   * gates; Lots keeps canRegisterLot. Board also opens read-only to
+   * managers, operators and analysts (the route was never guarded).
+   * Results is the lab handover overview (not the engineer's own results -
+   * those live on My requests). Hirata is for whoever handles panels. */
+  function boardFor(user) {
+    return ['quality', 'manager', 'operator', 'analyst'].some(function (r) { return hasRole(user, r); });
+  }
+  function resultsFor(user) {
+    return ['quality', 'manager', 'admin', 'operator', 'analyst'].some(function (r) { return hasRole(user, r); });
+  }
+  function hirataFor(user) {
+    return ['engineer', 'operator', 'analyst'].some(function (r) { return hasRole(user, r); });
+  }
+
   /**
    * @mentions in a comment (Q11): "@Anna Berger" (full name) or "@aberger"
    * (Windows ID), case ignored. Returns the user IDs, each once.
@@ -2108,6 +2124,9 @@ window.MRT.domain = (function () {
     isOldDraft: isOldDraft,
     notificationsFor: notificationsFor,
     homeFor: homeFor,
+    boardFor: boardFor,
+    resultsFor: resultsFor,
+    hirataFor: hirataFor,
     PANEL_OUTCOMES: PANEL_OUTCOMES,
     PANEL_OUTCOME_LABEL: PANEL_OUTCOME_LABEL,
     isClosed: isClosed,

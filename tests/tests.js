@@ -321,6 +321,28 @@
        { id: 'c', status: 'submitted', magazine_id: 'm1', slots: [5], request_no: 'X-3' }], 'm1', 'c'), { 3: 'X-1' });
     ok('magazine numbers: M and digits', D.isMagazineCode('M70345') && !D.isMagazineCode('70345') && !D.isMagazineCode('M-1'));
     eq('start page by role (M3-12): QE -> My queue, engineer -> My requests, else Lab status', [D.homeFor(qe1), D.homeFor(eng1), D.homeFor({ roles: ['manager'], active: true })], ['queue', 'requests', 'lab']);
+    (function () {   // HOME-9: every role sees exactly six Home cards
+      var mk = function (roles) { return { roles: roles, active: true }; };
+      var doors = function (u) {
+        return ['new:' + D.canRequest(u), 'req:1', 'queue:' + D.canMeasure(u), 'board:' + D.boardFor(u),
+          'lab:1', 'results:' + D.resultsFor(u), 'analytics:' + D.canSeeManagement(u),
+          'lots:' + D.canRegisterLot(u), 'hirata:' + D.hirataFor(u), 'help:1']
+          .filter(function (x) { return /:1|true$/.test(x); }).length;
+      };
+      eq('six doors per role', [doors(mk(['engineer'])), doors(mk(['quality'])), doors(mk(['manager'])),
+        doors(mk(['admin'])), doors(mk(['operator'])), doors(mk(['analyst']))], [6, 6, 6, 6, 6, 6]);
+      eq('board door: QE/manager/operator/analyst, not engineer/admin',
+        [D.boardFor(mk(['quality'])), D.boardFor(mk(['manager'])), D.boardFor(mk(['operator'])),
+         D.boardFor(mk(['analyst'])), D.boardFor(mk(['engineer'])), D.boardFor(mk(['admin']))],
+        [true, true, true, true, false, false]);
+      eq('results door: everyone but engineers',
+        [D.resultsFor(mk(['engineer'])), D.resultsFor(mk(['quality'])), D.resultsFor(mk(['admin']))],
+        [false, true, true]);
+      eq('hirata door: panel handlers only',
+        [D.hirataFor(mk(['engineer'])), D.hirataFor(mk(['operator'])), D.hirataFor(mk(['analyst'])),
+         D.hirataFor(mk(['manager'])), D.hirataFor(mk(['admin']))],
+        [true, true, true, false, false]);
+    })();
     eq('request ID: tool-YYMMDD-NN, running per tool per day (Q29)', [D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-01', 'FIB-260924-02', 'QVM-260924-07']),
        D.nextRequestNo('QVM', '2026-09-24', ['FIB-260924-01']), D.nextRequestNo('FIB', '2026-09-25', ['FIB-260924-09']), D.nextRequestNo('FIB', '2026-09-24', ['FIB-260924-09'])],
        ['FIB-260924-03', 'QVM-260924-01', 'FIB-260925-01', 'FIB-260924-10']);
