@@ -348,15 +348,16 @@
         el('b', { class: 'mono', text: code }),
         el('span', { class: 'muted num', text: count })]);
     }
-    function card(no, level, prioName, lot, bu, chipKind, chipText, stuck) {
-      return el('a', { class: 'bcard prio-' + level + (level === 1 ? ' is-urgent' : ''), href: '#', title: no }, [
-        level <= 2 ? el('span', { class: 'bcard-prio', text: prioName }) : null,
-        el('span', { class: 'mono bcard-id', text: no }),
+    function card(no, level, prioCode, lot, bu, chipKind, chipText, stuck, lateTag) {
+      var short = String(no).split('-').slice(1).join('-');
+      return el('a', { class: 'bcard prio-' + level + (level === 1 ? ' is-urgent' : ''), href: '#', title: no + ' · 5 h left · panels 3252, 3253' }, [
+        el('span', { class: 'bcard-line' }, [el('span', { class: 'mono bcard-id', text: short }),
+          lateTag ? el('span', { class: 'bcard-late', text: lateTag }) : el('span', { class: 'bcard-pnl num', text: '3 pnl' })]),
         el('span', { class: 'bcard-line' }, [el('span', { class: 'mono', text: lot }),
-          bu ? el('span', { class: 'muted', text: '  ·  ' + bu }) : null]),
-        el('span', { class: 'bcard-line' }, [el('span', { class: 'q-clock', text: '5 h left' }),
+          bu ? el('span', { class: 'muted', text: '  ·  ' + bu }) : null,
           chipKind ? ui.statusBadge(chipKind, chipText) : null,
-          stuck ? ui.statusBadge('warning', 'Stuck') : null])
+          stuck ? ui.statusBadge('warning', 'Stuck') : null,
+          level <= 2 ? el('span', { class: 'bcard-prio num', text: prioCode }) : null])
       ]);
     }
     return el('div', {}, [
@@ -367,8 +368,8 @@
       ])),
       labelled('Lane header', laneHead('fib', 'FIB', '4 open')),
       labelled('Cards: Line stop stuck, Hot late, normal', el('div', { class: 'kit-row' }, [
-        card('FIB-260925-01', 1, 'Line stop', '18178', 'BU-02', 'warning', 'On hold', true),
-        card('QVM-260925-02', 2, 'Hot', '18179', null, 'expired', 'Late', false),
+        card('FIB-260925-01', 1, 'P1', '18178', 'BU-02', 'warning', 'On hold', true),
+        card('QVM-260925-02', 2, 'P2', '18179', null, 'expired', 'Late', false, 'late 3 d'),
         card('HRM-260925-03', 3, null, '18180', 'BU-01', null, null, false)
       ]))
     ]);
@@ -432,8 +433,8 @@
       labelled('Mini (form preview)', ui.traveller({ id: 'FIB-YYMMDD-NN', subtitle: 'Via cross-section', glyph: { key: 'fib' }, level: 2, prio: PRIOS[2],
         fields: [{ label: 'Lot', value: '18178', cls: 'mono' }, { label: 'Panels', value: '3252, 3253', cls: 'mono' }, { label: 'Needed by', value: '2026-10-02', cls: 'num' }] }, { size: 'mini' })),
       labelled('Board cards: Line stop, late, on hold', el('div', { class: 'kit-row' }, [
-        ui.traveller({ id: 'FIB-260925-01', level: 1, urgent: true, prio: PRIOS[1], href: '#', lines: [['18178  ·  3252, 3253'], [el('span', { class: 'q-clock', text: '5 h left' })]] }, { size: 'card' }),
-        ui.traveller({ id: 'HRM-260925-02', level: 3, late: true, prio: PRIOS[3], href: '#', lines: [['18180  ·  2 panels'], [el('span', { class: 'q-clock', text: 'late 1 d' })]] }, { size: 'card' }),
+        ui.traveller({ id: 'FIB-260925-01', level: 1, urgent: true, prio: PRIOS[1], href: '#', lines: [['18178  ·  3252, 3253'], [el('span', { class: 'tr-clock', text: '5 h left' })]] }, { size: 'card' }),
+        ui.traveller({ id: 'HRM-260925-02', level: 3, late: true, prio: PRIOS[3], href: '#', lines: [['18180  ·  2 panels'], [el('span', { class: 'tr-clock is-late', text: 'late 1 d' })]] }, { size: 'card' }),
         ui.traveller({ id: 'PRF-260925-01', level: 4, prio: PRIOS[4], href: '#', lines: [['19189  ·  23'], [el('span', { class: 'chip warning', text: 'On hold' })]] }, { size: 'card' })
       ])),
       labelled('Slip (print)', ui.traveller({ id: 'FIB-260925-01', level: 1, prio: PRIOS[1], glyph: { key: 'fib' },
