@@ -1103,3 +1103,11 @@ never the only signal - the text/label says the same thing.
   ripple rings; cards drop in at the first column and lift off past the
   last; a red late card pulses; a scan light sweeps the columns; slow sway.
   My queue (HOME-14) is reopened for a cooler design.
+- **HOME-16** (home-final: My queue "orbit core" + tile size, 2026-10-01,
+  Prince) My queue scene = option A "orbit core": a spinning wire crystal
+  (the tool) with a glowing heart; request cubes circle it on three tilted
+  rings with light trails; every 3 s one cube spirals in, the core flashes
+  and fires a shock ring, a fresh cube pops in. Replaces HOME-14. Tiles:
+  a 3 x 2 grid, max 1200 px wide, each tile 16:10 - six tiles fit under
+  the hero on 1440x900 and 1920x1080 without scrolling (2 columns under
+  1100 px, 1 under 700 px).
