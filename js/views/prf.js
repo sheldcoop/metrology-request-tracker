@@ -417,7 +417,7 @@ window.MRT.views.prf = (function () {
     lotName.input.addEventListener('input', function () { s.lotName = lotName.input.value; });
     body.push(lotName.node);
     body.push(ui.el('p', { class: 'ifield-msg', text: 'Process: ' + s.process + ' (change under Advanced)' }));
-    return ui.panel({ title: '3. Metadata', icon: 'tag', body: body }).node;
+    return ui.panel({ title: 'Metadata', icon: 'tag', body: body }).node;
   }
 
   function panelsPanel() {
@@ -439,7 +439,7 @@ window.MRT.views.prf = (function () {
       ]),
       ui.el('div', { class: 'prf-panel-grid' }, boxes)
     ];
-    return ui.panel({ title: '4. Panels', icon: 'grid', body: body }).node;
+    return ui.panel({ title: 'Panels', icon: 'grid', body: body }).node;
   }
 
   function unitsField(side, kind, label) {
@@ -508,7 +508,13 @@ window.MRT.views.prf = (function () {
   }
 
   function sidesPanel() {
-    return ui.panel({ title: '5. Sides', icon: 'sliders', body: [sidePanel('Front'), sidePanel('Back')] }).node;
+    // each side is its own expander: a switched-off side stays collapsed,
+    // a switched-on one opens by itself
+    return ui.el('div', { class: 'prf-sides2' }, ['Front', 'Back'].map(function (side) {
+      var s = state.settings.sides[side];
+      return ui.panel({ title: side, icon: 'sliders', collapsible: true, collapsed: !s.enabled,
+        body: [sidePanel(side)] }).node;
+    }));
   }
 
   function advancedPanel() {
