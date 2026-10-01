@@ -1124,3 +1124,16 @@ never the only signal - the text/label says the same thing.
   live tool glyph, "> name" in mono with a blinking caret, an arrow that
   slides on hover. PRF Insight opens #/prf (the PRF_Insight.py port); HRM
   AutoLot shows "coming soon" (no page yet - OPEN_QUESTIONS).
+- **HOME-18** (home-final: five scenes in the queue style, 2026-10-01,
+  Prince: "I love queue, build things like that, you decide") Lab status
+  "tool constellation" (hub + five spinning tool crystals on a tilted
+  ring, packets racing the spokes, radar arm, one tool goes down red and
+  comes back with a shock ring); Results "the live surface" (wireframe
+  height map, a probe orb flies a figure-eight with a trail, the ripple
+  follows it, data cubes lift off and fade up); Hirata "the code
+  assembles" (100 dots swirl, snap into the dot code, scan beam, flash +
+  shock ring, burst out); Help "the throw" (two real dice thrown in,
+  bounce and spin, settle with a landing ripple, lift away); Analytics
+  "bar city" (6 x 4 bars rolling in waves, trend line with racing head,
+  a peak bar spikes with a shock ring). New request, My requests and
+  Board stay as built today.

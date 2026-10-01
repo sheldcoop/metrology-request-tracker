@@ -78,7 +78,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `js/ui/barcode.js` | Code 128 for slips. |
 | `js/ui/magazine.js` | Magazine slot picker. |
 | `js/ui/scene3d.js` | Home card scene engine: every card plays all the time (livelier on hover), one shared off-screen renderer copied into each card, lazy THREE, full disposal, still-icon fallback. |
-| `js/ui/scenes/*.js` | One card scene each (`create(ctx)` → `{scene, camera, update, dispose}`; engine renders), ≤ ~250 lines: `aoi` (9 s scan + red flash), `bars` (9.5 s breathe + bright flash), `dice` (7.5 s turn + answer pip), `new` (8 s sheet + badge flash), `mine` (8.5 s plate slide), `queue` (9 s lane trip), `board` (8 s tile pulse), `results` (wireframe height map, ripple grows on hover), `hirata` (6 s dot code read by a scan bar). Settings stays sidebar-only. |
+| `js/ui/scenes/*.js` | One card scene each (`create(ctx)` → `{scene, camera, update(dt, t, energy), dispose}`; engine renders), ≤ ~250 lines: `new` (form fills itself, stamp, flies off), `mine` (the journey: 4 stations), `queue` (orbit core), `board` (live board: hopping cards), `aoi` = Lab status (tool constellation), `results` (live surface + probe orb + rising data cubes), `bars` = Analytics (bar city + racing trend line), `hirata` (dot code assembles from a swirl), `dice` = Help (the throw). |
 | `js/ui/traveller.js` | Traveller card (full/mini/card/slip sizes). |
 | `js/ui/hirata.js` | Copper panels, decoded fields, dot grid. |
 | `js/ui/theme-gallery.js` | Theme picker cards. |

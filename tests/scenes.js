@@ -42,7 +42,7 @@ function fakeThree() {
     LineBasicMaterial: mat,
     HemisphereLight: function () { return obj3d(); },
     DirectionalLight: function () { var o = obj3d(); o.target = obj3d(); return o; },
-    BoxGeometry: geo, CylinderGeometry: geo, TorusGeometry: geo, IcosahedronGeometry: geo,
+    BoxGeometry: geo, CylinderGeometry: geo, TorusGeometry: geo, IcosahedronGeometry: geo, OctahedronGeometry: geo, TetrahedronGeometry: geo,
     PlaneGeometry: geo, SphereGeometry: geo, CircleGeometry: geo,
     EdgesGeometry: function (g) { return tracked({ source: g }); },
     LineSegments: function (g, m) { var o = obj3d(); o.geometry = g; o.material = m; return o; },

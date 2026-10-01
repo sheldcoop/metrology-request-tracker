@@ -1,28 +1,35 @@
 /**
  * Metrology Request Tracker - js/ui/scenes/dice.js
  *
- * Help card scene: two dice with real faces (1-6 pips on canvas textures)
- * tumbling slowly side by side, faces in the card colour, pips in the
- * theme accent. Transparent background: the card shows through. One calm
- * turn each, counter-rotating. Solid lit meshes, canvas textures, no
- * shadows.
+ * Help card scene (HOME-18 "the throw", after Prince's studio dice): two
+ * dice with real 1-6 faces are thrown in, bounce across a glowing floor
+ * grid while spinning hard, settle on their faces with a landing ripple,
+ * hover and turn gently, then lift away - and the next throw comes in
+ * with new faces. Faces in the card colour, pips and edges in the scene
+ * ink. Cool first (HOME-15). Faster on hover (engine clock). Transparent
+ * background.
  */
 window.MRT = window.MRT || {};
 window.MRT.scene3d.register('dice', function create(ctx) {
   'use strict';
-  var T = ctx.T;
+  var T = ctx.T, LOOP = 6, S = 0.5;
+  var FACES = [[0, 0], [Math.PI / 2, 0], [0, Math.PI / 2], [-Math.PI / 2, 0], [0, -Math.PI / 2], [Math.PI, 0]];
 
   var scene = new T.Scene();
   var camera = new T.PerspectiveCamera(36, ctx.view.w / ctx.view.h, 0.1, 50);
-  camera.position.set(0, 1.1, 4.2);
-  camera.lookAt(0, 0, 0);
+  camera.position.set(0, 1.5, 4);
+  camera.lookAt(0, 0.05, 0);
 
-  scene.add(new T.HemisphereLight(0xffffff, new T.Color(ctx.tokens.surface), 0.75));
+  scene.add(new T.HemisphereLight(0xffffff, new T.Color(ctx.tokens.surface), 0.8));
   var key = new T.DirectionalLight(0xffffff, 1.2);
   key.position.set(3, 5, 4);
   scene.add(key);
 
-  /* One die face: the card colour with accent pips, drawn on canvas. */
+  var world = new T.Group();
+  world.position.set(0.5, -0.35, 0);
+  scene.add(world);
+
+  /* One die face: the card colour with ink pips, drawn on canvas. */
   function face(count, bg, fg) {
     var c = document.createElement('canvas');
     c.width = 128; c.height = 128;
@@ -42,23 +49,37 @@ window.MRT.scene3d.register('dice', function create(ctx) {
     if ('colorSpace' in tex && T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
     return new T.MeshStandardMaterial({ map: tex, roughness: 0.35, metalness: 0.15 });
   }
-
+  var mats = [1, 2, 3, 4, 5, 6].map(function (n) { return face(n, ctx.tokens.surface, ctx.tokens.accent); });
+  var boxGeo = new T.BoxGeometry(S, S, S), edgeGeo = new T.EdgesGeometry(boxGeo);
+  var edgeMat = new T.LineBasicMaterial({ color: new T.Color(ctx.tokens.accent) });
   function die() {
-    var mats = [1, 2, 3, 4, 5, 6].map(function (n) { return face(n, ctx.tokens.surface, ctx.tokens.accent); });
-    var d = new T.Mesh(new T.BoxGeometry(1.15, 1.15, 1.15), mats);
-    var edges = new T.LineSegments(
-      new T.EdgesGeometry(d.geometry),
-      new T.LineBasicMaterial({ color: new T.Color(ctx.tokens.line), transparent: true, opacity: 0.6 }));
-    d.add(edges);
+    var d = new T.Mesh(boxGeo, mats);
+    d.add(new T.LineSegments(edgeGeo, edgeMat));
+    world.add(d);
     return d;
   }
 
-  var group = new T.Group();
-  var d1 = die(), d2 = die();
-  d1.position.x = -0.95;
-  d2.position.x = 0.95;
-  group.add(d1); group.add(d2);
-  scene.add(group);
+  // the floor: concentric rings, faint
+  var floorMat = new T.LineBasicMaterial({ color: new T.Color(ctx.tokens.line), transparent: true, opacity: 0.6 });
+  [0.5, 0.9, 1.3].forEach(function (r) {
+    var pts = new Float32Array(65 * 3);
+    for (var k = 0; k <= 64; k++) { var a = k / 64 * Math.PI * 2; pts.set([r * Math.cos(a) * 1.4, 0, r * Math.sin(a)], k * 3); }
+    var g = new T.BufferGeometry();
+    g.setAttribute('position', new T.BufferAttribute(pts, 3));
+    var l = new T.Line(g, floorMat);
+    l.frustumCulled = false;
+    world.add(l);
+  });
+
+  var dice = [-0.42, 0.42].map(function (rest, i) {
+    var rm = new T.MeshBasicMaterial({ color: new T.Color(ctx.tokens.accent), transparent: true, opacity: 0 });
+    var ring = new T.Mesh(new T.TorusGeometry(0.3, 0.012, 6, 40), rm);
+    ring.rotation.x = Math.PI / 2;
+    world.add(ring);
+    return { m: die(), rest: rest, delay: i * 0.18, ring: ring, rm: rm, spin: i ? -1 : 1 };
+  });
+
+  function seg(s, a, b) { return Math.max(0, Math.min(1, (s - a) / (b - a))); }
 
   ctx.onResize(function (w, h) {
     camera.aspect = w / h;
@@ -69,10 +90,24 @@ window.MRT.scene3d.register('dice', function create(ctx) {
     scene: scene,
     camera: camera,
     update: function (dt, t) {
-      group.rotation.y = t * 0.35;                 // the pair turns, calm
-      d1.rotation.x = t * 0.55; d1.rotation.y = t * 0.3;
-      d2.rotation.x = -t * 0.45; d2.rotation.y = -t * 0.35;   // counter-tumble
-      group.position.y = 0.06 * Math.sin(t * 0.9);
+      var n = Math.floor(t / LOOP), s = t - n * LOOP;
+      world.rotation.y = 0.15 * Math.sin(t * 0.35);
+      dice.forEach(function (d, i) {
+        var p = seg(s, d.delay, d.delay + 2), q = 1 - Math.pow(1 - p, 3);
+        var up = seg(s, 4.9, 5.6);
+        var target = FACES[(n * 7 + i * 3) % 6];
+        var bounce = 1.3 * Math.exp(-3.2 * p) * Math.abs(Math.cos(p * Math.PI * 3.2));
+        var x = -2.6 + (d.rest + 2.6) * q, y = S / 2 + (p < 1 ? bounce : 0) + 0.04 * Math.sin(t * 2 + i) * (p >= 1 ? 1 : 0);
+        d.m.position.set(x, y + 1.6 * up * up, 0.1 * i);
+        var spin = Math.pow(1 - q, 2) * 14 * d.spin;
+        d.m.rotation.set(target[0] + spin, target[1] + spin * 0.7 + (p >= 1 ? 0.25 * Math.sin(t * 0.8 + i) : 0), spin * 0.4);
+        var sc = 1 - up;
+        d.m.scale.set(Math.max(0.001, sc), Math.max(0.001, sc), Math.max(0.001, sc));
+        var since = s - (d.delay + 2), v = since > 0 ? Math.min(1, since / 0.7) : 1;
+        d.rm.opacity = 0.85 * (1 - v);
+        d.ring.position.set(d.rest, 0.01, 0.1 * i);
+        d.ring.scale.set(1 + 1.6 * v, 1 + 1.6 * v, 1);
+      });
     },
     dispose: function () {
       while (scene.children.length) scene.remove(scene.children[0]);
