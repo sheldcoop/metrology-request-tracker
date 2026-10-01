@@ -573,7 +573,7 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   buttonByText(doc.getElementById('main'), 'Save draft').click(); await settle();
   const draft1 = MRT.store.data().requests.filter(r => r.status === 'draft')[0];
   check('Save draft needs only the tool, and opens the draft', !!draft1 && win.location.hash === '#/new/' + draft1.id && /Draft/.test(mainText()));
-  check('...listed under your drafts', /QVM draft/.test($('#main .req-side').textContent));
+  check('...listed under your drafts', /QVM draft/.test($('#main .req-stack').textContent));
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Tom Huber')[0].id);
   win.setHash('#/new/' + draft1.id); await settle();
   check('someone else\'s draft stays private (Q33)', /not your draft/.test(mainText()) && MRT.store.visibleRequests().every(r => r.status !== 'draft'));
@@ -585,11 +585,11 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   // a lot that is not registered yet, typed in the form (F-5); just how many panels (F-1); a note instead of a magazine
   win.setHash('#/new?tool=' + MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id); await settle();
   check('?tool= picks the tool and opens step 2', $$('#main .tool-pick-opt.is-on').length === 1 && isOpenStep('lot'));
-  const prevPanel = $$('#main .req-side .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
+  const prevPanel = $$('#main .req-stack .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
   prevPanel.querySelector('.panel-collapse').click(); await settle();
   check('...the lab preview collapses', prevPanel.classList.contains('is-collapsed') && prevPanel.querySelector('.panel-collapse').getAttribute('aria-expanded') === 'false');
   win.setHash('#/lab'); await settle(); win.setHash('#/new?tool=' + MRT.store.list('tools').filter(t => t.code === 'QVM')[0].id); await settle();
-  const prevPanel2 = $$('#main .req-side .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
+  const prevPanel2 = $$('#main .req-stack .panel').filter(p => /What the lab will see/.test((p.querySelector('.panel-title') || { textContent: '' }).textContent))[0];
   check('...and stays collapsed (remembered on this PC)', prevPanel2.classList.contains('is-collapsed'));
   prevPanel2.querySelector('.panel-collapse').click(); await settle();
   check('...panel logistics sit on one row', $('#main .where-row').querySelectorAll('.ifield').length === 3);
