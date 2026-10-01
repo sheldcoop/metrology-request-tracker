@@ -336,34 +336,41 @@
 
   /** The Board wall in isolation: station headers, tool nameplates, one late ticket. */
   function boardDemo() {
-    function station(n, label, cls, count) {
-      return el('div', { class: 'board-colhead ' + cls }, [
-        el('span', { class: 'board-step', text: n }),
+    function station(n, label, count) {
+      return el('div', { class: 'board-colhead' }, [
+        el('span', { class: 'board-step num', text: n }),
         el('b', { text: label }),
         el('span', { class: 'board-count num' + (count ? '' : ' is-zero'), text: String(count) })]);
     }
-    function lane(code, state, stateWord, glyphKey, glyphState, openText, alert) {
-      return el('div', { class: 'board-lane is-' + state }, [
-        ui.toolGlyph(glyphKey, { size: 32, state: glyphState, label: code, rate: 2, alert: !!alert }),
-        el('div', { class: 'board-lane-name' }, [el('b', { class: 'mono', text: code }),
-          el('span', { class: 'board-lamp is-' + state, title: stateWord }, [el('i'), el('span', { text: stateWord })])]),
-        el('span', { class: 'muted board-lane-open', text: openText })
+    function laneHead(glyphKey, code, count) {
+      return el('div', { class: 'board-lanehead' }, [
+        ui.toolGlyph(glyphKey, { size: 18, state: 'idle' }),
+        el('b', { class: 'mono', text: code }),
+        el('span', { class: 'muted num', text: count })]);
+    }
+    function card(no, level, prioName, lot, bu, chipKind, chipText, stuck) {
+      return el('a', { class: 'bcard prio-' + level + (level === 1 ? ' is-urgent' : ''), href: '#', title: no }, [
+        level <= 2 ? el('span', { class: 'bcard-prio', text: prioName }) : null,
+        el('span', { class: 'mono bcard-id', text: no }),
+        el('span', { class: 'bcard-line' }, [el('span', { class: 'mono', text: lot }),
+          bu ? el('span', { class: 'muted', text: '  ·  ' + bu }) : null]),
+        el('span', { class: 'bcard-line' }, [el('span', { class: 'q-clock', text: '5 h left' }),
+          chipKind ? ui.statusBadge(chipKind, chipText) : null,
+          stuck ? ui.statusBadge('warning', 'Stuck') : null])
       ]);
     }
-    var PRIOS = { name: 'Normal', code: 'P3' };
     return el('div', {}, [
       labelled('Station rail', el('div', { class: 'kit-row' }, [
-        station('01', 'Submitted', 'is-submitted', 3),
-        station('04', 'In progress', 'is-in_progress', 5),
-        station('05', 'Waiting', 'is-waiting', 0)
+        station('01', 'Submitted', 3),
+        station('04', 'In progress', 5),
+        station('05', 'Waiting', 0)
       ])),
-      labelled('Nameplates: running, idle, down', el('div', { class: 'kit-row' }, [
-        lane('FIB', 'up', 'Up', 'fib', 'live', '4 open', true),
-        lane('QVM', 'up', 'Up', 'qvm', 'idle', '1 open', false),
-        lane('HRM', 'down', 'Down', 'hrm', 'off', '', false)
-      ])),
-      labelled('Late ticket', ui.traveller({ id: 'HRM-260925-02', level: 3, late: true, prio: PRIOS, href: '#',
-        lines: [['18180  ·  2 panels'], [el('span', { class: 'q-clock is-late', text: 'late 1 d' })]] }, { size: 'card' }))
+      labelled('Lane header', laneHead('fib', 'FIB', '4 open')),
+      labelled('Cards: Line stop stuck, Hot late, normal', el('div', { class: 'kit-row' }, [
+        card('FIB-260925-01', 1, 'Line stop', '18178', 'BU-02', 'warning', 'On hold', true),
+        card('QVM-260925-02', 2, 'Hot', '18179', null, 'expired', 'Late', false),
+        card('HRM-260925-03', 3, null, '18180', 'BU-01', null, null, false)
+      ]))
     ]);
   }
 
@@ -565,7 +572,7 @@
       section('Panel map (unused - kept for OPEN_QUESTIONS #22)', panelMapDemo(), 'No screen uses it since form v2 (Hirata IDs). Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
       section('Hirata code (ui.copperPanel, ui.hirataFields, ui.hirataGrid)', hirataDemo(), 'Copper stays copper in every theme. The grid blocks any dot that would take a column above 9; the bottom row is the baseline.'),
       section('Traveller card (ui.traveller)', travellerDemo(), 'One drawing, four sizes: full (request page), mini (form preview), card (board), slip (print). Priority stripe per level; Line stop pulses while open.'),
-      section('Board wall (stations + nameplates)', boardDemo(), 'The lab wall: ghost station numerals with a state edge and tally, machine nameplates with lamp and open count. Colour only on attention; the late ticket carries the red wash.'),
+      section('Board (stations + lane headers + cards)', boardDemo(), 'Numbered stations with tallies, one slim lane header per tool, cards with stripe, ID, lot and one chip. Colour only on attention.'),
       section('Queue shift (strip + boxes)', queueDemo(), 'Your shift in one glance - open, late (red only when nonzero), yours - then one box per request under neutral group headers. Stripe for Line stop and Hot only.'),
       section('Magazine slots', el('div', { class: 'kit-grid' }, [
           labelled('Pick: press and drag over slots; slots 9-10 taken by another request', ui.magazineSlots({ magazine: { code: 'M70345', slots: 24 }, picked: [3, 4],
