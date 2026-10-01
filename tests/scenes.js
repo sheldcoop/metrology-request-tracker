@@ -48,8 +48,8 @@ function loadScenes() {
   const win = { MRT: { scene3d: { register: function (k, fn) { registry[k] = fn; } } } };
   win.window = win;
   const ctx = vm.createContext(win);
-  ['js/ui/scenes/aoi.js', 'js/ui/scenes/bars.js', 'js/ui/scenes/dice.js'].forEach(f =>
-    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
+  ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board'].forEach(k =>
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/ui/scenes/' + k + '.js'), 'utf8'), ctx, { filename: k }));
   return registry;
 }
 
@@ -61,9 +61,9 @@ function mkctx(T) {
 }
 
 (function run() {
-  const keys = ['aoi', 'bars', 'dice'];
+  const keys = ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board'];
   const registry = loadScenes();
-  check('all three scenes register', keys.every(k => typeof registry[k] === 'function'),
+  check('all seven scenes register', keys.every(k => typeof registry[k] === 'function'),
     Object.keys(registry).join(','));
 
   keys.forEach(function (key) {
