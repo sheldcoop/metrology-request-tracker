@@ -122,7 +122,7 @@ body,
 .toast, .tip-card, .menu, .search-results, .gate-card, .user-pick, .topbar, .nav, .alert-banner,
 .conflict-banner, .tool-plate, .wz-step, .traveller-mini, .traveller, .path-block, .req-actbar,
 .qbox, .board-colhead, .board-cell, .bcard, .mz-frame, .panel-map, .help-roles, .slip, .panel-tray,
-.tpl-pick, .tool-pick, .board-search, .tg-card, .tg-s-panel, .tg-s-bar, .home-slot, .home-card {
+.tpl-pick, .tool-pick, .board-search, .tg-card, .tg-s-panel, .tg-s-bar, .home-slot, .home-card, .script-chip {
   --fg: var(--pn-fg); --fg-muted: var(--pn-fg-muted); --fg-faint: var(--pn-fg-faint);
   --accent: var(--pn-accent); --accent-fill: var(--pn-accent-fill); --accent-fg: var(--pn-accent-fg);
   --accent-soft: var(--pn-accent-soft); --accent-glow: var(--pn-accent-glow); --surface: var(--pn-surface);
@@ -2161,6 +2161,41 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 .home-tx { display: flex; flex-direction: column; flex: 1; gap: 4px; min-width: 0; margin-top: 14px; }
 .home-tx b { font-size: 16px; }
 .home-d { font-size: 13px; color: var(--tile-fg-muted); margin-top: auto; padding-top: 16px; }
+
+/* Scripts (HOME-17): small command-style launchers under the tiles - a pill
+   with the live tool glyph, "> name" in mono with a blinking caret, an arrow
+   that slides on hover. transform/opacity only. */
+.home-scripts { max-width: 1200px; margin: 28px auto 8px; }
+.home-scripts-h { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--fg-muted); margin: 0 0 10px; }
+.home-scripts-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.script-chip { position: relative; display: inline-flex; align-items: center; gap: 12px; min-width: 260px;
+  padding: 8px 16px 8px 10px; border-radius: 999px; text-decoration: none;
+  background: var(--tile); color: var(--tile-fg); border: 1px solid var(--tile-line);
+  transition: transform var(--t-fast) var(--ease); }
+.script-chip::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: var(--accent-glow), 0 8px 24px var(--accent-soft); opacity: 0; transition: opacity var(--t-fast) var(--ease); }
+a.script-chip:hover { transform: translateY(-2px); }
+a.script-chip:hover::after { opacity: 1; }
+a.script-chip:focus-visible { outline: var(--focus-w) solid var(--accent); outline-offset: 3px; }
+.script-chip.is-soon { opacity: .72; }
+.script-glyph { display: flex; width: 44px; height: 44px; align-items: center; justify-content: center;
+  border-radius: 50%; background: var(--surface-2); color: var(--tile-accent); }
+.script-tx { display: grid; gap: 2px; min-width: 0; }
+.script-cmd { font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; }
+.script-prompt { color: var(--tile-accent); }
+.script-caret { display: inline-block; width: 7px; height: 14px; margin-left: 3px; background: var(--tile-accent);
+  animation: home-blink 1s steps(2, start) infinite; }
+.script-chip.is-soon .script-caret { animation: none; opacity: .4; }
+.script-d { font-size: 12px; color: var(--tile-fg-muted); }
+.script-go { display: flex; margin-left: auto; color: var(--tile-accent); transition: transform var(--t-fast) var(--ease); }
+a.script-chip:hover .script-go { transform: translateX(4px); }
+@media (prefers-reduced-motion: reduce) {
+  .script-caret { animation: none; }
+  a.script-chip:hover, a.script-chip:hover .script-go { transform: none; }
+}
+[data-motion="reduce"] .script-caret { animation: none; }
+[data-motion="reduce"] a.script-chip:hover, [data-motion="reduce"] a.script-chip:hover .script-go { transform: none; }
 
 /* Card hover (Step 5): lift + soft accent glow on Home cards and Lab tool
    cards. transform/opacity only: the glow lives on an ::after overlay whose

@@ -1111,3 +1111,16 @@ never the only signal - the text/label says the same thing.
   a 3 x 2 grid, max 1200 px wide, each tile 16:10 - six tiles fit under
   the hero on 1440x900 and 1920x1080 without scrolling (2 columns under
   1100 px, 1 under 700 px).
+- **HOME-17** (home-final: six doors for everyone + Scripts, 2026-10-01,
+  Prince) Board, Lab status, Results, Hirata and Help are open to every
+  signed-in person and on every Home. The sixth tile is the role's main
+  job and never a page the role cannot use (`domain.homeRoleDoor`): My
+  queue (quality) > New request (engineer, admin) > Analytics (manager) >
+  My requests (operator, analyst - Analytics was NOT opened to analysts;
+  that would be a new permission). Lots and My requests leave Home (still
+  in the sidebar); the Lots scene is removed. Replaces HOME-9's sets and
+  the boardFor/resultsFor/hirataFor gates. Under the tiles a small
+  "Scripts" strip, open to everyone, NOT tiles: pill launchers with the
+  live tool glyph, "> name" in mono with a blinking caret, an arrow that
+  slides on hover. PRF Insight opens #/prf (the PRF_Insight.py port); HRM
+  AutoLot shows "coming soon" (no page yet - OPEN_QUESTIONS).
