@@ -642,11 +642,13 @@ window.MRT.store = (function () {
         next.saved_ts = state.data.saved_ts;
         next.saved_by = state.data.saved_by;
         state.data = next;
-        state.currentUserId = meNow.id;
         resetUndo();                                   // nothing before the swap can be taken back
         audit('file', cfg.data_file, 'replace', 'data', safety, kind === 'demo' ? 'demo data' : 'empty', reason.trim());
+        // the swap is saved as the admin who ordered it: on the server the
+        // demo's Prince is still unknown, so signing as him would be refused.
+        // The new identity takes over once the swap has landed.
         return commit({ undo: false });
-      }).then(function () { return { kind: kind, safety_copy: cfg.backup_dir + '/' + safety, user: meNow }; });
+      }).then(function () { state.currentUserId = meNow.id; return { kind: kind, safety_copy: cfg.backup_dir + '/' + safety, user: meNow }; });
     });
   }
 
