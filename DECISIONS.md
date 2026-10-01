@@ -884,3 +884,22 @@ never the only signal - the text/label says the same thing.
   774 px, 7 take 1086 px (150 px columns + 6 px gaps) - both fit 1440 px
   with the nav open. Lane headers slide under the sticky stations instead
   of a second brittle sticky offset.
+- **DASH-12** (dashboard-front-page, redesign Step 7: request page) Above
+  the fold: head, traveller facts, one action bar - at most two buttons
+  (the primary workflow action from `requestActions.primary()`, Copy
+  results path) plus "..." with the rest of the workflow, Edit, Print,
+  Copy, templates and Cancel. Below in one stack: paths (one row each),
+  status rail, details, people, timeline of status changes, comments last.
+  The late countdown is one red line. Queue boxes use the same shared
+  primary, so both bars agree on what comes first.
+- **DASH-13** (dashboard-front-page, redesign Step 8: new request form)
+  The form takes the full page: progress strip plus folding steps, no
+  side column. "What the lab will see" and "Your requests" stack below
+  the form in the same `.req-stack` as the request page. The two-column
+  `.req-layout` / `.req-side` CSS is retired; path rows keep full width
+  via `.req-stack .cell-path`.
+- **DASH-14** (dashboard-front-page, redesign Step 9: home replacement)
+  Home (`#/home`) is the start page for everyone; the user menu's Start
+  page pick still wins. The role rule `domain.homeFor` stays untouched
+  (Q16, still unit-tested) but no longer picks the landing. This
+  supersedes the M3-12 landing part only.
