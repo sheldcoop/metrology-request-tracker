@@ -32,6 +32,23 @@ window.MRT.adapters.storageApi = (function () {
     return b;
   }
 
+  /** The writer behind this PC, so the server can re-check every write.
+   * The store stamps saved_by synchronously when it saves; the person on
+   * screen can switch before the HTTP fires, so the stamp - not whoever is
+   * current at call time - attributes the write. */
+  function writerHeaders(extra, doc) {
+    var h = extra || {};
+    try {
+      var id = (doc && doc.saved_by) || null;
+      if (!id) {
+        var me = window.MRT.store && window.MRT.store.currentUser ? window.MRT.store.currentUser() : null;
+        if (me && me.id) id = me.id;
+      }
+      if (id) h['X-MRT-User'] = id;
+    } catch (e) { /* signed out: the server answers 401 */ }
+    return h;
+  }
+
   function isSupported() { return typeof fetch === 'function'; }
 
   function unsupportedMessage() {
@@ -90,11 +107,18 @@ window.MRT.adapters.storageApi = (function () {
       if (revision === null) return Promise.reject(new Error('Not a data document'));
       return fetch(base() + '/api/doc', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: writerHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }, doc),
         body: JSON.stringify({ expected_revision: revision - 1, doc: doc, saved_by: doc.saved_by || null })
       }).then(function (r) {
         if (r.status === 409) {
           return r.json().then(function (c) { throw conflictError(c); });
+        }
+        if (r.status === 401 || r.status === 403) {
+          return r.json().then(function (c) {
+            var e = new Error(c && c.reason ? 'Not allowed: ' + c.reason : 'Not allowed (status ' + r.status + ')');
+            e.code = (c && c.code) || 'forbidden';
+            throw e;
+          }, function () { throw new Error('Not allowed (status ' + r.status + ')'); });
         }
         if (!r.ok) throw new Error('The server did not save (status ' + r.status + ')');
       });
