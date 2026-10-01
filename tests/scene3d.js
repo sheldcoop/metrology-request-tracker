@@ -47,6 +47,7 @@ function stubThree(log, soft) {
   }
   function WebGLRenderer() {
     return { setPixelRatio: function () {}, setSize: function () {}, clear: function () { log.clears++; },
+      render: function () { log.renders++; },
       getContext: function () {
         return { getExtension: function () {
           return soft ? { UNMASKED_RENDERER_WEBGL: 1 } : null;
@@ -66,7 +67,7 @@ function stubScene(log) {
       fn({ geometry: ctx.T.__res('geo'), material: mat });
       fn({ geometry: ctx.T.__res('geo'), material: [mat2] });
     } };
-    return { scene: scene,
+    return { scene: scene, camera: {},
       update: function () { log.updates++; },
       dispose: function () { log.scenes++; } };
   };
@@ -100,8 +101,8 @@ function stubScene(log) {
   // --- 3. light scheme: static card
   {
     const { win, doc, flush, S } = boot();
-    win.THREE = stubThree({ created: [], disposed: [], updates: 0, scenes: 0, clears: 0 });
-    S.register('t', stubScene({ created: [], disposed: [], updates: 0, scenes: 0, clears: 0 }));
+    win.THREE = stubThree({ created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 });
+    S.register('t', stubScene({ created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 }));
     doc.documentElement.setAttribute('data-scheme', 'light');
     const c = card(doc, 't');
     S.mountAll(doc.getElementById('main'));
@@ -113,7 +114,7 @@ function stubScene(log) {
   // --- 4. reduced motion: exactly one still frame, then clean teardown
   {
     const { win, doc, flush, S } = boot();
-    const log = { created: [], disposed: [], updates: 0, scenes: 0, clears: 0 };
+    const log = { created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 };
     win.THREE = stubThree(log);
     S.register('t', stubScene(log));
     doc.documentElement.setAttribute('data-motion', 'reduce');
@@ -122,6 +123,7 @@ function stubScene(log) {
     c.dispatch('pointerenter');
     await settle(flush, 4);
     check('reduced motion: one still frame, scene alive', S.debug().live === 1 && log.updates === 1);
+    check('...the still frame renders once through the scene camera', log.renders === 1, 'renders ' + log.renders);
     c.dispatch('pointerleave');
     await settle(flush, 3);
     check('...leave tears it down with nothing live', S.debug().live === 0 && S.debug().tracked === 0 &&
@@ -131,7 +133,7 @@ function stubScene(log) {
   // --- 5. software WebGL: session fallback, static cards
   {
     const { win, doc, flush, S } = boot();
-    const log = { created: [], disposed: [], updates: 0, scenes: 0, clears: 0 };
+    const log = { created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 };
     win.THREE = stubThree(log, true);
     S.register('t', stubScene(log));
     const c = card(doc, 't');
@@ -144,7 +146,7 @@ function stubScene(log) {
   // --- 6. fifty hover/leave cycles: no live objects left
   {
     const { win, doc, flush, S } = boot();
-    const log = { created: [], disposed: [], updates: 0, scenes: 0, clears: 0 };
+    const log = { created: [], disposed: [], updates: 0, scenes: 0, clears: 0, renders: 0 };
     win.THREE = stubThree(log);
     S.register('t', stubScene(log));
     const c = card(doc, 't');
