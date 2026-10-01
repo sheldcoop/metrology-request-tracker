@@ -189,6 +189,27 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   check('...the + New button links to New request', doc.getElementById('newBtn').getAttribute('href') === '#/new' && !doc.getElementById('newBtn').hidden);
   check('...hover engine falls back to static where WebGL is missing', doc.getElementById('main').querySelectorAll('.home-card[data-scene]').length > 0 &&
         doc.getElementById('main').querySelectorAll('.home-card canvas').length === 0);
+  (function () {   // hero tagline driver: four lines, then the final line stays (no loop, no more timers)
+    var T = MRT.views.home._tagline, s = { line: 0, n: 0 }, order = [], guard = 0;
+    while (guard++ < 5000) {
+      s = T.next(s);
+      if (s.cmd === 'paint' && order[order.length - 1] !== s.line) order.push(s.line);
+      if (s.cmd === 'settle') break;
+    }
+    check('...tagline types four lines then settles on the final', order.join() === '0,1,2,3,4', order.join());
+    check('...tagline lines read as agreed',
+      T.text(T.seq[0]) === 'From Panel to Measurement' && T.text(T.seq[3]) === 'From Insight to Decision' &&
+      T.text(T.final) === 'From Request to Result');
+    var again = T.next(T.next(T.next(s)));
+    check('...settled tagline never moves again', again.cmd === 'settle' && again.line === s.line && again.n === s.n);
+  })();
+  doc.documentElement.setAttribute('data-motion', 'reduce');
+  win.setHash('#/home'); await settle();
+  check('...reduced motion shows only the final line, no cursor',
+    (function () { var h = doc.getElementById('main').querySelector('.home-tag'); if (!h) return false;
+      return h.getAttribute('aria-label') === 'From Request to Result' &&
+        /From Request to Result/.test(h.textContent) && h.querySelector('.home-caret').hidden === true; })());
+  doc.documentElement.removeAttribute('data-motion');
   win.setHash('#/lab'); await settle();
   doc.dispatch('keydown', { key: 'Escape', target: doc.body });
   doc.getElementById('userBtn').click(); await settle();

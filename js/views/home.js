@@ -41,6 +41,63 @@ window.MRT.views.home = (function () {
     ]);
   }
 
+  /* The hero tagline: four typed lines settling on the final one, which
+   * stays permanently (no loop - this page is opened all day). The driver
+   * is pure so tests can run it to the end: tagNext() of a settled state
+   * returns settle again, and the view schedules no timer on settle. */
+  var TAG_SEQ = [{ a: 'Panel', b: 'Measurement' }, { a: 'Measurement', b: 'Data' },
+                 { a: 'Data', b: 'Insight' }, { a: 'Insight', b: 'Decision' }];
+  var TAG_FINAL = { a: 'Request', b: 'Result' };
+  var TAG_TYPE_MS = 45, TAG_HOLD_MS = 1400;
+
+  function tagText(line) { return 'From ' + line.a + ' to ' + line.b; }
+
+  function tagNext(s) {
+    var line = s.line < TAG_SEQ.length ? TAG_SEQ[s.line] : TAG_FINAL;
+    var full = tagText(line).length;
+    if (s.n < full) return { line: s.line, n: s.n + 1, cmd: 'paint' };
+    if (s.line >= TAG_SEQ.length) return { line: s.line, n: s.n, cmd: 'settle' };
+    if (!s.hold) return { line: s.line, n: s.n, hold: true, cmd: 'hold' };
+    return { line: s.line + 1, n: 0, cmd: 'paint' };
+  }
+
+  function paintTag(node, line, n) {
+    var parts = [['From ', false], [line.a, true], [' to ', false], [line.b, true]];
+    var rest = n, spans = parts.map(function (p) {
+      var take = p[0].slice(0, Math.max(0, Math.min(rest, p[0].length)));
+      rest -= take.length;
+      return ui.el('span', { class: p[1] ? 'home-tag-hi' : null, text: take });
+    });
+    node.textContent = '';
+    spans.forEach(function (s) { node.appendChild(s); });
+  }
+
+  function hero() {
+    var line = ui.el('span', { class: 'home-tag-line', 'aria-hidden': 'true' });
+    var caret = ui.el('span', { class: 'home-caret', 'aria-hidden': 'true' });
+    var h = ui.el('h1', { class: 'home-tag', 'aria-label': tagText(TAG_FINAL) }, [line, caret]);
+    var sub = ui.el('p', { class: 'home-sub',
+      text: 'Request, track and analyse measurements across HRM, AOI, PRF, QVM and FIB.' });
+    var box = ui.el('div', { class: 'home-hero' }, [h, sub]);
+    if (ui.reducedMotion()) {
+      paintTag(line, TAG_FINAL, tagText(TAG_FINAL).length);
+      caret.hidden = true;
+      return box;
+    }
+    var s = { line: 0, n: 0 };
+    function tick() {
+      if (!line.isConnected) return;
+      if (document.hidden) { setTimeout(tick, 1000); return; }
+      s = tagNext(s);
+      var ln = s.line < TAG_SEQ.length ? TAG_SEQ[s.line] : TAG_FINAL;
+      if (s.cmd === 'settle') { paintTag(line, ln, tagText(ln).length); caret.hidden = true; return; }
+      paintTag(line, ln, s.n);
+      setTimeout(tick, s.cmd === 'hold' ? TAG_HOLD_MS : TAG_TYPE_MS);
+    }
+    setTimeout(tick, TAG_TYPE_MS);
+    return box;
+  }
+
   function render(main) {
     var me = store.currentUser();
     var now = Date.now();
@@ -75,10 +132,10 @@ window.MRT.views.home = (function () {
         n: store.health().issues.filter(function (x) { return x.severity === 'problem'; }).length, unit: 'problems' }
     ].filter(Boolean);
 
-    main.appendChild(ui.pageHead('Home', 'Your doors into the lab.'));
+    main.appendChild(hero());
     main.appendChild(ui.el('div', { class: 'home-grid' }, cards.map(card)));
     if (window.MRT.scene3d) { try { window.MRT.scene3d.mountAll(main); } catch (e) {} }
   }
 
-  return { render: render };
+  return { render: render, _tagline: { seq: TAG_SEQ, final: TAG_FINAL, text: tagText, next: tagNext } };
 })();
