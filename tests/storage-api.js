@@ -19,7 +19,7 @@ function check(name, cond, detail) {
 
 function boot(fetch) {
   const win = { MRT: { config: { data_file: 'mrt_data.json', backup_dir: 'backups', backup_prefix: 'mrt_data_', api_base: '' },
-    adapters: {} }, fetch: fetch };
+    adapters: {}, store: { currentUser: function () { return { id: 'u1' }; } } }, fetch: fetch };
   win.window = win;
   const ctx = vm.createContext(win);
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/adapters/storage-api.js'), 'utf8'), ctx, { filename: 'storage-api.js' });
@@ -36,11 +36,12 @@ function boot(fetch) {
     check('reconnect is true', await a.reconnect({ silent: true }) === true);
     check('missing reads null', await a.read('mrt_data.json') === null && await a.read('backups/x.json') === null);
 
-    const text1 = JSON.stringify({ schema_version: 14, revision: 1, users: [] });
+    const admin = [{ id: 'u1', name: 'Admin', roles: ['admin'], active: true }];
+    const text1 = JSON.stringify({ schema_version: 14, revision: 1, users: admin });
     await a.write('mrt_data.json', text1);
     check('doc round-trips', await a.read('mrt_data.json') === text1);
 
-    const stale = JSON.stringify({ schema_version: 14, revision: 1, users: [{ id: 'u' }] });
+    const stale = JSON.stringify({ schema_version: 14, revision: 1, users: admin.concat([{ id: 'u' }]) });
     let err = null;
     try { await a.write('mrt_data.json', stale); } catch (e) { err = e; }
     check('stale write rejects', !!err, 'no error thrown');

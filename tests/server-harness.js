@@ -23,10 +23,11 @@ function fakeRes() {
     body: function () { return Buffer.concat(this.chunks).toString('utf8'); } };
 }
 
-function fakeReq(method, url, body) {
+function fakeReq(method, url, body, headers) {
   const req = new EventEmitter();
   req.method = method;
   req.url = url;
+  req.headers = headers || {};
   process.nextTick(() => {
     if (body !== undefined) req.emit('data', Buffer.from(String(body)));
     req.emit('end');
@@ -40,17 +41,19 @@ function withServer() {
   fs.mkdirSync(dataDir, { recursive: true });
   const db = openDb(path.join(dir, 'test.sqlite3'));
 
-  async function call(method, url, body) {
+  async function call(method, url, body, headers) {
     const res = fakeRes();
-    await handleRequest(ROOT, db, dataDir, fakeReq(method, url, body), res);
+    await handleRequest(ROOT, db, dataDir, fakeReq(method, url, body, headers), res);
     return res;
   }
 
-  /** fetch-shaped: fetch(url, {method, body}) -> {ok, status, json(), text()}. */
+  /** fetch-shaped: fetch(url, {method, headers, body}) -> {ok, status, json(), text()}. */
   async function fetchShim(url, opts) {
     const o = opts || {};
     const u = new URL(String(url), 'http://localhost');
-    const res = await call(o.method || 'GET', u.pathname + u.search, o.body);
+    const headers = {};
+    Object.keys(o.headers || {}).forEach((k) => { headers[String(k).toLowerCase()] = o.headers[k]; });
+    const res = await call(o.method || 'GET', u.pathname + u.search, o.body, headers);
     return {
       ok: res.status >= 200 && res.status < 300,
       status: res.status,

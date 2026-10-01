@@ -23,17 +23,23 @@ function check(name, cond, detail) {
   else { failures++; console.log('FAIL', name, detail !== undefined ? '-> ' + detail : ''); }
 }
 
-function doc(revision) { return { schema_version: 14, revision: revision, users: [] }; }
+function doc(revision) {
+  return { schema_version: 14, revision: revision,
+    users: [{ id: 'u1', name: 'Admin', roles: ['admin'], active: true }] };
+}
+
+function putAs(fetch, expected, d) {
+  return fetch('/api/doc', { method: 'PUT', headers: { 'X-MRT-User': 'u1' },
+    body: JSON.stringify({ expected_revision: expected, doc: d }) });
+}
 
 (async function run() {
   const srv = withServer();
   try {
-    await srv.fetch('/api/doc', { method: 'PUT',
-      body: JSON.stringify({ expected_revision: 0, doc: doc(1) }) });
+    await putAs(srv.fetch, 0, doc(1));
 
     // Two writers read revision 1; both save. One must win, one must 409.
-    const both = await Promise.all([2, 3].map((r) => srv.fetch('/api/doc', { method: 'PUT',
-      body: JSON.stringify({ expected_revision: 1, doc: doc(r) }) })));
+    const both = await Promise.all([2, 3].map((r) => putAs(srv.fetch, 1, doc(r))));
     const codes = both.map((r) => r.status).sort().join(',');
     check('concurrent saves serialize to win + 409', codes === '200,409', codes);
     const winner = await (await srv.fetch('/api/doc')).json();

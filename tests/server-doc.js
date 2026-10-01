@@ -16,11 +16,12 @@ function check(name, cond, detail) {
 }
 
 function doc(revision, extra) {
-  return Object.assign({ schema_version: 14, revision: revision, users: [] }, extra || {});
+  return Object.assign({ schema_version: 14, revision: revision,
+    users: [{ id: 'u1', name: 'Admin', roles: ['admin'], active: true }] }, extra || {});
 }
 
 async function put(fetch, expected, d, by) {
-  const r = await fetch('/api/doc', { method: 'PUT',
+  const r = await fetch('/api/doc', { method: 'PUT', headers: { 'X-MRT-User': 'u1' },
     body: JSON.stringify({ expected_revision: expected, doc: d, saved_by: by || null }) });
   return { status: r.status, body: await r.json() };
 }
