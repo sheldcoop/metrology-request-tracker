@@ -76,7 +76,8 @@ window.MRT.prf = (function () {
     return m ? parseInt(m[1], 10) : null;
   }
 
-  function buLabel(n) { return n !== null && n !== undefined ? 'BU' + (n < 10 ? '0' : '') + n : ''; }
+  /** Build-up label, always with a dash: a folder named BU01 still shows BU-01 (py writes 'BU01'; ours reads better). */
+  function buLabel(n) { return n !== null && n !== undefined ? 'BU-' + (n < 10 ? '0' : '') + n : ''; }
 
   /** {panels:[..], sides:['Front'|'Back']} found in folder names (py 296). */
   function panelSideFromPath(parts) {

@@ -370,7 +370,27 @@ window.MRT.views.prf = (function () {
       return (lot || 'no lot') + (r.lots[lot].project ? ' · ' + r.lots[lot].project : '') + (r.lots[lot].part ? ' · ' + r.lots[lot].part : '');
     }).join(' | ');
     var body = [ui.el('p', { class: 'muted', text: (lotsLine || 'No lot in path') + ' — ' + r.sides.length + ' panel+side combination(s) found.' })];
-    Object.keys(byPanel).map(Number).sort(function (a, b) { return a - b; }).forEach(function (panel) {
+    var panelsSorted = Object.keys(byPanel).map(Number).sort(function (a, b) { return a - b; });
+    function countsText(side) {
+      if (!side) return '—';
+      if (side.tooMany) return side.refs.length + ' log folders - skipped';
+      var c = side.counts;
+      return (c.roughness ? c.roughness + ' roughness' : 'no roughness') + ' · ' + (c.via ? c.via + ' via' : 'no via') +
+        (c.unknown ? ' · ' + c.unknown + ' unknown' : '');
+    }
+    body.push(ui.el('div', { class: 'table-wrap' }, ui.el('table', { class: 'grid' }, [
+      ui.el('thead', {}, ui.el('tr', {}, ['Project', 'Lot', 'Build-up', 'Panel', 'Front', 'Back'].map(function (h) { return ui.el('th', { scope: 'col', text: h }); }))),
+      ui.el('tbody', {}, panelsSorted.map(function (panel) {
+        var front = null, back = null, lot = null, bu = null, project = null;
+        byPanel[panel].forEach(function (row) {
+          if (row.side === 'Front') front = row; else if (row.side === 'Back') back = row;
+          lot = lot || row.lot; bu = bu || row.buLabel;
+          if (row.lot && r.lots[row.lot]) project = project || r.lots[row.lot].project;
+        });
+        return ui.el('tr', {}, [project || '-', lot || '-', bu || '-', String(panel), countsText(front), countsText(back)]);
+      }))
+    ])));
+    panelsSorted.forEach(function (panel) {
       var sides = byPanel[panel].sort(function (a, b) { return a.side === b.side ? 0 : (a.side === 'Front' ? -1 : 1); });
       body.push(ui.panel({ title: 'Panel ' + panel, icon: 'grid', collapsible: true, collapsed: state.openPanels[panel] === false,
         onToggle: function (collapsed) { state.openPanels[panel] = !collapsed; },
@@ -555,7 +575,7 @@ window.MRT.views.prf = (function () {
 
   function settingsPanel() {
     if (!state.result || !state.settings) return null;
-    return ui.el('div', { class: 'prf-settings' }, [metaPanel(), panelsPanel(), sidesPanel(), advancedPanel()]);
+    return ui.el('div', { class: 'prf-settings' }, [metaPanel(), panelsPanel(), sidesPanel()]);
   }
 
   /* =====================================================================
@@ -947,7 +967,8 @@ window.MRT.views.prf = (function () {
     ui.mount(holder, [stepHead(),
       ui.el('p', { class: 'prf-step-label', text: 'Step 1 · Folder' }), folderPanel(),
       ui.el('p', { class: 'prf-step-label', text: 'Step 2 · What to run' }), previewPanel(), settingsPanel(),
-      ui.el('p', { class: 'prf-step-label', text: 'Step 3 · Run' }), outputPanel(), previewPlanPanel(), runPanel()
+      ui.el('p', { class: 'prf-step-label', text: 'Step 3 · Run' }), outputPanel(), previewPlanPanel(), runPanel(),
+      (state.result && state.settings) ? advancedPanel() : null
     ].filter(Boolean));
   }
 

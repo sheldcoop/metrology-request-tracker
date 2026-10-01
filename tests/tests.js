@@ -1779,7 +1779,7 @@
 
     group('PRF data - path: build-up, panel, side, lot');
     eq('buNumber reads BU-01 / BU01 / bu 1 / BU_2', ['BU-01', 'BU01', 'bu 1', 'BU_2', 'XBU3', 'Bu-12 done'].map(P.buNumber), [1, 1, 1, 2, null, 12]);
-    eq('buLabel', [P.buLabel(1), P.buLabel(12), P.buLabel(null)], ['BU01', 'BU12', '']);
+    eq('buLabel', [P.buLabel(1), P.buLabel(12), P.buLabel(null)], ['BU-01', 'BU-12', '']);
     eq('panel and side from folder names', P.panelSideFromPath(['Post DSM', 'Panel 28', 'Front', 'log']), { panels: [28], sides: ['Front'] });
     eq('...also "Panel 1_Front - done"', P.panelSideFromPath(['Panel 1_Front - done']), { panels: [1], sides: ['Front'] });
     eq('...a folder called "Backup" is not Back', P.panelSideFromPath(['Panel 3', 'Backup']).sides, []);

@@ -175,9 +175,9 @@ function fakeSettings(result) {
   st.settings.lotName = 'kept';
   st.settings.sides.Front.roughness.units = [4];
   T.applyPath('"L:\\ale\\ics_htb3_rnd\\130 - measurement results\\02_Engineering lots\\Chiplet4Future\\FHR0020\\19197\\BU-01"');
-  eq('...after pasting the path: lot 19197, part FHR0020, project Chiplet4Future, BU01',
+  eq('...after pasting the path: lot 19197, part FHR0020, project Chiplet4Future, BU-01',
     [Object.keys(st.result.lots), st.settings.metaOverride.project, st.settings.metaOverride.part, st.result.sides[0].buLabel],
-    [['19197'], 'Chiplet4Future', 'FHR0020', 'BU01']);
+    [['19197'], 'Chiplet4Future', 'FHR0020', 'BU-01']);
   eq('...what was already typed stays (lot name, units)', [st.settings.lotName, st.settings.sides.Front.roughness.units], ['kept', [4]]);
   ok('...the files were not read again (same cached lines)', st.result.sides[0].files.roughness[0].lines === ROUGH_LINES);
 
