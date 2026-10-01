@@ -3,8 +3,9 @@
  *
  * Home card hover scenes (DECISIONS D-WEBGL-1): the ONLY WebGL in the app.
  * One shared WebGLRenderer, one live scene at a time. Each scene file
- * registers create(ctx) -> { update(dt, t), dispose() } with
- * ctx = { T: THREE, tokens, rand, view, onResize }.
+ * registers create(ctx) -> { scene, camera, update(dt, t), dispose() } with
+ * ctx = { T: THREE, tokens, rand, view, onResize }. The engine renders
+ * scene through camera after every update; scenes only move objects.
  *
  * Loaded as a static classic script but touches no THREE at load: the
  * vendor build (vendor/three.min.js) is injected on the first card hover
@@ -194,7 +195,7 @@ window.MRT.scene3d = (function () {
       }
     } catch (e) {}
     if (reduced()) {   // one still frame instead of animating
-      try { inst.update(0, 0); } catch (e) { teardown(); }
+      try { inst.update(0, 0); render(inst); } catch (e) { teardown(); }
       return;
     }
     var last = 0;
@@ -209,16 +210,23 @@ window.MRT.scene3d = (function () {
         if (s.n > 5 && s.acc / s.n > SLOW_MS) { sessionOff = true; teardown(); return; }  // weak PC: static cards
         s.acc = 0; s.n = 0; s.t0 = t;
       }
-      try { inst.update(dt, t / 1000); }
+      try { inst.update(dt, t / 1000); render(inst); }
       catch (e) { teardown(); return; }
       try { l.raf = window.requestAnimationFrame(frame); } catch (e) { teardown(); }
     }
     try { l.raf = window.requestAnimationFrame(frame); }
-    catch (e) { try { inst.update(0.016, 0); } catch (e2) { teardown(); } }
+    catch (e) { try { inst.update(0.016, 0); render(inst); } catch (e2) { teardown(); } }
   }
 
   function now() {
     try { return window.performance.now(); } catch (e) { return Date.now(); }
+  }
+
+  /** Scenes move objects; the engine owns the single render call. */
+  function render(inst) {
+    try {
+      if (inst && inst.camera && renderer && renderer.render) renderer.render(inst.scene, inst.camera);
+    } catch (e) {}
   }
 
   function begin(card, key) {
