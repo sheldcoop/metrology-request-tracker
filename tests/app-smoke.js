@@ -39,7 +39,7 @@ const realError = console.error;
 console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
-['js/config.js', 'js/themes.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js', 'js/analytics.js',
+['js/config.js', 'js/themes.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/prf-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js', 'js/analytics.js',
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/request-box.js', 'js/ui/hirata.js', 'js/ui/theme-gallery.js', 'js/ui/scene3d.js',
     'js/ui/scenes/aoi.js', 'js/ui/scenes/bars.js', 'js/ui/scenes/dice.js',
     'js/ui/scenes/new.js', 'js/ui/scenes/mine.js', 'js/ui/scenes/queue.js', 'js/ui/scenes/board.js', 'js/exporter.js',

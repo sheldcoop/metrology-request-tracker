@@ -36,5 +36,14 @@ window.MRT.config = Object.freeze({
 
   // Browser storage names (the remembered folder, per-PC preferences).
   idb_name: 'metrology-request-tracker',
-  local_prefix: 'mrt.'
+  local_prefix: 'mrt.',
+
+  // PRF data tool (DECISIONS PRF-1): its own remembered folders, its own
+  // IndexedDB database - never the app's data folder (idb_name above).
+  prf: Object.freeze({
+    idb_name: 'metrology-request-tracker-prf',
+    log_folder_name: 'log',             // folder name the scan looks for (trimmed, any case)
+    read_chunk: 25,                     // files read per async batch, so the page does not freeze
+    local_prefix: 'mrt.prf.'            // remembered last-used settings, per part number
+  })
 });
