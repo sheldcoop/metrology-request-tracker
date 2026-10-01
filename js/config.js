@@ -24,10 +24,13 @@ window.MRT.config = Object.freeze({
 
   // Which adapter does the talking. Change here, never in a screen.
   adapters: Object.freeze({
-    storage: 'folder',                // 'folder' today; 'api' after the server move
+    storage: 'folder',                // 'folder' today; 'api' when served by server/index.js
     mail: 'outlook-draft',            // 'outlook-draft' today; 'smtp' via the server later
     ai: 'off'                         // 'off' today; 'local-llm' later (IT approval first)
   }),
+
+  // Where the API adapter talks. '' means the server that served this page.
+  api_base: '',
 
   // Browser storage names (the remembered folder, per-PC preferences).
   idb_name: 'metrology-request-tracker',
