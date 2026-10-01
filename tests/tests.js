@@ -1941,6 +1941,23 @@
   }
   prfTests3();
 
+  function prfTests4() {
+    var P = window.MRT.prf;
+
+    group('PRF data - a pasted full path for the picked folder');
+    eq('splitPath: backslashes, trailing slash, Explorer quotes', P.splitPath('"L:\\ale\\130 - measurement results\\BU-01\\"'), ['L:', 'ale', '130 - measurement results', 'BU-01']);
+    eq('splitPath: forward slashes and empty text', [P.splitPath('a/b'), P.splitPath('')], [['a', 'b'], []]);
+    ok('pathEndsWith: the last folder must be the picked one (any case)', P.pathEndsWith(['L:', 'x', 'BU-01'], 'bu-01') && !P.pathEndsWith(['L:', 'x'], 'BU-01'));
+    var real = P.splitPath('L:\\ale\\ics_htb3_rnd\\130 - measurement results\\02_Engineering lots\\Chiplet4Future\\FHR0020\\19197\\BU-01');
+    var logs = [{ rel: ['Panel 3', 'Front'], ref: 'Panel 3/Front/log' }];
+    var noPath = P.indexLogs('BU-01', logs);
+    eq('picked BU-01 without a path: no lot, no project, no part (only BU)', [noPath.lots, Object.keys(noPath.index)], [{}, ['|1|3|Front']]);
+    var withPath = P.indexLogs('BU-01', logs, real);
+    eq('...with the pasted path: lot 19197, part FHR0020, project Chiplet4Future (the script reads the same)', withPath.lots, { '19197': { project: 'Chiplet4Future', part: 'FHR0020' } });
+    eq('...and the side is keyed under that lot and BU01', Object.keys(withPath.index), ['19197|1|3|Front']);
+  }
+  prfTests4();
+
   T.done = run().catch(function (e) {
     T.failed++;
     (current || (group('Runner'), current)).rows.push({ ok: false, name: 'the test run crashed', detail: String(e && e.stack || e) });

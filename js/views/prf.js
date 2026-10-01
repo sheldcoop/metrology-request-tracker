@@ -29,6 +29,8 @@ window.MRT.views.prf = (function () {
     scanning: false,
     progress: null,     // {done, total} while reading files
     result: null,       // {sides: [...], problems: [], lots: {}} once scanned
+    scan: null,         // {entries, files: {ref: {counts, files}}, problems} - every file read once
+    rootPath: '',       // pasted full path of the picked folder (names only, see applyPath)
     error: null,
     savedRootHint: null, // name of a remembered root folder whose permission lapsed
     settings: null,     // built once from result (defaultSettings) - see below
@@ -116,40 +118,96 @@ window.MRT.views.prf = (function () {
     });
   }
 
+  /* --- the pasted full path of the picked folder ------------------------ */
+
+  // The browser cannot see folders above the one picked (File System Access
+  // rule), so Project / Part number / Lot above it are unknown - unless the
+  // person pastes the folder's full path from Explorer. Only its folder NAMES
+  // are used (the script reads the same names from its full root path); it
+  // never gives access to anything. Remembered on this PC (localStorage).
+  var PATH_KEY = pcfg.local_prefix + 'root_path';
+
+  function savedPath() { try { return window.localStorage.getItem(PATH_KEY) || ''; } catch (e) { return ''; } }
+  function savePath(text) { try { window.localStorage.setItem(PATH_KEY, text); } catch (e) { /* private window: not remembered */ } }
+
+  /** The pasted path's folder names, or null when empty or not ending in the picked folder. */
+  function rootPathParts() {
+    var parts = P.splitPath(state.rootPath);
+    return parts.length && P.pathEndsWith(parts, state.rootLabel) ? parts : null;
+  }
+
+  /** After a folder is picked: pre-fill the remembered path when it fits this folder. */
+  function prefillPath() {
+    var text = savedPath();
+    state.rootPath = text && P.pathEndsWith(P.splitPath(text), state.rootLabel) ? text : '';
+  }
+
+  /**
+   * Scan + files (cached in state.scan) -> state.result. No file is read
+   * here, so a changed path re-sorts the names in an instant.
+   */
+  function buildResult() {
+    var scan = state.scan;
+    var idx = P.indexLogs(state.rootLabel || 'root', scan.entries, rootPathParts());
+    var problems = scan.problems.concat(idx.problems);
+    var sides = Object.keys(idx.index).map(function (key) {
+      var entry = idx.index[key];
+      var row = { lot: entry.lot, bu: entry.bu, buLabel: P.buLabel(entry.bu), panel: entry.panel, side: entry.side,
+        refs: entry.refs, counts: emptyCounts(), files: null, tooMany: entry.refs.length > 1 };
+      if (row.tooMany) {
+        problems.push(entry.refs.length + ' log folders found for Panel ' + entry.panel + ' ' + entry.side +
+          (entry.lot ? ' (lot ' + entry.lot : ' (no lot') + (row.buLabel ? ', ' + row.buLabel : '') + '), skipped: ' + entry.refs.join(' | '));
+      } else {
+        var read = scan.files[entry.refs[0]];
+        row.counts = read.counts;
+        row.files = read.files;
+      }
+      return row;
+    });
+    sides.sort(function (a, b) {
+      return String(a.lot || '') < String(b.lot || '') ? -1 : String(a.lot || '') > String(b.lot || '') ? 1
+        : (a.bu || 0) - (b.bu || 0) || a.panel - b.panel || (a.side < b.side ? -1 : 1);
+    });
+    state.result = { sides: sides, problems: problems, lots: idx.lots };
+  }
+
+  /** A new path: rebuild the result, keep what was typed, refresh only what came from the path. */
+  function applyPath(text) {
+    state.rootPath = text;
+    var parts = P.splitPath(text);
+    if (text.trim() && P.pathEndsWith(parts, state.rootLabel)) savePath(text);
+    if (!state.scan) { draw(); return; }
+    buildResult();
+    var fresh = defaultSettings(state.result), s = state.settings;
+    if (s) {
+      var keep = s.panelsOn.filter(function (p) { return fresh.panelsFound.indexOf(p) !== -1; });
+      s.panelsFound = fresh.panelsFound;
+      s.panelsOn = keep.length ? keep : fresh.panelsFound.slice();
+      if (s.metaAuto) s.metaOverride = fresh.metaOverride;
+    } else {
+      state.settings = fresh;
+    }
+    state.previewOut = null;
+    draw();
+  }
+
   function runScan() {
     state.scanning = true;
     state.error = null;
     state.progress = { done: 0, total: 0 };
+    state.previewOut = null;
     draw();
 
     return adapter.scanRoot(pcfg.log_folder_name).then(function (scan) {
-      var refToDir = {};
-      scan.entries.forEach(function (e) { refToDir[e.ref] = e.dir; });
-      var idx = P.indexLogs(state.rootLabel || 'root', scan.entries.map(function (e) { return { rel: e.rel, ref: e.ref }; }));
-      var problems = scan.problems.concat(idx.problems);
-
-      var keys = Object.keys(idx.index);
-      state.progress.total = keys.length;
-      var sides = [];
       var ending = (state.settings && state.settings.fileEnding) || '.txt';
+      var cache = { entries: scan.entries.map(function (e) { return { rel: e.rel, ref: e.ref }; }), files: {}, problems: scan.problems };
+      state.progress.total = scan.entries.length;
 
       function next(i) {
-        if (i >= keys.length) return Promise.resolve();
-        var entry = idx.index[keys[i]];
-        var row = { lot: entry.lot, bu: entry.bu, buLabel: P.buLabel(entry.bu), panel: entry.panel, side: entry.side,
-          refs: entry.refs, counts: emptyCounts(), files: null, tooMany: entry.refs.length > 1 };
-        if (row.tooMany) {
-          problems.push(entry.refs.length + ' log folders found for Panel ' + entry.panel + ' ' + entry.side +
-            (entry.lot ? ' (lot ' + entry.lot : ' (no lot') + (row.buLabel ? ', ' + row.buLabel : '') + '), skipped: ' + entry.refs.join(' | '));
-          sides.push(row);
-          state.progress.done = i + 1;
-          draw();
-          return next(i + 1);
-        }
-        return readSideFiles(refToDir[entry.refs[0]], ending, function () { draw(); }).then(function (out) {
-          row.counts = out.counts;
-          row.files = out.files;
-          sides.push(row);
+        if (i >= scan.entries.length) return Promise.resolve();
+        var e = scan.entries[i];
+        return readSideFiles(e.dir, ending, function () { draw(); }).then(function (out) {
+          cache.files[e.ref] = out;
           state.progress.done = i + 1;
           draw();
           return next(i + 1);
@@ -157,11 +215,8 @@ window.MRT.views.prf = (function () {
       }
 
       return next(0).then(function () {
-        sides.sort(function (a, b) {
-          return String(a.lot || '') < String(b.lot || '') ? -1 : String(a.lot || '') > String(b.lot || '') ? 1
-            : (a.bu || 0) - (b.bu || 0) || a.panel - b.panel || (a.side < b.side ? -1 : 1);
-        });
-        state.result = { sides: sides, problems: problems, lots: idx.lots };
+        state.scan = cache;
+        buildResult();
         state.settings = defaultSettings(state.result);
       });
     }).catch(function (e) {
@@ -181,6 +236,7 @@ window.MRT.views.prf = (function () {
       state.connected = true;
       state.rootLabel = adapter.rootLabel();
       state.result = null;
+      prefillPath();
       draw();
       return runScan();
     }).catch(function (e) {
@@ -203,7 +259,7 @@ window.MRT.views.prf = (function () {
       if (!has) return;
       return adapter.savedRootLabel().then(function (name) { state.savedRootHint = name; })
         .then(function () { return adapter.reconnectRoot({ silent: true }); })
-        .then(function (ok) { if (ok) { state.connected = true; state.rootLabel = adapter.rootLabel(); } });
+        .then(function (ok) { if (ok) { state.connected = true; state.rootLabel = adapter.rootLabel(); prefillPath(); } });
     }).catch(function () {});
   }
 
@@ -214,6 +270,7 @@ window.MRT.views.prf = (function () {
       state.connected = true;
       state.rootLabel = adapter.rootLabel();
       state.result = null;
+      prefillPath();
       draw();
       return runScan();
     }).catch(function (e) {
@@ -233,8 +290,8 @@ window.MRT.views.prf = (function () {
       body.push(ui.emptyState({ icon: 'alert', title: 'Not available in this browser', text: adapter.unsupportedMessage() }));
     } else {
       body.push(ui.el('p', { class: 'muted', text: 'Pick the folder that contains the panels - any layout works, ' +
-        'the scan finds every "log" folder underneath. For Project/Part number/Lot to be read automatically, point here ' +
-        'at the Lot folder or above it; lower than that, type them in under Metadata > Edit. You can pick a different folder any time.' }));
+        'the scan finds every "log" folder underneath. Pick any folder, even a build-up; for Project, Part number and Lot, ' +
+        'paste its full path below (or pick the Project folder). You can pick a different folder any time.' }));
       body.push(ui.el('div', { class: 'prf-folder-row' }, [
         state.connected ? ui.el('span', { class: 'mono' }, state.rootLabel || '(connected)') : null,
         !state.connected && state.savedRootHint ? ui.el('span', { class: 'muted' }, 'Last used: ' + state.savedRootHint) : null,
@@ -244,9 +301,27 @@ window.MRT.views.prf = (function () {
         }),
         state.connected ? ui.button('Scan again', { icon: 'refresh', disabled: state.scanning, onClick: runScan }) : null
       ]));
+      if (state.connected) body.push(pathField());
     }
     if (state.error) body.push(ui.el('p', { class: 'ifield-msg' }, [ui.icon('alert', 14), ' ' + state.error]));
     return ui.panel({ title: '1. Root folder', icon: 'folder', body: body }).node;
+  }
+
+  /** "Full path of this folder": names above the picked folder, for Project / Part number / Lot. */
+  function pathField() {
+    var f = ui.field({ label: 'Full path of this folder (optional)', value: state.rootPath, mono: true,
+      placeholder: 'L:\\...\\Chiplet4Future\\FHR0020\\19197\\' + (state.rootLabel || 'BU-01'),
+      hint: 'The browser cannot see the folders above the one you picked. Paste its path from the Explorer address bar ' +
+            'and Project, Part number and Lot are read from it, like the script does. Remembered on this PC.' });
+    f.input.addEventListener('change', function () { applyPath(f.input.value); });
+    var parts = P.splitPath(state.rootPath);
+    if (state.rootPath.trim() && !P.pathEndsWith(parts, state.rootLabel)) {
+      f.setState('invalid', 'This path ends in "' + (parts[parts.length - 1] || '') + '", but the picked folder is "' +
+        state.rootLabel + '". Not used - paste the path of the folder you picked.');
+    } else if (rootPathParts()) {
+      f.setState('valid', 'Used for Project, Part number and Lot.');
+    }
+    return f.node;
   }
 
   function countsCell(c) {
@@ -259,7 +334,7 @@ window.MRT.views.prf = (function () {
       var p = state.progress;
       return ui.panel({ title: '2. What was found', icon: 'search', body: [
         ui.el('div', { class: 'prf-scan-progress', 'aria-live': 'polite' },
-          p && p.total ? 'Reading files ' + p.done + ' / ' + p.total + ' panel+side folders...' : 'Scanning...'),
+          p && p.total ? 'Reading files: log folder ' + p.done + ' of ' + p.total + '...' : 'Scanning...'),
         ui.skeleton(4)
       ] }).node;
     }
@@ -303,7 +378,7 @@ window.MRT.views.prf = (function () {
       body.push(ui.el('dl', { class: 'prf-meta' }, [
         ui.el('dt', { text: 'Project' }), ui.el('dd', { text: s.metaOverride.project || '-' }),
         ui.el('dt', { text: 'Part number' }), ui.el('dd', { text: s.metaOverride.part || '-' }),
-        ui.el('dt', { text: 'Lot' }), ui.el('dd', { text: lots.join(', ') || '(none in path)' }),
+        ui.el('dt', { text: 'Lot' }), ui.el('dd', { text: lots.join(', ') || '(none in path - paste the full path under 1. Root folder)' }),
         ui.el('dt', { text: 'Build-up' }), ui.el('dd', { text: s.metaOverride.buildup || '(read per panel)' })
       ]));
       body.push(ui.el('p', {}, ui.el('a', { href: '#', class: 'link', text: 'Edit',
@@ -848,7 +923,7 @@ window.MRT.views.prf = (function () {
     // exposed for tests/prf-view-logic.js only (same pattern as store.js's
     // _pure): pure-enough functions that touch no DOM, so the aggregation
     // and the sheet layout can be checked without a real browser/adapter.
-    _test: { resolveSideConfig: resolveSideConfig, runAll: runAll, sheetRows: sheetRows, buildSheets: buildSheets,
+    _test: { resolveSideConfig: resolveSideConfig, runAll: runAll, buildResult: buildResult, applyPath: applyPath, sheetRows: sheetRows, buildSheets: buildSheets,
              defaultSettings: defaultSettings, SHEET_COLS: SHEET_COLS, VIA_SPLIT: VIA_SPLIT }
   };
 })();

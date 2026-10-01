@@ -126,6 +126,36 @@ function fakeSettings(result) {
   ok('a typed lot number processes only that lot (py lot_number forces one lot)', out3.rough.every(r => r.Lot_Number === '12345'));
 }
 
+/* ---------------- picked BU-01 + the pasted full path (Prince's case) ---------------- */
+
+{
+  const st = view._state;
+  st.rootLabel = 'BU-01';
+  st.rootPath = '';
+  st.result = null; st.settings = null;
+  st.scan = {
+    entries: [{ rel: ['Panel 3', 'Front'], ref: 'Panel 3/Front/log' }],
+    files: { 'Panel 3/Front/log': { counts: { roughness: 1, via: 0, unknown: 0, total: 1 },
+      files: { roughness: [{ name: 'r1.txt', site: 1, lines: ROUGH_LINES }], via: [], unknown: [] } } },
+    problems: []
+  };
+  T.buildResult();
+  st.settings = T.defaultSettings(st.result);
+  eq('picked BU-01, no path: no lot, project or part known', [Object.keys(st.result.lots), st.settings.metaOverride.project, st.settings.metaOverride.part], [[], '', '']);
+
+  st.settings.lotName = 'kept';
+  st.settings.sides.Front.roughness.units = [4];
+  T.applyPath('"L:\\ale\\ics_htb3_rnd\\130 - measurement results\\02_Engineering lots\\Chiplet4Future\\FHR0020\\19197\\BU-01"');
+  eq('...after pasting the path: lot 19197, part FHR0020, project Chiplet4Future, BU01',
+    [Object.keys(st.result.lots), st.settings.metaOverride.project, st.settings.metaOverride.part, st.result.sides[0].buLabel],
+    [['19197'], 'Chiplet4Future', 'FHR0020', 'BU01']);
+  eq('...what was already typed stays (lot name, units)', [st.settings.lotName, st.settings.sides.Front.roughness.units], ['kept', [4]]);
+  ok('...the files were not read again (same cached lines)', st.result.sides[0].files.roughness[0].lines === ROUGH_LINES);
+
+  T.applyPath('L:\\somewhere\\else');
+  eq('a path that does not end in the picked folder is not used', Object.keys(st.result.lots), []);
+}
+
 /* ---------------- sheetRows / buildSheets ---------------- */
 
 {

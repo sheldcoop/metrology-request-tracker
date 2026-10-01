@@ -121,8 +121,11 @@ window.MRT.prf = (function () {
    * project are only read from the root's own name and below.
    * -> {index: {'lot|bu|panel|side': {lot,bu,panel,side,refs:[]}}, lots: {lot:{project,part}}, problems:[]}
    */
-  function indexLogs(rootName, logs) {
-    var index = {}, lots = {}, problems = [], rootParts = [rootName];
+  function indexLogs(rootName, logs, rootPath) {
+    var index = {}, lots = {}, problems = [];
+    // py root_parts = the FULL root path; the browser only knows the picked
+    // folder's name, unless the person pasted its full path (rootPath).
+    var rootParts = rootPath && rootPath.length ? rootPath : [rootName];
     logs.forEach(function (lg) {
       var rel = lg.rel.filter(function (x) { return x !== '.' && x !== ''; });
       var full = lg.ref;
@@ -147,6 +150,20 @@ window.MRT.prf = (function () {
       index[key].refs.push(full);
     });
     return { index: index, lots: lots, problems: problems };
+  }
+
+  /**
+   * A pasted Windows path -> folder names: 'L:\a\b c\BU-01\' -> ['L:', 'a', 'b c', 'BU-01'].
+   * Quotes around it (Explorer's "Copy as path") are dropped; / works too.
+   */
+  function splitPath(text) {
+    return String(text || '').trim().replace(/^"+|"+$/g, '').split(/[\\\/]+/)
+      .map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  /** Does a pasted path end in the picked folder's name? (case-insensitive, like Windows) */
+  function pathEndsWith(parts, name) {
+    return !!parts.length && parts[parts.length - 1].toLowerCase() === String(name || '').trim().toLowerCase();
   }
 
   function notNull(x) { return x !== null && x !== undefined; }
@@ -723,7 +740,7 @@ window.MRT.prf = (function () {
     toFloat: toFloat, round: round, isNum: isNum, finite: finite, mean: mean, std: std, median: median,
     minOf: minOf, maxOf: maxOf,
     buNumber: buNumber, buLabel: buLabel, panelSideFromPath: panelSideFromPath, lotFromPath: lotFromPath,
-    indexLogs: indexLogs, siteNumber: siteNumber,
+    indexLogs: indexLogs, siteNumber: siteNumber, splitPath: splitPath, pathEndsWith: pathEndsWith,
     textToLines: textToLines, splitLine: splitLine, classify: classify, parseRoughness: parseRoughness,
     parseVia: parseVia, need: need,
     unitType: unitType, asLabel: asLabel, parseUnits: parseUnits, parseSequence: parseSequence,
