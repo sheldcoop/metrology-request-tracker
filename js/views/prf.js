@@ -47,7 +47,7 @@ window.MRT.views.prf = (function () {
     return {
       enabled: found.side,
       roughness: { enabled: found.roughness, units: [], positions: 'Next to Via, Next to Via' },
-      via: { enabled: found.via, units: [], sameAsVia: true, split: VIA_SPLIT.EVEN,
+      via: { enabled: found.via, units: [], sameAsVia: true, sameAsked: false, split: VIA_SPLIT.EVEN,
              perUnit: '', perCoupon: '', sequenceText: '' }
     };
   }
@@ -461,19 +461,32 @@ window.MRT.views.prf = (function () {
     ]);
   }
 
-  /** Plain units: comma or space separated, coupons allowed (C1); order is measurement order. */
+  /** Units as compact chips, drag to reorder; comma or space separated, coupons allowed (C1). */
   function unitsField(side, kind, label) {
-    var cfg = state.settings.sides[side][kind];
-    var f = ui.field({ label: label, value: (cfg.units || []).join(', '), mono: true,
-      placeholder: 'e.g. 5, 4, 2, 3, 6 or 5 4 2 3 6',
-      hint: 'Unit numbers in measurement order, separated by commas or spaces.' });
-    f.input.addEventListener('input', function () {
-      var parsed = P.parseUnits(f.input.value);
-      if (parsed.bad.length) f.setState('invalid', 'Not a unit: ' + parsed.bad.join(', '));
-      else f.setState(f.input.value.trim() ? 'valid' : null, null);
-      cfg.units = parsed.units;
+    var scfg = state.settings.sides[side], cfg = scfg[kind];
+    var chips = ui.reorderChips({ label: label, value: cfg.units, placeholder: 'e.g. 5, 4, 2, 3, 6', arrows: false,
+      cls: 'prf-units',
+      onChange: function (v) { cfg.units = v; if (kind === 'via' && !v.length) scfg.via.sameAsked = false; },
+      onCommit: function () { if (kind === 'via') maybeAskSame(side); } });
+    return chips.node;
+  }
+
+  /** After via units are entered: popup asking whether roughness shares them. Asked once per scan. */
+  function askSame(side) {
+    var v = state.settings.sides[side].via;
+    ui.dialog({ title: 'Same for roughness?', body: ui.el('p', { text: 'Use these via units for roughness too?' }),
+      actions: [{ label: 'Yes', kind: 'primary', value: true }, { label: 'No, own units', value: false }]
+    }).then(function (answer) {
+      v.sameAsked = true;
+      v.sameAsVia = answer !== false;
+      draw();
     });
-    return f.node;
+  }
+
+  function maybeAskSame(side) {
+    var scfg = state.settings.sides[side], v = scfg.via;
+    if (!scfg.roughness.enabled || v.sameAsked || !v.units.length) return;
+    askSame(side);
   }
 
   function roughnessSubsection(side, shared) {
@@ -486,7 +499,10 @@ window.MRT.views.prf = (function () {
       hint: 'One name per roughness site in a unit, e.g. "Next to Via, Next to Via".' });
     pos.input.addEventListener('input', function () { r.positions = pos.input.value; });
     inner.push(pos.node);
-    return ui.el('div', { class: 'prf-subsection' }, [ui.el('h3', { class: 'prf-advanced-sub', text: shared ? 'Roughness (same units as via)' : 'Roughness' }),
+    var head = [ui.el('h3', { class: 'prf-advanced-sub', text: shared ? 'Roughness (same units as via)' : 'Roughness' })];
+    if (shared) head.push(ui.el('p', {}, ui.el('a', { href: '#', class: 'link', text: 'Change',
+      onclick: function (e) { e.preventDefault(); askSame(side); } })));
+    return ui.el('div', { class: 'prf-subsection' }, [ui.el('div', { class: 'prf-sub-head' }, head),
       ui.el('div', { class: 'prf-subsection-body' }, inner)]);
   }
 
@@ -494,14 +510,7 @@ window.MRT.views.prf = (function () {
     var s = state.settings.sides[side];
     var v = s.via;
     if (!v.enabled) return null;   // no via files on this side: nothing to set up
-    var r = s.roughness;
     var inner = [unitsField(side, 'via', 'Via units (measurement order)')];
-    if (r.enabled) {
-      var seg = ui.segmented({ label: 'Same for roughness?', value: v.sameAsVia ? 'yes' : 'no', options: [
-        { value: 'yes', label: 'Yes' }, { value: 'no', label: 'No, own units' }
-      ], onChange: function (val) { v.sameAsVia = val === 'yes'; draw(); } });
-      inner.push(seg.node);
-    }
     {
       var split = ui.segmented({ label: 'How are vias split', value: v.split, options: [
         { value: VIA_SPLIT.EVEN, label: 'Evenly' }, { value: VIA_SPLIT.FIXED, label: 'Fixed per unit' },
@@ -814,7 +823,14 @@ window.MRT.views.prf = (function () {
       state.running = false;
       state.runResult = { out: out, summary: summary, comparison: comparison, status: status, written: written };
       draw();
-      ui.toast({ kind: 'success', message: 'Saved ' + written.name + '.' });
+      var errLines = out.log.filter(function (m) { return m.Level === 'ERROR'; });
+      if (errLines.length) {
+        ui.toastError('Saved ' + written.name + ', but with ' + errLines.length + ' error' + (errLines.length === 1 ? '' : 's') +
+          ': ' + errLines.slice(0, 2).map(function (m) { return m.Message; }).join(' | ') +
+          (errLines.length > 2 ? ' (+' + (errLines.length - 2) + ' more in the Log below)' : ' (see the Log below)'));
+      } else {
+        ui.toast({ kind: 'success', message: 'Saved ' + written.name + '.' });
+      }
     }).catch(function (e) {
       state.running = false;
       state.error = e.message || String(e);
@@ -839,22 +855,40 @@ window.MRT.views.prf = (function () {
   }
 
   /**
-   * One trend point per site for the charts: Ra from roughness rows, ABF
+   * One AVERAGED point per unit for the charts: Ra from roughness rows, ABF
    * height (average via depth) plus via top/bottom diameters from T2B rows.
    * Pure - the view groups these into chart datasets.
    */
   function trendSeries(out) {
     function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
-    var pts = [];
-    (out.rough || []).forEach(function (r) {
-      pts.push({ label: 'P' + r.Panel + ' ' + r.Side, site: r.Site, ra: num(r.Ra_Mean_nm), abf: null, top: null, bottom: null });
-    });
+    function mean(list) {
+      var f = list.filter(function (v) { return v !== null; });
+      return f.length ? f.reduce(function (a, b) { return a + b; }, 0) / f.length : null;
+    }
+    var groups = {};
+    function add(label, unit, field, value) {
+      var v = num(value);
+      if (v === null) return;
+      var key = label + '|' + unit;
+      if (!groups[key]) groups[key] = { label: label, unit: unit, ra: [], abf: [], top: [], bottom: [] };
+      groups[key][field].push(v);
+    }
+    (out.rough || []).forEach(function (r) { add('P' + r.Panel + ' ' + r.Side, r.Unit, 'ra', r.Ra_Mean_nm); });
     (out.t2b || []).forEach(function (r) {
-      pts.push({ label: 'P' + r.Panel + ' ' + r.Side, site: r.Site, ra: null,
-        abf: num(r.Average_Via_Depth_um), top: num(r.Top_Diameter_um), bottom: num(r.Bottom_Diameter_um) });
+      var label = 'P' + r.Panel + ' ' + r.Side;
+      add(label, r.Unit, 'abf', r.Average_Via_Depth_um);
+      add(label, r.Unit, 'top', r.Top_Diameter_um);
+      add(label, r.Unit, 'bottom', r.Bottom_Diameter_um);
     });
-    pts.sort(function (a, b) { return a.site - b.site || (a.label < b.label ? -1 : a.label > b.label ? 1 : 0); });
-    return pts;
+    return Object.keys(groups).map(function (key) {
+      var g = groups[key];
+      return { label: g.label, unit: g.unit, ra: mean(g.ra), abf: mean(g.abf), top: mean(g.top), bottom: mean(g.bottom) };
+    }).sort(function (a, b) {
+      var an = typeof a.unit === 'number', bn = typeof b.unit === 'number';
+      if (an && bn) return a.unit - b.unit || (a.label < b.label ? -1 : 1);
+      if (an !== bn) return an ? -1 : 1;
+      return String(a.unit) < String(b.unit) ? -1 : 1;
+    });
   }
 
   function planRows(out) {
@@ -923,22 +957,22 @@ window.MRT.views.prf = (function () {
 
   var runHost = null;   // the Run panel's slot, refreshed alone on every change (refreshRun)
 
-  /** Trend charts over the run's rows: Ra, ABF height (average via depth), via top/bottom. One series per panel+side. */
+  /** Trend charts over the run's rows: Ra, ABF height (average via depth), via top/bottom. One series per panel+side, x = unit. */
   function trendCharts(out) {
     var pts = trendSeries(out).filter(function (p) { return p.ra !== null || p.abf !== null || p.top !== null || p.bottom !== null; });
     if (!pts.length) return null;
-    var sites = unique(pts.map(function (p) { return p.site; })).sort(function (a, b) { return a - b; });
+    var units = unique(pts.map(function (p) { return p.unit; }));
     var series = unique(pts.map(function (p) { return p.label; }));
     function chartFor(field, title, unit) {
       var c = ui.chart(function (t) {
-        return { type: 'line', data: { labels: sites.map(String), datasets: series.map(function (s, i) {
+        return { type: 'line', data: { labels: units.map(String), datasets: series.map(function (s, i) {
           var col = t.series(i);
-          var bySite = {};
-          pts.forEach(function (p) { if (p.label === s && p[field] !== null) bySite[p.site] = p[field]; });
-          return { label: s, data: sites.map(function (site) { return bySite[site] === undefined ? null : bySite[site]; }),
+          var byUnit = {};
+          pts.forEach(function (p) { if (p.label === s && p[field] !== null) byUnit[p.unit] = p[field]; });
+          return { label: s, data: units.map(function (u) { return byUnit[u] === undefined ? null : byUnit[u]; }),
             borderColor: t.color(col), backgroundColor: t.alpha(col, .15), fill: false, spanGaps: true };
         }) }, options: { plugins: { legend: { display: series.length > 1 } },
-          scales: { x: { title: { display: true, text: 'Site' } }, y: { title: { display: true, text: unit } } } } };
+          scales: { x: { title: { display: true, text: 'Unit' } }, y: { title: { display: true, text: unit } } } } };
       }, { height: 220, label: title, expand: true });
       return ui.el('div', {}, [ui.el('h3', { class: 'prf-advanced-sub', text: title }), c.node]);
     }
@@ -992,20 +1026,21 @@ window.MRT.views.prf = (function () {
     if (planHost) ui.mount(planHost, planPanelBody());
   }
 
+  /** Result tables stay collapsed (row count in the title) so the page fits on one screen. */
   function statTable(rows, cols, title) {
     if (!rows.length) return null;
-    return ui.el('div', {}, [
-      title ? ui.el('h3', { class: 'prf-advanced-sub', text: title }) : null,
-      ui.el('div', { class: 'table-wrap' }, ui.el('table', { class: 'grid' }, [
-        ui.el('thead', {}, ui.el('tr', {}, cols.map(function (c) { return ui.el('th', { scope: 'col', text: P.pretty(c) }); }))),
-        ui.el('tbody', {}, rows.map(function (r) {
-          return ui.el('tr', { class: r.Flag ? 'is-bad' : (r.Result === 'FAIL' ? 'is-bad' : null) }, cols.map(function (c) {
-            var v = r[c];
-            return ui.el('td', {}, v === undefined || v === null ? '' : (typeof v === 'number' ? (isFinite(v) ? String(P.round(v, Number(state.settings.decimals) || 3)) : '') : String(v)));
-          }));
-        }))
-      ]))
-    ]);
+    return ui.panel({ title: (title || 'Table') + ' (' + rows.length + ' rows)', icon: 'grid',
+      collapsible: true, collapsed: true, body: [
+        ui.el('div', { class: 'table-wrap' }, ui.el('table', { class: 'grid' }, [
+          ui.el('thead', {}, ui.el('tr', {}, cols.map(function (c) { return ui.el('th', { scope: 'col', text: P.pretty(c) }); }))),
+          ui.el('tbody', {}, rows.map(function (r) {
+            return ui.el('tr', { class: r.Flag ? 'is-bad' : (r.Result === 'FAIL' ? 'is-bad' : null) }, cols.map(function (c) {
+              var v = r[c];
+              return ui.el('td', {}, v === undefined || v === null ? '' : (typeof v === 'number' ? (isFinite(v) ? String(P.round(v, Number(state.settings.decimals) || 3)) : '') : String(v)));
+            }));
+          }))
+        ]))
+      ] }).node;
   }
 
   /** Three steps across the top: Folder, What to run, Run. Done states follow the state. */

@@ -163,12 +163,13 @@ function fakeSettings(result) {
   const result = fakeResult();
   view._state.result = result;
   view._state.settings = fakeSettings(result);
-  const pts = T.trendSeries(T.runAll());
-  eq('roughness rows carry Ra, via rows carry ABF height + top/bottom, site order',
-    pts.map(p => [p.label, p.site, p.ra !== null, p.abf !== null, p.top !== null, p.bottom !== null]),
-    [['P1 Front', 10, true, false, false, false],
-     ['P1 Front', 11, false, true, true, true],
-     ['P1 Front', 12, false, true, true, true]]);
+  const tout = T.runAll();
+  const pts = T.trendSeries(tout);
+  const depths = tout.t2b.map(r => r.Average_Via_Depth_um);
+  eq('one averaged point per unit: Ra from roughness, ABF/top/bottom averaged over the unit',
+    pts.map(p => [p.label, p.unit, p.ra === tout.rough[0].Ra_Mean_nm,
+      Math.abs(p.abf - (depths[0] + depths[1]) / 2) < 1e-9, p.top !== null, p.bottom !== null]),
+    [['P1 Front', 5, true, true, true, true]]);
 }
 
 /* ---------------- Run: what blocks it (Lot name is optional, 2026-10-01) ---------------- */

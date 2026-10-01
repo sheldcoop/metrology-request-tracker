@@ -49,19 +49,20 @@
       list.textContent = '';
       items.forEach(function (label, i) {
         var coupon = isCoupon(label);
+        var kids = [el('span', { class: 'chip-box-label mono', text: String(label) })];
+        if (o.arrows !== false) {
+          kids.push(el('button', { type: 'button', class: 'chip-box-move', title: 'Move left', 'aria-label': 'Move ' + label + ' left',
+            disabled: i === 0, onclick: function () { move(i, i - 1); } }, icon('chevron_left', 13)));
+          kids.push(el('button', { type: 'button', class: 'chip-box-move', title: 'Move right', 'aria-label': 'Move ' + label + ' right',
+            disabled: i === items.length - 1, onclick: function () { move(i, i + 1); } }, icon('chevron_right', 13)));
+        }
+        kids.push(el('button', { type: 'button', class: 'chip-box-remove', title: 'Remove', 'aria-label': 'Remove ' + label,
+          onclick: function () { items.splice(i, 1); render(); fire(); } }, icon('close', 12)));
         var chip = el('div', {
           class: 'chip-box' + (coupon ? ' is-coupon' : ''), role: 'listitem',
           draggable: 'true', tabindex: '0', dataset: { index: String(i) },
           'aria-label': (coupon ? 'Coupon ' : 'Unit ') + label + ', position ' + (i + 1) + ' of ' + items.length
-        }, [
-          el('span', { class: 'chip-box-label mono', text: String(label) }),
-          el('button', { type: 'button', class: 'chip-box-move', title: 'Move left', 'aria-label': 'Move ' + label + ' left',
-            disabled: i === 0, onclick: function () { move(i, i - 1); } }, icon('chevron_left', 13)),
-          el('button', { type: 'button', class: 'chip-box-move', title: 'Move right', 'aria-label': 'Move ' + label + ' right',
-            disabled: i === items.length - 1, onclick: function () { move(i, i + 1); } }, icon('chevron_right', 13)),
-          el('button', { type: 'button', class: 'chip-box-remove', title: 'Remove', 'aria-label': 'Remove ' + label,
-            onclick: function () { items.splice(i, 1); render(); fire(); } }, icon('close', 12))
-        ]);
+        }, kids);
         chip.addEventListener('dragstart', function (e) { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; chip.classList.add('is-dragging'); });
         chip.addEventListener('dragend', function () { chip.classList.remove('is-dragging'); dragFrom = null; });
         chip.addEventListener('dragover', function (e) { e.preventDefault(); });
@@ -111,18 +112,19 @@
       return ok;
     }
 
+    function committed() { if (o.onCommit) o.onCommit(items.slice()); }
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ',') {
         e.preventDefault();
-        if (addText(input.value)) { input.value = ''; say(''); }
+        if (addText(input.value)) { input.value = ''; say(''); committed(); }
       }
     });
     input.addEventListener('paste', function (e) {
       var text = (e.clipboardData || window.clipboardData).getData('text');
-      if (/[\s,;]/.test(text)) { e.preventDefault(); addText(text); input.value = ''; say(''); }
+      if (/[\s,;]/.test(text)) { e.preventDefault(); addText(text); input.value = ''; say(''); committed(); }
     });
     input.addEventListener('blur', function () {
-      if (input.value.trim() && addText(input.value)) { input.value = ''; say(''); }
+      if (input.value.trim() && addText(input.value)) { input.value = ''; say(''); committed(); }
     });
 
     render();
