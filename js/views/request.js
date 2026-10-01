@@ -1,15 +1,16 @@
 /**
  * Metrology Request Tracker - views/request.js
  *
- * The request page (#/request/<id>, Q42, M2 step 5): the request drawn as a
- * lab traveller card - priority stripe, tool glyph, request ID, status stamp,
- * lot, priority, the needed-by countdown in lab time (Q36; the clock pauses
- * outside lab hours) and the panel map with the requested panels - then the
- * status rail (each step, who and when), the details with BKM and results
- * paths (Copy, Q30), and the timeline: status changes and comments with
- * @mentions (Q11). Under the card the workflow buttons (Accept, Start,
- * Hold, Complete ... - js/views/request-actions.js, M3-9); the requester
- * edits an open request with a reason (Q14) or cancels it (Q35).
+ * The request page (#/request/<id>, Q42, M2 step 5, redesign Step 7): above
+ * the fold the head, the traveller card facts and the action bar - at most
+ * two buttons (the primary workflow action, Copy results path) plus "...".
+ * Everything else (the rest of the workflow, Edit, Print, Copy, templates,
+ * Cancel) sits behind "...". Below: the paths (one row each, copy
+ * icon-button), the status rail (each step, who and when), details, people,
+ * the timeline of status changes, and the comments with @mentions (Q11)
+ * last. The traveller keeps its stripe and stamp; the late countdown is one
+ * red line. The requester edits an open request with a reason (Q14) or
+ * cancels it (Q35).
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -110,18 +111,7 @@ window.MRT.views.request = (function () {
     if (r.status === 'draft') { location.hash = '#/new/' + r.id; return; }
     var lot = byId('lots', r.lot_id);
 
-    var actions = [
-      D.canEditSubmitted(me, r) ? ui.button('Edit request', { icon: 'edit', onClick: function () { location.hash = '#/new/' + r.id; } }) : null,
-      ui.button('Print slip', { icon: 'download', onClick: function () { location.hash = '#/slip/' + r.id; } }),
-      ui.button('Copy this request', { icon: 'copy', onClick: function () { location.hash = '#/new?from=' + r.id; } }),
-      D.canSaveTemplate(me, r) ? ui.button('Save as template', { icon: 'requests',
-        title: 'Keep what stays the same for next time (not the lot, panels, place or dates)',
-        onClick: function () { var ty = store.byId('measurement_types', r.type_id);
-          window.MRT.templates.save([(store.byId('tools', r.tool_id) || {}).code, ty ? ty.name : ''].filter(Boolean).join(' '), { request_id: r.id }); } }) : null,
-      lot && D.canRequest(me) ? ui.button('New request on this lot', { icon: 'plus', onClick: function () { location.hash = '#/new?lot=' + r.lot_id; } }) : null,
-      D.canCancel(me, r, tool) ? ui.button('Cancel request', { kind: 'danger', icon: 'close', onClick: function () { cancel(r); } }) : null
-    ];
-    main.appendChild(ui.pageHead(r.request_no, (tool ? tool.name : '') + ' - requested by ' + userName(r.requester_id), actions));
+    main.appendChild(ui.pageHead(r.request_no, (tool ? tool.name : '') + ' - requested by ' + userName(r.requester_id)));
 
     var prev = seen[r.id], nowKey = r.status + '|' + !!r.received_ts;
     var changed = prev !== undefined && prev !== nowKey;
@@ -130,19 +120,62 @@ window.MRT.views.request = (function () {
     live.changed = changed;
     var card = traveller(r, tool, lot);
     main.appendChild(card);
-    var acts = window.MRT.requestActions.buttons(r);
-    if (acts.length) main.appendChild(ui.el('div', { class: 'req-actbar', role: 'group', 'aria-label': 'What you can do now' }, acts));
-    var railNode = rail(r);
-    main.appendChild(railNode);
+    var bar = actionBar(r, tool, lot, me);
+    if (bar) main.appendChild(bar);
+    var railNode = null;
+    main.appendChild(ui.el('div', { class: 'req-stack' }, [
+      pathsPanel(r, tool),
+      railNode = rail(r),
+      detailsPanel(r),
+      peoplePanel(r, tool),
+      timeline(r),
+      commentsPanel(r, me)
+    ]));
     if (statusChanged) {   // P3: the new stamp presses on, the rail fills to the new step
       var st = card.querySelector('.tr-stamp');
       if (st) st.classList.add('is-stamping');
       railNode.classList.add('is-filling');
     }
-    main.appendChild(ui.el('div', { class: 'req-layout' }, [
-      ui.el('div', { class: 'req-form' }, [timeline(r, me)]),
-      ui.el('aside', { class: 'req-side' }, [pathsPanel(r, tool), detailsPanel(r), peoplePanel(r, tool)])
-    ]));
+  }
+
+  /**
+   * The action bar: at most two buttons (the primary workflow action, Copy
+   * results path) plus "..." with the rest of the workflow, Edit, Print,
+   * Copy, templates and Cancel. Nothing renders when there is nothing to do.
+   */
+  function actionBar(r, tool, lot, me) {
+    var A = window.MRT.requestActions;
+    var avail = A.available(r);
+    var first = A.primary(r);
+    var nodes = [];
+    if (first) {
+      var pb = A.buttons(r, { only: [first] });
+      if (pb[0]) nodes.push(pb[0]);
+    }
+    if (r.results_path) {
+      nodes.push(ui.button('Copy results path', { icon: 'copy', ariaLabel: 'Copy Results path', title: 'Copy Results path',
+        onClick: function () { ui.copyText(r.results_path, 'Results path copied'); } }));
+    }
+    var items = avail.filter(function (a) { return a !== first; }).map(function (a) {
+      return { label: A.label(a), onClick: function () { A.run(a, r); } };
+    });
+    if (D.canEditSubmitted(me, r)) items.push({ label: 'Edit request', icon: 'edit', onClick: function () { location.hash = '#/new/' + r.id; } });
+    items.push({ label: 'Print slip', icon: 'download', onClick: function () { location.hash = '#/slip/' + r.id; } });
+    items.push({ label: 'Copy this request', icon: 'copy', onClick: function () { location.hash = '#/new?from=' + r.id; } });
+    if (D.canSaveTemplate(me, r)) items.push({ label: 'Save as template', icon: 'requests', onClick: function () {
+      var ty = store.byId('measurement_types', r.type_id);
+      window.MRT.templates.save([(store.byId('tools', r.tool_id) || {}).code, ty ? ty.name : ''].filter(Boolean).join(' '), { request_id: r.id });
+    } });
+    if (lot && D.canRequest(me)) items.push({ label: 'New request on this lot', icon: 'plus', onClick: function () { location.hash = '#/new?lot=' + r.lot_id; } });
+    if (D.canCancel(me, r, tool)) items.push({ label: 'Cancel request', icon: 'close', onClick: function () { cancel(r); } });
+    if (items.length) {
+      var more = ui.button('...', { kind: 'ghost', ariaLabel: 'More actions', title: 'More actions', onClick: function () {
+        ui.menu(more, items);
+      } });
+      nodes.push(more);
+    }
+    if (!nodes.length) return null;
+    return ui.el('div', { class: 'req-actbar', role: 'group', 'aria-label': 'What you can do now' }, nodes);
   }
 
   /* --- traveller card --------------------------------------------------- */
@@ -243,8 +276,8 @@ window.MRT.views.request = (function () {
     var days = c.late ? (c.days < 0 ? ' (' + -c.days + ' day' + (c.days === -1 ? '' : 's') + ')' : '')
                       : (c.days > 0 ? ' (' + c.days + ' day' + (c.days === 1 ? '' : 's') + ')' : ' (today)');
     node.textContent = (c.late ? 'Late by ' + h + ' lab time' : h + ' lab time left') + days + (c.paused ? '  ·  clock paused (outside lab hours)' : '');
+    node.className = 'tr-clock' + (c.late ? ' is-late' : '');   // late is one red line; nothing else takes colour
     var state = c.late ? 'late' : c.lab_ms < 8 * 3600000 ? 'soon' : 'ok';
-    node.className = 'tr-clock is-' + state + (c.paused ? ' is-paused' : '');
     if (g) g.set(dialUsed(r, c), c.paused && !c.late ? 'paused' : state);
   }
 
@@ -367,22 +400,30 @@ window.MRT.views.request = (function () {
     }));
   }
 
-  function timeline(r, me) {
-    var events = store.requestEvents(r.id);
-    var list = ui.el('ol', { class: 'timeline' }, events.map(function (e) {
-      var icon = { comment: 'edit', created: 'plus', assign: 'user', panels: 'inbox', edit: 'edit' }[e.kind] ||
-        (e.to === 'cancelled' ? 'close' : e.to === 'on_hold' ? 'clock' : e.to === 'clarification' ? 'help' : 'check');
-      var editable = D.canEditComment(me, e);
-      return ui.el('li', { class: 'tl-item is-' + e.kind + (e.to ? ' to-' + e.to : '') }, [
-        ui.el('span', { class: 'tl-icon', 'aria-hidden': 'true' }, ui.icon(icon, 14)),
-        ui.el('div', {}, [
-          ui.el('div', { class: 'tl-meta' }, [ui.el('b', { text: userName(e.user_id) }), ' ', muted(ui.formatTs(e.ts) + (e.edited_ts ? ' · edited' : '')),
-            editable ? ui.button('', { kind: 'ghost', size: 'sm', icon: 'edit', ariaLabel: 'Edit comment', title: 'Edit comment',
-              onClick: function () { editBox(e); } }) : null]),
-          e.kind === 'comment' ? commentBody(e) : ui.el('p', { class: 'tl-text', text: eventText(e) })
-        ])
-      ]);
-    }));
+  /** One timeline row: status changes here, comments in their own panel last. */
+  function eventRow(e, me) {
+    var icon = { comment: 'edit', created: 'plus', assign: 'user', panels: 'inbox', edit: 'edit' }[e.kind] ||
+      (e.to === 'cancelled' ? 'close' : e.to === 'on_hold' ? 'clock' : e.to === 'clarification' ? 'help' : 'check');
+    var editable = e.kind === 'comment' && D.canEditComment(me, e);
+    return ui.el('li', { class: 'tl-item is-' + e.kind + (e.to ? ' to-' + e.to : '') }, [
+      ui.el('span', { class: 'tl-icon', 'aria-hidden': 'true' }, ui.icon(icon, 14)),
+      ui.el('div', {}, [
+        ui.el('div', { class: 'tl-meta' }, [ui.el('b', { text: userName(e.user_id) }), ' ', muted(ui.formatTs(e.ts) + (e.edited_ts ? ' · edited' : '')),
+          editable ? ui.button('', { kind: 'ghost', size: 'sm', icon: 'edit', ariaLabel: 'Edit comment', title: 'Edit comment',
+            onClick: function () { editBox(e); } }) : null]),
+        e.kind === 'comment' ? commentBody(e) : ui.el('p', { class: 'tl-text', text: eventText(e) })
+      ])
+    ]);
+  }
+
+  function timeline(r) {
+    var list = ui.el('ol', { class: 'timeline' }, store.requestEvents(r.id)
+      .filter(function (e) { return e.kind !== 'comment'; }).map(function (e) { return eventRow(e, store.currentUser()); }));
+    return ui.panel({ title: 'Timeline', icon: 'activity', body: [list] }).node;
+  }
+
+  function commentsPanel(r, me) {
+    var comments = store.requestEvents(r.id).filter(function (e) { return e.kind === 'comment'; });
     var box = null, add = null;
     if (D.canComment(me, r)) {
       box = ui.field({ label: 'Add a comment', multiline: true, placeholder: 'Write @Name to point someone at it (they are notified from M4).' });
@@ -391,7 +432,9 @@ window.MRT.views.request = (function () {
           .catch(function (e) { if (e && e.code === 'invalid') box.setState('invalid', e.message); else ui.toastError(e.message, e); });
       } });
     }
-    return ui.panel({ title: 'Timeline', icon: 'activity', body: [list, box ? box.node : null, add ? ui.el('div', { class: 'form-actions' }, add) : null] }).node;
+    return ui.panel({ title: 'Comments', icon: 'edit', body: [
+      ui.el('ol', { class: 'timeline' }, comments.map(function (e) { return eventRow(e, me); })),
+      box ? box.node : null, add ? ui.el('div', { class: 'form-actions' }, add) : null] }).node;
   }
 
   function editBox(e) {
