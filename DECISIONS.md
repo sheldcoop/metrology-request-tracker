@@ -1195,3 +1195,8 @@ never the only signal - the text/label says the same thing.
   HOME-12's "form fills itself". Welcome copy gets a line with a smile per
   role; admins get their own ("You hold the keys to the whole lab. No
   pressure - there is a daily backup.") with Settings-first steps.
+- **HOME-25** (home-final: top bar, 2026-10-01, Prince) The theme button
+  sits right next to the bell (one click opens the five themes, one more
+  click switches - kept per person on this PC), and a sign-out icon
+  (Lucide log-out, added to the sprite and core.js PATHS) sits beside it;
+  it runs the same "change-user" as the user menu's Sign out.

@@ -485,6 +485,7 @@ window.MRT.app = (function () {
     ui.mount(document.getElementById('searchIcon'), ui.icon('search', 18));
     ui.mount(document.getElementById('bellIcon'), ui.icon('bell', 18));
     if (document.getElementById('themeBtn')) ui.mount(document.getElementById('themeBtn'), ui.icon('contrast', 18));
+    if (document.getElementById('signOutBtn')) ui.mount(document.getElementById('signOutBtn'), ui.icon('log-out', 18));
     ui.mount(document.getElementById('userCaret'), ui.icon('chevron_down', 16));
   }
 
@@ -1058,7 +1059,7 @@ window.MRT.app = (function () {
       { label: 'Help', icon: 'circle-help', onClick: function () { location.hash = '#/help'; } },
       { label: 'Reload from the share', icon: 'refresh', onClick: reloadData },
       { label: 'Change data folder', icon: 'folder', onClick: changeFolder },
-      { label: 'Sign out', icon: 'user', onClick: changeUser },
+      { label: 'Sign out', icon: 'log-out', onClick: changeUser },
       { sep: true },
       { node: ui.el('div', { class: 'menu-folder' }, [
         ui.el('div', {}, [ui.icon('folder', 16), ' ', s.folderName || 'Data folder']),

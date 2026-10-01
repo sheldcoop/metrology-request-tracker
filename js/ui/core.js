@@ -125,6 +125,7 @@ window.MRT.ui = (function () {
     calendar: '<path d="M8 2v3"/>  <path d="M16 2v3"/>  <rect x="3" y="3" width="18" height="18" rx="2"/>  <path d="M3 9h18"/>',
     tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/>  <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
     hirata: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8" cy="8.5" r="1.3"/><circle cx="8" cy="12" r="1.3"/><circle cx="8" cy="15.5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="16" cy="8.5" r="1.3"/><circle cx="16" cy="15.5" r="1.3"/>',
+    'log-out': '<path d="m16 17 5-5-5-5"/>  <path d="M21 12H9"/>  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
     keyboard: '<path d="M10 8h.01"/>  <path d="M12 12h.01"/>  <path d="M14 8h.01"/>  <path d="M16 12h.01"/>  <path d="M18 8h.01"/>  <path d="M6 8h.01"/>  <path d="M7 16h10"/>  <path d="M8 12h.01"/>  <rect width="20" height="16" x="2" y="4" rx="2"/>',
     mail: '<path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/>  <rect x="2" y="4" width="20" height="16" rx="2"/>',
     'plus-circle': '<circle cx="12" cy="12" r="10"/>  <path d="M8 12h8"/>  <path d="M12 8v8"/>',

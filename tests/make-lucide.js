@@ -18,7 +18,7 @@ const MAP = {
   dashboard: 'layout-dashboard', lots: 'package', settings: 'settings', search: 'search',
   folder: 'folder', alert: 'triangle-alert', check: 'check', close: 'x', refresh: 'refresh-cw',
   download: 'download', upload: 'upload', save: 'save', sun: 'sun', moon: 'moon', contrast: 'contrast',
-  user: 'user', inbox: 'inbox', clock: 'clock', archive: 'archive', restore: 'history',
+  user: 'user', 'log-out': 'log-out', inbox: 'inbox', clock: 'clock', archive: 'archive', restore: 'history',
   edit: 'pencil', move: 'move', plus: 'plus', filter: 'funnel', trash: 'trash-2', home: 'house',
   chevron_left: 'chevron-left', expand: 'maximize-2', info: 'info', lock: 'lock', activity: 'activity',
   gauge: 'gauge', chart: 'chart-column', analytics: 'chart-column', grid: 'grid-2x2',

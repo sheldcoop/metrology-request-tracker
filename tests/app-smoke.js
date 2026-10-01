@@ -13,11 +13,11 @@ const vm = require('vm'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'saveLed', 'undoBtn', 'searchIcon', 'search',
-  'bellBtn', 'bellIcon', 'bellCount', 'themeBtn', 'newBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
+  'bellBtn', 'bellIcon', 'bellCount', 'themeBtn', 'signOutBtn', 'newBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
   'navItems', 'navFolder', 'navRev', 'navCollapse', 'main', 'toasts', 'dialogHost'];
 const { win, doc, flush, tick, storage, El } = require('./fake-dom')({ ids: IDS, url: 'file:///Z:/Lab/MRT/index.html?who=ATS%5CPKhurana' });
 // the data-action hooks index.html puts on the top bar
-[['saveLed', 'save-state'], ['undoBtn', 'undo'], ['bellBtn', 'bell'], ['themeBtn', 'theme-menu'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
+[['saveLed', 'save-state'], ['undoBtn', 'undo'], ['bellBtn', 'bell'], ['themeBtn', 'theme-menu'], ['signOutBtn', 'change-user'], ['userBtn', 'user-menu'], ['navCollapse', 'nav-collapse']]
   .forEach(p => { doc.getElementById(p[0]).dataset.action = p[1]; });
 doc.getElementById('undoBtn').hidden = true;
 doc.getElementById('newBtn').setAttribute('href', '#/new');   // static markup in index.html, like the data-actions below
