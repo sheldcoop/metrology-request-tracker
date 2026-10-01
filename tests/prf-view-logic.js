@@ -138,6 +138,20 @@ function fakeSettings(result) {
     [[1, 'Front', 10, 'Roughness', 'Unit 5'], [1, 'Front', 11, 'Via', 'Unit 5'], [1, 'Front', 12, 'Via', 'Unit 5']]);
 }
 
+/* ---------------- trendSeries: one point per site ---------------- */
+
+{
+  const result = fakeResult();
+  view._state.result = result;
+  view._state.settings = fakeSettings(result);
+  const pts = T.trendSeries(T.runAll());
+  eq('roughness rows carry Ra, via rows carry ABF height + top/bottom, site order',
+    pts.map(p => [p.label, p.site, p.ra !== null, p.abf !== null, p.top !== null, p.bottom !== null]),
+    [['P1 Front', 10, true, false, false, false],
+     ['P1 Front', 11, false, true, true, true],
+     ['P1 Front', 12, false, true, true, true]]);
+}
+
 /* ---------------- Run: what blocks it (Lot name is optional, 2026-10-01) ---------------- */
 
 {

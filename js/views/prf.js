@@ -836,6 +836,25 @@ window.MRT.views.prf = (function () {
     return ui.panel({ title: 'Output folder', icon: 'folder', body: body }).node;
   }
 
+  /**
+   * One trend point per site for the charts: Ra from roughness rows, ABF
+   * height (average via depth) plus via top/bottom diameters from T2B rows.
+   * Pure - the view groups these into chart datasets.
+   */
+  function trendSeries(out) {
+    function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
+    var pts = [];
+    (out.rough || []).forEach(function (r) {
+      pts.push({ label: 'P' + r.Panel + ' ' + r.Side, site: r.Site, ra: num(r.Ra_Mean_nm), abf: null, top: null, bottom: null });
+    });
+    (out.t2b || []).forEach(function (r) {
+      pts.push({ label: 'P' + r.Panel + ' ' + r.Side, site: r.Site, ra: null,
+        abf: num(r.Average_Via_Depth_um), top: num(r.Top_Diameter_um), bottom: num(r.Bottom_Diameter_um) });
+    });
+    pts.sort(function (a, b) { return a.site - b.site || (a.label < b.label ? -1 : a.label > b.label ? 1 : 0); });
+    return pts;
+  }
+
   function planRows(out) {
     var rows = [];
     out.t2b.forEach(function (r) { rows.push({ panel: r.Panel, side: r.Side, kind: 'Via', site: r.Site, unit: (r.Type === 'Coupon' ? 'Coupon ' : 'Unit ') + r.Unit, detail: 'Via ' + r.Via }); });
@@ -896,6 +915,33 @@ window.MRT.views.prf = (function () {
 
   var runHost = null;   // the Run panel's slot, refreshed alone on every change (refreshRun)
 
+  /** Trend charts over the run's rows: Ra, ABF height (average via depth), via top/bottom. One series per panel+side. */
+  function trendCharts(out) {
+    var pts = trendSeries(out).filter(function (p) { return p.ra !== null || p.abf !== null || p.top !== null || p.bottom !== null; });
+    if (!pts.length) return null;
+    var sites = unique(pts.map(function (p) { return p.site; })).sort(function (a, b) { return a - b; });
+    var series = unique(pts.map(function (p) { return p.label; }));
+    function chartFor(field, title, unit) {
+      var c = ui.chart(function (t) {
+        return { type: 'line', data: { labels: sites.map(String), datasets: series.map(function (s, i) {
+          var col = t.series(i);
+          var bySite = {};
+          pts.forEach(function (p) { if (p.label === s && p[field] !== null) bySite[p.site] = p[field]; });
+          return { label: s, data: sites.map(function (site) { return bySite[site] === undefined ? null : bySite[site]; }),
+            borderColor: t.color(col), backgroundColor: t.alpha(col, .15), fill: false, spanGaps: true };
+        }) }, options: { plugins: { legend: { display: series.length > 1 } },
+          scales: { x: { title: { display: true, text: 'Site' } }, y: { title: { display: true, text: unit } } } } };
+      }, { height: 220, label: title, expand: true });
+      return ui.el('div', {}, [ui.el('h3', { class: 'prf-advanced-sub', text: title }), c.node]);
+    }
+    return ui.el('div', {}, [
+      chartFor('ra', 'Roughness Ra by site', 'nm'),
+      chartFor('abf', 'ABF height (average via depth) by site', 'µm'),
+      chartFor('top', 'Via top diameter by site', 'µm'),
+      chartFor('bottom', 'Via bottom diameter by site', 'µm')
+    ]);
+  }
+
   function runPanelBody() {
     if (state.runResult && !state.running) {
       var r = state.runResult;
@@ -903,6 +949,7 @@ window.MRT.views.prf = (function () {
         ui.el('p', {}, [ui.el('span', { class: 'chip ' + (r.status === 'OK' ? 'ok' : 'warning'), text: r.status }),
           ' Saved as ' + r.written.name + ' (' + r.written.format + ').']),
         ui.button('Run again', { kind: 'primary', icon: 'save', onClick: runReport }),
+        trendCharts(r.out),
         statTable(r.summary, SHEET_COLS.Summary, 'Summary'),
         statTable(r.comparison, SHEET_COLS.Comparison, 'Front vs Back'),
         statTable(r.out.t2b, SHEET_COLS.T2B, 'T2B'),
@@ -1001,7 +1048,7 @@ window.MRT.views.prf = (function () {
     // _pure): pure-enough functions that touch no DOM, so the aggregation
     // and the sheet layout can be checked without a real browser/adapter.
     _test: { resolveSideConfig: resolveSideConfig, runAll: runAll, buildResult: buildResult, applyPath: applyPath, runBlockers: runBlockers, sheetRows: sheetRows, buildSheets: buildSheets,
-             planRows: planRows,
+             planRows: planRows, trendSeries: trendSeries,
              defaultSettings: defaultSettings, SHEET_COLS: SHEET_COLS, VIA_SPLIT: VIA_SPLIT }
   };
 })();
