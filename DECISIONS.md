@@ -1013,3 +1013,20 @@ never the only signal - the text/label says the same thing.
   are removed from the app (the store keeps the API for the server login
   later). First-run admin setup is unchanged. Help, README and the office
   checklist say the same.
+- **HOME-7** (home-final: Analytics wave) The Analytics card scene is a
+  signal wave rolling up and down (accent trace + faint echo, transparent
+  background), not bars. The engine gives scenes no hover state, so the
+  wave breathes on its own between calm and lively; reduced motion keeps
+  the one still frame.
+- **HOME-8** (home-final: outstanding scenes) All seven Home scenes
+  reworked on the studio recipe: the living element always in `accent`
+  (slate orange, quant green, dark-teal teal, pure-white navy, ats white),
+  faces/plates in the card colour, transparent background, no hardcoded
+  dark discs. Dice: two tumbling dice with real 1-6 canvas faces, accent
+  pips, edge lines (no black disc). AOI: scan band with trail, circuit
+  traces in segments that light as the scan passes, red defect flash.
+  Board: corner-to-corner ripple + red line-stop call. Queue: travelling
+  block with two fading echoes + arrival hop and flash. Mine: sliding
+  plate with an accent edge stripe. New: sheet rises, lines type on, plus
+  badge pops. Analytics: the wave. Hemisphere ground follows the theme
+  (was hardcoded dark navy). Test stub mirrors the canvas/texture API.

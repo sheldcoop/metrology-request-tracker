@@ -34,10 +34,20 @@ function fakeThree() {
       o.lookAt = function () {}; return o; },
     Group: function () { return obj3d(); },
     Mesh: function (g, m) { var o = obj3d(); o.geometry = g; o.material = m; return o; },
+    Line: function (g, m) { var o = obj3d(); o.geometry = g; o.material = m; return o; },
+    BufferGeometry: function () { var attrs = {}; return tracked({ setAttribute: function (n, a) { attrs[n] = a; }, attributes: attrs }); },
+    BufferAttribute: function (arr, size) { return { array: arr, itemSize: size,
+      getX: function (i) { return this.array[i * this.itemSize]; },
+      setY: function (i, v) { this.array[i * this.itemSize + 1] = v; }, needsUpdate: false }; },
+    LineBasicMaterial: mat,
     HemisphereLight: function () { return obj3d(); },
     DirectionalLight: function () { var o = obj3d(); o.target = obj3d(); return o; },
     BoxGeometry: geo, CylinderGeometry: geo, TorusGeometry: geo,
     PlaneGeometry: geo, SphereGeometry: geo, CircleGeometry: geo,
+    EdgesGeometry: function (g) { return tracked({ source: g }); },
+    LineSegments: function (g, m) { var o = obj3d(); o.geometry = g; o.material = m; return o; },
+    CanvasTexture: function (c) { return tracked({ image: c }); },
+    SRGBColorSpace: 'srgb',
     MeshStandardMaterial: mat, MeshBasicMaterial: mat,
     Color: function (c) { this.value = c; }
   };
@@ -47,6 +57,10 @@ function loadScenes() {
   const registry = {};
   const win = { MRT: { scene3d: { register: function (k, fn) { registry[k] = fn; } } } };
   win.window = win;
+  win.document = { createElement: function (tag) {   // dice faces paint here
+    if (tag !== 'canvas') throw new Error('unexpected element ' + tag);
+    return { width: 0, height: 0, getContext: function () {
+      return { fillRect: function () {}, beginPath: function () {}, arc: function () {}, fill: function () {} }; } }; } };
   const ctx = vm.createContext(win);
   ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board'].forEach(k =>
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/ui/scenes/' + k + '.js'), 'utf8'), ctx, { filename: k }));
