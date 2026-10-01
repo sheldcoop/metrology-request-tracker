@@ -147,12 +147,11 @@ window.MRT.views.queue = (function () {
       }
       var more = null;
       if (options.length > 1) {
-        more = ui.button('...', { size: 'sm', ariaLabel: 'More bulk actions', title: 'More bulk actions' });
-        more.onclick = function () {
+        more = ui.button('...', { size: 'sm', ariaLabel: 'More bulk actions', title: 'More bulk actions', onClick: function () {
           ui.menu(more, options.slice(1).map(function (o) {
             return { label: o.label(o.list.length), onClick: function () { runBulk(o); } };
           }));
-        };
+        } });
       }
       ui.mount(bulk, ids.length ? [
         ui.el('span', { text: ids.length + ' selected:' }),
@@ -212,12 +211,10 @@ window.MRT.views.queue = (function () {
       ]);
     }
 
-    var PRIMARY_ORDER = ['accept', 'receive_start', 'start', 'complete'];
-
     /** Bottom line of the box: one filled primary, quiet Hold/clarify, the rest behind "...". */
     function boxActions(r) {
       var avail = A.available(r);
-      var primary = PRIMARY_ORDER.filter(function (a) { return avail.indexOf(a) !== -1; })[0];
+      var primary = A.primary(r);
       var nodes = [];
       if (primary) {
         var btns = A.buttons(r, { only: [primary], after: primary === 'complete' ? onCompleted : null });
@@ -232,15 +229,15 @@ window.MRT.views.queue = (function () {
       if (avail.indexOf('take') !== -1) menuItems.push({ label: 'Take it', icon: 'user', onClick: function () { A.run('take', r); } });
       var bkm = byId('bkms', r.bkm_id), bkmPath = bkm ? bkm.path : r.bkm_path;
       if (bkmPath) menuItems.push({ label: 'Copy BKM path', icon: 'copy', onClick: function () { ui.copyText(bkmPath, 'BKM path copied'); } });
-      avail.filter(function (a) { return PRIMARY_ORDER.concat(['hold', 'clarify', 'take']).indexOf(a) === -1; }).forEach(function (a) {
+      avail.filter(function (a) { return a !== primary && ['hold', 'clarify', 'take'].indexOf(a) === -1; }).forEach(function (a) {
         menuItems.push({ label: A.label(a), onClick: function () { A.run(a, r); } });
       });
       if (D.canCancel(me, r, byId('tools', r.tool_id))) {
         menuItems.push({ label: 'Cancel request', icon: 'close', onClick: function () { cancelFor(r); } });
       }
       if (menuItems.length) {
-        var more = ui.button('...', { size: 'sm', kind: 'ghost', ariaLabel: 'More actions for ' + r.request_no, title: 'More actions' });
-        more.onclick = function () { ui.menu(more, menuItems); };
+        var more = ui.button('...', { size: 'sm', kind: 'ghost', ariaLabel: 'More actions for ' + r.request_no, title: 'More actions',
+          onClick: function () { ui.menu(more, menuItems); } });
         nodes.push(more);
       }
       return nodes;
@@ -276,8 +273,8 @@ window.MRT.views.queue = (function () {
 
     function doneTodaySection() {
       var toggle = ui.button('Done today (' + doneToday.length + ')', { size: 'sm', kind: 'ghost', icon: doneOpen ? 'chevron_down' : 'chevron_right',
-        ariaLabel: (doneOpen ? 'Hide' : 'Show') + ' requests completed today' });
-      toggle.onclick = function () { doneOpen = !doneOpen; draw(); };
+        ariaLabel: (doneOpen ? 'Hide' : 'Show') + ' requests completed today',
+        onClick: function () { doneOpen = !doneOpen; draw(); } });
       return ui.el('div', { class: 'done-today' }, [toggle,
         doneOpen ? ui.el('ul', { class: 'done-list' }, doneToday.map(function (d) {
           return ui.el('li', {}, [ui.el('span', { class: 'mono', text: d.no }),
