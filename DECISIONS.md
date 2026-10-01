@@ -735,3 +735,12 @@ never the only signal - the text/label says the same thing.
   tabs (open #30); H-8: DOM budget guard (`tests/dom-budget.js`, 5000
   nodes/view, queue paging); H-10: the store picks its storage adapter
   from `config.adapters.storage`, so the server move needs no store edit.
+- **D-SRV-1** (server-sqlite, Phase 1: server skeleton) Built-in
+  `node:sqlite` (Node 22.5+, zero native build, sync API), not
+  better-sqlite3: nothing to compile on ProKube or the VM, smaller image.
+  `server/` on built-in `node:http` only, no dependencies, no package.json.
+  WAL + foreign keys on open, DB path from `MRT_DB` (default `data/`,
+  git-ignored). Static serving from the same process (kills the `file://`
+  CORS problem, open #12). Socket binding is not provable in the dev
+  sandbox (listen is blocked) — `tests/server-smoke.js` drives the
+  handler directly; real binding is proven in the Phase 5 Docker step.
