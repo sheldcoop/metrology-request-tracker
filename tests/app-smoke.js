@@ -173,21 +173,15 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   hcSw.checked = false; hcSw.dispatch('change'); await settle();
   check('...switching it back off restores normal contrast', doc.documentElement.getAttribute('data-contrast') === 'normal');
   doc.getElementById('userBtn').click(); await settle();
-  doc.getElementById('themeBtn').click(); await settle();
-  const tmMenu = doc.body.querySelector('.menu');
-  const tcard2 = k => (tmMenu.querySelectorAll('.tg-card').filter(c => c.dataset.key === k))[0];
-  check('the topbar theme button opens a compact gallery: one card per theme, keyboard roles, no Office default',
-        !!tmMenu && tmMenu.querySelectorAll('.tg-card').length === MRT.themes.list.length &&
-        tmMenu.querySelectorAll('.tg-card[role="radio"]').length === MRT.themes.list.length && !tcard2(''));
-  check('...the current theme is marked', !!tmMenu.querySelector('.tg-card.is-on') &&
-        tmMenu.querySelector('.tg-card.is-on').dataset.key === 'pure-white');
-  tcard2('slate').click(); await settle();
-  check('...one click switches at once and is remembered per user', doc.documentElement.getAttribute('data-theme') === 'slate' &&
-        storage['mrt.theme.' + MRT.store.currentUser().id] === 'slate');
-  tcard2('pure-white').click(); await settle();
-  check('...every theme is one click away, no cycling', doc.documentElement.getAttribute('data-theme') === 'pure-white');
-  doc.getElementById('themeBtn').click(); await settle();
-  check('...clicking the button again closes it', !doc.body.querySelector('.menu'));
+  (function () {   // HOME-26: the topbar theme button switches on every click, no menu
+    const order = MRT.themes.list.map(t => t.key), start = doc.documentElement.getAttribute('data-theme'), seen = [];
+    for (let k = 0; k < order.length; k++) { doc.getElementById('themeBtn').click(); flush(); seen.push(doc.documentElement.getAttribute('data-theme')); }
+    check('the topbar theme button switches at once on every click, no menu', !doc.body.querySelector('.menu') &&
+          seen[0] === order[(order.indexOf(start) + 1) % order.length], seen.join());
+    check('...keep clicking: all five, then back to the start', new Set(seen).size === order.length && seen[seen.length - 1] === start);
+    check('...remembered per user, and the button says which one', storage['mrt.theme.' + MRT.store.currentUser().id] === start &&
+          /click for the next one/.test(doc.getElementById('themeBtn').getAttribute('title')));
+  })();
   win.setHash('#/home'); await settle();
   const homeCards = doc.getElementById('main').querySelectorAll('.home-card').map(c => c.getAttribute('href'));
   check('Home shows his nine admin doors (HOME-23)',

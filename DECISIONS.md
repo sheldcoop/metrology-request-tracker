@@ -1200,3 +1200,10 @@ never the only signal - the text/label says the same thing.
   click switches - kept per person on this PC), and a sign-out icon
   (Lucide log-out, added to the sprite and core.js PATHS) sits beside it;
   it runs the same "change-user" as the user menu's Sign out.
+- **HOME-26** (home-final: theme button cycles, 2026-10-01, Prince: "people
+  keep on clicking and changing") The topbar theme button no longer opens a
+  menu: every click switches straight to the next theme (Dark Teal, Pure
+  White, Slate, Neutral, Copper, round again), with a short toast naming
+  it; the button's tooltip says which theme is on. Kept per person on this
+  PC. Reverses the Step 2 "no cycling" popup; the full gallery with Office
+  default stays in the user menu's Theme... dialog.

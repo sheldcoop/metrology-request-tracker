@@ -150,21 +150,29 @@ window.MRT.app = (function () {
 
   /** '' = follow the office default again. */
   function setTheme(next) {
-    if (next) { applyTheme(next); applyContrast(readPref('contrast', store.status().currentUserId) === 'high'); writePref('theme', next); return; }
+    if (next) { applyTheme(next); applyContrast(readPref('contrast', store.status().currentUserId) === 'high'); writePref('theme', next); paintThemeBtn(); return; }
     try { localStorage.removeItem(prefKey('theme', store.status().currentUserId)); } catch (e) { /* private mode */ }
     applyTheme(officeTheme());
     applyContrast(readPref('contrast', store.status().currentUserId) === 'high');
   }
 
-  /** The topbar theme button: the same gallery, compact (swatch preview per theme).
-   *  Personal only - no "Office default" here; that stays in the user menu's
-   *  Theme... dialog. A pick switches at once via setTheme (rethemeCharts kept). */
-  function openThemeMenu(anchor) {
-    var g = ui.themeGallery({ themes: TH, value: readTheme(store.status().currentUserId), onPick: setTheme });
-    ui.menu(anchor, [{ node: [ui.el('div', { class: 'theme-compact' }, [g.node])] }],
-      [ui.el('b', { text: 'Theme' }), ui.el('span', { class: 'muted', text: ' - one click switches, kept for you on this PC' })]);
-    var on = g.node.querySelector('.tg-card.is-on') || g.node.querySelector('.tg-card');
-    if (on && on.focus) on.focus();
+  /** The topbar theme button (HOME-26, Prince): every click switches to the
+   *  next theme at once - no menu; keep clicking to go round all five. Kept
+   *  per person on this PC. The full gallery (with Office default) stays in
+   *  the user menu's Theme... dialog. */
+  function nextTheme() {
+    var list = TH.list, i = list.map(function (t) { return t.key; }).indexOf(app.theme);
+    var next = list[(i + 1) % list.length];
+    setTheme(next.key);
+    paintThemeBtn();
+    ui.toast({ message: 'Theme: ' + next.name, timeout_ms: 1200 });
+  }
+  function paintThemeBtn() {
+    var b = document.getElementById('themeBtn');
+    if (!b) return;
+    var t = TH.byKey(app.theme) || {};
+    b.setAttribute('title', 'Theme: ' + t.name + ' - click for the next one');
+    b.setAttribute('aria-label', 'Theme: ' + t.name + '. Click for the next theme');
   }
 
   /** The theme gallery: every theme as a live sample; a click switches at once and is remembered for you on this PC. */
@@ -484,7 +492,7 @@ window.MRT.app = (function () {
     ui.mount(document.getElementById('brandMark'), ui.icon('logo', 20));
     ui.mount(document.getElementById('searchIcon'), ui.icon('search', 18));
     ui.mount(document.getElementById('bellIcon'), ui.icon('bell', 18));
-    if (document.getElementById('themeBtn')) ui.mount(document.getElementById('themeBtn'), ui.icon('contrast', 18));
+    if (document.getElementById('themeBtn')) { ui.mount(document.getElementById('themeBtn'), ui.icon('contrast', 18)); paintThemeBtn(); }
     if (document.getElementById('signOutBtn')) ui.mount(document.getElementById('signOutBtn'), ui.icon('log-out', 18));
     ui.mount(document.getElementById('userCaret'), ui.icon('chevron_down', 16));
   }
@@ -1168,7 +1176,7 @@ window.MRT.app = (function () {
     'reconnect': reconnect,
     'change-user': changeUser,
     'user-menu': openUserMenu,
-    'theme-menu': function (btn) { openThemeMenu(btn); },
+    'theme-menu': function () { nextTheme(); },
     'show-keys': showKeys,
     'bell': function (btn) { openBell(btn); },
     'nav-collapse': toggleNav,
