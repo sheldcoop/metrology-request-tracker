@@ -581,6 +581,8 @@ table.grid tbody tr[tabindex]:focus-visible { outline-offset: -2px; }
 .prf-problems ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .prf-problems li { display: flex; gap: 6px; align-items: flex-start; font-size: 13px; color: var(--fg-muted); }
 .prf-problems li svg { flex: none; color: var(--warning-fg); margin-top: 2px; }
+.prf-problems li.is-error svg { color: var(--critical-fg); }
+.prf-problems li.is-error { color: var(--critical-fg); }
 .prf-settings { display: grid; gap: 16px; }
 .prf-meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
 .prf-meta dt { color: var(--fg-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
