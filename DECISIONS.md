@@ -903,3 +903,26 @@ never the only signal - the text/label says the same thing.
   page pick still wins. The role rule `domain.homeFor` stays untouched
   (Q16, still unit-tested) but no longer picks the landing. This
   supersedes the M3-12 landing part only.
+- **DASH-15** (dashboard-front-page, Part A frame) One top bar, 56 px:
+  mark + "Metrology" (M1 pill gone), search centred to 560 px ("Search
+  requests, lots, panels"), save state as quiet muted text (shows
+  "Saved" 4 s after a save; colour only for Saving/failed), "+ New" the
+  only filled button at full 36 px, bell dot with the count inside the
+  panel, avatar menu gains Help and "Sign out" (was "Change user";
+  Reduce motion, Reload, Change folder stay). All controls 36 px, 18 px
+  icons. The strip bar is gone with its clock (already clockless since
+  DASH-8): My queue badge carries Line stop + Late on the person's
+  tools, the queue page opens with a plain filter-link counts line
+  (late colour on Line stop/Late numbers above zero). One slim calm
+  line-stop banner under the bar for the first undismissed open Line
+  stop on the QE's tools, dismissed per request per person on the PC.
+- **DASH-16** (dashboard-front-page, Part A board) Cards are two lines at
+  58 px: short ID (no tool prefix) + "N pnl", or red "late N d" (calendar
+  days, like the request page) with the count moved to line 2; line 2 is
+  lot + build-up with P1/P2 code and at most one chip (Stuck covers On
+  hold). Thin 3 px stripe for P1/P2 only. Countdown and panels live in
+  the hover tooltip (repainted by the 1 s text-only tick) and the
+  drawer. Columns are plain `surface` with 10 px gaps (5 cols 790 px,
+  7 cols 1110 px - still inside 1440 px); empty cells say "Nothing
+  here". The `.q-clock` rules are retired (traveller clocks are
+  `.tr-clock`).
