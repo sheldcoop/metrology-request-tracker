@@ -38,6 +38,7 @@ window.MRT.app = (function () {
     { key: 'lots',      label: 'Lots',        icon: 'lots',        g: 'o', ms: 'M2', grp: 3 },
     { key: 'results',   label: 'Results',     icon: 'folder',      g: 'e', ms: 'M5', grp: 3 },
     { key: 'hirata',    label: 'Hirata tools', icon: 'hirata',     g: 't', ms: 'M2', grp: 3 },
+    { key: 'prf',       label: 'PRF data',    icon: 'ruler',       g: 'p', ms: 'M2', grp: 3 },
     { key: 'analytics', label: 'Analytics',   icon: 'analytics',   g: 'a', ms: 'M5', grp: 4 },
     { key: 'settings',  label: 'Settings',    icon: 'settings',    g: 's', ms: 'M1', grp: 5 },
     { key: 'help',      label: 'Help',        icon: 'help',        g: 'h', ms: 'M1', grp: 5 }

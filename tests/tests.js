@@ -1760,6 +1760,226 @@
     eq('...a file whose magazine list stayed empty gets the 20 sample magazines', v9b.magazines.length, 20);
   }
 
+  /* ---------------- PRF data: js/prf.js (a port of PRF_Insight.py) ---------------- */
+  function prfTests() {
+    var P = window.MRT.prf;
+
+    group('PRF data - numbers');
+    eq('toFloat reads numbers like python float()', [P.toFloat('1.5'), P.toFloat(' -2e3 '), P.toFloat('.5'), P.toFloat('1_0')], [1.5, -2000, 0.5, 10]);
+    eq('toFloat: empty and text are NOT numbers (JS Number("") would be 0)', [P.toFloat(''), P.toFloat('abc'), P.toFloat('1,5'), P.toFloat('--1')], [null, null, null, null]);
+    ok('toFloat: nan / inf like python', isNaN(P.toFloat('nan')) && P.toFloat('-inf') === -Infinity && P.toFloat('Infinity') === Infinity);
+    eq('round to 6 digits', [P.round(1.23456789, 6), P.round(-1.23456789, 6), P.round(2, 6)], [1.234568, -1.234568, 2]);
+    ok('round keeps NaN', isNaN(P.round(NaN, 6)));
+    eq('mean', P.mean([1, 2, 3, 4]), 2.5);
+    eq('std is the SAMPLE std (pandas ddof=1)', P.round(P.std([2, 4, 4, 4, 5, 5, 7, 9], 1), 6), 2.13809);
+    eq('std with ddof=0 is the population std', P.std([2, 4, 4, 4, 5, 5, 7, 9], 0), 2);
+    ok('std of one value with ddof=1 is NaN (the script then shows a blank)', isNaN(P.std([5], 1)));
+    eq('median odd / even', [P.median([3, 1, 2]), P.median([4, 1, 3, 2])], [2, 2.5]);
+    ok('mean / min / max of nothing are NaN', isNaN(P.mean([])) && isNaN(P.minOf([])) && isNaN(P.maxOf([])));
+
+    group('PRF data - path: build-up, panel, side, lot');
+    eq('buNumber reads BU-01 / BU01 / bu 1 / BU_2', ['BU-01', 'BU01', 'bu 1', 'BU_2', 'XBU3', 'Bu-12 done'].map(P.buNumber), [1, 1, 1, 2, null, 12]);
+    eq('buLabel', [P.buLabel(1), P.buLabel(12), P.buLabel(null)], ['BU01', 'BU12', '']);
+    eq('panel and side from folder names', P.panelSideFromPath(['Post DSM', 'Panel 28', 'Front', 'log']), { panels: [28], sides: ['Front'] });
+    eq('...also "Panel 1_Front - done"', P.panelSideFromPath(['Panel 1_Front - done']), { panels: [1], sides: ['Front'] });
+    eq('...a folder called "Backup" is not Back', P.panelSideFromPath(['Panel 3', 'Backup']).sides, []);
+    eq('...both sides in a path are both reported', P.panelSideFromPath(['Panel 3', 'Front', 'Back']).sides, ['Front', 'Back']);
+    eq('lot = the 5-digit folder; part before, project before that', P.lotFromPath(['L', 'ProjX', 'PN-7', '12345', 'BU-01']), { part: 'PN-7', project: 'ProjX', lot: '12345' });
+    eq('...a lot like 12345.1 counts', P.lotFromPath(['PN', '12345.1']).lot, '12345.1');
+    eq('...no 5-digit folder: the folder above PRF / BU is the lot', P.lotFromPath(['Proj', 'PN', 'LOTX', 'PRF', 'Panel 1']), { part: 'PN', project: 'Proj', lot: 'LOTX' });
+    eq('...two different lots in one path = several', P.lotFromPath(['12345', 'x', '54321']), 'several');
+    eq('...none = null', P.lotFromPath(['a', 'b']), null);
+
+    group('PRF data - find log folders (index)');
+    var idx = P.indexLogs('Root', [
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 1', 'Front'], ref: 'r1' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 1', 'Back'], ref: 'r2' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 2'], ref: 'r3' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 1', 'Front', 'again'], ref: 'r4' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 1', 'BU-02', 'Back'], ref: 'r5' },
+      { rel: ['Proj', 'PN1', '12345', 'Panel 3', 'Front'], ref: 'r6' },
+      { rel: ['Proj', 'PN1', '12345', 'BU-01', 'Panel 4', 'Front', 'Panel 5'], ref: 'r7' }
+    ]);
+    eq('lots found with project and part', idx.lots, { '12345': { project: 'Proj', part: 'PN1' } });
+    eq('a side folder is keyed by lot, build-up, panel, side', Object.keys(idx.index).sort(), ['12345|1|1|Back', '12345|1|1|Front', '12345||3|Front'].sort());
+    eq('two log folders for one panel + side are kept together', idx.index['12345|1|1|Front'].refs, ['r1', 'r4']);
+    eq('problems: no Front/Back, two build-ups, several panels', idx.problems, [
+      'No Front/Back in path, skipped: r3', 'Several buildups in path, skipped: r5', 'Several panel number in path, skipped: r7']);
+    var rootIsPanel = P.indexLogs('Panel 9 Front', [{ rel: [], ref: 'x' }]);
+    eq('root = a panel/side folder: panel and side come from the root name', Object.keys(rootIsPanel.index), ['||9|Front']);
+    eq('siteNumber = last number in the file name', [P.siteNumber('C:/a/Site_12.txt'), P.siteNumber('a3_b45.csv'), P.siteNumber('none.txt')], [12, 45, -1]);
+
+    group('PRF data - reading and sorting files');
+    eq('lines: CRLF, trailing empty line dropped', P.textToLines('a\r\nb\r\n'), ['a', 'b']);
+    eq('lines: a blank line inside stays, bad-byte characters are dropped', P.textToLines('a\n\nb\uFFFD'), ['a', '', 'b']);
+    eq('lines: empty text has no lines (py "".splitlines())', P.textToLines(''), []);
+    eq('split: tab if there is a tab, else comma, cells trimmed', [P.splitLine('a\t b ,c'), P.splitLine('a, b ,c')], [['a', 'b ,c'], ['a', 'b', 'c']]);
+    var rough = ['Some header', 'Ra\tRq\tRz\tRpv\tRku', '0.1\t0.2\t0.5\t0.6\t3', '0.2\t0.3\t0.7\t0.8\t3.1', 'Min\t0.1'];
+    var via = ['Diamond Area 0.5', 'Index,CenterX,CenterY,MajorAxis,MinorAxis,AvgHeight,MinHeight,MaxHeight', '1,0,0,50,48,-30,-31,-29'];
+    eq('classify: roughness', P.classify(rough), 'roughness');
+    eq('classify: via (Diamond Area, or Index + CenterX)', [P.classify(via), P.classify(['Index\tCenterX'])], ['via', 'via']);
+    eq('classify: unknown', P.classify(['hello', 'world']), 'unknown');
+    eq('classify: via is checked before roughness', P.classify(rough.concat(['Diamond Area'])), 'via');
+    eq('parseRoughness stops at the Min / Max / Mean row', P.parseRoughness(rough).rows.length, 2);
+    eq('parseRoughness reads the columns by name', P.parseRoughness(rough).rows[1], { Ra: 0.2, Rq: 0.3, Rz: 0.7, Rpv: 0.8, Rku: 3.1 });
+    eq('parseRoughness drops lines that are not numbers', P.parseRoughness(['Ra,Rq', '1,2', 'x,3', '4,5']).rows.length, 2);
+    var bad = 'none'; try { P.parseRoughness(['x']); } catch (e) { bad = e.message; }
+    eq('parseRoughness without a header says so', bad, 'roughness header not found');
+    eq('parseVia reads a circle row', P.parseVia(via).rows, [{ Index: 1, CenterX: 0, CenterY: 0, MajorAxis: 50, MinorAxis: 48, AvgHeight: -30, MinHeight: -31, MaxHeight: -29 }]);
+    eq('parseVia ignores rows whose first cell is not an integer', P.parseVia(['Index,CenterX', 'x,1', '2,5']).rows.length, 1);
+    var bad2 = 'none'; try { P.need({ a: 1 }, 'Rpv'); } catch (e) { bad2 = e.message; }
+    eq('a missing column is an error named like the script ("\'Rpv\'")', bad2, "'Rpv'");
+
+    group('PRF data - unit labels');
+    eq('unitType: number = Unit, letter first = Coupon', [P.unitType(3), P.unitType('C1'), P.unitType('-2')], ['Unit', 'Coupon', 'Unit']);
+    eq('asLabel keeps numbers as numbers, coupons as text', [P.asLabel('7'), P.asLabel('C3'), P.asLabel(' 12 ')], [7, 'C3', 12]);
+    eq('units: the typed ORDER is kept, never sorted', P.parseUnits('5,4,2,3,6').units, [5, 4, 2, 3, 6]);
+    eq('units: commas, spaces or both; numbers above 9 are one unit', P.parseUnits('12  3, 10;C1').units, [12, 3, 10, 'C1']);
+    eq('units: anything else is reported, not guessed', P.parseUnits('1, x, 2-3').bad, ['x', '2-3']);
+    eq('sequence text 3x3, 2x4, C1x5', P.parseSequence('3x3, 2x4, C1x5').items, [['3', 3], ['2', 4], ['C1', 5]]);
+    eq('sequence list form', P.parseSequence([[3, 3], ['C1', 5]]).items, [['3', 3], ['C1', 5]]);
+    eq('sequence: X and * work too', P.parseSequence('3X2;4*1').items, [['3', 2], ['4', 1]]);
+    eq('sequence: empty = none, no message', [P.parseSequence('').items, P.parseSequence('').error], [null, '']);
+    ok('sequence: a bad part ignores the whole sequence and says why', P.parseSequence('3x3, abc').items === null && /Bad via sequence part "abc"/.test(P.parseSequence('3x3, abc').error));
+    ok('sequence: count 0 is refused', /1 or more/.test(P.parseSequence('3x0').error));
+    eq('sequenceText', P.sequenceText([['3', 3], ['C1', 5]]), '3x3, C1x5');
+
+    group('PRF data - how vias are split over units');
+    eq('even split: 6 files / 3 units = 2 each, in unit order (never sorted)', P.viaLabels(6, [5, 4, 2], null, null).labels, [[5, 1], [5, 2], [4, 1], [4, 2], [2, 1], [2, 2]]);
+    eq('...the message says so', P.viaLabels(6, [5, 4, 2], null, null).messages, [{ level: 'INFO', text: '6 via files / 3 units = 2 vias per unit' }]);
+    eq('even split that does not fit = error, nothing labelled', [P.viaLabels(7, [1, 2], null, null).labels, P.viaLabels(7, [1, 2], null, null).messages[0].level], [[], 'ERROR']);
+    eq('...no units at all = error', P.viaLabels(4, [], null, null).labels, []);
+    eq('fixed per unit / coupon', P.viaLabels(5, [], null, P.countsFromDefaults([1, 'C1'], 3, 2)).labels, [[1, 1], [1, 2], [1, 3], ['C1', 1], ['C1', 2]]);
+    eq('countsFromDefaults: coupon count defaults to the unit count; none without units', [P.countsFromDefaults([1, 'C1'], 4, 0), P.countsFromDefaults([], 4, 0), P.countsFromDefaults([1], 0, 0)], [[[1, 4], ['C1', 4]], null, null]);
+    eq('sequence wins over the other splits', P.viaLabels(3, [1], [['3', 2], ['C1', 1]], P.countsFromDefaults([1], 9, 0)).labels, [['3', 1], ['3', 2], ['C1', 1]]);
+    eq('sequence that does not fit = error', P.viaLabels(5, [1], [['3', 2]], null).messages[0].level, 'ERROR');
+    eq('counts that do not fit = error', P.viaLabels(5, [1], null, [[1, 2]]).messages[0].level, 'ERROR');
+    eq('compress 1,2,3,7,9,10', P.compress([10, 1, 2, 3, 7, 9]), '1-3, 7, 9-10');
+  }
+  prfTests();
+
+  function prfTests2() {
+    var P = window.MRT.prf;
+    var meta = { Lot_Number: '12345', Buildup: 'BU01', Panel: 3 };
+    var cfg = { flagFactor: 1.5, filterOutliers: false, nrSigma: 2 };
+
+    group('PRF data - roughness row');
+    var r1 = ['Ra\tRq\tRz\tRpv\tRku', '1\t2\t5\t6\t3', '1.2\t2.2\t30\t7\t3.1'];
+    var out = P.roughnessRow(r1, 5, 'Next to Via', 12, meta, 'Front', cfg);
+    eq('values are converted um -> nm (x1000) and rounded to 6', [out.row.Ra_Mean_nm, out.row.Rz_Mean_nm], [1100, 17500]);
+    eq('Unit/Type/Position/Site copied onto the row', [out.row.Unit, out.row.Type, out.row.Measurement_Position, out.row.Site], [5, 'Unit', 'Next to Via', 12]);
+    ok('a line whose Rz is > flag_factor x median Rz flags that line and the row', out.row.Flag === 'CHECK' && out.row.Lines_Flagged === 1 && /spiky line/.test(out.flagMessage));
+    eq('Std uses the SAMPLE std (ddof=1), not population', P.round(out.row.Ra_Std_nm, 4), P.round(P.std([1000, 1200], 1), 4));
+    eq('raw rows: one per line, nm, 6 decimals', out.raw.length, 2);
+    eq('a coupon label is typed as Coupon', P.roughnessRow(r1, 'C1', 'p', 1, meta, 'Front', cfg).row.Type, 'Coupon');
+
+    var r2 = ['Ra\tRq\tRz\tRpv\tRku', '1\t2\t5\t6\t3', '1.1\t2.1\t5.1\t6\t3', '1000\t200\t5\t6\t3'];
+    var outF = P.roughnessRow(r2, 1, 'p', 1, meta, 'Front', { flagFactor: 1.5, filterOutliers: true, nrSigma: 1 });
+    eq('outlier filter drops a line whose Ra OR Rz is off (both columns must pass, ddof=0)', outF.row.Lines_Used, 1);
+    var r3 = ['Ra\tRq\tRz\tRpv\tRku', '1\t2\t5\t6\t3'];
+    eq('filter_outliers does nothing with 2 or fewer lines (py "len(df) > 2")', P.roughnessRow(r3, 1, 'p', 1, meta, 'Front', { flagFactor: 1.5, filterOutliers: true, nrSigma: 2 }).row.Lines_Used, 1);
+
+    group('PRF data - processRoughness (file count vs units x positions)');
+    var files = [{ lines: r1, site: 1 }, { lines: r1, site: 2 }];
+    var pr = P.processRoughness(files, [5], ['A', 'B'], cfg, meta, 'Front');
+    eq('2 files = 1 unit x 2 positions: both labelled, unit-major then position', [pr.rows[0].Measurement_Position, pr.rows[1].Measurement_Position], ['A', 'B']);
+    var prBad = P.processRoughness(files, [5, 7], ['A', 'B'], cfg, meta, 'Front');
+    eq('a count mismatch is an ERROR and nothing is produced', [prBad.rows, prBad.messages[0].level], [[], 'ERROR']);
+    var prNoUnits = P.processRoughness(files, [], ['A'], cfg, meta, 'Front');
+    eq('no units set is also an ERROR', prNoUnits.messages[0].level, 'ERROR');
+
+    group('PRF data - via circle geometry');
+    eq('circle_values: D = (L+S)/2, roundness % (py 584)', P.circleValues({ MajorAxis: 100, MinorAxis: 96 }), { L: 100, S: 96, D: 98, R: (1 - 4 / 98) * 100 });
+    var viaLines = ['Index,CenterX,CenterY,MajorAxis,MinorAxis,AvgHeight,MinHeight,MaxHeight',
+      '1,0,0,100,96,0,0,0', '2,0,0,60,56,-50,-51,-49'];
+    var vr = P.viaRow(viaLines, 2, 1, 7, meta, 'Front');
+    eq('top = largest D, bottom = smallest D (sorted by D desc)', [vr.row.Top_Diameter_um, vr.row.Bottom_Diameter_um], [98, 58]);
+    eq('depth = |bottom AvgHeight|; taper = topD - bottomD', [vr.row.Average_Via_Depth_um, vr.row.Taper_um], [50, 40]);
+    eq('aspect ratio = depth / topD; bottom/top % = bottomD/topD x100', [vr.row.Aspect_Ratio, vr.row.Bottom_Top_Ratio_pct], [P.round(50 / 98, 6), P.round(58 / 98 * 100, 6)]);
+    eq('taper angle = atan(taper/(2*depth)) in degrees; wall = 90 - angle', [vr.row.Taper_Angle_deg, vr.row.Wall_Angle_deg], [P.round(Math.atan(40 / 100) * 180 / Math.PI, 6), P.round(90 - Math.atan(40 / 100) * 180 / Math.PI, 6)]);
+    ok('exactly 2 circles: no flag', vr.row.Flag === '' && !vr.flagMessage);
+    var vr3 = P.viaRow(viaLines.concat(['3,0,0,80,76,-20,-21,-19']), 2, 1, 7, meta, 'Front');
+    eq('3 circles: flagged "3 circles", middle one is Extra', [vr3.row.Flag, vr3.raw[1].Circle_Type], ['3 circles', 'Extra']);
+    var vr1 = P.viaRow([viaLines[0], viaLines[1]], 2, 1, 7, meta, 'Front');
+    ok('only 1 circle: top set, bottom (and depth/taper/...) stay blank, flagged', isNaN(vr1.row.Average_Via_Depth_um) && vr1.row.Flag === '1 circles' && P.isNum(vr1.row.Top_Diameter_um));
+    var viaZero = ['Index,CenterX,CenterY,MajorAxis,MinorAxis,AvgHeight,MinHeight,MaxHeight', '1,0,0,100,96,0,0,0', '2,0,0,60,56,0,-1,1'];
+    ok('depth = 0: aspect ratio / angles stay blank (py "if depth > 0")', isNaN(P.viaRow(viaZero, 2, 1, 7, meta, 'Front').row.Aspect_Ratio));
+
+    group('PRF data - processVia');
+    var vfiles = [{ lines: viaLines, site: 1 }, { lines: viaLines, site: 2 }];
+    var pv = P.processVia(vfiles, [5, 6], meta, 'Front', null, null);
+    eq('even split over 2 units, 1 via file each', [pv.rows[0].Unit, pv.rows[1].Unit], [5, 6]);
+    var pvBad = P.processVia(vfiles, [5, 6, 7], meta, 'Front', null, null);
+    eq('a split that does not fit produces nothing', pvBad.rows, []);
+
+    group('PRF data - check_sites');
+    eq('duplicates reported', P.checkSites([[1, 'R'], [1, 'R'], [2, 'V']], [1], [1], 1, null).filter(function (m) { return /Duplicate/.test(m.text); }).length, 1);
+    eq('missing sites (gap 1..highest)', P.checkSites([[1, 'R'], [3, 'V']], [1], [1], 1, null).filter(function (m) { return /Missing sites: 2/.test(m.text); }).length, 1);
+    eq('complete run says so', P.checkSites([[1, 'R'], [2, 'V']], [1], [1], 1, null).filter(function (m) { return /Sites complete: 1-2/.test(m.text); }).length, 1);
+    eq('roughness sites not consecutive within a group of n_pos', P.checkSites([[1, 'R'], [5, 'R']], [1], [1], 2, null).filter(function (m) { return /not consecutive/.test(m.text); }).length, 1);
+    eq('block pattern VVVVVRR x2 units: both blocks match = OK', P.checkSites([[1, 'V'], [2, 'V'], [3, 'R'], [4, 'V'], [5, 'V'], [6, 'R']], [1, 2], [1, 2], 1, null).filter(function (m) { return /Site pattern OK/.test(m.text); }).length, 1);
+    eq('block pattern differs between units = warning', P.checkSites([[1, 'V'], [2, 'R'], [3, 'V'], [4, 'V']], [1, 2], [1, 2], 1, null).filter(function (m) { return /differs from block 1/.test(m.text); }).length, 1);
+    eq('a via sequence skips the block check (uneven by design)', P.checkSites([[1, 'V'], [2, 'V'], [3, 'V']], [1], [1], 1, [['1', 3]]).filter(function (m) { return /skipped \(via sequence/.test(m.text); }).length, 1);
+
+    group('PRF data - summary and spec limits');
+    eq('pretty names: unit suffix -> unit text, special name for Bottom/Top', [P.pretty('Top_Diameter_um'), P.pretty('Bottom_Top_Ratio_pct'), P.pretty('Aspect_Ratio')], ['Top Diameter (µm)', 'Bottom/Top Ratio (%)', 'Aspect Ratio']);
+    var gl = P.getLimits({ via_depth: [10, 20], bad_key: [1, 2], aspect_ratio: [null, null] });
+    eq('getLimits keeps only known, non-empty keys; unknown keys warn', [gl.limits, gl.messages.length], [{ Average_Via_Depth_um: [10, 20] }, 1]);
+    var t2b = [
+      { Lot_Number: 'L', Buildup: 'B', Panel: 1, Side: 'Front', Average_Via_Depth_um: 10, Top_Diameter_um: 50, Bottom_Diameter_um: 40, Top_Roundness_pct: 99, Bottom_Roundness_pct: 98, Aspect_Ratio: 0.2, Bottom_Top_Ratio_pct: 80, Taper_um: 10, Taper_Angle_deg: 5, Wall_Angle_deg: 85 },
+      { Lot_Number: 'L', Buildup: 'B', Panel: 1, Side: 'Front', Average_Via_Depth_um: 30, Top_Diameter_um: 50, Bottom_Diameter_um: 40, Top_Roundness_pct: 99, Bottom_Roundness_pct: 98, Aspect_Ratio: 0.2, Bottom_Top_Ratio_pct: 80, Taper_um: 10, Taper_Angle_deg: 5, Wall_Angle_deg: 85 },
+      { Lot_Number: 'L', Buildup: 'B', Panel: 1, Side: 'Back', Average_Via_Depth_um: 50, Top_Diameter_um: 50, Bottom_Diameter_um: 40, Top_Roundness_pct: 99, Bottom_Roundness_pct: 98, Aspect_Ratio: 0.2, Bottom_Top_Ratio_pct: 80, Taper_um: 10, Taper_Angle_deg: 5, Wall_Angle_deg: 85 }
+    ];
+    var sum = P.buildSummary(t2b, [], { Average_Via_Depth_um: [5, 45] });
+    var frontDepth = sum.filter(function (r) { return r.Side === 'Front' && r.Parameter === 'Average Via Depth (µm)'; })[0];
+    eq('N / Mean / Std (sample) / Min / Max per group', [frontDepth.N, frontDepth.Mean, P.round(frontDepth.Std, 6), frontDepth.Min, frontDepth.Max], [2, 20, P.round(P.std([10, 30], 1), 6), 10, 30]);
+    eq('spec limits -> PASS/FAIL (min>=lo and max<=hi)', [frontDepth.Result, sum.filter(function (r) { return r.Side === 'Back' && r.Parameter === 'Average Via Depth (µm)'; })[0].Result], ['PASS', 'FAIL']);
+    eq('a parameter with no limit has no Result', sum.filter(function (r) { return r.Parameter === 'Top Diameter (µm)'; })[0].Result, '');
+    var cmp = P.buildComparison(sum);
+    var depthCmp = cmp.filter(function (r) { return r.Parameter === 'Average Via Depth (µm)'; })[0];
+    eq('Front vs Back: difference and % of Front', [depthCmp['Front Mean'], depthCmp['Back Mean'], depthCmp['Difference (Back - Front)'], depthCmp['Difference (%)']], [20, 50, 30, 150]);
+    eq('one side only -> no comparison rows', P.buildComparison(sum.filter(function (r) { return r.Side === 'Front'; })), []);
+  }
+  prfTests2();
+
+  function prfTests3() {
+    var P = window.MRT.prf;
+
+    group('PRF data - output file name and status');
+    eq('cleanToken strips anything but letters/digits/-/.', P.cleanToken('PN 7/A!'), 'PN7A.'.replace('.', '') + '');
+    eq('cleanToken keeps - and .', P.cleanToken('PN-7.1'), 'PN-7.1');
+    eq('joinShort: up to 3 items joined, more than 3 -> first-last', [P.joinShort(['a', 'b']), P.joinShort(['a', 'b', 'c', 'd'])], ['a-b', 'a-d']);
+    eq('joinShort: empty list', P.joinShort([]), '');
+    eq('buText: one build-up, several, none', [P.buText(['BU01']), P.buText(['BU02', 'BU01']), P.buText([])], ['BU01', 'BU01-02', '']);
+    var base = { parts: ['PN1'], lots: ['12345'], bus: ['BU01'], process: 'Post DSM', panels: [3, 1, 2], flagged: false, dateYmd: '2026-10-01' };
+    eq('output name: parts/lots/bu/process/panels/date, process "-" removed; 4 or fewer panels listed as-is, not compressed', P.buildOutputName(base), 'PRF_PN1_12345_BU01_PostDSM_P1-2-3_2026-10-01');
+    eq('output name: more than 4 panels -> first-last', P.buildOutputName(Object.assign({}, base, { panels: [1, 2, 3, 4, 5] })), 'PRF_PN1_12345_BU01_PostDSM_P1-5_2026-10-01');
+    eq('output name: a flagged run gets __INSPECT__', P.buildOutputName(Object.assign({}, base, { flagged: true })), 'PRF_PN1_12345_BU01_PostDSM_P1-2-3_2026-10-01__INSPECT__');
+    eq('output name: nothing known falls back to Part/Lot/BU (an empty process leaves a double underscore, as in the script)', P.buildOutputName({ parts: [], lots: [], bus: [], process: '', panels: [1], flagged: false, dateYmd: '2026-10-01' }), 'PRF_Part_Lot_BU__P1_2026-10-01');
+    eq('status: OK with nothing wrong', P.runStatus({}), 'OK');
+    eq('status: every reason joined with " | ", in order', P.runStatus({ errors: true, flagged: true, specFail: true, siteWarn: true }),
+      'ERRORS - see Log | Flagged rows | Out of spec | Site warnings - see Log');
+    eq('status: only one reason', P.runStatus({ flagged: true }), 'Flagged rows');
+  }
+  prfTests3();
+
+  function prfTests4() {
+    var P = window.MRT.prf;
+
+    group('PRF data - a pasted full path for the picked folder');
+    eq('splitPath: backslashes, trailing slash, Explorer quotes', P.splitPath('"L:\\ale\\130 - measurement results\\BU-01\\"'), ['L:', 'ale', '130 - measurement results', 'BU-01']);
+    eq('splitPath: forward slashes and empty text', [P.splitPath('a/b'), P.splitPath('')], [['a', 'b'], []]);
+    ok('pathEndsWith: the last folder must be the picked one (any case)', P.pathEndsWith(['L:', 'x', 'BU-01'], 'bu-01') && !P.pathEndsWith(['L:', 'x'], 'BU-01'));
+    var real = P.splitPath('L:\\ale\\ics_htb3_rnd\\130 - measurement results\\02_Engineering lots\\Chiplet4Future\\FHR0020\\19197\\BU-01');
+    var logs = [{ rel: ['Panel 3', 'Front'], ref: 'Panel 3/Front/log' }];
+    var noPath = P.indexLogs('BU-01', logs);
+    eq('picked BU-01 without a path: no lot, no project, no part (only BU)', [noPath.lots, Object.keys(noPath.index)], [{}, ['|1|3|Front']]);
+    var withPath = P.indexLogs('BU-01', logs, real);
+    eq('...with the pasted path: lot 19197, part FHR0020, project Chiplet4Future (the script reads the same)', withPath.lots, { '19197': { project: 'Chiplet4Future', part: 'FHR0020' } });
+    eq('...and the side is keyed under that lot and BU01', Object.keys(withPath.index), ['19197|1|3|Front']);
+  }
+  prfTests4();
+
   T.done = run().catch(function (e) {
     T.failed++;
     (current || (group('Runner'), current)).rows.push({ ok: false, name: 'the test run crashed', detail: String(e && e.stack || e) });

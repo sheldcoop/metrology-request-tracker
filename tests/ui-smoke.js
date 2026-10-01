@@ -23,7 +23,7 @@ if(process.argv[2]==='chart'){win.Chart=function(canvas,cfg){charts++;this.cfg=c
   const a=cfg.options.animations;if(a){a.y.from({index:1,chart:chartObj,datasetIndex:0});a.x.delay({type:'data',index:2})}
   this.destroy=()=>destroyed++;};}const ctx=vm.createContext(win);
 vm.runInContext(fs.readFileSync(path.join(ROOT,'js/themes.js'),'utf8'),ctx,{filename:'themes.js'});
-['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller','request-box','hirata','theme-gallery'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
+['core','components','glyphs','heatmap','overlays','chips','charts','panelmap','barcode','magazine','traveller','request-box','hirata','theme-gallery'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
 let errs=0;
 function check(name,fn){try{fn();flush()}catch(e){errs++;console.log('ERR',name,e.stack.split('\n').slice(0,3).join(' | '))}}
 function expect(name,cond){if(!cond){errs++;console.log('FAIL',name)}}
@@ -53,6 +53,14 @@ check('kpi',()=>{['ok','critical','expired',undefined].forEach(s=>{const k=put(u
 check('table',()=>{root.appendChild(ui.el('table',{class:'grid'},[ui.el('tr',{},[ui.el('th',{text:'h'})])]))});
 check('tabs',()=>{const t=put(ui.tabs([{key:'a',label:'A',icon:'user'},{key:'b',label:'B'}],()=>{}));t.setActive('b');expect('tabs active',t.node.querySelector('.tab-btn.active').textContent==='B')});
 check('empty+skeleton',()=>{put(ui.emptyState({icon:'inbox',title:'None',text:'t',actionLabel:'Add',onAction(){}}));put(ui.skeleton(4))});
+check('reorderChips',()=>{let seen=null;const c=put(ui.reorderChips({label:'Units',value:[5,4],onChange:v=>{seen=v}}));
+  expect('starts with the given order',JSON.stringify(c.value())===JSON.stringify([5,4]));
+  c.add('C1 2');expect('typed tokens append in order, coupons allowed',JSON.stringify(c.value())===JSON.stringify([5,4,'C1',2]));
+  expect('onChange fires with the new order',JSON.stringify(seen)===JSON.stringify([5,4,'C1',2]));
+  const before=c.value();c.set([2,'C1',4,5]);expect('set() replaces the order',JSON.stringify(c.value())===JSON.stringify([2,'C1',4,5]));
+  expect('a coupon chip is marked',c.node.querySelector('.chip-box.is-coupon')!==null);
+  c.node.querySelector('.chip-box-remove').click();expect('remove drops one item',c.value().length===3);
+  before.length});
 check('panel map',()=>{vm.runInContext(fs.readFileSync(path.join(ROOT,'js/config.js'),'utf8'),ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'js/domain.js'),'utf8'),ctx);
   const D=win.MRT.domain;let got=null;
   const pm=put(ui.panelMap({count:12,selected:[2],label:'Panels',parse:D.parsePanels,format:D.formatPanels,onChange:l=>{got=l}}));

@@ -1,0 +1,113 @@
+# =============================================================================
+#  PRF Insight settings
+#  Keep this file in the same folder as PRF_Insight.py
+#  Always put Windows paths in SINGLE quotes: 'L:\...'
+# =============================================================================
+
+# --- Folders ---------------------------------------------------------------
+# Folder to search. Any layout works, the script finds every 'log' folder:
+#   ...\Post DSM\Panel 28\Front\log
+#   ...\Post DSM\Front\Panel 1_Front - done\log
+# Leave EMPTY ('') to choose with a popup.
+root: ''
+
+# Where the Excel file is saved. Leave EMPTY ('') to choose with a popup.
+output_folder: ''
+
+# --- Panels and units ------------------------------------------------------
+panels: 'all'                   # 'all' = every panel found, or a list e.g. [3, 6]
+
+# Unit order as measured. Roughness and via can be different.
+# Leave a via list empty [] to use the same units as roughness.
+# No roughness measured? Leave the roughness lists empty [] and fill the via lists.
+front_roughness_units: [1,2]
+front_via_units:       [1,2]
+
+back_roughness_units:  []
+back_via_units:        []
+
+# --- Vias per unit (OPTIONAL) -----------------------------------------------
+# Use when units and coupons have a fixed but different number of vias.
+# Empty = split the via files evenly over the units.
+vias_per_unit:   ''      # e.g. 7
+vias_per_coupon: ''      # e.g. 2   (labels starting with a letter, C1, C3 ...)
+
+# Only if Front and Back differ. Empty = use the two lines above.
+front_vias_per_unit:   ''
+front_vias_per_coupon: ''
+back_vias_per_unit:    ''
+back_vias_per_coupon:  ''
+
+# --- Via sequence (OPTIONAL) -------------------------------------------------
+# Only for panels where the vias are NOT split evenly over the units.
+# Write it on ONE line, in measurement order:  label x number of via sites
+#   front_via_sequence: '3x3, 2x4, C1x5'
+# A label starting with a letter (C1, C3) is marked as Coupon in the report.
+# The total must match the number of via files. Leave '' to split evenly.
+front_via_sequence: ''
+
+back_via_sequence: ''
+
+# The list form still works if you prefer it:
+#   front_via_sequence:
+#     - [3,  3]
+#     - [C1, 5]
+
+# --- Units per panel (OPTIONAL) ---------------------------------------------
+# Only for panels that differ from the lists above. Give only what changes.
+# Example: Panel 18 Front has only 4 via units.
+panel_units:
+  # 18:
+  #   front_via_units: [5, 7, 8, 3]
+  # 40:
+  #   back_roughness_units: [7, 5, 8, 1, 3]
+  #   back_via_units:       [7, 5, 8]
+  # 29:
+  #   back_via_sequence: '3x6, C3x2, 6x2'
+
+# --- Metadata --------------------------------------------------------------
+# 'auto' = read from the folder path:  ...\<Project>\<Part number>\<Lot number>\...
+# Type a value to force it (e.g. a folder is named wrongly).
+# A typed lot_number also means: only that lot is processed.
+project_name: 'auto'
+part_number:  'auto'
+lot_number:   'auto'
+buildup:      'auto'     # 'auto' = read from folder names (BU-01, BU02 ...), or e.g. 'BU-01'
+
+# Not in the path, always typed:
+lot_name:     'Live Lot'
+process:      'Post DSM'
+
+# --- Roughness ------------------------------------------------------------
+# Names of the roughness sites inside ONE unit, in measured order.
+# One name per roughness site: 2 sites per unit = 2 names (repeat a name if needed).
+roughness_positions: ['Next to Via', 'Next to Via']
+
+# Only if Front and Back differ. Empty [] = use the line above.
+front_roughness_positions: []
+back_roughness_positions:  []
+
+filter_outliers: false   # true = remove outlier lines before Mean/Std/Min/Max
+nr_sigma: 2              # z-score cut-off used when filter_outliers is true
+flag_factor: 1.5         # line is flagged if its Rz > flag_factor x median Rz of that site
+
+# --- Spec limits (OPTIONAL) ---------------------------------------------
+# [min, max] -> use null for no limit, e.g. [null, 40]
+# Delete a line or leave it as [null, null] to skip it.
+# Allowed keys: via_depth, top_diameter, bottom_diameter, top_roundness,
+#   bottom_roundness, aspect_ratio, bottom_top_ratio, taper, taper_angle,
+#   wall_angle, ra_mean, rz_mean
+spec_limits:
+  via_depth:        [null, null]
+  top_diameter:     [null, null]
+  bottom_diameter:  [null, null]
+  bottom_roundness: [null, null]
+  ra_mean:          [null, null]
+
+# --- Excel ------------------------------------------------------------------
+decimals: 3              # decimals shown for all numbers
+charts: true             # box plots per unit on a Charts sheet
+preview: false           # true = show the plan only, write no Excel
+
+# --- Files -------------------------------------------------------------------
+file_ending: '.txt'      # or '.csv'
