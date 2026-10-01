@@ -37,7 +37,8 @@ window.MRT.views.prf = (function () {
     advancedOpen: false,
     outputConnected: false, outputLabel: null, savedOutputHint: null,
     previewOut: null,    // runAll() result, shown as the plan (Preview button)
-    running: false, runResult: null   // {out, summary, comparison, status, written} after Run
+    running: false, runResult: null,  // {out, summary, comparison, status, written} after Run
+    openPanels: {}                    // panel expanders the person closed
   };
 
   /* --- settings, built once from the scan result (PRF-2..PRF-7) --------- */
@@ -323,15 +324,40 @@ window.MRT.views.prf = (function () {
     return f.node;
   }
 
-  function countsCell(c) {
-    if (!c || !c.total) return ui.el('span', { class: 'muted', text: 'no files' });
-    return ui.el('span', { class: 'mono' }, c.roughness + ' roughness, ' + c.via + ' via' + (c.unknown ? ', ' + c.unknown + ' unknown' : ''));
+  /** One side's files: Roughness | Via tabs (Unknown joins them when there are any). */
+  function sideFilesBlock(row) {
+    var lists = { roughness: row.files.roughness, via: row.files.via };
+    if (row.files.unknown.length) lists.unknown = row.files.unknown;
+    var names = { roughness: 'Roughness', via: 'Via', unknown: 'Unknown' };
+    var host = ui.el('div', { class: 'prf-file-list' });
+    function show(key) {
+      ui.mount(host, ui.el('ul', {}, lists[key].map(function (f) {
+        return ui.el('li', {}, [ui.el('span', { class: 'mono', text: f.name }),
+          ui.el('span', { class: 'muted', text: ' · site ' + f.site })]);
+      })));
+    }
+    var bar = ui.tabs(Object.keys(lists).map(function (k) {
+      return { key: k, label: names[k] + ' (' + lists[k].length + ')' };
+    }), show);
+    show('roughness');
+    return ui.el('div', {}, [bar.node, host]);
+  }
+
+  function sideBlock(row) {
+    var head = ui.el('p', { class: 'prf-side-head' }, [ui.el('strong', { text: row.side }),
+      ui.el('span', { class: 'muted', text: ' · ' + (row.lot || 'no lot') + (row.buLabel ? ' · ' + row.buLabel : '') })]);
+    if (row.tooMany) {
+      return ui.el('div', { class: 'prf-side-block' }, [head,
+        ui.el('p', {}, ui.el('span', { class: 'chip warning', text: String(row.refs.length) + ' log folders - skipped' })),
+        ui.el('ul', { class: 'muted' }, row.refs.map(function (r) { return ui.el('li', { class: 'mono', text: r }); }))]);
+    }
+    return ui.el('div', { class: 'prf-side-block' }, [head, sideFilesBlock(row)]);
   }
 
   function previewPanel() {
     if (state.scanning) {
       var p = state.progress;
-      return ui.panel({ title: '2. What was found', icon: 'search', body: [
+      return ui.panel({ title: 'Findings', icon: 'search', body: [
         ui.el('div', { class: 'prf-scan-progress', 'aria-live': 'polite' },
           p && p.total ? 'Reading files: log folder ' + p.done + ' of ' + p.total + '...' : 'Scanning...'),
         ui.skeleton(4)
@@ -339,32 +365,27 @@ window.MRT.views.prf = (function () {
     }
     if (!state.result) return null;
     var r = state.result;
-    var lotRows = Object.keys(r.lots).map(function (lot) {
-      return ui.el('li', {}, (lot || '(no lot in path)') + ' - project "' + (r.lots[lot].project || '') + '", part "' + (r.lots[lot].part || '') + '"');
+    var byPanel = {};
+    r.sides.forEach(function (row) { (byPanel[row.panel] = byPanel[row.panel] || []).push(row); });
+    var lotsLine = Object.keys(r.lots).map(function (lot) {
+      return (lot || 'no lot') + (r.lots[lot].project ? ' · ' + r.lots[lot].project : '') + (r.lots[lot].part ? ' · ' + r.lots[lot].part : '');
+    }).join(' | ');
+    var body = [ui.el('p', { class: 'muted', text: (lotsLine || 'No lot in path') + ' — ' + r.sides.length + ' panel+side combination(s) found.' })];
+    Object.keys(byPanel).map(Number).sort(function (a, b) { return a - b; }).forEach(function (panel) {
+      var sides = byPanel[panel].sort(function (a, b) { return a.side === b.side ? 0 : (a.side === 'Front' ? -1 : 1); });
+      body.push(ui.panel({ title: 'Panel ' + panel, icon: 'grid', collapsible: true, collapsed: state.openPanels[panel] === false,
+        onToggle: function (collapsed) { state.openPanels[panel] = !collapsed; },
+        body: [ui.el('div', { class: 'prf-sides2' }, sides.map(sideBlock))] }).node);
     });
-    var tableRows = r.sides.map(function (row) {
-      return ui.el('tr', { class: row.tooMany ? 'is-bad' : null }, [
-        ui.el('td', {}, row.lot || '-'),
-        ui.el('td', {}, row.buLabel || '-'),
-        ui.el('td', {}, String(row.panel)),
-        ui.el('td', {}, row.side),
-        ui.el('td', {}, row.tooMany ? ui.el('span', { class: 'chip warning', text: String(row.refs.length) + ' log folders' }) : countsCell(row.counts))
-      ]);
-    });
-    var body = [
-      r.sides.length ? ui.el('p', { class: 'muted' }, (Object.keys(r.lots).length || (r.sides.some(function (s) { return !s.lot; }) ? 1 : 0)) +
-        ' lot(s), ' + r.sides.length + ' panel+side combination(s) found.') : null,
-      lotRows.length ? ui.el('ul', { class: 'prf-lot-list' }, lotRows) : null,
-      r.sides.length ? ui.el('div', { class: 'table-wrap' }, ui.el('table', { class: 'grid' }, [
-        ui.el('thead', {}, ui.el('tr', {}, ['Lot', 'Build-up', 'Panel', 'Side', 'Files'].map(function (h) { return ui.el('th', { scope: 'col', text: h }); }))),
-        ui.el('tbody', {}, tableRows)
-      ])) : ui.emptyState({ icon: 'search', title: 'No log folders found', text: 'No folder named "' + pcfg.log_folder_name + '" was found under the root folder.' }),
-      r.problems.length ? ui.el('div', { class: 'prf-problems' }, [
-        ui.el('h3', { text: 'Problems' }),
-        ui.el('ul', {}, r.problems.map(function (msg) { return ui.el('li', {}, [ui.icon('alert', 14), ' ' + msg]); }))
-      ]) : null
-    ];
-    return ui.panel({ title: '2. What was found', icon: 'search', body: body }).node;
+    if (!r.sides.length) {
+      body.push(ui.emptyState({ icon: 'search', title: 'No log folders found',
+        text: 'No folder named "' + pcfg.log_folder_name + '" was found under the root folder.' }));
+    }
+    if (r.problems.length) body.push(ui.el('div', { class: 'prf-problems' }, [
+      ui.el('h3', { text: 'Problems' }),
+      ui.el('ul', {}, r.problems.map(function (msg) { return ui.el('li', {}, [ui.icon('alert', 14), ' ' + msg]); }))
+    ]));
+    return ui.el('div', { class: 'prf-findings' }, body);
   }
 
   /* --- settings panel: metadata, panels, sides, units, via split -------- */
