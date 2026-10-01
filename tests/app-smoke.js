@@ -38,7 +38,7 @@ const realError = console.error;
 console.error = (...a) => { errors.push(a.map(String).join(' ')); };
 
 const ctx = vm.createContext(win);
-['js/config.js', 'js/themes.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js', 'js/analytics.js',
+['js/config.js', 'js/themes.js', 'js/domain.js', 'js/adapters/storage-folder.js', 'js/adapters/storage-api.js', 'js/adapters/mail.js', 'js/seed.js', 'js/store.js', 'js/demo-data.js', 'js/identity.js', 'js/analytics.js',
  'js/ui/core.js', 'js/ui/components.js', 'js/ui/glyphs.js', 'js/ui/heatmap.js', 'js/ui/overlays.js', 'js/ui/charts.js', 'js/ui/panelmap.js', 'js/ui/barcode.js', 'js/ui/magazine.js', 'js/ui/traveller.js', 'js/ui/hirata.js', 'js/ui/theme-gallery.js', 'js/exporter.js',
  'js/views/lab.js', 'js/views/settings.js', 'js/views/settings-health.js', 'js/views/settings-users.js',
  'js/views/settings-tools.js', 'js/views/settings-lists.js', 'js/views/settings-lots.js', 'js/views/settings-calendar.js', 'js/views/settings-audit.js',
@@ -46,8 +46,38 @@ const ctx = vm.createContext(win);
 ].forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
 
 const MRT = win.MRT;
-const folder = MRT.adapters.storageMemory({});
+// MRT_STORE=api runs this whole walkthrough against the API adapter over the
+// in-process server (real SQLite, throwaway dir); default stays the memory folder.
+let folder = MRT.adapters.storageMemory({});
+const useApi = process.env.MRT_STORE === 'api';
+let apiFailWrites = false;
+if (useApi) {
+  const srv = require('./server-harness').withServer();
+  process.on('exit', () => srv.close());
+  const realFetch = srv.fetch;
+  win.fetch = (url, opts) => {   // test-only failure injection (the memory adapter's failWrites)
+    if (apiFailWrites && opts && opts.method === 'PUT') {
+      return Promise.resolve({ ok: false, status: 500, headers: { get: () => null },
+        json: async () => ({}), text: async () => '' });
+    }
+    return realFetch(url, opts);
+  };
+  folder = MRT.adapters.storageApi;
+}
 MRT.adapters.storageFolder = folder;          // the app talks to the memory folder
+async function fileText(p) { return useApi ? folder.read(p) : folder.files[p]; }
+async function fileWrite(p, text) {
+  if (!useApi) { folder.files[p] = text; return; }
+  if (p !== 'mrt_data.json') { await folder.write(p, text); return; }
+  // another PC saves one revision at a time: walk up to the target revision
+  const target = JSON.parse(text);
+  for (;;) {
+    const cur = JSON.parse(await folder.read(p));
+    if (cur.revision >= target.revision) break;
+    await folder.write(p, JSON.stringify(Object.assign({}, target, { revision: cur.revision + 1 })));
+  }
+}
+function setFailWrites(v) { if (useApi) apiFailWrites = v; else folder.failWrites = v; }
 
 /** Let promises, timers and the PIN hashing (off-thread in Node) finish. */
 async function settle() {
@@ -80,7 +110,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   submitGate(); await settle();
   check('set up: the shell opens', visible('shell') && !visible('gate'));
   check('one user, an Admin', MRT.store.data().users.length === 1 && MRT.store.currentUser().roles[0] === 'admin');
-  check('the file was saved', JSON.parse(folder.files['mrt_data.json']).revision === 1);
+  check('the file was saved', JSON.parse(await fileText('mrt_data.json')).revision === 1);
   check('the top bar shows the name', text('userName') === 'Prince Khurana');
   check('milestone tag M1', text('brandVer') === 'M1');
 
@@ -1065,22 +1095,22 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('My work opens (a quality engineer sees their tools; others are told)', /Open \(my tools\)|You measure no tool/.test(mainText()));
 
   // --- a failed save: the lamp and a toast with Retry
-  folder.failWrites = true;
+  setFailWrites(true);
   await MRT.store.setToolStatus({ tool_id: fib().id, status: 'down' }).catch(() => {});
   await settle();
   check('a failed save turns the lamp red', doc.getElementById('saveLed').classList.contains('failed'));
   const toast = doc.getElementById('toasts').children.filter(t => /could not be saved/.test(t.textContent)).slice(-1)[0];
   check('...and says so with Retry', !!toast && /Retry/.test(toast.textContent));
-  folder.failWrites = false;
+  setFailWrites(false);
   buttonByText(toast, 'Retry').click(); await settle();
-  check('Retry saves it', JSON.parse(folder.files['mrt_data.json']).tools.filter(t => t.code === 'FIB')[0].status === 'down');
+  check('Retry saves it', JSON.parse(await fileText('mrt_data.json')).tools.filter(t => t.code === 'FIB')[0].status === 'down');
 
   // --- someone else saves: the banner offers Reload
-  let f = JSON.parse(folder.files['mrt_data.json']); f.revision += 3; folder.files['mrt_data.json'] = JSON.stringify(f);
+  let f = JSON.parse(await fileText('mrt_data.json')); f.revision += 3; await fileWrite('mrt_data.json', JSON.stringify(f));
   tick(); await settle();
   check('someone else saved, nothing open here: the app reloads by itself (M4-3)', !visible('conflictBanner') && MRT.store.status().revision === f.revision);
   doc.getElementById('keysBtn').click(); await settle();
-  f = JSON.parse(folder.files['mrt_data.json']); f.revision += 2; folder.files['mrt_data.json'] = JSON.stringify(f);
+  f = JSON.parse(await fileText('mrt_data.json')); f.revision += 2; await fileWrite('mrt_data.json', JSON.stringify(f));
   tick(); await settle();
   check('...with a dialog open it only shows the banner', visible('conflictBanner') && /Reload/.test(text('conflictBanner')) && MRT.store.status().revision !== f.revision);
   doc.dispatch('keydown', { key: 'Escape', target: doc.body }); await settle();
@@ -1094,7 +1124,7 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   let rdlg2 = openDialog(); setVal(rdlg2.querySelector('textarea'), 'try everything'); buttonByText(rdlg2, 'Fill with demo data').click(); await settle();
   check('Data: "Fill with demo data" - the big demo is in this folder, I am its Prince (admin) with my Windows ID',
         MRT.store.data().requests.length > 60 && MRT.store.currentUser().id === 'usr_demo_prince' && MRT.store.currentUser().windows_id === 'pkhurana' &&
-        JSON.parse(folder.files['mrt_data.json']).requests.length > 60 && /Prince Khurana/.test(text('userName')));
+        JSON.parse(await fileText('mrt_data.json')).requests.length > 60 && /Prince Khurana/.test(text('userName')));
   win.setHash('#/new'); await settle();
   check('...the form works on it: the demo magazines are offered', (function () { var inp = fieldIn(M(), 'Magazine'); inp.dispatch('focus'); var box = inp.closest('.ifield'); return !!box && box.querySelectorAll('.combo-opt').length === 20; })());
   check('...the combo filters as you type', (function () { var inp = fieldIn(M(), 'Magazine'); var code = MRT.store.list('magazines')[0].code; inp.value = code.slice(0, 3); inp.dispatch('input'); var box = inp.closest('.ifield'); var opts = box.querySelectorAll('.combo-opt'); return opts.length >= 1 && opts.every(function (o) { return (o.textContent.toLowerCase().indexOf(code.slice(0, 3).toLowerCase()) !== -1); }); })());
@@ -1108,8 +1138,9 @@ function buttonByText(root, t) { return root.querySelectorAll('button').filter(b
   check('..."Start empty": no lots or requests, only me as admin, the settings still open', MRT.store.data().requests.length === 0 && MRT.store.data().lots.length === 0 &&
         MRT.store.data().users.length === 1 && /Data file/.test(mainText()));
 
-  // --- nothing unexpected went wrong
-  const unexpected = errors.filter(e => !/save failed|read-only/.test(e));
+  // --- nothing unexpected went wrong (the node:sqlite ExperimentalWarning is
+  // server-side Node noise, never an app error; only possible in MRT_STORE=api)
+  const unexpected = errors.filter(e => !/save failed|read-only|ExperimentalWarning: SQLite/.test(e));
   check('no unexpected console errors', unexpected.length === 0, unexpected.join(' | ').slice(0, 300));
   check('no unhandled promise rejections', rejections === 0, rejections);
 
