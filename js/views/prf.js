@@ -47,7 +47,7 @@ window.MRT.views.prf = (function () {
     return {
       enabled: found.side,
       roughness: { enabled: found.roughness, units: [], positions: 'Next to Via, Next to Via' },
-      via: { enabled: found.via, units: [], sameAsRoughness: true, split: VIA_SPLIT.EVEN,
+      via: { enabled: found.via, units: [], sameAsVia: true, split: VIA_SPLIT.EVEN,
              perUnit: '', perCoupon: '', sequenceText: '' }
     };
   }
@@ -68,7 +68,7 @@ window.MRT.views.prf = (function () {
     var firstLot = lots.length ? result.lots[lots[0]] : { project: '', part: '' };
 
     return {
-      lotName: '', process: 'Post DSM', buFilter: '',
+      lotName: '', process: 'Post DSM', buFilter: [],   // chosen build-ups, [] = all
       metaAuto: true, metaOverride: { project: firstLot.project || '', part: firstLot.part || '', lot: lots[0] || '', buildup: '' },
       panelsFound: panelsList, panelsOn: panelsList.slice(),
       sides: { Front: emptySideSettings(foundBySide.Front), Back: emptySideSettings(foundBySide.Back) },
@@ -407,14 +407,15 @@ window.MRT.views.prf = (function () {
     return b;
   }
 
-  function panelsOf(bu) {
+  function panelsIn(bus) {
     return state.settings.panelsFound.filter(function (p) {
-      return bu === '' || state.result.sides.some(function (r) { return r.panel === p && r.bu === bu; });
+      return !bus.length || state.result.sides.some(function (r) { return r.panel === p && bus.indexOf(r.bu) !== -1; });
     });
   }
 
   function panelsBox() {
     var s = state.settings;
+    if (!s.buFilter) s.buFilter = [];
     var bus = unique(state.result.sides.map(function (r) { return r.bu; })
       .filter(function (b) { return b !== null && b !== undefined; })).sort(function (a, b) { return a - b; });
     function tick(p) {
@@ -423,17 +424,19 @@ window.MRT.views.prf = (function () {
       s.panelsOn.sort(function (a, b) { return a - b; });
       refreshRun();
     }
-    var shown = panelsOf(s.buFilter);
+    var shown = panelsIn(s.buFilter);
     var body = [];
     if (bus.length > 1) {
-      body.push(ui.el('div', { class: 'prf-panel-actions' }, [{ value: '', label: 'All' }]
+      body.push(ui.el('div', { class: 'prf-panel-actions' }, [{ value: null, label: 'All' }]
         .concat(bus.map(function (b) { return { value: b, label: P.buLabel(b) }; }))
         .map(function (o) {
-          return pickBtn(o.label, s.buFilter === o.value, function () {
-            s.buFilter = o.value;
-            s.panelsOn = panelsOf(o.value).slice();
+          var on = o.value === null ? !s.buFilter.length : s.buFilter.indexOf(o.value) !== -1;
+          return pickBtn(o.label, on, function () {
+            if (o.value === null) s.buFilter = [];
+            else if (s.buFilter.indexOf(o.value) === -1) s.buFilter = s.buFilter.concat([o.value]);
+            else s.buFilter = s.buFilter.filter(function (b) { return b !== o.value; });
             draw();
-          }, o.value === '' ? 'Every build-up' : 'Only this build-up');
+          }, o.value === null ? 'Every build-up' : 'Toggle this build-up');
         })));
     }
     body.push(ui.el('div', { class: 'prf-panel-actions' }, [
@@ -447,32 +450,43 @@ window.MRT.views.prf = (function () {
     return ui.el('div', {}, body);
   }
 
-  function lotPanelsPanel() {
-    return ui.panel({ title: 'Lot & panels', icon: 'grid', body: [
+  function settingsPanel() {
+    if (!state.result || !state.settings) return null;
+    return ui.el('div', { class: 'prf-settings' }, [
       ui.el('div', { class: 'prf-sides2' }, [
-        ui.el('div', {}, [ui.el('h3', { class: 'prf-advanced-sub', text: 'Metadata' }), metaPanel()]),
-        ui.el('div', {}, [ui.el('h3', { class: 'prf-advanced-sub', text: 'Build-up & panels' }), panelsBox()])
-      ])
-    ] }).node;
+        ui.panel({ title: 'Metadata', icon: 'tag', body: [metaPanel()] }).node,
+        ui.panel({ title: 'Build-up & panels', icon: 'grid', body: [panelsBox()] }).node
+      ]),
+      sidesPanel()
+    ]);
   }
 
+  /** Plain units: comma or space separated, coupons allowed (C1); order is measurement order. */
   function unitsField(side, kind, label) {
     var cfg = state.settings.sides[side][kind];
-    var chips = ui.reorderChips({ label: label, value: cfg.units, placeholder: 'e.g. 5, 4, 2, 3, 6',
-      onChange: function (v) { cfg.units = v; } });
-    return chips.node;
+    var f = ui.field({ label: label, value: (cfg.units || []).join(', '), mono: true,
+      placeholder: 'e.g. 5, 4, 2, 3, 6 or 5 4 2 3 6',
+      hint: 'Unit numbers in measurement order, separated by commas or spaces.' });
+    f.input.addEventListener('input', function () {
+      var parsed = P.parseUnits(f.input.value);
+      if (parsed.bad.length) f.setState('invalid', 'Not a unit: ' + parsed.bad.join(', '));
+      else f.setState(f.input.value.trim() ? 'valid' : null, null);
+      cfg.units = parsed.units;
+    });
+    return f.node;
   }
 
-  function roughnessSubsection(side) {
+  function roughnessSubsection(side, shared) {
     var s = state.settings.sides[side];
     var r = s.roughness;
     if (!r.enabled) return null;   // no roughness files on this side: nothing to set up
-    var inner = [unitsField(side, 'roughness', 'Units (measurement order)')];
+    var inner = [];
+    if (!shared) inner.push(unitsField(side, 'roughness', 'Roughness units (measurement order)'));
     var pos = ui.field({ label: 'Position names (in order, comma separated)', value: r.positions,
       hint: 'One name per roughness site in a unit, e.g. "Next to Via, Next to Via".' });
     pos.input.addEventListener('input', function () { r.positions = pos.input.value; });
     inner.push(pos.node);
-    return ui.el('div', { class: 'prf-subsection' }, [ui.el('h3', { class: 'prf-advanced-sub', text: 'Roughness' }),
+    return ui.el('div', { class: 'prf-subsection' }, [ui.el('h3', { class: 'prf-advanced-sub', text: shared ? 'Roughness (same units as via)' : 'Roughness' }),
       ui.el('div', { class: 'prf-subsection-body' }, inner)]);
   }
 
@@ -481,14 +495,13 @@ window.MRT.views.prf = (function () {
     var v = s.via;
     if (!v.enabled) return null;   // no via files on this side: nothing to set up
     var r = s.roughness;
-    var inner = [];
+    var inner = [unitsField(side, 'via', 'Via units (measurement order)')];
     if (r.enabled) {
-      var seg = ui.segmented({ label: 'Via units', value: v.sameAsRoughness ? 'same' : 'own', options: [
-        { value: 'same', label: 'Same as roughness' }, { value: 'own', label: 'Own units' }
-      ], onChange: function (val) { v.sameAsRoughness = val === 'same'; draw(); } });
+      var seg = ui.segmented({ label: 'Same for roughness?', value: v.sameAsVia ? 'yes' : 'no', options: [
+        { value: 'yes', label: 'Yes' }, { value: 'no', label: 'No, own units' }
+      ], onChange: function (val) { v.sameAsVia = val === 'yes'; draw(); } });
       inner.push(seg.node);
     }
-    if (!v.sameAsRoughness || !r.enabled) inner.push(unitsField(side, 'via', 'Via units (measurement order)'));
     {
       var split = ui.segmented({ label: 'How are vias split', value: v.split, options: [
         { value: VIA_SPLIT.EVEN, label: 'Evenly' }, { value: VIA_SPLIT.FIXED, label: 'Fixed per unit' },
@@ -517,8 +530,11 @@ window.MRT.views.prf = (function () {
   }
 
   function sidePanel(side) {
-    // no switches: the scan found this side's files, so it is set up; sides without data are not shown at all
-    return ui.el('div', { class: 'prf-side' }, [roughnessSubsection(side), viaSubsection(side)].filter(Boolean));
+    // no switches: the scan found this side's files, so it is set up; sides without data are not shown at all.
+    // Via first: the engineer types the via units, then says whether roughness shares them.
+    var cfg = state.settings.sides[side];
+    var shared = cfg.via.enabled && cfg.roughness.enabled && cfg.via.sameAsVia;
+    return ui.el('div', { class: 'prf-side' }, [viaSubsection(side), roughnessSubsection(side, shared)].filter(Boolean));
   }
 
   function sidesPanel() {
@@ -566,11 +582,6 @@ window.MRT.views.prf = (function () {
              ui.el('div', { class: 'prf-spec-grid' }, specRows)] }).node;
   }
 
-  function settingsPanel() {
-    if (!state.result || !state.settings) return null;
-    return ui.el('div', { class: 'prf-settings' }, [lotPanelsPanel(), sidesPanel()]);
-  }
-
   /* =====================================================================
    * Running: resolve one side's settings into js/prf.js inputs, process it
    * with the real (already-read) files, and aggregate every ticked
@@ -587,10 +598,10 @@ window.MRT.views.prf = (function () {
   /** Form state for one side -> the arguments js/prf.js's functions take. */
   function resolveSideConfig(sideSettings) {
     var r = sideSettings.roughness, v = sideSettings.via;
-    var roughnessUnits = r.enabled ? r.units.slice() : [];
+    // the engineer types the via units first; roughness either shares them or has its own
+    var viaUnits = v.enabled ? v.units.slice() : [];
+    var roughnessUnits = r.enabled ? (v.enabled && v.sameAsVia ? viaUnits.slice() : r.units.slice()) : [];
     var positions = r.enabled ? parsePositions(r.positions) : [];
-    // "same as roughness" only wins when roughness actually has units; otherwise own typed units apply
-    var viaUnits = v.enabled ? ((v.sameAsRoughness && roughnessUnits.length) || !v.units.length ? roughnessUnits.slice() : v.units.slice()) : [];
     if (r.enabled && !roughnessUnits.length) roughnessUnits = viaUnits.slice();   // py: each side falls back to the other
     var sequence = null, counts = null, seqError = null;
     if (v.enabled && v.split === VIA_SPLIT.SEQUENCE && v.sequenceText.trim()) {
@@ -640,7 +651,7 @@ window.MRT.views.prf = (function () {
         var row = byPanelSide[panel + '|' + side];
         if (!row) { addLog(panel, side, 'WARNING', 'No log folder found. Side skipped.'); return; }
         if (lotFilter && row.lot !== lotFilter) return;
-        if (s.buFilter !== '' && s.buFilter !== null && s.buFilter !== undefined && row.bu !== s.buFilter) return;
+        if (s.buFilter && s.buFilter.length && row.bu !== null && row.bu !== undefined && s.buFilter.indexOf(row.bu) === -1) return;
         if (row.tooMany) return;    // already a problem from the scan; side skipped
 
         var meta = sideMeta(panel, row);

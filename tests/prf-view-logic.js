@@ -54,7 +54,8 @@ function fakeSettings(result) {
   s.panelsOn = [1];                                  // panel 2 is left unticked
   s.sides.Front.enabled = true;
   s.sides.Front.roughness = { enabled: true, units: [5], positions: 'P1' };
-  s.sides.Front.via = { enabled: true, units: [], sameAsRoughness: true, split: T.VIA_SPLIT.EVEN, perUnit: '', perCoupon: '', sequenceText: '' };
+  s.sides.Front.via = { enabled: true, units: [5], sameAsVia: true, split: T.VIA_SPLIT.EVEN, perUnit: '', perCoupon: '', sequenceText: '' };
+  s.sides.Front.roughness = { enabled: true, units: [], positions: 'P1' };
   s.sides.Back.enabled = false;
   return s;
 }
@@ -64,17 +65,19 @@ function fakeSettings(result) {
 {
   const result = fakeResult(), settings = fakeSettings(result);
   const cfg = T.resolveSideConfig(settings.sides.Front);
-  eq('roughness units/positions come from the form', [cfg.roughnessUnits, cfg.positions], [[5], ['P1']]);
-  eq('"same units as roughness" resolves the via units from the roughness list', cfg.viaUnits, [5]);
+  eq('roughness shares the typed via units, positions come from the form', [cfg.roughnessUnits, cfg.positions], [[5], ['P1']]);
+  eq('via units are typed first', cfg.viaUnits, [5]);
   eq('evenly split: no sequence, no fixed counts', [cfg.sequence, cfg.counts], [null, null]);
 
   const fixed = JSON.parse(JSON.stringify(settings));
-  fixed.sides.Front.via.sameAsRoughness = false;
+  fixed.sides.Front.via.sameAsVia = false;
   fixed.sides.Front.via.units = [7, 'C1'];
+  fixed.sides.Front.roughness.units = [9];
   fixed.sides.Front.via.split = T.VIA_SPLIT.FIXED;
   fixed.sides.Front.via.perUnit = '3'; fixed.sides.Front.via.perCoupon = '2';
   const cfg2 = T.resolveSideConfig(fixed.sides.Front);
   eq('fixed per unit/coupon -> countsFromDefaults, in the typed via unit order', cfg2.counts, [[7, 3], ['C1', 2]]);
+  eq('"No, own units": roughness keeps its own list', cfg2.roughnessUnits, [9]);
 
   const seq = JSON.parse(JSON.stringify(settings));
   seq.sides.Front.via.split = T.VIA_SPLIT.SEQUENCE;
@@ -88,13 +91,12 @@ function fakeSettings(result) {
   const cfg4 = T.resolveSideConfig(badSeq.sides.Front);
   ok('a bad sequence is reported, not silently dropped', cfg4.sequence === null && /Bad via sequence/.test(cfg4.seqError));
 
-  const noRough = JSON.parse(JSON.stringify(settings));
-  noRough.sides.Front.roughness.enabled = false;
-  noRough.sides.Front.roughness.units = [];
-  noRough.sides.Front.via.sameAsRoughness = true;
-  noRough.sides.Front.via.units = [7];
-  const cfg5 = T.resolveSideConfig(noRough.sides.Front);
-  eq('"same as roughness" with no roughness units falls back to the typed via units', cfg5.viaUnits, [7]);
+  const ownRough = JSON.parse(JSON.stringify(settings));
+  ownRough.sides.Front.via.sameAsVia = false;
+  ownRough.sides.Front.via.units = [7];
+  ownRough.sides.Front.roughness.units = [9];
+  const cfg5 = T.resolveSideConfig(ownRough.sides.Front);
+  eq('"No, own units": each kind keeps its typed list', [cfg5.viaUnits, cfg5.roughnessUnits], [[7], [9]]);
 }
 
 /* ---------------- runAll: aggregation across panels ---------------- */
@@ -135,10 +137,10 @@ function fakeSettings(result) {
 
   view._state.result = result;
   view._state.settings = fakeSettings(result);
-  view._state.settings.buFilter = 999;
+  view._state.settings.buFilter = [999];
   const out4 = T.runAll();
   ok('a build-up choice processes only that build-up', out4.rough.length === 0 && out4.t2b.length === 0);
-  view._state.settings.buFilter = '';
+  view._state.settings.buFilter = [];
   const out5 = T.runAll();
   ok('...and All processes everything again', out5.rough.length === 1 && out5.t2b.length === 2);
 }

@@ -593,7 +593,7 @@ table.grid tbody tr[tabindex]:focus-visible { outline-offset: -2px; }
 .prf-side { padding: 12px 0; border-top: 1px solid var(--line); }
 .prf-side:first-child { border-top: none; padding-top: 0; }
 .prf-subsection { margin: 10px 0 0 24px; padding-left: 12px; border-left: 2px solid var(--line); }
-.prf-subsection-body { display: grid; gap: 10px; margin-top: 8px; max-width: 480px; }
+.prf-subsection-body { display: grid; gap: 10px; margin-top: 8px; }
 .prf-field-row { display: flex; gap: 12px; flex-wrap: wrap; }
 .prf-field-row > * { flex: 1; min-width: 160px; }
 .prf-advanced-sub { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-muted); margin: 12px 0 4px; }
