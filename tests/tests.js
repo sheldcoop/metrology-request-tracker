@@ -905,6 +905,28 @@
     await ST.deleteDraft(d2.id);
     eq('the author deletes the draft, and its timeline', [ST.byId('requests', d2.id), ST.requestEvents(d2.id).length], [null, 0]);
 
+    group('Capacity per tool (C-1, C-2)');
+    var cCal = { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' };
+    eq('lab days: Mon 21 - Fri 25 Sept = 5; Mon - Sun = 5; a holiday out', [D.labDaysBetween('2026-09-21', '2026-09-25', cCal, {}), D.labDaysBetween('2026-09-21', '2026-09-27', cCal, {}),
+       D.labDaysBetween('2026-09-21', '2026-09-25', cCal, { '2026-09-23': true })], [5, 5, 4]);
+    eq('...backwards or a bad date: 0', [D.labDaysBetween('2026-09-25', '2026-09-21', cCal, {}), D.labDaysBetween('x', '2026-09-21', cCal, {})], [0, 0]);
+    var fibC = { code: 'FIB', capacity_per_day: 2 };
+    eq('capacity: set or not', [D.capacityOf(fibC), D.capacityOf({ capacity_per_day: 0 }), D.capacityOf({}), D.capacityOf(null)], [2, null, null, null]);
+    eq('queue days: 7 open at 2 a day = 3.5', [D.queueDays(7, fibC), D.queueDays(7, {})], [3.5, null]);
+    eq('load: 80 % ok, 120 % amber, 150 % red, no capacity none', [D.capacityLoad(8, 10), D.capacityLoad(12, 10), D.capacityLoad(15, 10), D.capacityLoad(5, null)],
+       [{ pct: 80, level: 'ok' }, { pct: 120, level: 'amber' }, { pct: 150, level: 'red' }, { pct: null, level: null }]);
+    ok('form note when the queue is longer than the days left', /about 6 lab days of work queued - your date may be tight \(2 lab days left\)/.test(
+       D.capacityNote(fibC, 12, '2026-09-24', '2026-09-25', cCal, {}) || ''));
+    eq('...no note when there is time, no date, or no capacity', [D.capacityNote(fibC, 2, '2026-09-21', '2026-09-25', cCal, {}), D.capacityNote(fibC, 12, '2026-09-24', null, cCal, {}),
+       D.capacityNote({ code: 'X' }, 99, '2026-09-24', '2026-09-25', cCal, {})], [null, null, null]);
+    ok('a capacity must be more than 0 and at most 100', D.validateEntry('tools', { code: 'SEM', name: 'SEM', status: 'up', capacity_per_day: 0 }, {}).length === 1 &&
+       !D.validateEntry('tools', { code: 'SEM', name: 'SEM', status: 'up', capacity_per_day: 2.5 }, {}).length && !D.validateEntry('tools', { code: 'SEM', name: 'SEM', status: 'up', capacity_per_day: null }, {}).length);
+    var capData = { requests: [ra, Object.assign({}, rb, { tool_id: 'tQ' })], request_events: evA.concat(evA.map(function (e) { return Object.assign({}, e, { request_id: 'rb' }); })),
+                    holidays: [], tools: [{ id: 'tF', code: 'FIB', capacity_per_day: 0.2 }, { id: 'tQ', code: 'QVM' }] };
+    var capA = D.analytics(capData, { from_ymd: '2026-09-21', to_ymd: '2026-09-25' }, { now_ts: Date.parse('2026-09-25T10:00:00Z'), cal: cCal, levelOf: function () { return 3; } });
+    eq('analytics: capacity vs demand per tool (5 lab days x 0.2 = 1; demand 1 = 100 %)', capA.capacity_by_tool.map(function (x) { return [x.tool_id, x.demand, x.capacity, x.load_pct, x.level]; }),
+       [['tF', 1, 1, 100, 'ok'], ['tQ', 1, null, null, null]]);
+
     group('Personal request templates (Q28, T-1..T-3)');
     var tf = D.templateFieldsOf(s1);
     eq('a template keeps everything in the form', Object.keys(tf).sort(), D.TEMPLATE_FIELDS.slice().sort());
@@ -1298,8 +1320,8 @@
     function codes(list) { return list.map(function (x) { return x.code; }); }
     function countOf(list, code) { return list.filter(function (x) { return x.code === code; }).length; }
     ok('fresh file: sample types and BKMs are on the list', codes(todo).indexOf('sample_types') !== -1 && codes(todo).indexOf('sample_bkms') !== -1);
-    eq('...one line per tool, saying what it lacks: primary, backup, results folder', [countOf(todo, 'tool_setup'), todo.filter(function (x) { return x.code === 'tool_setup'; })[0].missing,
-       /^HRM: no primary quality engineer, no backup quality engineer, no results folder$/.test(todo.filter(function (x) { return x.code === 'tool_setup'; })[0].text)], [5, ['primary', 'backup', 'results_root'], true]);
+    eq('...one line per tool, saying what it lacks: primary, backup, results folder, capacity', [countOf(todo, 'tool_setup'), todo.filter(function (x) { return x.code === 'tool_setup'; })[0].missing,
+       /^HRM: no primary quality engineer, no backup quality engineer, no results folder, no capacity \(requests per lab day\)$/.test(todo.filter(function (x) { return x.code === 'tool_setup'; })[0].text)], [5, ['primary', 'backup', 'results_root', 'capacity'], true]);
     ok('...in first-day order: tools first, then the calendar, then reference data (sample magazines too), a second admin last',
        codes(todo).indexOf('tool_setup') < codes(todo).indexOf('calendar_unconfirmed') && codes(todo).indexOf('calendar_unconfirmed') < codes(todo).indexOf('sample_types') &&
        codes(todo).indexOf('sample_magazines') !== -1 && codes(todo)[codes(todo).length - 1] === 'one_admin');
@@ -1314,7 +1336,7 @@
     hs2.measurement_types.forEach(function (m) { delete m.sample; });
     hs2.bkms.forEach(function (b) { delete b.sample; });
     hs2.users.push({ id: 'u2', name: 'Olga', roles: ['quality'], active: true }, { id: 'u3', name: 'Otto', roles: ['quality', 'admin'], active: true });
-    hs2.tools.forEach(function (t) { t.primary_operator_id = 'u2'; t.backup_operator_id = 'u3'; t.results_root = '\\\\srv\\lab\\' + t.code; });
+    hs2.tools.forEach(function (t) { t.primary_operator_id = 'u2'; t.backup_operator_id = 'u3'; t.results_root = '\\\\srv\\lab\\' + t.code; t.capacity_per_day = 4; });
     hs2.holidays.push({ id: 'hx', date: '2026-12-24', name: 'Christmas Eve', kind: 'closing' });
     hs2.part_numbers.push({ id: 'pnx', code: 'PN-1', project_id: hs2.projects[0].id, active: true });
     hs2.process_steps.push({ id: 'psx', name: 'After desmear', sort: 1, active: true });
