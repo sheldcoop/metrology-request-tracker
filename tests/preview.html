@@ -75,18 +75,23 @@
 <div id="dialogHost"></div>
 
 <!-- Classic scripts, in dependency order. No modules: they do not load from file:// -->
+<!-- Layer 1: rules & maths (pure, no DOM) -->
 <script src="../js/config.js"></script>
 <script src="../js/domain.js"></script>
+<!-- Layer 2: adapters (only modules that touch the outside) -->
 <script src="../js/adapters/storage-folder.js"></script>
 <script src="../js/adapters/prf-folder.js"></script>
 <script src="../js/adapters/mail.js"></script>
+<!-- Layer 3: data (store is the only writer) -->
 <script src="../js/seed.js"></script>
 <script src="../js/store.js"></script>
 <script src="../js/demo-data.js"></script>  <!-- made-up demo data, only built when an admin asks (Settings > Data) -->
 <script src="../js/identity.js"></script>
 <script src="../js/analytics.js"></script>
-<script src="../vendor/chart.umd.min.js"></script>
-<script src="../vendor/xlsx.full.min.js"></script>  <!-- optional: exports fall back to CSV without it -->  <!-- optional: charts show a notice without it -->
+<!-- Layer 4: local vendor libraries (no CDN, no internet) -->
+<script src="../vendor/chart.umd.min.js"></script>  <!-- optional: charts show a notice without it -->
+<script src="../vendor/xlsx.full.min.js"></script>  <!-- optional: exports fall back to CSV without it -->
+<!-- Layer 5: components (build DOM, never read store) -->
 <script src="../js/ui/core.js"></script>
 <script src="../js/ui/components.js"></script>
 <script src="../js/ui/glyphs.js"></script>
@@ -109,9 +114,11 @@
 <script src="../js/ui/scenes/mine.js"></script>
 <script src="../js/ui/scenes/queue.js"></script>
 <script src="../js/ui/scenes/board.js"></script>
+<!-- Layer 6: PRF report engine (pure maths + Excel bridge) -->
 <script src="../js/exporter.js"></script>
 <script src="../js/prf.js"></script>
 <script src="../js/excel-bridge.js"></script>
+<!-- Layer 7: screens (compose components, call store writes) -->
 <script src="../js/views/lab.js"></script>
 <script src="../js/views/settings.js"></script>
 <script src="../js/views/settings-health.js"></script>
@@ -140,6 +147,7 @@
 <script src="../js/views/prf.js"></script>
 <script src="../js/views/help.js"></script>
 <script src="../js/views/home.js"></script>
+<!-- Shell last: router that ties every screen together -->
 <!-- dev only: a memory folder with demo data instead of the data folder -->
 <script src="memory-storage.js"></script>
 <script src="preview.js"></script>
