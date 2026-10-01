@@ -1164,3 +1164,14 @@ never the only signal - the text/label says the same thing.
   default ("dark theme first", Mission Control). Five themes: Dark Teal,
   Pure White, Slate, Neutral, Copper. The page/panel zone mechanism
   (HOME-11) stays in themes.js/app.css; no theme uses a `page` palette now.
+- **HOME-22** (home-final: first-login welcome, 2026-10-01, Prince, option
+  A) The first time a signed-in person opens Home they see a welcome card
+  instead of the tiles: "Welcome, <first name>", their role chips and the
+  three things they will do most (copy keyed by `domain.homeRoleDoor`).
+  A new "welcome" scene plays behind it: a copper PCB panel turning, traces
+  growing from the chip on arrival, signals racing to flashing vias,
+  sparks rising. "Let's go" folds the card away and the six tiles fly in
+  (staggered, transform/opacity; instant under reduced motion). Shown once
+  per person per PC (`welcomed` pref in localStorage - no schema change;
+  moves to the user record with the server login). The "You are not in
+  yet" sign-in slot wears the same card and scene.

@@ -97,21 +97,91 @@ window.MRT.views.home = (function () {
   function render(main) {
     var me = store.currentUser();
     /* Sign-in slot (Step 3): unknown user, content waiting from the app -
-     * hero and sentence above, the Who-are-you form instead of cards. */
+     * hero and sentence above, the Who-are-you form instead of cards. It
+     * wears the welcome look (HOME-22): same card, same scene behind. */
     var waiting = !me && window.MRT.app && window.MRT.app.slot ? window.MRT.app.slot() : null;
     main.appendChild(hero());
     if (waiting) {
-      var box = ui.el('div', { class: 'home-slot' }, waiting);
+      var box = welcomeBox('home-slot', waiting);
       main.appendChild(box);
+      mountScenes(main);
       try { var f = box.querySelector('input, .btn-primary'); if (f) f.focus(); } catch (e) {}
       return;
     }
+    /* First visit (HOME-22): a welcome card in place of the tiles, once per
+     * person (per PC until the server login). "Let's go" folds it away and
+     * the six tiles fly in. */
+    if (me && !welcomed()) { main.appendChild(welcome(main, me)); mountScenes(main); return; }
+    tiles(main, me, false);
+  }
+
+  function tiles(main, me, entering) {
     /* Six doors (HOME-17): the role's main job + the shared five, each with
      * its scene (HOME-10). The order comes from domain.homeDoors. */
     var cards = D.homeDoors(me).map(function (k) { return DOORS[k]; }).filter(Boolean);
-    main.appendChild(ui.el('div', { class: 'home-grid' }, cards.map(card)));
+    main.appendChild(ui.el('div', { class: 'home-grid' + (entering ? ' is-entering' : '') }, cards.map(card)));
     main.appendChild(scripts());
+    mountScenes(main);
+  }
+
+  function mountScenes(main) {
     if (window.MRT.scene3d) { try { window.MRT.scene3d.mountAll(main); } catch (e) {} }
+  }
+
+  function welcomed() {
+    try { return !!(window.MRT.app && window.MRT.app.readPref && window.MRT.app.readPref('welcomed')); } catch (e) { return true; }
+  }
+
+  /* The card both the welcome and the sign-in slot use: scene stage behind, content on top. */
+  function welcomeBox(cls, content) {
+    return ui.el('div', { class: 'home-welcome ' + cls, dataset: { scene: 'welcome' } }, [
+      ui.el('span', { class: 'home-stage', 'aria-hidden': 'true' }),
+      ui.el('div', { class: 'welcome-body' }, content)
+    ]);
+  }
+
+  /* What each role does most, by its Home door (display copy, not rules). */
+  var FIRST_STEPS = {
+    queue: [['inbox', 'Pick up the requests for your tools in My queue'], ['check', 'Measure and hand back the results folder'],
+            ['kanban', 'See every open request on the Board']],
+    'new': [['plus-circle', 'Ask the lab to measure your panels with New request'], ['list', 'Follow each request until the results are back'],
+            ['hirata', 'Read a panel ID with Hirata tools']],
+    analytics: [['chart-column', 'Turnaround, load and trends in Analytics'], ['kanban', 'Every open request on the Board'],
+                ['activity', 'Which tools are up in Lab status']],
+    requests: [['list', 'Follow requests on My requests'], ['kanban', 'Every open request on the Board'],
+               ['activity', 'Which tools are up in Lab status']]
+  };
+
+  function welcome(main, me) {
+    var first = String(me.name || '').split(' ')[0] || 'there';
+    var steps = FIRST_STEPS[D.homeRoleDoor(me)] || FIRST_STEPS.requests;
+    var go = ui.button("Let's go", { kind: 'primary' });
+    var box = welcomeBox('is-first', [
+      ui.el('p', { class: 'welcome-eyebrow', text: 'Metrology Request Tracker' }),
+      ui.el('h1', { class: 'welcome-title', text: 'Welcome, ' + first }),
+      ui.el('div', { class: 'welcome-roles' }, (me.roles || []).map(function (r) {
+        return ui.el('span', { class: 'welcome-role', text: D.ROLE_LABEL[r] || r });
+      })),
+      ui.el('ol', { class: 'welcome-steps' }, steps.map(function (st) {
+        return ui.el('li', {}, [ui.el('span', { class: 'welcome-step-ic', 'aria-hidden': 'true' }, ui.icon(st[0], 18)),
+          ui.el('span', { text: st[1] })]);
+      })),
+      ui.el('div', { class: 'welcome-actions' }, [go])
+    ]);
+    go.addEventListener('click', function () {
+      try { window.MRT.app.writePref('welcomed', '1'); } catch (e) {}
+      var done = function () {
+        if (!box.isConnected) return;
+        box.parentNode.removeChild(box);
+        tiles(main, me, !ui.reducedMotion());
+        try { var c = main.querySelector('.home-card'); if (c) c.focus(); } catch (e) {}
+      };
+      if (ui.reducedMotion()) { done(); return; }
+      box.classList.add('is-leaving');
+      setTimeout(done, 320);
+    });
+    setTimeout(function () { try { go.focus(); } catch (e) {} }, 0);
+    return box;
   }
 
   var DOORS = {

@@ -301,7 +301,7 @@ window.MRT.scene3d = (function () {
 
   function mountAll(root) {
     if (!root || !root.querySelectorAll) return;
-    var list = root.querySelectorAll('.home-card[data-scene]');
+    var list = root.querySelectorAll('.home-card[data-scene], .home-welcome[data-scene]');
     for (var i = 0; i < list.length; i++) mount(list[i], list[i].getAttribute('data-scene'));
     kick();
   }

@@ -40,8 +40,8 @@ async function boot(query, hash) {
 
 (async function () {
   let d = await boot('?theme=light');
-  check('as admin + engineer: the shell opens on Home, his door New request first (HOME-17)', !d.doc.getElementById('shell').hidden &&
-        (d.doc.getElementById('main').querySelector('.home-card') || { getAttribute: () => '' }).getAttribute('href') === '#/new');
+  check('as admin + engineer: the shell opens on Home with his first-visit welcome (HOME-22)', !d.doc.getElementById('shell').hidden &&
+        !!d.doc.getElementById('main').querySelector('.home-welcome') && /Welcome, Prince/.test(d.doc.getElementById('main').textContent));
   check('...signed in as Prince', d.win.MRT.store.currentUser().name === 'Prince Khurana');
   check('...with the theme from ?theme= (an old key resolves to its successor)', d.doc.documentElement.getAttribute('data-theme') === 'pure-white');
   d = await boot('?theme=light', '#/lab');
@@ -58,7 +58,7 @@ async function boot(query, hash) {
   check('?as=quality: Olga, who may set FIB and QVM only', d.win.MRT.store.currentUser().name === 'Olga Berger' && btns.length === 2, btns.length);
 
   d = await boot('?demo=big');
-  check('?demo=big: Prince on Home of the big demo file', d.doc.getElementById('main').querySelectorAll('.home-card').length === 6 &&
+  check('?demo=big: Prince on Home of the big demo file', !!d.doc.getElementById('main').querySelector('.home-welcome, .home-card') &&
         d.win.MRT.store.data().requests.length > 60 && d.win.MRT.store.currentUser().name === 'Prince Khurana');
   d = await boot('?demo=big&as=mia', '#/queue');
   check('?demo=big&as=mia: Mia\'s queue is full (FIB backup while Olga is away)', d.win.MRT.store.currentUser().name === 'Mia Gruber' &&
