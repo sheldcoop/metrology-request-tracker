@@ -1082,3 +1082,9 @@ never the only signal - the text/label says the same thing.
   itself": a traveller card slides in blank, tool glyph pops in and its
   line types on, the panels pop in one by one, the priority stripe runs
   down the edge, a stamp drops and lands, the card flies off to the lab.
+- **HOME-13** (home-final: My requests scene, 2026-10-01, Prince, option A
+  "the journey") A curved track with four stations (Submitted, Queued,
+  Measuring, Done); a traveller card rides it stop-and-go, the track fills
+  behind it, stations light and pulse on arrival; at Measuring a probe
+  dips and a scan line sweeps the card; at Done a check mark pops with a
+  burst; then the next card starts.
