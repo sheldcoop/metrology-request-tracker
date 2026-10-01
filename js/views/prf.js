@@ -289,9 +289,8 @@ window.MRT.views.prf = (function () {
     if (!adapter.isSupported()) {
       body.push(ui.emptyState({ icon: 'alert', title: 'Not available in this browser', text: adapter.unsupportedMessage() }));
     } else {
-      body.push(ui.el('p', { class: 'muted', text: 'Pick the folder that contains the panels - any layout works, ' +
-        'the scan finds every "log" folder underneath. Pick any folder, even a build-up; for Project, Part number and Lot, ' +
-        'paste its full path below (or pick the Project folder). You can pick a different folder any time.' }));
+      body.push(ui.el('p', { class: 'muted', text: 'Pick the folder with the panels in it - the scan finds every "log" folder ' +
+        'underneath and starts by itself. For Project, Part number and Lot, paste the folder\u2019s full path below.' }));
       body.push(ui.el('div', { class: 'prf-folder-row' }, [
         state.connected ? ui.el('span', { class: 'mono' }, state.rootLabel || '(connected)') : null,
         !state.connected && state.savedRootHint ? ui.el('span', { class: 'muted' }, 'Last used: ' + state.savedRootHint) : null,
@@ -304,7 +303,7 @@ window.MRT.views.prf = (function () {
       if (state.connected) body.push(pathField());
     }
     if (state.error) body.push(ui.el('p', { class: 'ifield-msg' }, [ui.icon('alert', 14), ' ' + state.error]));
-    return ui.panel({ title: '1. Root folder', icon: 'folder', body: body }).node;
+    return ui.panel({ title: 'Folder', icon: 'folder', body: body }).node;
   }
 
   /** "Full path of this folder": names above the picked folder, for Project / Part number / Lot. */
@@ -378,7 +377,7 @@ window.MRT.views.prf = (function () {
       body.push(ui.el('dl', { class: 'prf-meta' }, [
         ui.el('dt', { text: 'Project' }), ui.el('dd', { text: s.metaOverride.project || '-' }),
         ui.el('dt', { text: 'Part number' }), ui.el('dd', { text: s.metaOverride.part || '-' }),
-        ui.el('dt', { text: 'Lot' }), ui.el('dd', { text: lots.join(', ') || '(none in path - paste the full path under 1. Root folder)' }),
+        ui.el('dt', { text: 'Lot' }), ui.el('dd', { text: lots.join(', ') || '(none in path - paste the full path under Step 1)' }),
         ui.el('dt', { text: 'Build-up' }), ui.el('dd', { text: s.metaOverride.buildup || '(read per panel)' })
       ]));
       body.push(ui.el('p', {}, ui.el('a', { href: '#', class: 'link', text: 'Edit',
