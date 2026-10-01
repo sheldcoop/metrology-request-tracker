@@ -36,7 +36,7 @@ const REQUIRED = {
   shell: ['.topbar', '.nav-item', '.save-led', '.undo-btn', '.alert-banner', '.gate-card', '.nav-item.is-soon', '.gate-error'],
   lab: ['.tool-plate::before', '.tool-plate-facts', '.lab-grid'],
   lots: ['.lots-tools', '.cell-note'],
-  request: ['.req-layout', '.tool-bank', '.tool-bench::after', '.tool-bank .tool-pick-opt.is-on::after', '.tool-pick-opt.is-on', '.traveller-mini::before', '.req-errors', '.wz-step.is-done .wz-no', '.wz-dot.is-now', '.lot-main-row', '.layer-chip.is-on', '.panel-chip.is-scrapped'],
+  request: ['.req-layout', '.req-stack', '.req-actbar', '.tool-bank', '.tool-bench::after', '.tool-bank .tool-pick-opt.is-on::after', '.tool-pick-opt.is-on', '.traveller-mini::before', '.req-errors', '.wz-step.is-done .wz-no', '.wz-dot.is-now', '.lot-main-row', '.layer-chip.is-on', '.panel-chip.is-scrapped'],
   queue: ['.queue-bulk', '.q-clock.is-late', '.queue-list', '.qbox', '.qbox.prio-1::before', '.qgroup', '.qbox.is-done', '.done-today'],
   board: ['.board-lanehead', '.bcard-id', '.bcard-prio', 'dialog.drawer[open]', '.bcard.is-urgent::after', '.bcard::before'],
   slip: ['.slip::before', '.slip-code .barcode', '.slip-warn'],
