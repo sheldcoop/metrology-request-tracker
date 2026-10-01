@@ -1920,6 +1920,27 @@
   }
   prfTests2();
 
+  function prfTests3() {
+    var P = window.MRT.prf;
+
+    group('PRF data - output file name and status');
+    eq('cleanToken strips anything but letters/digits/-/.', P.cleanToken('PN 7/A!'), 'PN7A.'.replace('.', '') + '');
+    eq('cleanToken keeps - and .', P.cleanToken('PN-7.1'), 'PN-7.1');
+    eq('joinShort: up to 3 items joined, more than 3 -> first-last', [P.joinShort(['a', 'b']), P.joinShort(['a', 'b', 'c', 'd'])], ['a-b', 'a-d']);
+    eq('joinShort: empty list', P.joinShort([]), '');
+    eq('buText: one build-up, several, none', [P.buText(['BU01']), P.buText(['BU02', 'BU01']), P.buText([])], ['BU01', 'BU01-02', '']);
+    var base = { parts: ['PN1'], lots: ['12345'], bus: ['BU01'], process: 'Post DSM', panels: [3, 1, 2], flagged: false, dateYmd: '2026-10-01' };
+    eq('output name: parts/lots/bu/process/panels/date, process "-" removed; 4 or fewer panels listed as-is, not compressed', P.buildOutputName(base), 'PRF_PN1_12345_BU01_PostDSM_P1-2-3_2026-10-01');
+    eq('output name: more than 4 panels -> first-last', P.buildOutputName(Object.assign({}, base, { panels: [1, 2, 3, 4, 5] })), 'PRF_PN1_12345_BU01_PostDSM_P1-5_2026-10-01');
+    eq('output name: a flagged run gets __INSPECT__', P.buildOutputName(Object.assign({}, base, { flagged: true })), 'PRF_PN1_12345_BU01_PostDSM_P1-2-3_2026-10-01__INSPECT__');
+    eq('output name: nothing known falls back to Part/Lot/BU (an empty process leaves a double underscore, as in the script)', P.buildOutputName({ parts: [], lots: [], bus: [], process: '', panels: [1], flagged: false, dateYmd: '2026-10-01' }), 'PRF_Part_Lot_BU__P1_2026-10-01');
+    eq('status: OK with nothing wrong', P.runStatus({}), 'OK');
+    eq('status: every reason joined with " | ", in order', P.runStatus({ errors: true, flagged: true, specFail: true, siteWarn: true }),
+      'ERRORS - see Log | Flagged rows | Out of spec | Site warnings - see Log');
+    eq('status: only one reason', P.runStatus({ flagged: true }), 'Flagged rows');
+  }
+  prfTests3();
+
   T.done = run().catch(function (e) {
     T.failed++;
     (current || (group('Runner'), current)).rows.push({ ok: false, name: 'the test run crashed', detail: String(e && e.stack || e) });

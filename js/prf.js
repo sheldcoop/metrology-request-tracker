@@ -669,6 +669,56 @@ window.MRT.prf = (function () {
     return out;
   }
 
+  /* =====================================================================
+   * Part 3: the Excel file name (py 929-962), status text (py 1341-1362).
+   * ===================================================================== */
+
+  /** '[^A-Za-z0-9-.]' stripped (py 948 output_path's "clean" lambda). */
+  function cleanToken(s) { return String(s || '').replace(/[^A-Za-z0-9\-.]/g, ''); }
+
+  /** ['a','b'] -> 'a-b'; more than n items -> 'first-last' (py 939 join_short). */
+  function joinShort(items, n) {
+    n = n || 3;
+    var list = (items || []).map(String).filter(Boolean);
+    if (!list.length) return '';
+    return list.length <= n ? list.join('-') : list[0] + '-' + list[list.length - 1];
+  }
+
+  /** ['BU01','BU02'] -> 'BU01-02' (py 929 bu_text). */
+  function buText(bus) {
+    var list = unique((bus || []).filter(Boolean)).sort();
+    if (!list.length) return '';
+    if (list.length === 1) return list[0];
+    return list[0] + '-' + list.slice(1).map(function (b) { return b.replace(/^BU/, ''); }).join('-');
+  }
+
+  /**
+   * The Excel file name, without extension or a de-dupe suffix (py 947
+   * output_path; the "does a file by this name already exist, add _2" loop
+   * needs the output folder, so it stays in the adapter/view, not here).
+   * o: {parts, lots, bus (labels), process, panels, flagged, dateYmd}
+   */
+  function buildOutputName(o) {
+    var panels = (o.panels || []).slice().sort(function (a, b) { return a - b; });
+    var ptxt = panels.length <= 4 ? panels.join('-') : panels[0] + '-' + panels[panels.length - 1];
+    var name = 'PRF_' + (cleanToken(joinShort(o.parts)) || 'Part') + '_' + (cleanToken(joinShort(o.lots)) || 'Lot') + '_' +
+      (cleanToken(buText(o.bus)) || 'BU') + '_' + cleanToken(String(o.process || '')).replace(/-/g, '') + '_P' + ptxt + '_' + o.dateYmd;
+    return o.flagged ? name + '__INSPECT__' : name;
+  }
+
+  /**
+   * Overall status text (py 1341 finish): 'OK' or the pipe-joined reasons.
+   * o: {errors, flagged, specFail, siteWarn} (booleans, from the run's rows/log)
+   */
+  function runStatus(o) {
+    var parts = [];
+    if (o.errors) parts.push('ERRORS - see Log');
+    if (o.flagged) parts.push('Flagged rows');
+    if (o.specFail) parts.push('Out of spec');
+    if (o.siteWarn) parts.push('Site warnings - see Log');
+    return parts.length ? parts.join(' | ') : 'OK';
+  }
+
   return {
     toFloat: toFloat, round: round, isNum: isNum, finite: finite, mean: mean, std: std, median: median,
     minOf: minOf, maxOf: maxOf,
@@ -681,6 +731,7 @@ window.MRT.prf = (function () {
     roughnessRow: roughnessRow, processRoughness: processRoughness, circleValues: circleValues,
     viaRow: viaRow, processVia: processVia, checkSites: checkSites,
     pretty: pretty, getLimits: getLimits, buildSummary: buildSummary, buildComparison: buildComparison,
-    SPEC_KEYS: Object.keys(SPEC_KEYS)
+    SPEC_KEYS: Object.keys(SPEC_KEYS),
+    cleanToken: cleanToken, joinShort: joinShort, buText: buText, buildOutputName: buildOutputName, runStatus: runStatus
   };
 })();
