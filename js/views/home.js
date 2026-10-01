@@ -8,7 +8,8 @@
  * and Help are read surfaces, open to every signed-in person. The counts
  * reuse the existing functions only (stripCounts, toolQueueStats,
  * notificationsFor, analytics.get) plus the same store reads the pages
- * themselves use - no new maths here.
+ * themselves use - no new maths here. Lab status, Analytics and Help
+ * cards carry a data-scene key for the hover scenes (js/ui/scene3d.js).
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -27,7 +28,7 @@ window.MRT.views.home = (function () {
   }
 
   function card(o) {
-    return ui.el('a', { class: 'home-card', href: '#/' + o.key }, [
+    return ui.el('a', { class: 'home-card', href: '#/' + o.key, dataset: o.scene ? { scene: o.scene } : null }, [
       ui.el('span', { class: 'home-ic', 'aria-hidden': 'true' }, ui.icon(o.icon, 28)),
       ui.el('span', { class: 'home-tx' }, [
         ui.el('b', { text: o.title }),
@@ -58,16 +59,16 @@ window.MRT.views.home = (function () {
         n: D.notificationsFor(me, store.data(), { since_ts: now - 7 * 86400000, limit: 40 }).length, unit: 'updates' },
       D.canMeasure(me) && { key: 'queue', icon: 'inbox', title: 'My queue',
         desc: 'Open for your tools, most urgent first', n: strip.open, unit: 'open' },
-      { key: 'lab', icon: 'activity', title: 'Lab status',
+      { key: 'lab', icon: 'activity', title: 'Lab status', scene: 'aoi',
         desc: 'Open requests in the lab', n: labOpen, unit: 'open' },
       D.canMeasure(me) && { key: 'board', icon: 'kanban', title: 'Board',
         desc: 'Line stop comes first', n: strip.line_stop, unit: 'line stop' },
-      D.canSeeManagement(me) && { key: 'analytics', icon: 'bar-chart', title: 'Analytics',
+      D.canSeeManagement(me) && { key: 'analytics', icon: 'bar-chart', title: 'Analytics', scene: 'bars',
         desc: 'Completed in the last 90 days',
         n: window.MRT.analytics.get(window.MRT.analytics.defaultFilter(now)).counts.done, unit: 'done' },
       D.canRegisterLot(me) && { key: 'lots', icon: 'layers', title: 'Lots',
         desc: 'Lots on file — register a new one', n: store.list('lots').length, unit: 'lots' },
-      { key: 'help', icon: 'circle-help', title: 'Help',
+      { key: 'help', icon: 'circle-help', title: 'Help', scene: 'dice',
         desc: 'Step-by-step guides', n: window.MRT.views.help.GUIDES.length, unit: 'guides' },
       D.canUseSettings(me) && { key: 'settings', icon: 'settings', title: 'Settings',
         desc: 'Setup problems needing an admin',
@@ -76,6 +77,7 @@ window.MRT.views.home = (function () {
 
     main.appendChild(ui.pageHead('Home', 'Your doors into the lab.'));
     main.appendChild(ui.el('div', { class: 'home-grid' }, cards.map(card)));
+    if (window.MRT.scene3d) { try { window.MRT.scene3d.mountAll(main); } catch (e) {} }
   }
 
   return { render: render };
