@@ -611,10 +611,7 @@ table.grid tbody tr[tabindex]:focus-visible { outline-offset: -2px; }
 .prf-step-label { color: var(--fg-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 -8px; }
 .prf-sides2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 @media (max-width: 1200px) { .prf-sides2 { grid-template-columns: 1fr; } }
-.prf-findings { display: grid; gap: 16px; }
-.prf-side-head { margin: 0 0 8px; font-size: 14px; }
-.prf-side-block .tab-bar { margin-bottom: 8px; }
-.prf-file-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+
 
 /* --- Tabs with a sliding underline ---------------------------------- */
 .tab-bar {
