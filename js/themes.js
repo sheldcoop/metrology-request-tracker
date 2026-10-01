@@ -10,13 +10,13 @@
  * The user menu's theme gallery, Settings > Look (the default theme for
  * everyone), ui-kit.html and tests/contrast.js all read this list.
  *
- * The themes (2026-09-30, Prince, redesign Step 1): five - AT&S (the default,
- * company identity; since 2026-10-01 a white room with AT&S blue panels and tiles, white writing), Pure White, Dark Teal, Slate and Quant.
- * Dark Teal, Slate and Quant match the studio website tokens (studio
- * src/tailwind.config.ts .dark / .slate / .quant, HSL converted to hex by
+ * The themes (2026-09-30, Prince, redesign Step 1; 2026-10-01 HOME-19: Quant -> Neutral, + Copper): six - AT&S (the default,
+ * company identity; since 2026-10-01 a white room with AT&S blue panels and tiles, white writing), Pure White, Dark Teal, Slate, Neutral and Copper.
+ * Dark Teal and Slate match the studio website tokens (studio
+ * src/tailwind.config.ts .dark / .slate, HSL converted to hex by
  * script); their AA-tuned text shades stay one step off the raw tokens where
  * tests/contrast.js fails. Signal and Frost are retired; their keys (and every
- * older key) map onto the five (ALIASES), so nobody's saved choice breaks.
+ * older key) map onto the six (ALIASES), so nobody's saved choice breaks.
  * Status tokens keep OK / Warning / Line stop / Late clearly apart and
  * readable in every theme.
  *
@@ -41,7 +41,8 @@ window.MRT.themes = (function () {
                   light: 'pure-white', arctic: 'pure-white', golden: 'pure-white', rose: 'pure-white',
                   'carbon-white': 'pure-white', 'gruvbox-light': 'pure-white', cleanroom: 'pure-white', minimal: 'pure-white',
                   frost: 'pure-white',
-                  hc: 'dark-teal', 'primer-hc': 'dark-teal' };
+                  hc: 'dark-teal', 'primer-hc': 'dark-teal',
+                  quant: 'neutral' };
   var LAST_KEY = 'mrt.theme.last';
 
   /* Status colours per scheme: the meaning never changes, only the shade that reads well. */
@@ -141,22 +142,31 @@ window.MRT.themes = (function () {
            blocked: '#6F6F6F', 'blocked-fg': '#C6C6C6', 'blocked-bg': '#393939',
            'c-blue': '#78A9FF', 'c-teal': '#08BDBA', 'c-pink': '#FF7EB6',
            shadow: '0 12px 32px rgba(0, 0, 0, .5)', 'shadow-pop': '0 18px 50px rgba(0, 0, 0, .6)', scrim: 'rgba(4, 8, 18, .66)' } },
-    { key: 'quant', name: 'Quant', scheme: 'dark', group: 'Main',
-      mood: 'Studio .quant tokens: near-black room, cyan actions, violet highlights.',
-      swatches: ['#0C1017', '#131720', '#13ECEC', '#E8ECEE'],
-      p: { bg: '#0C1017', surface: '#131720', 'surface-2': '#1F242E', 'surface-3': '#29303D', inset: '#0C1017',
-           fg: '#E8ECEE', 'fg-muted': '#819098', 'fg-faint': '#85929C',
-           line: '#252B37', 'line-strong': '#353E4F', 'line-hi': '#B152E0', bracket: '#353E4F',
-           accent: '#13ECEC', 'accent-fill': '#13ECEC', 'accent-fg': '#0C1017', 'accent-soft': 'rgba(19, 236, 236, .12)',
-           'accent-glow': '0 0 0 1px #13ECEC',
-           ok: '#42BE65', 'ok-fg': '#42BE65', 'ok-bg': '#022D0D',
-           warning: '#F1C21B', 'warning-fg': '#F1C21B', 'warning-bg': '#302400',
-           critical: '#FF832B', 'critical-fg': '#FF832B', 'critical-bg': '#3E1A00',
-           expired: '#FA4D56', 'expired-fg': '#FF8389', 'expired-bg': '#520408',
-           danger: '#DA1E28', 'danger-fg': '#FF8389', 'danger-bg': '#520408', 'on-danger': '#FFFFFF',
-           blocked: '#6F6F6F', 'blocked-fg': '#C6C6C6', 'blocked-bg': '#393939',
-           'c-blue': '#78A9FF', 'c-teal': '#08BDBA', 'c-pink': '#FF7EB6',
-           shadow: '0 12px 32px rgba(0, 0, 0, .5)', 'shadow-pop': '0 18px 50px rgba(0, 0, 0, .6)', scrim: 'rgba(4, 8, 18, .66)' } },
+    { key: 'neutral', name: 'Neutral', scheme: 'light', group: 'Main',
+      mood: 'Calm light grey room, #262626 ink, graphite Home tiles with white writing.',
+      swatches: ['#F3F3F1', '#FFFFFF', '#262626', '#5C5C5C'],
+      p: { bg: '#F3F3F1', surface: '#FFFFFF', 'surface-2': '#F7F7F5', 'surface-3': '#ECECE9', inset: '#FFFFFF',
+           fg: '#262626', 'fg-muted': '#5A5A5A', 'fg-faint': '#525252',
+           line: '#E0E0DC', 'line-strong': '#C6C6C2', 'line-hi': '#262626', bracket: '#C6C6C2',
+           accent: '#262626', 'accent-fill': '#262626', 'accent-fg': '#FFFFFF', 'accent-soft': 'rgba(38, 38, 38, .08)',
+           'accent-glow': '0 0 0 1px #262626',
+           ok: '#1F7A4D', 'ok-fg': '#14532F', 'ok-bg': '#E2F2E8',
+           warning: '#F1C21B', 'warning-fg': '#7A5410', 'warning-bg': '#FCF4D6',
+           critical: '#FF832B', 'critical-fg': '#BA4E00', 'critical-bg': '#FFF2E8',
+           expired: '#B42318', 'expired-fg': '#7A1A12', 'expired-bg': '#FBE7E5',
+           danger: '#B42318', 'danger-fg': '#7A1A12', 'danger-bg': '#FBE7E5', 'on-danger': '#FFFFFF',
+           blocked: '#8D8D8D', 'blocked-fg': '#525252', 'blocked-bg': '#E0E0E0',
+           tile: '#262626', 'tile-fg': '#FFFFFF', 'tile-fg-muted': '#C6C6C6', 'tile-accent': '#FFFFFF',
+           'tile-line': '#262626', 'scene-ink': '#FFFFFF', 'scene-line': '#6F6F6F' } },
+    { key: 'copper', name: 'Copper', scheme: 'dark', group: 'Main',
+      mood: 'The PCB panel: dark laminate room, copper-clad tiles, bright copper for actions and the scenes.',
+      swatches: ['#15100C', '#3B2414', '#E0915A', '#F6EEE7'],
+      p: { bg: '#15100C', surface: '#1F1712', 'surface-2': '#2A1F18', 'surface-3': '#35271E', inset: '#15100C',
+           fg: '#F6EEE7', 'fg-muted': '#C2AC9A', 'fg-faint': '#B39C89',
+           accent: '#E0915A', 'accent-fill': '#E0915A', 'accent-fg': '#1F0F05',
+           tile: '#3B2414', 'tile-fg': '#FBF3EC', 'tile-fg-muted': '#E3C9B4', 'tile-accent': '#F2B58A',
+           'tile-line': '#6D3620', 'scene-ink': '#F2A66E', 'scene-line': '#8A5A3C',
+           shadow: '0 12px 32px rgba(0, 0, 0, .5)', 'shadow-pop': '0 18px 50px rgba(0, 0, 0, .6)', scrim: 'rgba(10, 6, 3, .66)' } },
   ];
 
   function rgb(hex) {

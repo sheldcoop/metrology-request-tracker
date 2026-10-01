@@ -1137,3 +1137,10 @@ never the only signal - the text/label says the same thing.
   "bar city" (6 x 4 bars rolling in waves, trend line with racing head,
   a peak bar spikes with a shock ring). New request, My requests and
   Board stay as built today.
+- **HOME-19** (home-final: themes, 2026-10-01, Prince) Quant is replaced by
+  NEUTRAL (light grey room #F3F3F1, #262626 ink, graphite Home tiles with
+  white writing and white scenes) - Quant and Dark Teal were near twins;
+  the key `quant` now aliases to neutral. New theme COPPER, the PCB panel:
+  dark laminate room #15100C, copper-clad tiles #3B2414 with a copper edge,
+  bright copper #E0915A for actions, copper scene ink. Six themes: AT&S,
+  Dark Teal, Pure White, Slate, Neutral, Copper. Contrast AA in both zones.
