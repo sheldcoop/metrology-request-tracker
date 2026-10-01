@@ -865,11 +865,16 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
         $$('#main .board-cell').filter(c => c.dataset.col === 'accepted' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1 &&
         $$('#main .board-cell').filter(c => c.dataset.col === 'in_progress' && c.dataset.tool === fib().id)[0].querySelectorAll('.bcard').length === 1);
   const lsCard = $$('#main .bcard').filter(c => c.dataset.id === qL.id)[0];
-  check('...the Line stop card: stripe, priority word, truncated ID with full title, lot, clock, no gauge or initials, nothing draggable',
-    lsCard.classList.contains('is-urgent') && lsCard.classList.contains('prio-1') && /Line stop/.test(lsCard.textContent) &&
-    lsCard.querySelector('.bcard-id').getAttribute('title') === qL.request_no && /18178/.test(lsCard.textContent) &&
-    !!lsCard.querySelector('.q-clock') && !lsCard.querySelector('.bgauge') && !lsCard.querySelector('.bcard-who') &&
+  const lsShort = qL.request_no.split('-').slice(1).join('-');
+  check('...the Line stop card: stripe, short ID, count, lot, P1 - tooltip carries the rest, nothing draggable',
+    lsCard.classList.contains('is-urgent') && lsCard.classList.contains('prio-1') &&
+    lsCard.querySelector('.bcard-id').textContent === lsShort && lsShort.indexOf('FIB') === -1 &&
+    /1 pnl/.test(lsCard.textContent) && /18178/.test(lsCard.textContent) &&
+    lsCard.querySelector('.bcard-prio').textContent === 'P1' &&
+    lsCard.getAttribute('title').indexOf(qL.request_no + ' · ') === 0 && /panels 6/.test(lsCard.getAttribute('title')) &&
+    !lsCard.querySelector('.q-clock') && !lsCard.querySelector('.bgauge') && !lsCard.querySelector('.bcard-who') &&
     $$('#main .bcard').every(c => c.getAttribute('draggable') !== 'true'));
+  check('...empty cells say Nothing here', $$('#main .board-cell').some(c => /Nothing here/.test(c.textContent)));
   await MRT.store.requestAction(qN.id, 'hold', { hold_reason_id: MRT.store.list('hold_reasons')[0].id, note: 'test only' });
   win.setHash('#/lab'); await settle(); win.setHash('#/board'); await settle();
   const holdCard = $$('#main .bcard').filter(c => c.dataset.id === qN.id)[0];
