@@ -78,7 +78,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `js/ui/barcode.js` | Code 128 for slips. |
 | `js/ui/magazine.js` | Magazine slot picker. |
 | `js/ui/scene3d.js` | Home card scene engine: every card plays all the time (livelier on hover), one shared off-screen renderer copied into each card, lazy THREE, full disposal, still-icon fallback. |
-| `js/ui/scenes/*.js` | One card scene each (`create(ctx)` → `{scene, camera, update(dt, t, energy), dispose}`; engine renders), ≤ ~250 lines: `new` (form fills itself, stamp, flies off), `mine` (the journey: 4 stations), `queue` (orbit core), `board` (live board: hopping cards), `aoi` = Lab status (tool constellation), `results` (live surface + probe orb + rising data cubes), `bars` = Analytics (bar city + racing trend line), `hirata` (dot code assembles from a swirl), `dice` = Help (the throw). |
+| `js/ui/scenes/*.js` | One card scene each (`create(ctx)` → `{scene, camera, update(dt, t, energy), dispose}`; engine renders), ≤ ~250 lines: `new` (form fills itself, stamp, flies off), `mine` (the journey: 4 stations), `queue` (orbit core), `board` (live board: hopping cards), `aoi` = Lab status (the lab floor: five working tools + a panel cart), `results` (live surface + probe orb + rising data cubes), `bars` = Analytics (bar city + racing trend line), `hirata` (copper panel: beads drill a real Hirata code), `dice` = Help (dice land on five, pips form a question mark). |
 | `js/ui/traveller.js` | Traveller card (full/mini/card/slip sizes). |
 | `js/ui/hirata.js` | Copper panels, decoded fields, dot grid. |
 | `js/ui/theme-gallery.js` | Theme picker cards. |

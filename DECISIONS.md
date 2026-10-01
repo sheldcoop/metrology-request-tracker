@@ -1144,3 +1144,18 @@ never the only signal - the text/label says the same thing.
   dark laminate room #15100C, copper-clad tiles #3B2414 with a copper edge,
   bright copper #E0915A for actions, copper scene ink. Six themes: AT&S,
   Dark Teal, Pure White, Slate, Neutral, Copper. Contrast AA in both zones.
+- **HOME-20** (home-final: purpose scenes, 2026-10-01, Prince: "like queue"
+  meant movement and complexity, not the same look) Each scene gets its
+  own visual language. Hirata = "the code drills itself": a copper panel
+  (copper in every theme, H-3) flips in, glowing beads swirl around it and
+  drop column by column into a REAL Hirata code (start column of five,
+  then 8/4/2/1 over the baseline per digit), each becoming a drilled hole
+  with a flash; engraved digits fade in; a read bar lights each column;
+  the holes pop back out and the next code drills. Lab status = "the lab
+  floor": HRM turret over a sliding stage, AOI camera on its gantry with
+  a light sheet, PRF stylus tracing, QVM zoom lens under a ring light, FIB
+  column firing with sparks; status lamps, one tool in maintenance per
+  loop; a cart carries a copper panel and docks at each tool, which works
+  harder while it is there. Help = "the dice become help": two dice always
+  land on FIVE; their ten pips fly up into a glowing question mark in a
+  halo, then fly home and the dice lift away.

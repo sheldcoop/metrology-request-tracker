@@ -60,7 +60,8 @@ function loadScenes() {
   win.document = { createElement: function (tag) {   // dice faces paint here
     if (tag !== 'canvas') throw new Error('unexpected element ' + tag);
     return { width: 0, height: 0, getContext: function () {
-      return { fillRect: function () {}, beginPath: function () {}, arc: function () {}, fill: function () {} }; } }; } };
+      return { fillRect: function () {}, beginPath: function () {}, arc: function () {}, fill: function () {},
+        clearRect: function () {}, fillText: function () {} }; } }; } };
   const ctx = vm.createContext(win);
   ['aoi', 'bars', 'dice', 'new', 'mine', 'queue', 'board', 'results', 'hirata'].forEach(k =>
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/ui/scenes/' + k + '.js'), 'utf8'), ctx, { filename: k }));
