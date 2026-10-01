@@ -66,7 +66,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 
 | file | purpose |
 |---|---|
-| `js/ui/core.js` | `el`, mount, form primitives. |
+| `js/ui/core.js` | `el`, mount, form primitives, `icon` (Lucide data inlined in PATHS). |
 | `js/ui/components.js` | panel, button, field, segmented, toggle, tabs, table, KPI... |
 | `js/ui/overlays.js` | dialog, toast, tooltip, menu. |
 | `js/ui/chips.js` | Unit chips: type, order strip, drag-reorder. |
@@ -113,6 +113,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `vendor/chart.umd.min.js` | Chart.js 4, local copy. |
 | `vendor/xlsx.full.min.js` | SheetJS, local copy (CSV fallback without it). |
 | `vendor/three.min.js` + `three.README.md` | Three.js r160 UMD (last UMD release), lazy-loaded on first Home hover only. |
+| `vendor/lucide-sprite.svg` + `lucide-README.md` | Lucide v1.49.0 icon sprite (upstream record; drawn copies inlined in core.js). |
 
 ## Tests (dev only, `node tests/<file>.js`)
 
@@ -133,6 +134,7 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `tests/memory-storage.js` | In-memory storage adapter (proves the adapter interface swaps). |
 | `tests/prf-view-logic.js` | PRF page logic: scan counts, unit order, same-as-via, plan. |
 | `tests/make-demo-data.js`, `make-preview.js`, `make-prf-demo.js` | Generators (demo requests, preview page, PRF log tree). |
+| `tests/make-lucide.js` | Re-vendors Lucide: downloads the pinned icons, writes the sprite + PATHS block. |
 
 ## Docs
 

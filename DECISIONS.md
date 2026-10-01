@@ -977,3 +977,31 @@ never the only signal - the text/label says the same thing.
   no scene orphaned, no card sceneless. Display only: `stripCounts`,
   `toolQueueStats`, `notificationsFor` untouched (nav badge + queue counts
   line verified in the gate).
+- **HOME-5** (home-final, Step 5: Lucide icons) Nav, page, system and
+  workflow icons are Lucide v1.49.0, vendored as one inline sprite
+  (`vendor/lucide-sprite.svg` + `vendor/lucide-README.md`: version, size,
+  ISC licence). The sprite is the upstream record; the drawn copies live
+  inlined in `js/ui/core.js` PATHS because `file://` cannot fetch at
+  runtime. Regenerate with `node tests/make-lucide.js`. The custom tool
+  glyphs (hrm, aoi, prf, qvm, fib) stay in `js/ui/glyphs.js` - no set
+  draws lab instruments. Stroke stays one width, 1.5px, set by `ui.icon()`.
+  Merged: help into circle-help; chart + analytics + bar-chart into
+  chart-column (callers updated). Kept hand-drawn: logo (brand mark),
+  hirata (dot pattern), motion (unused, no good match). `clock` kept -
+  still used (timeline, calendar, Analytics). Full map (ours -> Lucide):
+  dashboard -> layout-dashboard, lots -> package, settings -> settings,
+  search -> search, folder -> folder, alert -> triangle-alert, check ->
+  check, close -> x, refresh -> refresh-cw, download -> download, upload
+  -> upload, save -> save, sun -> sun, moon -> moon, contrast -> contrast,
+  user -> user, inbox -> inbox, clock -> clock, archive -> archive,
+  restore -> history, edit -> pencil, move -> move, plus -> plus, filter
+  -> funnel, trash -> trash-2, home -> house, chevron_left ->
+  chevron-left, expand -> maximize-2, info -> info, lock -> lock,
+  activity -> activity, gauge -> gauge, grid -> grid-2x2, chevron_down ->
+  chevron-down, chevron_right -> chevron-right, sliders ->
+  sliders-horizontal, ruler -> ruler, requests -> clipboard-list,
+  request_new -> file-plus, board -> kanban, bell -> bell, copy -> copy,
+  wrench -> wrench, users -> users, calendar -> calendar, tag -> tag,
+  keyboard -> keyboard, mail -> mail, plus-circle -> circle-plus, list ->
+  list, kanban -> kanban, layers -> layers, circle-help -> circle-help,
+  chart-column (new) -> chart-column.
