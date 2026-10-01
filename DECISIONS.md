@@ -667,6 +667,19 @@ never the only signal - the text/label says the same thing.
   `ui.statusIcon(status)` (the icon beside words already shown), in js/ui/core.js. Every status chip
   of the screens goes through it; KPI tiles (Analytics, Lab status, Health) show the status icon
   before their label; Lab status "1 late" carries the clock. A new screen cannot forget the icon.
+- **T-12** (2026-09-30, Prince, redesign Step 1) **Five themes, high contrast as a switch.** `ats`
+  (still the default) is now dark navy: page #082B4F, surface #0C3D6E, white writing, white primary
+  buttons with navy text; late/danger #FF7A70 (text shades lightened where tests/contrast.js failed:
+  expired-fg #FF9A92, critical-fg #FFA76B). `pure-white` takes the brand navy #0C3D6E for top bar,
+  headers, primary buttons and active nav (warning-fg #7A5410, late #B42318, ok #1F7A4D). `dark-teal`,
+  `slate` and `quant` match the studio website tokens (studio src/tailwind.config.ts .dark / .slate /
+  .quant, HSL converted to hex by script) - their values already matched, so only the source note
+  changed. `signal` and `frost` are retired (`signal` -> dark-teal, `frost` -> pure-white in ALIASES);
+  every older key still resolves, so saved choices and the office default keep working. High contrast
+  is no longer a theme: the CSS already keyed the stronger ink off `data-contrast="high"`, so the
+  user menu has a "High contrast" switch that works on top of any theme, remembered per user on the
+  PC (same pattern as Reduce motion). AT&S and Dark Teal look alike at a glance (both dark) on
+  purpose - the accents tell them apart (white vs teal); no fix proposed.
 - **S-1** (2026-09-25, first-day walkthrough on a fresh folder) The setup to-do list (Health) is in the
   order a new admin works through it - tools and people, the lab calendar, the lists, a second admin -
   with one line per tool ("FIB: no primary quality engineer, no backup quality engineer, no results
@@ -735,3 +748,181 @@ never the only signal - the text/label says the same thing.
   tabs (open #30); H-8: DOM budget guard (`tests/dom-budget.js`, 5000
   nodes/view, queue paging); H-10: the store picks its storage adapter
   from `config.adapters.storage`, so the server move needs no store edit.
+- **DASH-1** (dashboard-front-page, Step 1: studio themes) Four studio
+  palettes ported to `js/themes.js`, all HSL values converted by script
+  (never by hand). Mapping rules: surface-2 = studio secondary,
+  surface-3 = secondary +5 lightness, line-strong = border +8, faint =
+  muted -7 (dark) / +7 (light), accent = primary, status blocks adopted
+  from deep-lab (dark three) and cleanroom (pure-white), radii/shadows
+  adopted the same way; quant violet only as `line-hi` highlights.
+  Retired deep-lab, cleanroom, minimal; old keys resolve via ALIASES
+  (deep-lab -> dark-teal, cleanroom/minimal -> pure-white; 2026-09-28
+  aliases repointed directly since `byKey` resolves one hop). DEFAULT
+  stays `ats`. Final list (7): ats, frost, signal, dark-teal,
+  pure-white, slate, quant. Contrast fixes, script-computed, verified
+  by `tests/contrast.js` (0 fails): pure-white fg-faint #76869D ->
+  #627289; slate fg-muted #676E83 -> #878CA0, fg-faint #575D6F ->
+  #888FA2; quant fg-faint #6E7E87 -> #85929C. Gallery order is
+  dark-teal, pure-white, signal, frost, ats, slate, quant (ats-first
+  reordering left open).
+- **DASH-2** (dashboard-front-page, Step 2: topbar theme button) New
+  `themeBtn` icon button in `.topbar-right` (contrast glyph, same as the
+  user-menu entry) opening the same `themeGallery()` in a popup menu,
+  wrapped in `.theme-compact` (one row per theme: name + swatch preview,
+  samples and moods hidden by CSS only). No `extra`: "Office default"
+  stays out of the personal picker (user-menu Theme... dialog keeps it).
+  The gallery stays open on a pick, so all 7 themes are one click away
+  (no cycling). Keyboard: gallery radiogroup + roving tabindex + arrows,
+  current card focused on open, Esc/outside click closes via `ui.menu`.
+  `setTheme()` reused untouched, so `rethemeCharts()` still runs.
+- **DASH-3** (dashboard-front-page, Step 3: icons) Six names added to
+  `js/ui/core.js` PATHS (60 total): plus-circle, list, kanban, bar-chart,
+  layers, circle-help; inbox/activity/settings reused, not duplicated.
+  No tool-glyph reuse: no Home card depicts a physical instrument, so the
+  48-grid living drawings stay on Lab/tool surfaces. Global stroke-width
+  1.8 -> 1.75 (no test asserted it; visually negligible). Card mapping:
+  New request plus-circle, My requests list, My queue inbox, Lab status
+  activity, Board kanban, Analytics bar-chart, Lots layers, Help
+  circle-help, Settings settings. Kit shows the 9 in the Tool glyphs
+  section (own `kit-icon-cell` class, so the 28-cell glyph count holds);
+  CONTRIBUTING table gained the icon row.
+- **DASH-4** (dashboard-front-page, Step 4: Home) New route `#/home`
+  (`js/views/home.js`, NAV first, shortcut `g m`): a card per page with
+  STEP 3 icon, one line, live count. Cards reuse existing functions only
+  (stripCounts, toolQueueStats, notificationsFor, analytics.get; the drafts
+  / mine / lots / guides / problems reads mirror their own views).
+  Gates: New request canRequest, My queue + Board canMeasure, Analytics
+  canSeeManagement, Lots canRegisterLot, Settings canUseSettings; Lab
+  status, My requests, Help are read surfaces open to all. Routes guarded
+  only where green stays green: `#/new` + `#/lots` show "You don't have
+  access, ask an admin." `#/requests`, `#/queue`, `#/board`, `#/analytics`
+  stay readable (Ruth the analyst works in requests, Prince the
+  non-manager admin reads analytics, Olga reads queue/board) and Settings
+  keeps its own admin message (app-smoke asserts it). Role start pages
+  stay (homeFor); Home is only a start page when picked in the user menu
+  (existing mechanism, no change). `+ New` topbar button (canRequest,
+  repainted in paintUser). Budgets: Home in dom-budget.js (150 ms,
+  10,000 nodes).
+- **DASH-5** (dashboard-front-page, Step 5: card hover) Lift
+  (`translateY(-2px)`) + soft accent glow on `.home-card` and Lab
+  `.tool-plate`. transform/opacity only: the glow lives on an `::after`
+  overlay (`box-shadow: var(--accent-glow), 0 10px 30px
+  var(--accent-soft)`, theme tokens only) whose opacity fades in - no
+  box-shadow is ever transitioned. Stops under both switches: the global
+  `prefers-reduced-motion` / `[data-motion="reduce"]` rules already kill
+  transitions, plus explicit rules zero the hover end states so nothing
+  jumps. `.tool-plate` keeps its existing border/box transitions for
+  state changes (is-selected etc.); transform appended for the lift.
+- **DASH-6** (dashboard-front-page, Step 6: small extras) "Waiting on me"
+  on the side menu from `notificationsFor` (same read watermark as the
+  bell): my requests' updates on My requests, lab-side updates (measurer
+  or assignee) on My queue; unread only, capped at 99+, `warning` badge
+  style, "N waiting on me" hover title; repainted with the bell and on
+  menu rebuild. Empty states: settings tables already carry table empty
+  texts, so only Help's search-no-results became a real `ui.emptyState`
+  (Home cannot be empty: lab/requests/help cards are unconditional).
+  Status-lamp legend: new Help guide (all five lamps as live `ui.led`
+  with words, shapes spelled out, Lab link).
+- **DASH-7** (dashboard-front-page, redesign Step 2: foundation) One shape
+  rule (`--radius` buttons/inputs, `--radius-panel` panels/cards/dialogs,
+  999px chips, 50% dots; same radii every theme), 5 type sizes
+  (12/13/15/20/28, weights 600+700, mono for IDs/counts/clocks), 8px grid
+  with compact default + per-user Comfortable density switch, border-OR-shadow
+  elevation (glow only for Line stop / tool Down), colour roles (accent for
+  action only, status colour in chips only, no tints, stripe for Line stop/Hot
+  only, late as red chip), 3 merged components (StatusChip, CountPill, traveller
+  Stamp; LEDs-as-text, OK circles and board initials removed), Lucide-style
+  icons at 1.5px round caps (16 rows/nav, 18 filters), short value-first
+  subtitles, one empty-state pattern, transform/opacity motion only.
+  Rules live in `DESIGN_RULES.md`.
+- **DASH-8** (dashboard-front-page, redesign Step 3: frame) Top bar left to
+  right: search, "+ New" (primary, was plain), bell, save lamp (+ Undo),
+  theme button, user menu. The help and shortcuts icon buttons are gone:
+  Help lives in the nav, shortcuts live in the user menu (and on `?`).
+  Nav regrouped Home | New/My requests/My queue/Board | Lab/Lots/Results/
+  Hirata | Analytics | Settings/Help with thin dividers; active item is the
+  3px bar + bold label (border dropped). Strip is counts only (four filter
+  links, no state label, clock or "N open"). Bell keeps the list of what
+  changed; incoming changes no longer toast (toasts confirm my own actions
+  only); pop-ups only when opted in, never beside a toast.
+- **DASH-9** (dashboard-front-page, redesign Step 4: request box) My queue
+  is one box per request (`js/ui/request-box.js`, plain values in): line 1
+  tool glyph, mono ID, priority word for Line stop/Hot only, status chip,
+  red Late chip when late, assignee right; line 2 lot + build-up; bottom
+  line one filled primary (Accept / Receive & start / Start / Complete),
+  Hold + Needs clarification as quiet text buttons, the rest (Take it, Copy
+  BKM path, Cancel...) behind "...". Stripe for Line stop/Hot only, hover
+  accent-soft + lift. Neutral sticky groups Line stop / Late / Due this
+  week / Rest (pilot, queue only); paging kept (100 boxes + more-button).
+  Ticking shows "N selected:" with one primary bulk + "..." + Clear. On
+  Complete the box reads "Completed" and fades (1.2 s) with a 10 s Undo
+  toast into a collapsed "Done today (N)" section; Undo withdraws the
+  entry. Strip counts are filter links (open/late/yours). Countdown clocks
+  are gone from the queue (the shell tick has nothing to repaint).
+- **DASH-10** (dashboard-front-page, redesign Step 5: My requests) The same
+  box; line 2 adds the process step (e.g. "After lamination"). Completed
+  requests keep Reopen and the results folder link on the bottom line (no
+  "Results OK" button exists since Q34, so it is Reopen only). Analyzed ones
+  moved from the filter list to a History filter. "To analyze" left its
+  bottom panel and is its own tab (`#/requests/toanalyze`). Drafts carry on
+  from their box (Carry on + delete). No countdown clocks here either.
+- **DASH-11** (dashboard-front-page, redesign Step 6b: board) Numbered
+  columns kept, their coloured top borders and numeral colours gone. The
+  TOOL column is gone: one slim sticky lane header per tool (glyph, code,
+  open count; the glyph still shows Down/Maintenance); empty lanes are a
+  thin strip. Completed + Analyzed are OFF by default (remembered).
+  Cards are rebuilt, not mini travellers: stripe for Line stop/Hot only
+  (plain otherwise), the tiny priority word for those two, truncated mono
+  ID with the full number in the tooltip, lot + build-up, the needed-by
+  clock (text only) and one status/Late chip - plus Stuck past 2 lab days
+  on hold. No gauges, initials, dates or red card borders; the drawer keeps
+  the traveller, the actions and an explicit "Open page" link (renamed from
+  "Open full page"). Filter row: Scope All/Mine + tool dropdown with counts,
+  Show, Done toggle, search. Stuck uses the same rule as Health now: both
+  count lab days (`domain.holdLabDays`, 2 by `STUCK_HOLD_LAB_DAYS`); the old
+  7-calendar-day Health rule is replaced. Width budget: 5 columns take
+  774 px, 7 take 1086 px (150 px columns + 6 px gaps) - both fit 1440 px
+  with the nav open. Lane headers slide under the sticky stations instead
+  of a second brittle sticky offset.
+- **DASH-12** (dashboard-front-page, redesign Step 7: request page) Above
+  the fold: head, traveller facts, one action bar - at most two buttons
+  (the primary workflow action from `requestActions.primary()`, Copy
+  results path) plus "..." with the rest of the workflow, Edit, Print,
+  Copy, templates and Cancel. Below in one stack: paths (one row each),
+  status rail, details, people, timeline of status changes, comments last.
+  The late countdown is one red line. Queue boxes use the same shared
+  primary, so both bars agree on what comes first.
+- **DASH-13** (dashboard-front-page, redesign Step 8: new request form)
+  The form takes the full page: progress strip plus folding steps, no
+  side column. "What the lab will see" and "Your requests" stack below
+  the form in the same `.req-stack` as the request page. The two-column
+  `.req-layout` / `.req-side` CSS is retired; path rows keep full width
+  via `.req-stack .cell-path`.
+- **DASH-14** (dashboard-front-page, redesign Step 9: home replacement)
+  Home (`#/home`) is the start page for everyone; the user menu's Start
+  page pick still wins. The role rule `domain.homeFor` stays untouched
+  (Q16, still unit-tested) but no longer picks the landing. This
+  supersedes the M3-12 landing part only.
+- **DASH-15** (dashboard-front-page, Part A frame) One top bar, 56 px:
+  mark + "Metrology" (M1 pill gone), search centred to 560 px ("Search
+  requests, lots, panels"), save state as quiet muted text (shows
+  "Saved" 4 s after a save; colour only for Saving/failed), "+ New" the
+  only filled button at full 36 px, bell dot with the count inside the
+  panel, avatar menu gains Help and "Sign out" (was "Change user";
+  Reduce motion, Reload, Change folder stay). All controls 36 px, 18 px
+  icons. The strip bar is gone with its clock (already clockless since
+  DASH-8): My queue badge carries Line stop + Late on the person's
+  tools, the queue page opens with a plain filter-link counts line
+  (late colour on Line stop/Late numbers above zero). One slim calm
+  line-stop banner under the bar for the first undismissed open Line
+  stop on the QE's tools, dismissed per request per person on the PC.
+- **DASH-16** (dashboard-front-page, Part A board) Cards are two lines at
+  58 px: short ID (no tool prefix) + "N pnl", or red "late N d" (calendar
+  days, like the request page) with the count moved to line 2; line 2 is
+  lot + build-up with P1/P2 code and at most one chip (Stuck covers On
+  hold). Thin 3 px stripe for P1/P2 only. Countdown and panels live in
+  the hover tooltip (repainted by the 1 s text-only tick) and the
+  drawer. Columns are plain `surface` with 10 px gaps (5 cols 790 px,
+  7 cols 1110 px - still inside 1440 px); empty cells say "Nothing
+  here". The `.q-clock` rules are retired (traveller clocks are
+  `.tr-clock`).

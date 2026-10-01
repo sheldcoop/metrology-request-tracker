@@ -128,7 +128,16 @@ window.MRT.ui = (function () {
     tag: '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
     hirata: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8" cy="8.5" r="1.3"/><circle cx="8" cy="12" r="1.3"/><circle cx="8" cy="15.5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="16" cy="8.5" r="1.3"/><circle cx="16" cy="15.5" r="1.3"/>',
     keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
-    mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/>'
+    mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/>',
+    // Home cards (Step 3): Lucide-style outline, same drawing language as above.
+    // plus-circle/list/kanban/bar-chart/layers are new; circle-help matches help;
+    // inbox/activity/settings already existed and are reused, not duplicated.
+    'plus-circle': '<circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/>',
+    list: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>',
+    kanban: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M6 7v7M12 7v4M18 7v10"/>',
+    'bar-chart': '<path d="M3 3v18h18"/><path d="M8 17v-6M13 17V7M18 17v-3"/>',
+    layers: '<path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
+    'circle-help': '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>'
   };
 
   /** Inline SVG icon element. `name` must be one of PATHS - never user text. */
@@ -140,7 +149,7 @@ window.MRT.ui = (function () {
     svg.setAttribute('height', s);
     svg.setAttribute('fill', 'none');
     svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '1.8');
+    svg.setAttribute('stroke-width', '1.5');
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
     svg.setAttribute('aria-hidden', 'true');
@@ -328,7 +337,7 @@ window.MRT.ui = (function () {
     var name = displayStatus(statusResult);
     var label = STATUS_LABEL[name] || STATUS_LABEL.neutral;
     return el('span', { class: 'chip ' + name + (name === 'blocked' ? ' has-icon' : '') }, [
-      name === 'blocked' ? icon('lock', 11) : null,
+      name === 'blocked' ? icon('lock', 12) : null,
       label
     ]);
   }

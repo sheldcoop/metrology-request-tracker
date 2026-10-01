@@ -573,7 +573,7 @@
                  setState: function (state, message) {
                    fs.classList.toggle('is-invalid', state === 'invalid');
                    clear(msg);
-                   if (message) append(msg, [icon('alert', 14), el('span', { text: message })]);
+                   if (message) append(msg, [icon('alert', 16), el('span', { text: message })]);
                    else if (sp.hint) msg.textContent = sp.hint;
                  } };
       } else {

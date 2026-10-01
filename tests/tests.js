@@ -213,6 +213,12 @@
     var cl = D.countdown(D.viennaTs('2026-10-06', '09:00'), '2026-10-05', calW, {});
     eq('...late by 2 h lab time the next morning, one day over', [cl.late, cl.lab_ms / H, cl.days], [true, 2, -1]);
     ok('...paused on a Saturday', D.countdown(D.viennaTs('2026-10-03', '10:00'), '2026-10-05', calW, {}).paused);
+    eq('lab days between: Thu 9-10 -> Thu 9-24 is 10 lab days (Step 6b)', D.labDaysBetween(Date.parse('2026-09-10T08:00:00Z'), Date.parse('2026-09-24T12:00:00Z'), calW, {}), 10);
+    eq('...the hold day itself does not count, weekends neither', [D.labDaysBetween(Date.parse('2026-09-23T08:00:00Z'), Date.parse('2026-09-24T12:00:00Z'), calW, {}),
+      D.labDaysBetween(Date.parse('2026-09-25T08:00:00Z'), Date.parse('2026-09-28T12:00:00Z'), calW, {})], [1, 1]);
+    eq('...a holiday counts nothing', D.labDaysBetween(Date.parse('2026-10-23T08:00:00Z'), Date.parse('2026-10-26T12:00:00Z'), calW, D.holidaySet([{ date: '2026-10-26' }])), 0);
+    eq('...backwards is 0, and 2 lab days is stuck', [D.labDaysBetween(Date.parse('2026-09-24T12:00:00Z'), Date.parse('2026-09-10T08:00:00Z'), calW, {}),
+      D.holdLabDays('2026-09-22T08:00:00Z', Date.parse('2026-09-24T12:00:00Z'), calW, {}) >= D.STUCK_HOLD_LAB_DAYS], [0, true]);
     eq('...no date, no countdown', D.countdown(0, null, calW, {}), null);
     var ppl = [{ id: 'u1', name: 'Olga Berger', windows_id: 'oberger' }, { id: 'u2', name: 'Otto Huber', windows_id: 'ohuber' }, { id: 'u3', name: 'Old', windows_id: 'old', active: false }];
     eq('@mentions by full name or Windows ID, each once (Q11)', D.findMentions('Hi @Olga  Berger and @ohuber, also @OBERGER', ppl), ['u1', 'u2']);
@@ -1381,10 +1387,10 @@
                          { request_id: 'rRun', kind: 'status', to: 'on_hold', ts: '2026-09-01T08:00:00.000Z' },
                          { request_id: 'rRun', kind: 'status', to: 'in_progress', ts: '2026-09-20T08:00:00.000Z' }];
     var hs = D.healthIssues(hk, { today_ymd: '2026-09-24' });
-    eq('on hold 13 days: a Health warning linking the request (M6)', [countOf(hs, 'stuck_on_hold'),
+    eq('on hold 10 lab days: a Health warning linking the request (Step 6b)', [countOf(hs, 'stuck_on_hold'),
        hs.filter(function (x) { return x.code === 'stuck_on_hold'; })[0].tab,
-       /13 days/.test(hs.filter(function (x) { return x.code === 'stuck_on_hold'; })[0].text)], [1, 'request', true]);
-    ok('...a 1-day hold and a resumed request stay quiet', hs.every(function (x) { return x.code !== 'stuck_on_hold' || /260910-01/.test(x.text); }));
+       /10 lab days/.test(hs.filter(function (x) { return x.code === 'stuck_on_hold'; })[0].text)], [1, 'request', true]);
+    ok('...a 1-lab-day hold and a resumed request stay quiet', hs.every(function (x) { return x.code !== 'stuck_on_hold' || /260910-01/.test(x.text); }));
     hb.audit_log = new Array(20001); hb.request_events = new Array(50001);
     var hl = D.healthIssues(hb, { today_ymd: '2026-09-24' });
     ok('a huge history warns, pointing at the Audit log', countOf(hl, 'audit_large') === 1 && countOf(hl, 'events_large') === 1 &&
@@ -1497,15 +1503,16 @@
     group('Store: the office theme (Settings > Look)');
     a = await adminStore();
     eq('no office theme at first (the app default)', ST.getSetting('default_theme'), null);
-    await ST.setDefaultTheme('frost', 'calmer for the lab');
-    eq('an admin sets one, audited', [ST.getSetting('default_theme'), ST.data().audit_log.slice(-1)[0].new_value], ['frost', 'frost']);
+    await ST.setDefaultTheme('slate', 'calmer for the lab');
+    eq('an admin sets one, audited', [ST.getSetting('default_theme'), ST.data().audit_log.slice(-1)[0].new_value], ['slate', 'slate']);
     await refused('...not a theme that does not exist', ST.setDefaultTheme('neon-pink', 'x'), 'invalid');
-    await refused('...the same again is "nothing changed"', ST.setDefaultTheme('frost', 'x'), 'no_change');
-    eq('retired keys still resolve to the new set (and Minimal is a real theme)',
+    await refused('...the same again is "nothing changed"', ST.setDefaultTheme('slate', 'x'), 'no_change');
+    eq('retired keys still resolve to the five (signal/frost retired in Step 1)',
        [window.MRT.themes.byKey('carbon-g100').key, window.MRT.themes.byKey('carbon-white').key, window.MRT.themes.byKey('primer-hc').key,
         window.MRT.themes.byKey('hc').key, window.MRT.themes.byKey('catppuccin-mocha').key, window.MRT.themes.byKey('gruvbox-light').key,
-        window.MRT.themes.byKey('minimal').key, window.MRT.themes.DEFAULT],
-       ['deep-lab', 'cleanroom', 'signal', 'signal', 'deep-lab', 'cleanroom', 'minimal', 'ats']);
+        window.MRT.themes.byKey('minimal').key, window.MRT.themes.byKey('signal').key, window.MRT.themes.byKey('frost').key,
+        window.MRT.themes.DEFAULT],
+       ['dark-teal', 'pure-white', 'dark-teal', 'dark-teal', 'dark-teal', 'pure-white', 'pure-white', 'dark-teal', 'pure-white', 'ats']);
     var themeCss = window.MRT.themes.css();
     ok('the default theme CSS comes first, so a picked theme paints over it (its :root rule ties [data-theme] on specificity)',
       themeCss.indexOf(':root,') === 0 && themeCss.indexOf(':root,', 1) === -1);

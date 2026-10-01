@@ -25,12 +25,12 @@ window.MRT.views.help = (function () {
         'Open the app with "Metrology Tool.cmd" (next to index.html). It starts Edge and tells the app your Windows user name.',
         'The first time on a PC, click Choose data folder and pick the folder "data". Next time it is one click (Reconnect) or none.',
         'First time ever? Say who you are. If an admin already added you, pick your name ("Is this you?"). Otherwise you are added as an Engineer and an admin sets your roles.',
-        'Every change is saved at once - there is no Save button. The lamp next to the logo shows it: green = saved, red = not saved.'
+        'Every change is saved at once - there is no Save button. Top right, “Saved” appears briefly after each save; “Saving…” or “Not saved · retry” shows in colour only when something needs you.'
       ],
       tips: [
-        'Made a mistake? Click Undo next to the lamp, or press Ctrl+Z, within ' + cfg.undo_ms / 1000 + ' seconds.',
-        'The strip under the top bar counts what needs attention - Line stop, Late, On hold, Needs clarification - for your tools (quality engineers) or your own requests. Click a count to see those requests.',
-        'On a shared PC, use your name (top right) > Change user.'
+        'Made a mistake? Click Undo in the top bar, or press Ctrl+Z, within ' + cfg.undo_ms / 1000 + ' seconds.',
+        'My queue carries its attention on the menu badge (Line stop + Late on your tools); the counts line at the top of My queue filters the list. An open Line stop also shows one slim banner under the top bar - dismiss it per request.',
+        'On a shared PC, use your name (top right) > Sign out.'
       ],
       link: ['Open Lab status', '#/lab'] },
 
@@ -53,6 +53,24 @@ window.MRT.views.help = (function () {
         'Everyone can read everything. Changes are limited by role.'
       ] },
 
+    { id: 'lamps', title: 'Status lamps', icon: 'info',
+      intro: 'Every status has its own lamp shape and word - colour is never the only signal. The same lamps sit on Lab plates, cards, chips and the board.',
+      extra: function () {
+        return ui.el('ul', { class: 'help-tips' }, [
+          ['ok', 'OK', 'Up tools, finished steps.'],
+          ['warning', 'Warning', 'Maintenance tools, on hold requests, questions.'],
+          ['critical', 'Line stop', 'The most urgent requests - first in every queue.'],
+          ['expired', 'Late', 'Overdue requests, Down tools.'],
+          ['blocked', 'Blocked', 'Locked: nothing moves until it is cleared.']
+        ].map(function (row) {
+          return ui.el('li', {}, [ui.led(row[0], row[1]), ui.el('b', { text: ' ' + row[1] }), ui.el('span', { class: 'muted', text: ' — ' + row[2] })]);
+        }));
+      },
+      steps: [
+        'Tick in a circle means OK; triangle with ! means warning; stop octagon with ! means line stop; clock means late; lock means blocked.',
+        'The word next to a lamp always says the same thing - when in doubt, read the word, not the colour.'
+      ],
+      link: ['Open Lab status', '#/lab'] },
     { id: 'lab', title: 'Lab status and tool status', icon: 'gauge',
       intro: 'Every tool as its nameplate: the tool drawing, its status, its quality engineers and what is set up for it.',
       steps: [
@@ -224,7 +242,7 @@ window.MRT.views.help = (function () {
       steps: [
         'Each change is written to the data file at once, and recorded in the audit log.',
         'Before saving, the app checks nobody else saved in the meantime. If someone did, it stops and offers Reload - it never overwrites their work.',
-        'If a save fails (the share is offline or read-only), the lamp turns red and a message offers Retry and Download as file. Nothing is lost.',
+        'If a save fails (the share is offline or read-only), “Not saved · retry” shows in red and a message offers Retry and Download as file. Nothing is lost.',
         'The first change of each day copies the file into data\\' + cfg.backup_dir + '\\ first; the last ' + cfg.backup_keep + ' days are kept.'
       ] },
 
@@ -347,7 +365,8 @@ window.MRT.views.help = (function () {
                    [ui.icon(g.icon, 15), ui.el('span', { text: g.title })]);
     }));
     var sections = GUIDES.map(guide);
-    var none = ui.el('p', { class: 'muted', hidden: true, text: 'Nothing found. Try another word.' });
+    var none = ui.emptyState({ icon: 'search', title: 'Nothing found', text: 'Try another word.' });
+    none.hidden = true;
     main.appendChild(ui.el('div', { class: 'help-layout' }, [toc, ui.el('div', { class: 'help-body' }, sections.concat([none]))]));
 
     search.addEventListener('input', function () {
@@ -383,9 +402,9 @@ window.MRT.views.help = (function () {
         g.extra ? g.extra() : null,
         ui.el('ol', { class: 'help-steps' }, g.steps.map(function (t) { return ui.el('li', { text: t }); })),
         g.tips && g.tips.length ? ui.el('ul', { class: 'help-tips' }, g.tips.map(function (t) {
-          return ui.el('li', {}, [ui.icon('info', 14), ui.el('span', { text: t })]);
+          return ui.el('li', {}, [ui.icon('info', 16), ui.el('span', { text: t })]);
         })) : null,
-        g.link ? ui.el('a', { class: 'btn btn-sm help-open', href: g.link[1] }, [g.link[0], ui.icon('chevron_right', 14)]) : null
+        g.link ? ui.el('a', { class: 'btn btn-sm help-open', href: g.link[1] }, [g.link[0], ui.icon('chevron_right', 16)]) : null
       ])
     ]);
   }

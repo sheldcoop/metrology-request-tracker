@@ -46,7 +46,7 @@
     }
     return k.panel('Lab days and hours', 'clock', [], [
       ui.el('p', { class: 'muted', text: 'Europe/Vienna. Turnaround and "late" are counted in these hours only.' }),
-      confirmed ? null : ui.el('p', { class: 'setup-note' }, [ui.icon('info', 14),
+      confirmed ? null : ui.el('p', { class: 'setup-note' }, [ui.icon('info', 16),
         ui.el('span', { text: 'Not confirmed yet: the days Mon-Fri were a first guess. Change them, or confirm they are right.' })]),
       f.node, err,
       ui.el('div', { class: 'form-actions' }, [

@@ -214,7 +214,7 @@
         el('span', { class: 'chip ok', text: 'Up' }), el('span', { class: 'chip warning', text: 'Maintenance' }), el('span', { class: 'chip expired', text: 'Down' }),
         el('span', { class: 'chip neutral', text: 'you' }), el('span', { class: 'chip warning', text: 'New' }), el('span', { class: 'chip accent-chip', text: 'Admin' }),
         el('span', { class: 'sample-tag', text: 'Sample' })]),
-      el('p', { class: 'setup-note' }, [ui.icon('info', 14), el('span', { text: 'Setup note: something is not confirmed yet.' })])
+      el('p', { class: 'setup-note' }, [ui.icon('info', 16), el('span', { text: 'Setup note: something is not confirmed yet.' })])
     ]);
   }
 
@@ -261,6 +261,10 @@
            'With Reduce motion each shows its last frame. Sizes: 18 (search), 24 (queue), 28 (Settings table), 40 (gate), 56 (Lab status nameplate).'),
       el('div', { class: 'kit-row', style: { marginTop: '8px' } }, ui.GLYPHS.map(function (g) { return ui.toolGlyph(g.key, { size: 96, state: 'live', label: g.label + ', working' }); })),
       el('div', { class: 'kit-row', style: { marginTop: '8px' } }, [18, 28, 40, 56, 72].map(function (n) { return ui.toolGlyph('fib', { size: n }); })),
+      labelled('Home card icons (Lucide-style outline, 24 grid, currentColor)', el('div', { class: 'kit-row' },
+        ['plus-circle', 'list', 'inbox', 'activity', 'kanban', 'bar-chart', 'layers', 'circle-help', 'settings'].map(function (n) {
+          return el('span', { class: 'kit-icon-cell', title: n }, [ui.icon(n, 24), el('span', { class: 'kit-label', text: n })]);
+        }))),
       labelled('Hero cards (the tool is the anchor: big glyph, lamp, key facts)', el('div', { class: 'cx-tool-hero' }, [
         { key: 'fib', state: 'live', lamp: 'ok', name: 'FIB', facts: ['Up · Via cross-section', 'Queue 3 · oldest 5 h'] },
         { key: 'qvm', state: 'idle', lamp: 'ok', name: 'QVM', facts: ['Up · Via diameter', 'Queue 11 · oldest 2 h'] },
@@ -332,69 +336,75 @@
 
   /** The Board wall in isolation: station headers, tool nameplates, one late ticket. */
   function boardDemo() {
-    function station(n, label, cls, count) {
-      return el('div', { class: 'board-colhead ' + cls }, [
-        el('span', { class: 'board-step', text: n }),
+    function station(n, label, count) {
+      return el('div', { class: 'board-colhead' }, [
+        el('span', { class: 'board-step num', text: n }),
         el('b', { text: label }),
         el('span', { class: 'board-count num' + (count ? '' : ' is-zero'), text: String(count) })]);
     }
-    function lane(code, state, stateWord, glyphKey, glyphState, openText, alert) {
-      return el('div', { class: 'board-lane is-' + state }, [
-        ui.toolGlyph(glyphKey, { size: 32, state: glyphState, label: code, rate: 2, alert: !!alert }),
-        el('div', { class: 'board-lane-name' }, [el('b', { class: 'mono', text: code }),
-          el('span', { class: 'board-lamp is-' + state, title: stateWord }, [el('i'), el('span', { text: stateWord })])]),
-        el('span', { class: 'muted board-lane-open', text: openText })
+    function laneHead(glyphKey, code, count) {
+      return el('div', { class: 'board-lanehead' }, [
+        ui.toolGlyph(glyphKey, { size: 18, state: 'idle' }),
+        el('b', { class: 'mono', text: code }),
+        el('span', { class: 'muted num', text: count })]);
+    }
+    function card(no, level, prioCode, lot, bu, chipKind, chipText, stuck, lateTag) {
+      var short = String(no).split('-').slice(1).join('-');
+      return el('a', { class: 'bcard prio-' + level + (level === 1 ? ' is-urgent' : ''), href: '#', title: no + ' · 5 h left · panels 3252, 3253' }, [
+        el('span', { class: 'bcard-line' }, [el('span', { class: 'mono bcard-id', text: short }),
+          lateTag ? el('span', { class: 'bcard-late', text: lateTag }) : el('span', { class: 'bcard-pnl num', text: '3 pnl' })]),
+        el('span', { class: 'bcard-line' }, [el('span', { class: 'mono', text: lot }),
+          bu ? el('span', { class: 'muted', text: '  ·  ' + bu }) : null,
+          chipKind ? ui.statusBadge(chipKind, chipText) : null,
+          stuck ? ui.statusBadge('warning', 'Stuck') : null,
+          level <= 2 ? el('span', { class: 'bcard-prio num', text: prioCode }) : null])
       ]);
     }
-    var PRIOS = { name: 'Normal', code: 'P3' };
     return el('div', {}, [
       labelled('Station rail', el('div', { class: 'kit-row' }, [
-        station('01', 'Submitted', 'is-submitted', 3),
-        station('04', 'In progress', 'is-in_progress', 5),
-        station('05', 'Waiting', 'is-waiting', 0)
+        station('01', 'Submitted', 3),
+        station('04', 'In progress', 5),
+        station('05', 'Waiting', 0)
       ])),
-      labelled('Nameplates: running, idle, down', el('div', { class: 'kit-row' }, [
-        lane('FIB', 'up', 'Up', 'fib', 'live', '4 open', true),
-        lane('QVM', 'up', 'Up', 'qvm', 'idle', '1 open', false),
-        lane('HRM', 'down', 'Down', 'hrm', 'off', '', false)
-      ])),
-      labelled('Late ticket', ui.traveller({ id: 'HRM-260925-02', level: 3, late: true, prio: PRIOS, href: '#',
-        lines: [['18180  ·  2 panels'], [el('span', { class: 'q-clock is-late', text: 'late 1 d' })]] }, { size: 'card' }))
+      labelled('Lane header', laneHead('fib', 'FIB', '4 open')),
+      labelled('Cards: Line stop stuck, Hot late, normal', el('div', { class: 'kit-row' }, [
+        card('FIB-260925-01', 1, 'P1', '18178', 'BU-02', 'warning', 'On hold', true),
+        card('QVM-260925-02', 2, 'P2', '18179', null, 'expired', 'Late', false, 'late 3 d'),
+        card('HRM-260925-03', 3, null, '18180', 'BU-01', null, null, false)
+      ]))
     ]);
   }
 
-  /** My queue in isolation: the shift strip, counted separators, a late row. */
+  /** My queue in isolation: the counts line, one group, two boxes, the bulk bar. */
   function queueDemo() {
-    function stat(v, label, bad) {
-      return el('div', { class: 'qs' + (bad ? ' is-bad' : '') }, [
-        el('span', { class: 'qs-n num', text: String(v) }), ' ', el('span', { class: 'qs-l', text: label })]);
+    function stat(v, label, bad, filter) {
+      return el('a', { href: '#/queue/' + filter, class: bad ? 'is-bad' : null }, [
+        el('span', { class: 'num', text: String(v) }), ' ' + label]);
     }
-    function qrow(no, prio, prioCode, tool, glyphKey, late) {
-      return el('tr', { class: 'q-row prio-' + prio + (late ? ' is-late' : '') }, [
-        el('td', {}, el('input', { type: 'checkbox', 'aria-label': 'Tick ' + no })),
-        el('td', {}, el('span', { class: 'q-prio' }, [el('b', { text: prio === 1 ? 'Line stop' : 'Normal' }), el('span', { class: 'mono muted', text: prioCode })])),
-        el('td', {}, el('span', { class: 'cell-tool' }, [ui.toolGlyph(glyphKey, { size: 24 }),
-          el('a', { class: 'mono', href: '#', text: no })])),
-        el('td', {}, [el('span', { class: 'mono', text: '18178' }), el('span', { class: 'muted', text: '  3252, 3253' })]),
-        el('td', { text: 'Olga Berger' }),
-        el('td', {}, [el('span', { class: 'num', text: '2026-10-02' }), el('br'),
-          el('span', { class: 'q-clock' + (late ? ' is-late' : ''), text: late ? 'late 1 d' : '5 h left' })]),
-        el('td', {}, ui.statusBadge(late ? 'critical' : 'ok', late ? 'Submitted' : 'In progress')),
-        el('td', { text: tool === 'FIB' ? 'Olga Berger' : '-' }),
-        el('td', { class: 'actions' })
-      ]);
+    function sampleBox(no, level, late) {
+      return ui.requestBox({ id: 'demo-' + no, request_no: no }, {
+        tool: { glyph: 'fib' }, lot: '18178', buCode: 'BU-02',
+        prio: { name: level === 1 ? 'Line stop' : 'Hot', level: level },
+        assignedName: 'Olga Berger', late: late,
+        statusChip: ui.statusBadge('neutral', 'Submitted'),
+        tick: { checked: false, label: 'Tick ' + no, onChange: function () {} },
+        actions: [ui.button('Accept', { kind: 'primary', icon: 'check' }),
+          ui.button('Hold', { size: 'sm', kind: 'ghost' }), ui.button('...', { size: 'sm', kind: 'ghost' })]
+      });
     }
     return el('div', {}, [
-      labelled('Shift strip', el('div', { class: 'queue-shift' }, [stat(12, 'open'), stat(3, 'late', true), stat(5, 'yours')])),
-      labelled('Ranked table', el('div', { class: 'table-wrap' }, el('table', { class: 'grid queue-table' }, [
-        el('thead', {}, el('tr', {}, ['', 'Priority', 'Request', 'Lot / panels', 'Requested by', 'Needed by', 'Status', 'Assigned', ''].map(function (h) {
-          return el('th', { scope: 'col', text: h }); }))),
-        el('tbody', {}, [
-          el('tr', { class: 'queue-sep' }, el('td', { colspan: '10' }, [el('span', { text: 'Assigned to you  ·  ' }), el('span', { class: 'num', text: '5' })])),
-          qrow('FIB-260925-01', 1, 'P1', 'FIB', 'fib', true),
-          qrow('QVM-260925-02', 3, 'P3', 'QVM', 'qvm', false)
-        ])
-      ])))
+      labelled('Counts line', el('div', { class: 'queue-counts' }, [stat(2, 'Line stop', true, 'linestop'), ' · ',
+        stat(8, 'Late', true, 'late'), ' · ', stat(5, 'On hold', false, 'on_hold'), ' · ', stat(3, 'Needs clarification', false, 'clarification')])),
+      labelled('Group + boxes', el('div', { class: 'queue-list' }, [
+        el('div', { class: 'qgroup' }, ['Line stop  ·  ', el('span', { class: 'num', text: '1' })]),
+        sampleBox('FIB-260925-01', 1, true),
+        sampleBox('QVM-260925-02', 2, false)
+      ])),
+      labelled('Bulk bar', el('div', { class: 'queue-bulk' }, [
+        el('span', { text: '2 selected:' }),
+        ui.button('Accept all (2)', { size: 'sm', kind: 'primary', icon: 'check' }),
+        ui.button('Clear', { size: 'sm', kind: 'ghost' })])),
+      labelled('Done box', ui.requestBox({ id: 'demo-done', request_no: 'FIB-260925-01' }, { done: true }))
     ]);
   }
 
@@ -423,8 +433,8 @@
       labelled('Mini (form preview)', ui.traveller({ id: 'FIB-YYMMDD-NN', subtitle: 'Via cross-section', glyph: { key: 'fib' }, level: 2, prio: PRIOS[2],
         fields: [{ label: 'Lot', value: '18178', cls: 'mono' }, { label: 'Panels', value: '3252, 3253', cls: 'mono' }, { label: 'Needed by', value: '2026-10-02', cls: 'num' }] }, { size: 'mini' })),
       labelled('Board cards: Line stop, late, on hold', el('div', { class: 'kit-row' }, [
-        ui.traveller({ id: 'FIB-260925-01', level: 1, urgent: true, prio: PRIOS[1], href: '#', lines: [['18178  ·  3252, 3253'], [el('span', { class: 'q-clock', text: '5 h left' })]] }, { size: 'card' }),
-        ui.traveller({ id: 'HRM-260925-02', level: 3, late: true, prio: PRIOS[3], href: '#', lines: [['18180  ·  2 panels'], [el('span', { class: 'q-clock', text: 'late 1 d' })]] }, { size: 'card' }),
+        ui.traveller({ id: 'FIB-260925-01', level: 1, urgent: true, prio: PRIOS[1], href: '#', lines: [['18178  ·  3252, 3253'], [el('span', { class: 'tr-clock', text: '5 h left' })]] }, { size: 'card' }),
+        ui.traveller({ id: 'HRM-260925-02', level: 3, late: true, prio: PRIOS[3], href: '#', lines: [['18180  ·  2 panels'], [el('span', { class: 'tr-clock is-late', text: 'late 1 d' })]] }, { size: 'card' }),
         ui.traveller({ id: 'PRF-260925-01', level: 4, prio: PRIOS[4], href: '#', lines: [['19189  ·  23'], [el('span', { class: 'chip warning', text: 'On hold' })]] }, { size: 'card' })
       ])),
       labelled('Slip (print)', ui.traveller({ id: 'FIB-260925-01', level: 1, prio: PRIOS[1], glyph: { key: 'fib' },
@@ -495,10 +505,10 @@
               ui.tipRow('Status', t.dataset.tool === 'PRF' ? 'Down' : 'Up'), ui.tipRow('Queue', 'from M3')];
     });
     var menuBtn = el('button', { class: 'user-btn', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false' }, [
-      el('span', { class: 'user-avatar', text: 'PK' }), el('span', { class: 'user-name', text: 'Prince Khurana' }), ui.icon('chevron_down', 14)]);
+      el('span', { class: 'user-avatar', text: 'PK' }), el('span', { class: 'user-name', text: 'Prince Khurana' }), ui.icon('chevron_down', 16)]);
     menuBtn.addEventListener('click', function () {
       ui.menu(menuBtn, [{ node: ui.toggle({ kind: 'switch', label: 'Reduce motion' }).node }, { sep: true },
-        { label: 'Keyboard shortcuts', icon: 'keyboard', aside: '?' }, { label: 'Change data folder', icon: 'folder' }, { label: 'Change user', icon: 'user' }],
+        { label: 'Keyboard shortcuts', icon: 'keyboard', aside: '?' }, { label: 'Change data folder', icon: 'folder' }, { label: 'Sign out', icon: 'user' }],
         [el('b', { text: 'Prince Khurana' }), el('span', { text: 'Admin' })]);
     });
     var tries = 0;
@@ -564,8 +574,8 @@
       section('Panel map (unused - kept for OPEN_QUESTIONS #22)', panelMapDemo(), 'No screen uses it since form v2 (Hirata IDs). Q6 / M2-2: map and text stay in sync; picked panels light up (opacity only). Read-only marks: measured, in the lab, scrapped.'),
       section('Hirata code (ui.copperPanel, ui.hirataFields, ui.hirataGrid)', hirataDemo(), 'Copper stays copper in every theme. The grid blocks any dot that would take a column above 9; the bottom row is the baseline.'),
       section('Traveller card (ui.traveller)', travellerDemo(), 'One drawing, four sizes: full (request page), mini (form preview), card (board), slip (print). Priority stripe per level; Line stop pulses while open.'),
-      section('Board wall (stations + nameplates)', boardDemo(), 'The lab wall: ghost station numerals with a state edge and tally, machine nameplates with lamp and open count. Colour only on attention; the late ticket carries the red wash.'),
-      section('Queue shift (strip + ranked table)', queueDemo(), 'Your shift in one glance - open, late (red only when nonzero), yours - then the work in queue order under counted separators. Late rows carry the red wash.'),
+      section('Board (stations + lane headers + cards)', boardDemo(), 'Numbered stations with tallies, one slim lane header per tool, cards with stripe, ID, lot and one chip. Colour only on attention.'),
+      section('Queue counts (links + boxes)', queueDemo(), 'One line of filter links - Line stop, Late, On hold, Needs clarification (late colour only above zero) - then one box per request under neutral group headers. Stripe for Line stop and Hot only.'),
       section('Magazine slots', el('div', { class: 'kit-grid' }, [
           labelled('Pick: press and drag over slots; slots 9-10 taken by another request', ui.magazineSlots({ magazine: { code: 'M70345', slots: 24 }, picked: [3, 4],
             labels: { 3: '3252', 4: '3253' }, taken: { 9: 'FIB-260924-01', 10: 'FIB-260924-01' } }).node),
@@ -586,7 +596,7 @@
   var root = document.getElementById('kitRoot');
   var mode = 'dark';
   /** Themes carrying kit-only structural treatments (glass chrome, hero padding) on top of their tokens. */
-  var TREATED = ['deep-lab', 'cleanroom', 'signal', 'frost'];
+  var TREATED = ['dark-teal', 'pure-white'];
 
   function render() {
     root.className = 'kit-root' + (mode === 'all' ? ' all' : '');
@@ -594,7 +604,7 @@
       TH.setOn(document.documentElement, TH.DEFAULT);
       document.documentElement.removeAttribute('data-concept');
       ui.mount(root, [el('div', { style: { gridColumn: '1 / -1', padding: '20px 20px 0' } }, [
-        el('p', { class: 'muted', text: 'Every theme of js/themes.js side by side: AT&S (default), Deep Lab, Cleanroom, Signal, Frost, Minimal. Status = icon + word in every theme.' }),
+        el('p', { class: 'muted', text: 'Every theme of js/themes.js side by side: AT&S (default), Dark Teal, Pure White, Slate, Quant. Status = icon + word in every theme.' }),
         contrastTable()
       ])].concat(THEMES.map(function (t) {
         var scope = el('div', { class: 'theme-scope' }, [el('div', { class: 'kit-col-title', text: t[1] })].concat(gallery()));

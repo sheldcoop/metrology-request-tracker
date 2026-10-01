@@ -3,7 +3,7 @@
  *
  * The shell: browser check, data-folder gate, who-are-you gates (first run,
  * sign-up, "Is this you?"), theme, hash router, side menu with the pages to
- * come (M1-6), save lamp + Undo, alert strip stub, search, the two timers
+ * come (M1-6), save state + Undo, line-stop banner, search, the two timers
  * (1 s ticker, revision check), user menu and keyboard shortcuts.
  *
  * No inline onclick anywhere: clicks are handled by delegation on
@@ -21,7 +21,6 @@ window.MRT.app = (function () {
   var identity = window.MRT.identity;
   var D = window.MRT.domain;
 
-  var MILESTONE = 'M1';
   var TH = window.MRT.themes;         // every theme: js/themes.js
 
   /**
@@ -30,17 +29,18 @@ window.MRT.app = (function () {
    * milestone that brings it. Unlocking a page = adding its view.
    */
   var NAV = [
-    { key: 'lab',       label: 'Lab status',  icon: 'gauge',       g: 'l', ms: 'M1' },
-    { key: 'queue',     label: 'My queue',    icon: 'inbox',       g: 'q', ms: 'M3' },
-    { key: 'requests',  label: 'My requests', icon: 'requests',    g: 'r', ms: 'M3' },
-    { key: 'new',       label: 'New request', icon: 'request_new', g: 'n', ms: 'M2' },
-    { key: 'lots',      label: 'Lots',        icon: 'lots',        g: 'o', ms: 'M2' },
-    { key: 'board',     label: 'Board',       icon: 'board',       g: 'b', ms: 'M3' },
-    { key: 'results',   label: 'Results',     icon: 'folder',      g: 'e', ms: 'M5' },
-    { key: 'hirata',    label: 'Hirata tools', icon: 'hirata',     g: 't', ms: 'M2' },
-    { key: 'analytics', label: 'Analytics',   icon: 'analytics',   g: 'a', ms: 'M5' },
-    { key: 'settings',  label: 'Settings',    icon: 'settings',    g: 's', ms: 'M1' },
-    { key: 'help',      label: 'Help',        icon: 'help',        g: 'h', ms: 'M1' }
+    { key: 'home',      label: 'Home',        icon: 'home',        g: 'm', ms: 'M10', grp: 1 },
+    { key: 'new',       label: 'New request', icon: 'request_new', g: 'n', ms: 'M2', grp: 2 },
+    { key: 'requests',  label: 'My requests', icon: 'requests',    g: 'r', ms: 'M3', grp: 2 },
+    { key: 'queue',     label: 'My queue',    icon: 'inbox',       g: 'q', ms: 'M3', grp: 2 },
+    { key: 'board',     label: 'Board',       icon: 'board',       g: 'b', ms: 'M3', grp: 2 },
+    { key: 'lab',       label: 'Lab status',  icon: 'gauge',       g: 'l', ms: 'M1', grp: 3 },
+    { key: 'lots',      label: 'Lots',        icon: 'lots',        g: 'o', ms: 'M2', grp: 3 },
+    { key: 'results',   label: 'Results',     icon: 'folder',      g: 'e', ms: 'M5', grp: 3 },
+    { key: 'hirata',    label: 'Hirata tools', icon: 'hirata',     g: 't', ms: 'M2', grp: 3 },
+    { key: 'analytics', label: 'Analytics',   icon: 'analytics',   g: 'a', ms: 'M5', grp: 4 },
+    { key: 'settings',  label: 'Settings',    icon: 'settings',    g: 's', ms: 'M1', grp: 5 },
+    { key: 'help',      label: 'Help',        icon: 'help',        g: 'h', ms: 'M1', grp: 5 }
   ];
 
   /** Pages reached by a link, not from the menu. */
@@ -48,6 +48,13 @@ window.MRT.app = (function () {
     { key: 'request', label: 'Request', icon: 'requests', ms: 'M2', menu: 'requests' },
     { key: 'slip', label: 'Traveller slip', icon: 'requests', ms: 'M3', menu: 'requests' }
   ];
+
+  /** Routes only some roles may open. Read surfaces (requests, queue, lab,
+   *  board, analytics, results, help, request, slip) stay open: everyone can
+   *  read everything - the views gate their own actions (e.g. requests.js
+   *  asks canRequest for its New button, settings.js keeps its own admin
+   *  message, both covered by app-smoke). */
+  var ROUTE_GUARDS = { 'new': D.canRequest, lots: D.canRegisterLot };
 
   function navEntry(key) { return NAV.concat(PAGES).filter(function (n) { return n.key === key; })[0] || null; }
   function isLive(key) { return !!window.MRT.views[key]; }
@@ -71,12 +78,12 @@ window.MRT.app = (function () {
     try { localStorage.setItem(prefKey(name, store.status().currentUserId), value); } catch (e) { /* private mode */ }
   }
 
-  /** The start page: the one picked in the user menu, else by role (Q16, M3-12). */
+  /** The start page (redesign Step 9): the one picked in the user menu,
+      else Home for everyone. D.homeFor stays for the domain rule (Q16). */
   function readHome(userId) {
     var v = readPref('home', userId);
     if (isLive(v) && v !== 'settings' && v !== 'help') return v;
-    var byRole = D.homeFor(store.byId('users', userId));
-    return isLive(byRole) ? byRole : 'lab';
+    return 'home';
   }
   /** The office default (Settings > Look), else the app's default. */
   function officeTheme() {
@@ -101,6 +108,13 @@ window.MRT.app = (function () {
     else document.documentElement.removeAttribute('data-motion');
   }
 
+  /** High contrast on top of any theme (redesign Step 1): the CSS keys the
+   *  stronger ink off data-contrast, never off a theme name. */
+  function applyContrast(high) {
+    app.highContrast = !!high;
+    document.documentElement.setAttribute('data-contrast', high ? 'high' : 'normal');
+  }
+
   function applyNav(collapsed) {
     if (collapsed) document.documentElement.setAttribute('data-nav', 'collapsed');
     else document.documentElement.removeAttribute('data-nav');
@@ -115,14 +129,28 @@ window.MRT.app = (function () {
   function applyPrefs(userId) {
     applyTheme(readTheme(userId));
     applyMotion(readPref('motion', userId) === 'reduce');
+    applyContrast(readPref('contrast', userId) === 'high');
+    applyDensity(readPref('density', userId) === 'comfortable');
     applyNav(readPref('nav', userId) === 'collapsed');
   }
 
   /** '' = follow the office default again. */
   function setTheme(next) {
-    if (next) { applyTheme(next); writePref('theme', next); return; }
+    if (next) { applyTheme(next); applyContrast(readPref('contrast', store.status().currentUserId) === 'high'); writePref('theme', next); return; }
     try { localStorage.removeItem(prefKey('theme', store.status().currentUserId)); } catch (e) { /* private mode */ }
     applyTheme(officeTheme());
+    applyContrast(readPref('contrast', store.status().currentUserId) === 'high');
+  }
+
+  /** The topbar theme button: the same gallery, compact (swatch preview per theme).
+   *  Personal only - no "Office default" here; that stays in the user menu's
+   *  Theme... dialog. A pick switches at once via setTheme (rethemeCharts kept). */
+  function openThemeMenu(anchor) {
+    var g = ui.themeGallery({ themes: TH, value: readTheme(store.status().currentUserId), onPick: setTheme });
+    ui.menu(anchor, [{ node: [ui.el('div', { class: 'theme-compact' }, [g.node])] }],
+      [ui.el('b', { text: 'Theme' }), ui.el('span', { class: 'muted', text: ' - one click switches, kept for you on this PC' })]);
+    var on = g.node.querySelector('.tg-card.is-on') || g.node.querySelector('.tg-card');
+    if (on && on.focus) on.focus();
   }
 
   /** The theme gallery: every theme as a live sample; a click switches at once and is remembered for you on this PC. */
@@ -136,6 +164,13 @@ window.MRT.app = (function () {
       actions: [{ label: 'Done', kind: 'primary', value: null }] });
   }
   function setReduceMotion(on) { applyMotion(on); writePref('motion', on ? 'reduce' : 'full'); }
+  function setHighContrast(on) { applyContrast(on); writePref('contrast', on ? 'high' : 'normal'); }
+  function applyDensity(roomy) {
+    app.roomy = !!roomy;
+    if (roomy) document.documentElement.setAttribute('data-density', 'comfortable');
+    else document.documentElement.removeAttribute('data-density');
+  }
+  function setDensity(on) { applyDensity(on); writePref('density', on ? 'comfortable' : 'compact'); }
   function toggleNav() {
     var collapsed = document.documentElement.getAttribute('data-nav') !== 'collapsed';
     applyNav(collapsed);
@@ -470,27 +505,32 @@ window.MRT.app = (function () {
 
   function paintStaticChrome() {
     ui.mount(document.getElementById('brandMark'), ui.icon('logo', 20));
-    document.getElementById('brandVer').textContent = MILESTONE;
-    ui.mount(document.getElementById('searchIcon'), ui.icon('search', 16));
-    ui.mount(document.getElementById('keysBtn'), ui.icon('keyboard', 18));
-    ui.mount(document.getElementById('helpBtn'), ui.icon('help', 18));
+    ui.mount(document.getElementById('searchIcon'), ui.icon('search', 18));
     ui.mount(document.getElementById('bellIcon'), ui.icon('bell', 18));
-    ui.mount(document.getElementById('userCaret'), ui.icon('chevron_down', 14));
+    if (document.getElementById('themeBtn')) ui.mount(document.getElementById('themeBtn'), ui.icon('contrast', 18));
+    ui.mount(document.getElementById('userCaret'), ui.icon('chevron_down', 16));
   }
 
-  /** The side menu: live pages link; later ones are greyed with their milestone (M1-6). */
+  /** The side menu: grouped with thin dividers; live pages link, later ones
+   *  are greyed with their milestone (M1-6). */
   function paintNav() {
-    ui.mount(document.getElementById('navItems'), NAV.map(function (n) {
+    var nodes = [], lastGrp = null;
+    NAV.forEach(function (n) {
+      if (lastGrp !== null && n.grp !== lastGrp) nodes.push(ui.el('div', { class: 'nav-div', 'aria-hidden': 'true' }));
+      lastGrp = n.grp;
       var inner = [ui.icon(n.icon, 18), ui.el('span', { class: 'nav-label', text: n.label })];
       if (isLive(n.key)) {
-        return ui.el('a', { class: 'nav-item', href: '#/' + n.key, dataset: { route: n.key },
-                            title: n.label + '  (g ' + n.g + ')' }, inner.concat([ui.el('span', { class: 'nav-badge', hidden: true })]));
+        nodes.push(ui.el('a', { class: 'nav-item', href: '#/' + n.key, dataset: { route: n.key },
+                                title: n.label + '  (g ' + n.g + ')' }, inner.concat([ui.el('span', { class: 'nav-badge', hidden: true })])));
+      } else {
+        nodes.push(ui.el('span', { class: 'nav-item is-soon', role: 'link', 'aria-disabled': 'true',
+                               title: n.label + ': coming in ' + n.ms,
+                               'aria-label': n.label + ', not available yet, coming in ' + n.ms },
+                     inner.concat([ui.el('span', { class: 'nav-soon', text: n.ms, 'aria-hidden': 'true' })])));
       }
-      return ui.el('span', { class: 'nav-item is-soon', role: 'link', 'aria-disabled': 'true',
-                             title: n.label + ': coming in ' + n.ms,
-                             'aria-label': n.label + ', not available yet, coming in ' + n.ms },
-                   inner.concat([ui.el('span', { class: 'nav-soon', text: n.ms, 'aria-hidden': 'true' })]));
-    }));
+    });
+    ui.mount(document.getElementById('navItems'), nodes);
+    paintBadges();
   }
 
   function paintUser() {
@@ -498,11 +538,13 @@ window.MRT.app = (function () {
     if (!u) return;
     document.getElementById('userAvatar').textContent = ui.initials(u.name);
     document.getElementById('userName').textContent = u.name;
+    var nb = document.getElementById('newBtn');
+    if (nb) nb.hidden = !D.canRequest(u);
   }
 
   function paintFooter() {
     var s = store.status();
-    ui.mount(document.getElementById('navFolder'), [ui.icon('folder', 12), s.folderName || 'Data folder']);
+    ui.mount(document.getElementById('navFolder'), [ui.icon('folder', 16), s.folderName || 'Data folder']);
     document.getElementById('navRev').textContent = 'Revision ' + s.revision;
     paintSaveLed();
   }
@@ -550,6 +592,9 @@ window.MRT.app = (function () {
         title: entry ? entry.label + ' comes in ' + entry.ms : 'Unknown page',
         text: entry ? 'This page is part of a later milestone. Everything live today is in the menu.'
                     : 'That address does not exist. Use the menu on the left.' }));
+    } else if (ROUTE_GUARDS[app.route] && !ROUTE_GUARDS[app.route](store.currentUser())) {
+      main.appendChild(ui.pageHead(entry ? entry.label : 'Unknown page'));
+      main.appendChild(ui.emptyState({ icon: 'lock', title: 'No access', text: "You don't have access, ask an admin." }));
     } else {
       try {
         view.render(main, { subpath: parsed.subpath, query: parsed.query, params: parsed.params });
@@ -562,11 +607,11 @@ window.MRT.app = (function () {
       }
     }
     paintBell();
+    paintBanner();
     main.classList.remove('page-enter');
     void main.offsetWidth;            // restart the entrance animation
     main.classList.add('page-enter');
     main.focus();
-    paintAlertBanner();
   }
 
   /* ------------------------------------------------------------------ *
@@ -584,6 +629,10 @@ window.MRT.app = (function () {
     return 'saved';
   }
 
+  /* Save state (Part A): quiet muted text, shown briefly after a save;
+     colour only while saving or failed. The full detail lives in the title. */
+  var saveHideTimer = null;
+
   function paintSaveLed() {
     var btn = document.getElementById('saveLed');
     if (!store.data()) return;
@@ -592,15 +641,21 @@ window.MRT.app = (function () {
     var key = st + '|' + s.savedTs;
     if (key === seen.state) return;
     seen.state = key;
-    var when = s.savedTs ? ui.formatTs(s.savedTs).slice(11) : '';
+    clearTimeout(saveHideTimer);
     var who = s.savedBy ? (store.byId('users', s.savedBy) || {}).name : null;
-    var text = st === 'failed' ? 'Not saved · retry' : st === 'saving' ? 'Saving…' : 'Saved' + (when ? ' ' + when : '');
-    var pulse = st === 'saved' && !!seen.lastSaved && s.savedTs !== seen.lastSaved;   // P7: one pulse per save
-    if (st === 'saved') seen.lastSaved = s.savedTs || seen.lastSaved;
-    btn.className = 'save-led ' + st + (pulse ? ' is-pulse' : '');
-    btn.title = st === 'failed' ? 'The last change is only in memory. Click to retry or download it.'
-      : 'Last saved ' + (s.savedTs ? ui.formatTs(s.savedTs) : '-') + (who ? ' by ' + who : '');
-    ui.mount(btn, [ui.led(st === 'failed' ? 'expired' : st === 'saving' ? 'warning' : 'ok'), ui.el('span', { class: 'num', text: text })]);
+    btn.className = 'save-led ' + st;
+    btn.hidden = false;
+    if (st === 'saved') {
+      ui.mount(btn, [ui.el('span', { text: 'Saved' })]);
+      btn.title = 'Last saved ' + (s.savedTs ? ui.formatTs(s.savedTs) : '-') + (who ? ' by ' + who : '');
+      saveHideTimer = setTimeout(function () { btn.hidden = true; }, 4000);
+    } else if (st === 'saving') {
+      ui.mount(btn, [ui.el('span', { text: 'Saving…' })]);
+      btn.title = 'Saving your change to the share…';
+    } else {
+      ui.mount(btn, [ui.el('span', { text: 'Not saved · retry' })]);
+      btn.title = 'The last change is only in memory. Click to retry or download it.';
+    }
   }
 
   var undoTimer = null;
@@ -613,7 +668,7 @@ window.MRT.app = (function () {
     if (!info) return;
     btn.title = 'Undo: ' + info.label + '  (Ctrl+Z)';
     btn.setAttribute('aria-label', 'Undo the last change: ' + info.label);
-    ui.mount(btn, [ui.icon('refresh', 14), ui.el('span', { text: 'Undo' })]);
+    ui.mount(btn, [ui.icon('refresh', 16), ui.el('span', { text: 'Undo' })]);
     undoTimer = setTimeout(paintUndo, info.ms_left + 50);
   }
 
@@ -629,16 +684,16 @@ window.MRT.app = (function () {
   }
 
   /* ------------------------------------------------------------------ *
-   * Alert strip (M1-2, built in the M3 audit): on every page, the counts
-   * that need attention - Line stop, Late, On hold, Needs clarification -
-   * for a quality engineer's tools (admins: all tools), otherwise the
-   * person's own requests. Each count opens My queue / My requests on that
-   * filter. Rules: domain.stripCounts. Repainted only when a count changes;
-   * the clock is text only (the 1 s tick rule).
+   * Line-stop banner (Part A): the strip bar is gone. Its job lives on the
+   * My queue nav badge (Line stop + Late on the person's tools) and on the
+   * counts line at the top of My queue. The one thing that keeps a banner:
+   * an open Line stop on the signed-in QE's tools - one slim calm line
+   * under the top bar, dismissible per request. Rules: domain.stripCounts
+   * for the badge counts; the banner itself picks open level-1 requests.
+   * Repainted only when the data or the dismissed list changed.
    * ------------------------------------------------------------------ */
 
-  var stripKey = '';
-  var clockFmt = new Intl.DateTimeFormat('en-GB', { timeZone: cfg.time_zone, hour: '2-digit', minute: '2-digit', hour12: false });
+  var bannerKey = '';
 
   var stripCache = { key: null, value: null };
 
@@ -653,43 +708,56 @@ window.MRT.app = (function () {
       cal: store.calendar(), levelOf: function (r) { var p = store.byId('priorities', r.priority_id); return p ? p.level : 99; } }));
   }
 
-  function paintAlertBanner() {
+  /** Dismissed line stops, per person on this PC. */
+  function dismissedStops() {
+    try { return JSON.parse(readPref('lstop_off', store.status().currentUserId) || '[]'); } catch (e) { return []; }
+  }
+
+  /** The first undismissed open Line stop on the person's tools, if any. */
+  function lineStopNow() {
+    var me = store.currentUser();
+    if (!me || !store.data()) return null;
+    var ids = D.measuredTools(me, store.list('tools')).map(function (t) { return t.id; });
+    if (!ids.length) return null;
+    var off = dismissedStops();
+    var rows = store.data().requests.filter(function (r) {
+      if (!D.isOpen(r) || ids.indexOf(r.tool_id) === -1 || off.indexOf(r.id) !== -1) return false;
+      var p = store.byId('priorities', r.priority_id);
+      return !!p && p.level === 1;
+    });
+    rows.sort(function (a, b) { return (a.needed_by || 'z') < (b.needed_by || 'z') ? -1 : 1; });
+    return rows[0] || null;
+  }
+
+  function bannerKeyOf() {
+    var s = store.status();
+    return s.changeSeq + '|' + s.revision + '|' + (readPref('lstop_off', s.currentUserId) || '');
+  }
+
+  function dismissLineStop(id) {
+    var off = dismissedStops();
+    if (off.indexOf(id) === -1) off.push(id);
+    writePref('lstop_off', JSON.stringify(off));
+    paintBanner();
+  }
+
+  function paintBanner() {
     var banner = document.getElementById('alertBanner');
-    var c = stripCounts();
-    stripKey = JSON.stringify(c);
-    if (!c || !c.open) { banner.hidden = true; return; }
-    var tools = c.scope === 'tools';
-    var base = tools ? '#/queue/' : '#/requests/';
-    function seg(status, n, label, filter) {
-      return ui.el('a', { class: 'strip-seg ' + status + (n ? '' : ' zero'), href: base + filter,
-                          'aria-label': n + ' ' + label + (tools ? ' in your queue' : ' of your requests') }, [
-        ui.led(n ? status : 'neutral'), ui.el('b', { class: 'num', text: String(n) }), ui.el('span', { text: label })
-      ]);
-    }
-    var urgent = c.line_stop + c.late;
+    bannerKey = bannerKeyOf();
+    var r = lineStopNow();
+    if (!r) { banner.hidden = true; return; }
     banner.hidden = false;
     ui.mount(banner, [
-      ui.el('span', { class: 'strip-state ' + (urgent || c.clarification || c.on_hold ? 'alert' : 'ok') }, [
-        ui.led(c.line_stop ? 'critical' : c.late ? 'expired' : c.clarification || c.on_hold ? 'warning' : 'ok'),
-        tools ? 'Your queue' : 'Your requests'
-      ]),
-      ui.el('div', { class: 'strip-segs' }, [
-        seg('critical', c.line_stop, 'Line stop', tools ? 'linestop' : 'open'),
-        seg('expired', c.late, 'Late', tools ? 'late' : 'open'),
-        seg('warning', c.on_hold, 'On hold', tools ? 'on_hold' : 'open'),
-        seg('warning', c.clarification, tools ? 'Needs clarification' : 'Needs your answer', tools ? 'clarification' : 'mine')
-      ]),
-      ui.el('div', { class: 'spacer' }),
-      ui.el('span', { class: 'strip-active' }, [ui.el('b', { class: 'num', text: String(c.open) }), ' open']),
-      ui.el('span', { class: 'strip-clock num', id: 'stripClock', 'aria-hidden': 'true', text: clockFmt.format(new Date()) })
+      ui.el('a', { href: '#/request/' + r.id, text: 'Line stop: ' + r.request_no + ' · Open' }),
+      ui.button('', { kind: 'ghost', size: 'sm', icon: 'close', cls: 'banner-dismiss',
+        ariaLabel: 'Dismiss line stop ' + r.request_no, title: 'Dismiss',
+        onClick: function () { dismissLineStop(r.id); } })
     ]);
   }
 
-  /** Every second: the clock text, and a repaint only when a count changed. */
-  function tickAlertBanner() {
-    var clock = document.getElementById('stripClock');
-    if (clock) clock.textContent = clockFmt.format(new Date());
-    if (JSON.stringify(stripCounts()) !== stripKey) paintAlertBanner();
+  /** Repaint only when the data or the dismissed list changed. */
+  function tickBanner() {
+    if (bannerKeyOf() !== bannerKey) paintBanner();
   }
 
 
@@ -784,7 +852,7 @@ window.MRT.app = (function () {
     stopTimers();
     app.tickTimer = setInterval(function () {
       if (document.hidden) return;
-      try { paintSaveLed(); tickAlertBanner(); } catch (e) { console.error('MRT: top bar tick failed', e); }
+      try { paintSaveLed(); tickBanner(); } catch (e) { console.error('MRT: top bar tick failed', e); }
       if (app.currentView && typeof app.currentView.tick === 'function') {
         try { app.currentView.tick(); } catch (e) { console.error('MRT: ticker failed', e); }
       }
@@ -862,12 +930,11 @@ window.MRT.app = (function () {
   }
 
   function paintBell() {
-    var btn = document.getElementById('bellBtn'), count = document.getElementById('bellCount');
-    if (!btn || !count) return;
+    var btn = document.getElementById('bellBtn'), dot = document.getElementById('bellCount');
+    if (!btn || !dot) return;
     var since = readTs();
     var n = notifications().filter(function (x) { return Date.parse(x.ts) > since; }).length;
-    count.hidden = !n;
-    count.textContent = n > 9 ? '9+' : String(n);
+    dot.hidden = !n;   // a small dot only; the count lives inside the panel
     btn.setAttribute('aria-label', n ? 'Notifications, ' + n + ' new' : 'Notifications');
     btn.classList.toggle('has-new', !!n);
     if (n > bellLast && bellLast !== null) {   // P6: swings once when something new arrives
@@ -875,8 +942,44 @@ window.MRT.app = (function () {
       setTimeout(function () { btn.classList.remove('is-ringing'); }, 900);
     }
     bellLast = n;
+    paintBadges();
   }
   var bellLast = null;
+
+  /** Badges on the side menu (Part A): My queue carries the attention -
+   *  Line stop + Late on the person's tools (the old strip bar's job, via
+   *  domain.stripCounts); other pages keep "waiting on me" unread counts
+   *  from the same source and read watermark as the bell. */
+  function paintBadges() {
+    var me = store.currentUser();
+    if (!me || !store.data()) return;
+    var since = readTs(), counts = {};
+    notifications().forEach(function (n) {
+      if (Date.parse(n.ts) <= since || !n.request_id) return;
+      var r = store.byId('requests', n.request_id);
+      if (!r) return;
+      var route = r.requester_id === me.id ? 'requests'
+        : (D.isToolMeasurer(me, store.byId('tools', r.tool_id)) || r.assigned_to === me.id) ? 'queue' : null;
+      if (route) counts[route] = (counts[route] || 0) + 1;
+    });
+    var c = stripCounts();
+    var attn = c && c.scope === 'tools' ? c.line_stop + c.late : 0;
+    document.querySelectorAll('.nav-item[data-route]').forEach(function (a) {
+      var badge = a.querySelector('.nav-badge');
+      if (!badge) return;
+      var n, cls, title;
+      if (a.dataset.route === 'queue' && c && c.scope === 'tools') {
+        n = attn; cls = 'expired'; title = n ? n + ' line stop or late on your tools' : '';
+      } else {
+        n = counts[a.dataset.route] || 0; cls = 'warning'; title = n ? n + ' waiting on me' : '';
+      }
+      badge.hidden = !n;
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.classList.toggle('warning', !!n && cls === 'warning');
+      badge.classList.toggle('expired', !!n && cls === 'expired');
+      badge.title = title;
+    });
+  }
 
   function openBell(anchor) {
     var list = notifications(), since = readTs();
@@ -894,25 +997,25 @@ window.MRT.app = (function () {
         window.Notification.requestPermission().then(function (p) { ui.toast({ message: p === 'granted' ? 'Pop-ups are on.' : 'Pop-ups stay off (the browser said no).' }); });
       } });
     }
-    ui.menu(anchor, items, [ui.el('b', { text: 'Notifications' }), ui.el('span', { class: 'muted', text: ' - your requests, your tools, @mentions' })]);
+    var nNew = list.filter(function (x) { return Date.parse(x.ts) > since; }).length;
+    ui.menu(anchor, items, [ui.el('b', { text: 'Notifications' }),
+      ui.el('span', { class: 'muted', text: (nNew ? ' · ' + nNew + ' new' : '') + ' - your requests, your tools, @mentions' })]);
   }
 
-  /** New since the last look: a browser pop-up when allowed, else a toast (Q19). */
+  /** New since the last look: the bell count + ring carry it (toasts confirm
+   *  my own actions only). A browser pop-up only when the person opted in. */
   function announceNew() {
     paintBell();
     var fresh = notifications().filter(function (x) { return Date.parse(x.ts) > bell.announced; });
     bell.announced = Date.now();
     if (!fresh.length) return;
-    var popups = 'Notification' in window && window.Notification.permission === 'granted';
-    if (popups) {
+    if ('Notification' in window && window.Notification.permission === 'granted') {
       fresh.slice(0, 3).forEach(function (x) {
         try {
           var n = new window.Notification('Metrology requests', { body: x.text, tag: x.id });
           n.onclick = function () { window.focus(); if (x.request_id) location.hash = '#/request/' + x.request_id; };
         } catch (e) { console.error('MRT: pop-up failed', e); }
       });
-    } else {
-      ui.toast({ message: fresh.length === 1 ? fresh[0].text : fresh.length + ' new notifications - see the bell.' });
     }
   }
 
@@ -949,6 +1052,8 @@ window.MRT.app = (function () {
     if (!u) return;
     var s = store.status();
     var motion = ui.toggle({ kind: 'switch', label: 'Reduce motion', checked: !!app.reduceMotion, onChange: setReduceMotion });
+    var contrast = ui.toggle({ kind: 'switch', label: 'High contrast', checked: !!app.highContrast, onChange: setHighContrast });
+    var density = ui.toggle({ kind: 'switch', label: 'Comfortable density', checked: !!app.roomy, onChange: setDensity });
     var homes = livePages().filter(function (n) { return n.key !== 'settings' && n.key !== 'help'; });
     var home = ui.el('select', { class: 'input menu-select', 'aria-label': 'Start page' }, homes.map(function (n) {
       return ui.el('option', { value: n.key, text: n.label, selected: n.key === readHome(u.id) });
@@ -964,17 +1069,20 @@ window.MRT.app = (function () {
     ui.menu(anchor, [
       { label: 'Theme: ' + (TH.byKey(app.theme) || {}).name + '...', icon: 'contrast', onClick: themeDialog },
       { node: motion.node },
+      { node: contrast.node },
+      { node: density.node },
       { node: [ui.el('span', { text: 'Start page' }), home] },
       { sep: true },
       { label: awayLabel, icon: 'calendar', onClick: function () { awayDialog(u); } },
       { sep: true },
       { label: 'Keyboard shortcuts', icon: 'keyboard', aside: '?', onClick: showKeys },
+      { label: 'Help', icon: 'circle-help', onClick: function () { location.hash = '#/help'; } },
       { label: 'Reload from the share', icon: 'refresh', onClick: reloadData },
       { label: 'Change data folder', icon: 'folder', onClick: changeFolder },
-      { label: 'Change user', icon: 'user', onClick: changeUser },
+      { label: 'Sign out', icon: 'user', onClick: changeUser },
       { sep: true },
       { node: ui.el('div', { class: 'menu-folder' }, [
-        ui.el('div', {}, [ui.icon('folder', 12), ' ', s.folderName || 'Data folder']),
+        ui.el('div', {}, [ui.icon('folder', 16), ' ', s.folderName || 'Data folder']),
         ui.el('div', { class: 'num', text: 'Revision ' + s.revision + '  ·  saved ' + (s.savedTs ? ui.formatTs(s.savedTs) : '-') +
                                            (s.pendingSave ? '  ·  NOT SAVED' : '') })
       ]) }
@@ -1080,6 +1188,7 @@ window.MRT.app = (function () {
     'reconnect': reconnect,
     'change-user': changeUser,
     'user-menu': openUserMenu,
+    'theme-menu': function (btn) { openThemeMenu(btn); },
     'show-keys': showKeys,
     'bell': function (btn) { openBell(btn); },
     'nav-collapse': toggleNav,
@@ -1162,10 +1271,11 @@ window.MRT.app = (function () {
     route: route,
     reloadData: reloadData,
     reportSaveFailure: reportSaveFailure,
-    paintAlertBanner: paintAlertBanner,
+    paintBanner: paintBanner,
     downloadText: downloadText,
     recheckUser: recheckUser,
-    refreshTheme: function () { applyTheme(readTheme(store.status().currentUserId)); },   // after the office default changed
+    refreshTheme: function () { applyTheme(readTheme(store.status().currentUserId));   // after the office default changed
+      applyContrast(readPref('contrast', store.status().currentUserId) === 'high'); },
     awayDialog: awayDialog,
     awayText: awayText,
     readPref: function (name) { return readPref(name, store.status().currentUserId); },

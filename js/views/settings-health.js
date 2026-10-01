@@ -32,7 +32,7 @@
       K().chip(s.label, s.chip),
       x.text,
       ui.el('a', { class: 'btn btn-sm', href: (x.tab === 'lots' || x.tab === 'request' ? '#/' : '#/settings/') + x.tab + (x.id ? '/' + x.id : '') },
-            ['Open ' + (TAB_LABEL[x.tab] || x.tab), ui.icon('chevron_right', 14)])
+            ['Open ' + (TAB_LABEL[x.tab] || x.tab), ui.icon('chevron_right', 16)])
     ];
   }
 

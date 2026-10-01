@@ -39,7 +39,7 @@ window.MRT.views.results = (function () {
     shown = PAGE;
     var all = store.visibleRequests(function (r) { return r.status === 'completed' || r.status === 'analyzed'; });
     all.sort(function (a, b) { return String(a.completed_ts || '') < String(b.completed_ts || '') ? 1 : -1; });
-    main.appendChild(ui.pageHead('Results', 'Finished requests and where their data lives. Click a path to open it.'));
+    main.appendChild(ui.pageHead('Results', 'Finished requests and their data.'));
     var tools = store.list('tools').filter(function (t) { return all.some(function (r) { return r.tool_id === t.id; }); });
     var toolSel = ui.el('select', { class: 'input', 'aria-label': 'Filter by tool' },
       [{ v: '', t: 'All tools' }].concat(tools.map(function (t) { return { v: t.id, t: t.name }; })).map(function (o) {

@@ -47,7 +47,7 @@ window.MRT.views.lab = (function () {
     var count = { up: 0, maintenance: 0, down: 0 };
     tools.forEach(function (t) { count[t.status] = (count[t.status] || 0) + 1; });
 
-    main.appendChild(ui.pageHead('Lab status', 'Every tool, its state, who runs it and its queue. Waits count lab time.'));
+    main.appendChild(ui.pageHead('Lab status', 'Tool state, owner, queue.'));
 
     if (!tools.length) {
       main.appendChild(ui.emptyState({ icon: 'wrench', title: 'No tools yet', text: 'An admin adds tools in Settings.' }));
@@ -113,7 +113,7 @@ window.MRT.views.lab = (function () {
         row('Typical wait', q.wait_ms === null ? 'no data yet' : hrs(q.wait_ms) + ' lab time (last ' + q.wait_n + ')', q.wait_ms === null ? 'is-missing' : null)
       ]),
       samples ? ui.el('div', { class: 'tool-plate-sample', title: 'Made-up entries until the engineers confirm them (Settings)' },
-                      [ui.icon('info', 14), ui.el('span', { text: samples + ' sample entries' })]) : null,
+                      [ui.icon('info', 16), ui.el('span', { text: samples + ' sample entries' })]) : null,
       canSet ? ui.el('div', { class: 'tool-plate-actions' }, [
         ui.button('Set status', { size: 'sm', icon: 'wrench', onClick: function () { statusDialog(t); } })
       ]) : null

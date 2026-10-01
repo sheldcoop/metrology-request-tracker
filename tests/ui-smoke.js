@@ -23,7 +23,7 @@ if(process.argv[2]==='chart'){win.Chart=function(canvas,cfg){charts++;this.cfg=c
   const a=cfg.options.animations;if(a){a.y.from({index:1,chart:chartObj,datasetIndex:0});a.x.delay({type:'data',index:2})}
   this.destroy=()=>destroyed++;};}const ctx=vm.createContext(win);
 vm.runInContext(fs.readFileSync(path.join(ROOT,'js/themes.js'),'utf8'),ctx,{filename:'themes.js'});
-['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller','hirata','theme-gallery'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
+['core','components','glyphs','heatmap','overlays','charts','panelmap','barcode','magazine','traveller','request-box','hirata','theme-gallery'].forEach(f=>vm.runInContext(fs.readFileSync(path.join(ROOT,'js/ui/'+f+'.js'),'utf8'),ctx,{filename:'ui/'+f+'.js'}));
 let errs=0;
 function check(name,fn){try{fn();flush()}catch(e){errs++;console.log('ERR',name,e.stack.split('\n').slice(0,3).join(' | '))}}
 function expect(name,cond){if(!cond){errs++;console.log('FAIL',name)}}
@@ -81,6 +81,11 @@ check('traveller',()=>{const m={id:'FIB-260925-01',subtitle:'FIB',glyph:{key:'fi
   const sl=put(ui.traveller(m,{size:'slip'}));expect('traveller slip: warning line',sl.classList.contains('slip')&&/W/.test(sl.textContent));
   const u=put(ui.traveller({id:'<b>x</b>'},{size:'full'}));expect('traveller: text never becomes markup',u.textContent.indexOf('<b>x</b>')!==-1);
   expect('four sizes',ui.TRAVELLER_SIZES.join()==='full,mini,card,slip')});
+check('requestBox',()=>{const r={id:'q1',request_no:'FIB-260925-01'};const o={tool:{glyph:'fib'},lot:'18178',buCode:'BU-02',
+  prio:{name:'Line stop',level:1},assignedName:'Olga Berger',late:true,statusChip:ui.statusBadge('neutral','Submitted'),
+  tick:{checked:false,label:'Tick x',onChange(){}} ,actions:[ui.button('Accept',{kind:'primary'})]};
+  const b=put(ui.requestBox(r,o));expect('box: stripe class, late chip, lot line, actions',b.classList.contains('qbox')&&b.classList.contains('prio-1')&&/Late/.test(b.textContent)&&/BU-02/.test(b.textContent)&&/Accept/.test(b.textContent));
+  const d=put(ui.requestBox(r,{done:true}));expect('done box says Completed',d.classList.contains('is-done')&&/Completed/.test(d.textContent))});
 check('needle gauge',()=>{const g=ui.needleGauge();put(g.node);
   g.set(0.5,'soon');const n=g.node.querySelector('.ng-needle');
   expect('set() turns the needle and the state class',/rotate\(90/.test(n.style.transform)&&g.node.getAttribute('class')==='ngauge is-soon');
@@ -170,9 +175,9 @@ for(const i of root.querySelectorAll('input')){check('input',()=>{i.checked=true
 const kit=path.join(ROOT,'js/ui-kit.js');
 if(fs.existsSync(kit)){check('ui-kit',()=>{ui.clear(root);vm.runInContext(fs.readFileSync(kit,'utf8'),ctx,{filename:'ui-kit.js'});flush();tick();
   const live=win.MRT.themes.list;
-  expect('the kit opens on all 6 themes side by side, with their contrast table',live.length===6&&root.querySelectorAll('.theme-scope').length===6&&
+  expect('the kit opens on all 5 themes side by side, with their contrast table',live.length===5&&root.querySelectorAll('.theme-scope').length===5&&
     root.querySelector('.kit-contrast').querySelectorAll('th').length===2+live.length);
-  const sel=doc.getElementById('kitTheme');sel.value='deep-lab';sel.dispatch('change');flush();
+  const sel=doc.getElementById('kitTheme');sel.value='dark-teal';sel.dispatch('change');flush();
   const secs=root.querySelectorAll('section').filter(x=>x.classList.contains('kit-sec'));
   expect('the kit builds every section (26, with the theme gallery)',secs.length===26);
   expect('the kit shows 7 glyphs x 4 states',root.querySelectorAll('.kit-glyph-cell').length===28);
@@ -187,7 +192,7 @@ check('status badge',()=>{const b=put(ui.statusBadge('expired','Late'));expect('
 check('theme gallery',()=>{let got=null;const g=put(ui.themeGallery({themes:win.MRT.themes,value:'ats',onPick:k=>{got=k},extra:{key:'',name:'Office default',mood:'x'}}));
   const cards=g.node.querySelectorAll('.tg-card');expect('one card per theme + Office default, grouped',cards.length===win.MRT.themes.list.length+1&&g.node.querySelectorAll('.tg-group-title').length===1);
   expect('each sample carries its own theme',g.node.querySelectorAll('.tg-sample').filter(x=>x.getAttribute('data-theme')).length===win.MRT.themes.list.length);
-  cards.filter(c=>c.dataset.key==='signal')[0].click();expect('a click picks it',got==='signal'&&g.value()==='signal'&&cards.filter(c=>c.classList.contains('is-on')).length===1)});
+  cards.filter(c=>c.dataset.key==='slate')[0].click();expect('a click picks it',got==='slate'&&g.value()==='slate'&&cards.filter(c=>c.classList.contains('is-on')).length===1)});
 
 (async()=>{await dialogSubmitChecks().catch(e=>{errs++;console.log('ERR dialog submit',e.stack)});
 console.log('charts built',charts,'destroyed',destroyed);

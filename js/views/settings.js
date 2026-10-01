@@ -29,7 +29,7 @@ window.MRT.views.settings = (function () {
 
   function render(main, ctx) {
     var me = store.currentUser();
-    main.appendChild(ui.pageHead('Settings', 'Tools, lists, people, lab calendar and the health of the data file'));
+    main.appendChild(ui.pageHead('Settings', 'Tools, people, lists, calendar, data health.'));
 
     if (!D.canUseSettings(me)) return renderNotAdmin(main);
     if (unlockedFor !== me.id) return renderLock(main);

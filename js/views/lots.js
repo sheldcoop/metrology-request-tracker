@@ -56,7 +56,7 @@ window.MRT.views.lots = (function () {
   function render(main, ctx) {
     var me = store.currentUser();
     var canAdd = D.canRegisterLot(me);
-    main.appendChild(ui.pageHead('Lots', 'Every registered lot. A request picks its lot and panels from here.',
+    main.appendChild(ui.pageHead('Lots', 'Every lot. Requests pick lot and panels here.',
       canAdd ? [ui.button('Register lot', { kind: 'primary', icon: 'plus', onClick: function () { lotDialog(null); } })] : null));
 
     var all = store.data().lots || [];

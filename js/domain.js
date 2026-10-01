@@ -1885,7 +1885,29 @@ window.MRT.domain = (function () {
 
   /** Everything that looks wrong in the file: broken links, odd states. Never writes. */
   var AUDIT_LARGE = 20000, EVENTS_LARGE = 50000;
-  var STUCK_HOLD_DAYS = 7;   // on hold longer than this: flagged on the Health page (M6)
+  var STUCK_HOLD_LAB_DAYS = 2;   // on hold for this many lab days or more: flagged (Step 6b, Health + board share it)
+
+  /**
+   * Whole lab days between two moments: lab-day dates after the first date
+   * up to and including the second one's date. Never writes.
+   */
+  function labDaysBetween(fromTs, toTs, cal, hs) {
+    if (!(toTs > fromTs)) return 0;
+    cal = cal || { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' };
+    hs = hs || {};
+    var n = 0, ymd = addDaysYmd(viennaYmd(fromTs), 1), last = viennaYmd(toTs);
+    for (var guard = 0; ymd <= last && guard < 1500; guard++) {
+      if (isLabDay(ymd, cal, hs)) n++;
+      ymd = addDaysYmd(ymd, 1);
+    }
+    return n;
+  }
+
+  /** Lab days a request has been on hold since holdTs (its latest move to On hold). */
+  function holdLabDays(holdTs, nowTs, cal, hs) {
+    if (!holdTs) return 0;
+    return labDaysBetween(Date.parse(holdTs), nowTs, cal, hs);
+  }
   function healthIssues(data, o) {
     var out = [];
     var today = (o && o.today_ymd) || '1970-01-01';
@@ -1932,12 +1954,14 @@ window.MRT.domain = (function () {
     (data.request_events || []).forEach(function (e) {
       if (e.kind === 'status' && e.to === 'on_hold') holdSince[e.request_id] = e.ts;
     });
-    var stuckBefore = Date.parse(today + 'T00:00:00Z') - STUCK_HOLD_DAYS * 86400000;
+    var hcal = (o && o.cal) || { days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' };
+    var hhs = (o && o.hs) || holidaySet(data.holidays || []);
+    var stuckNow = Date.parse(today + 'T12:00:00Z');
     (data.requests || []).forEach(function (r) {
       var no = r.request_no || 'A draft';
-      if (r.status === 'on_hold' && holdSince[r.id] && Date.parse(holdSince[r.id]) < stuckBefore) {
-        var days = Math.floor((Date.parse(today + 'T00:00:00Z') - Date.parse(holdSince[r.id])) / 86400000);
-        add('warning', 'stuck_on_hold', no + ': on hold for ' + days + ' days (since ' + String(holdSince[r.id]).slice(0, 10) + ') - check with the lab', 'request', r.id);
+      var stuckDays = r.status === 'on_hold' ? holdLabDays(holdSince[r.id], stuckNow, hcal, hhs) : 0;
+      if (stuckDays >= STUCK_HOLD_LAB_DAYS) {
+        add('warning', 'stuck_on_hold', no + ': on hold for ' + stuckDays + ' lab days (since ' + String(holdSince[r.id]).slice(0, 10) + ') - check with the lab', 'request', r.id);
       }
       if (r.project_id && !projects[r.project_id]) add('problem', 'req_bad_project', no + ': its project no longer exists', 'request', r.id);
       if (r.buildup_id && !bus[r.buildup_id]) add('problem', 'req_bad_buildup', no + ': its build-up no longer exists', 'request', r.id);
@@ -2042,6 +2066,9 @@ window.MRT.domain = (function () {
     workingMs: workingMs,
     isLabTime: isLabTime,
     countdown: countdown,
+    labDaysBetween: labDaysBetween,
+    holdLabDays: holdLabDays,
+    STUCK_HOLD_LAB_DAYS: STUCK_HOLD_LAB_DAYS,
     REQUEST_STATUSES: REQUEST_STATUSES,
     REQUEST_STATUS_LABEL: REQUEST_STATUS_LABEL,
     canRequest: canRequest,

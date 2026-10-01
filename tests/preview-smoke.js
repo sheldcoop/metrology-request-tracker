@@ -42,7 +42,7 @@ async function boot(query, hash) {
   let d = await boot('?theme=light');
   check('as admin + engineer: the shell opens on My requests (M3-12)', !d.doc.getElementById('shell').hidden && /My requests/.test(d.doc.getElementById('main').textContent));
   check('...signed in as Prince', d.win.MRT.store.currentUser().name === 'Prince Khurana');
-  check('...with the theme from ?theme= (an old key resolves to its successor)', d.doc.documentElement.getAttribute('data-theme') === 'cleanroom');
+  check('...with the theme from ?theme= (an old key resolves to its successor)', d.doc.documentElement.getAttribute('data-theme') === 'pure-white');
   d = await boot('?theme=light', '#/lab');
   check('...demo tool states: FIB in Maintenance, PRF Down', /Maintenance/.test(d.doc.getElementById('main').textContent) && /Down/.test(d.doc.getElementById('main').textContent));
   check('...the data file name shows "preview"', /preview/.test(d.doc.getElementById('navFolder').textContent));
@@ -61,7 +61,7 @@ async function boot(query, hash) {
         d.win.MRT.store.data().requests.length > 60 && d.win.MRT.store.currentUser().name === 'Prince Khurana');
   d = await boot('?demo=big&as=mia', '#/queue');
   check('?demo=big&as=mia: Mia\'s queue is full (FIB backup while Olga is away)', d.win.MRT.store.currentUser().name === 'Mia Gruber' &&
-        d.doc.getElementById('main').querySelectorAll('.q-row').length >= 10);
+        d.doc.getElementById('main').querySelectorAll('.qbox').length >= 10);
 
   // every page with the big file: nothing may break, and each render is timed (fake DOM - a rough guide only)
   d = await boot('?demo=big');

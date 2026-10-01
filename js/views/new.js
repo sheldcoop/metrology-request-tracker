@@ -24,8 +24,10 @@
  *   #/new/<request id>  edit a submitted, open request - not its tool - with a reason (Q14, M3-5)
  *   #/new?from=<id>     copy a request (Q28)
  *
- * The traveller card on the right builds up live: what the quality engineer
- * will see. User text only ever goes through textContent.
+ * The form takes the full page (redesign Step 8); below it, in one stack,
+ * the traveller card builds up live (what the quality engineer will see)
+ * and your drafts and latest requests. User text only ever goes through
+ * textContent.
  */
 window.MRT = window.MRT || {};
 window.MRT.views = window.MRT.views || {};
@@ -135,10 +137,10 @@ window.MRT.views['new'] = (function () {
     var panelMode = st.panels.length || !st.panel_count ? 'ids' : 'count';
 
     var title = editing ? 'Edit ' + draft.request_no : draft ? 'Draft' : from ? 'Copy of ' + (from.request_no || 'a draft') : tpl ? 'New request from "' + tpl.name + '"' : 'New request';
-    main.appendChild(ui.pageHead(title, editing ? 'Change what is needed and save with a reason; the quality engineer sees each change in the timeline. The tool stays.'
-      : 'Tool first, then step by step. Save a draft any time; entered values still need to be valid. Submit sends it to the tool\'s quality engineers.'));
+    main.appendChild(ui.pageHead(title, editing ? 'Change what is needed. Changes show in the timeline.'
+      : 'Tool first, then steps. Submit sends it to the lab.'));
 
-    if (tplNotes.length) main.appendChild(ui.el('div', { class: 'setup-note', role: 'status' }, [ui.icon('info', 14),
+    if (tplNotes.length) main.appendChild(ui.el('div', { class: 'setup-note', role: 'status' }, [ui.icon('info', 16),
       ui.el('span', { text: tplNotes.join(' · ') })]));
     // a new, empty form: offer the person's templates first (Q28)
     if (!src && !draft && !q.lot && !q.tool) { var chooserNode = window.MRT.templates.chooser(me); if (chooserNode) main.appendChild(chooserNode); }
@@ -146,15 +148,16 @@ window.MRT.views['new'] = (function () {
     var progress = ui.el('ol', { class: 'wz-progress', 'aria-label': 'Steps' });
     progress.style.gridTemplateColumns = 'repeat(' + STEPS.length + ', minmax(0, 1fr))';
     var formCol = ui.el('div', { class: 'wz-steps' });
-    var side = ui.el('aside', { class: 'req-side' });
-    main.appendChild(ui.el('div', { class: 'req-layout req-wizard' }, [ui.el('div', { class: 'wz-main' }, [progress, errorBox, formCol]), side]));
+    main.appendChild(ui.el('div', { class: 'wz-main' }, [progress, errorBox, formCol]));
+    var side = ui.el('div', { class: 'req-stack' });
+    main.appendChild(side);
 
     /* --- the steps: a head that folds to one line, and a body ----------- */
     var open = null, shown = {};                        // shown: steps the person has opened (done ones get a tick)
     var steps = {};
     STEPS.forEach(function (s, i) {
       var summary = ui.el('span', { class: 'wz-sum' });
-      var badge = ui.el('span', { class: 'wz-no num', text: s.key === 'review' ? '' : String(i + 1) }, s.key === 'review' ? ui.icon('check', 14) : null);
+      var badge = ui.el('span', { class: 'wz-no num', text: s.key === 'review' ? '' : String(i + 1) }, s.key === 'review' ? ui.icon('check', 16) : null);
       var head = ui.el('button', { type: 'button', class: 'wz-head', 'aria-expanded': 'false' }, [badge,
         ui.el('span', { class: 'wz-title' }, [ui.el('b', { text: s.title }), summary])]);
       var body = ui.el('div', { class: 'wz-body', hidden: true });
