@@ -46,6 +46,9 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `js/views/templates.js` | Request templates: save/list/apply. |
 | `js/views/extra-fields.js` | Per-tool extra field rendering in the form. |
 | `js/views/analytics.js` | Analytics: My work / My requests / Lab / Management tabs. |
+| `js/views/prf.js` | PRF page: Folder / What to run / Run steps, per-panel findings, in-place run. |
+| `js/views/results.js` | Results: handed-back result folders per request. |
+| `js/views/settings-emails.js` | Mail templates + Outlook drafts. |
 | `js/views/help.js` | In-app Help page. |
 | `js/views/home.js` | Home: gated card grid into every page, live counts from existing functions. |
 | `js/views/settings.js` | Settings shell: admin gate + PIN lock. |
@@ -66,6 +69,8 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `js/ui/core.js` | `el`, mount, form primitives. |
 | `js/ui/components.js` | panel, button, field, segmented, toggle, tabs, table, KPI... |
 | `js/ui/overlays.js` | dialog, toast, tooltip, menu. |
+| `js/ui/chips.js` | Unit chips: type, order strip, drag-reorder. |
+| `js/ui/request-box.js` | Request row box used in lists. |
 | `js/ui/charts.js` | Chart.js wrapper: themed, gradients, expand, click-through. |
 | `js/ui/glyphs.js` | Tool drawings (HRM, AOI, PRF, QVM, FIB...). |
 | `js/ui/heatmap.js` | Calendar heatmap. |
@@ -83,10 +88,18 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | file | purpose |
 |---|---|
 | `js/adapters/storage-folder.js` | File System Access: read/write/list/remove. The ONLY filesystem touchpoint (M10 grep proof). |
+| `js/adapters/prf-folder.js` | Reads PRF log folders (Front/Back, panels, sites). Never writes. |
 | `js/adapters/mail.js` | Outlook draft via `mailto:` (later: server SMTP). |
 | `js/config.js` | Picks the adapters (`folder`/`api`, `outlook-draft`/`smtp`, `off`/`local-llm`) + file names, limits, time zone. No secrets. |
 
 (`ai.js` does not exist yet — config `ai: 'off'`, OPEN_QUESTIONS #11.)
+
+## PRF report engine — pure maths, no DOM
+
+| file | purpose |
+|---|---|
+| `js/prf.js` | Parses PRF log text, assigns units/positions, T2B maths, Excel workbook model. |
+| `js/excel-bridge.js` | Writes the workbook via SheetJS (CSV fallback without it). |
 
 ## Themes, style, shell
 
@@ -105,9 +118,9 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 
 | file | purpose |
 |---|---|
-| `tests/tests.js` + `run-tests.js` | 683 unit tests (same set as `test.html`). |
+| `tests/tests.js` + `run-tests.js` | 825 unit tests (same set as `test.html`). |
 | `tests/test.html` | Browser harness Prince opens. |
-| `tests/app-smoke.js` | 303-check persona walkthrough in a fake browser. |
+| `tests/app-smoke.js` | 357-check persona walkthrough in a fake browser. |
 | `tests/ui-smoke.js` | Every component/state built + clicked in a fake DOM. |
 | `tests/dom-budget.js` | M8: render ms + node counts per view, paging guard. |
 | `tests/css-check.js` | Brace balance, required selectors, no theme names in CSS. |
@@ -118,12 +131,13 @@ screens (`js/views/`, `js/app.js`), adapters, config, themes.
 | `tests/scene3d.js` | Engine fallback path + 50-cycle hover/leave leak test (stub THREE). |
 | `tests/scenes.js` | Scene contract: register, loop sweep + resize, dispose empties, size cap (fake THREE). |
 | `tests/memory-storage.js` | In-memory storage adapter (proves the adapter interface swaps). |
-| `tests/make-demo-data.js`, `make-preview.js` | Generators. |
+| `tests/prf-view-logic.js` | PRF page logic: scan counts, unit order, same-as-via, plan. |
+| `tests/make-demo-data.js`, `make-preview.js`, `make-prf-demo.js` | Generators (demo requests, preview page, PRF log tree). |
 
 ## Docs
 
 `CLAUDE.md` (working agreement) · `DECISIONS.md` (agreed decisions) ·
 `DESIGN_RULES.md` (STEP 2 foundation: shape, type, spacing, elevation, colour roles) ·
 `OPEN_QUESTIONS.md` (parked items) · `OFFICE_SETUP.md` (seed changelog) ·
-`README.md` · `ROADMAP.md` · `CONTRIBUTING.md` · `AUDIT.md` · `TEST_RUN.md` ·
-`MILESTONE_1..10.md` · `FINAL_REPORT.md`.
+`README.md` (start here) · `ROADMAP.md` · `CONTRIBUTING.md` · `AUDIT.md` ·
+`TEST_RUN.md` (office test checklist) · `docs/archive/` (finished milestone notes).

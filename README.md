@@ -6,10 +6,10 @@ lab operators run them and hand back a results folder.
 Zero install: static files on the shared drive, opened in Microsoft Edge.
 No server, no build step, no internet.
 
-> M1 (the shell), M2 (lots, request form, request page), M3 (workflow,
-> My queue, My requests, board) and M4 (notifications) are built and being
-> audited; M5 (analytics and exports) is built. Next: M6 (import of the old
-> request list).
+> Everything is built and audited: requests, lab flow, board, analytics,
+> Hirata tools and the PRF report page. Live use: the R1 test run
+> (`TEST_RUN.md`). What's left is on the real share, not in code
+> (`ROADMAP.md`).
 
 ## What the pages do (M1)
 
@@ -107,6 +107,13 @@ turnaround in lab hours with hold apart, on time, backlog, load, clarification
 and reopen rates, on-hold reasons, Line stop response, demand per tool. Every
 number opens its requests; every chart and table downloads to Excel.
 
+**PRF** - roughness + via report from a log folder (`Post DSM` layout:
+project / lot / BU-01 / Front+Back / panels / log): pick the folder, tick
+panels, type units per side (they ask once whether roughness shares the via
+units), Run writes the Excel next to the folder (Summary, Front-vs-Back, T2B
+sheets). Try it: `node tests/make-prf-demo.js`, open the PRF page, pick
+`demo-data/prf-logs`.
+
 **Hirata tools** - read a panel's dot code (tap the dots, get every field) or
 type codes to see the copper panel they are drilled into; nothing is saved.
 Requests show each panel's copper pattern too, on the page and the slip.
@@ -203,12 +210,34 @@ copied without changing anything.
   ```
   node tests/run-tests.js      domain + store tests (same as test.html)
   node tests/app-smoke.js      the real app in a fake browser: first run, sign-up, Settings, Help, save errors
+  node tests/prf-view-logic.js PRF page logic: scan counts, unit order, same-as-via, plan
   node tests/preview-smoke.js  the dev preview boots on demo data
   node tests/ui-smoke.js       every UI component and the UI kit
   node tests/css-check.js      CSS braces balance, component rules present
   node tests/contrast.js       WCAG AA contrast of every text colour, every theme of js/themes.js
+  node tests/dom-budget.js     render time + node counts per view, paging guard
   ```
 - **`ui-kit.html`** - every component in every state; "All three" shows the themes side by side.
+
+---
+
+## Docs and branches
+
+- `MAP.md` - every file: one line on what it does and which layer owns it.
+  New here (human or agent): read this file and `MAP.md` first.
+- `CLAUDE.md` - the working agreement: small steps, gate before push, no
+  browser runs. Agents: follow it.
+- `DECISIONS.md` - every agreed decision, numbered. `OPEN_QUESTIONS.md` -
+  parked items. `OFFICE_SETUP.md` - reference-data changelog. `ROADMAP.md` -
+  what is built, what is left. `CONTRIBUTING.md` - rules for changing code.
+  `DESIGN_RULES.md` - shape, type, spacing. `AUDIT.md`, `TEST_RUN.md` -
+  audits and the office test checklist. `docs/archive/` - finished milestone
+  notes, history only.
+- Branch **`server-sqlite`** (not merged): the data layer on SQLite behind
+  the storage adapter. `main` stays JSON file + `file://`, untouched.
+- Office companions at the root (kept, not the app): `PRF_Insight.py` +
+  `settings_Insight.yaml` (the Python PRF flow), `HRM-AutoLot_v3.py` +
+  `HRM-settings_v3.yaml`, sample report files.
 - **`tests/preview.html`** - the real app on demo data in memory (nothing is
   saved); `?audit=1` runs the accessibility audit, `?perf=1` times the pages.
   Details and the rules for changing code: `CONTRIBUTING.md`.
