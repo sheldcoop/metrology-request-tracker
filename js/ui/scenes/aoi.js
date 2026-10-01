@@ -1,9 +1,10 @@
 /**
  * Metrology Request Tracker - js/ui/scenes/aoi.js
  *
- * Lab-status card scene: an AOI camera glides over a panel while a scan
- * line sweeps it. One focal event per 9 s loop: a defect dot flashes red
- * as the scan passes it. Solid lit meshes, no textures, no shadows.
+ * Lab-status card scene: an AOI camera glides over a panel while a bright
+ * scan band sweeps it with a fading trail; the circuit traces light as
+ * the scan passes. One focal event per 9 s loop: a defect dot flashes red
+ * under the scan. Solid lit meshes, transparent background, no shadows.
  */
 window.MRT = window.MRT || {};
 window.MRT.scene3d.register('aoi', function create(ctx) {
@@ -15,56 +16,63 @@ window.MRT.scene3d.register('aoi', function create(ctx) {
   camera.position.set(0, 2.6, 3.4);
   camera.lookAt(0, 0.1, 0);
 
-  scene.add(new T.HemisphereLight(0xffffff, 0x0a1a2e, 0.7));
+  scene.add(new T.HemisphereLight(0xffffff, new T.Color(ctx.tokens.surface), 0.75));
   var key = new T.DirectionalLight(0xffffff, 1.1);
   key.position.set(3, 5, 4);
   scene.add(key);
 
-  var matOpts = function (color, extra) {
-    var o = { color: new T.Color(color), roughness: 0.65, metalness: 0.15 };
-    if (extra) for (var k in extra) o[k] = extra[k];
-    return new T.MeshStandardMaterial(o);
-  };
-
   // The panel under inspection.
-  var panel = new T.Mesh(new T.BoxGeometry(3.2, 0.08, 1.8), matOpts(ctx.tokens.surface, { roughness: 0.85 }));
+  var panel = new T.Mesh(
+    new T.BoxGeometry(3.2, 0.08, 1.8),
+    new T.MeshStandardMaterial({ color: new T.Color(ctx.tokens.surface), roughness: 0.85, metalness: 0.1 }));
   panel.position.y = -0.04;
   scene.add(panel);
 
-  // Two faint circuit traces on the panel.
-  var traceMat = matOpts(ctx.tokens.line, { roughness: 0.5 });
+  // Circuit traces in segments that light as the scan passes over them.
+  var traces = [];
   [-0.45, 0.45].forEach(function (z) {
-    var trace = new T.Mesh(new T.BoxGeometry(2.6, 0.012, 0.05), traceMat);
-    trace.position.set(0, 0.006, z);
-    scene.add(trace);
+    var i, m, seg;
+    for (i = 0; i < 6; i++) {
+      m = new T.MeshStandardMaterial({ color: new T.Color(ctx.tokens.line),
+        emissive: new T.Color(ctx.tokens.accent), emissiveIntensity: 0, roughness: 0.5 });
+      seg = new T.Mesh(new T.BoxGeometry(0.4, 0.012, 0.05), m);
+      seg.position.set(-1.05 + i * 0.42, 0.006, z);
+      scene.add(seg);
+      traces.push({ mat: m, x: -1.05 + i * 0.42 });
+    }
   });
 
-  // The camera rig: body, lens barrel, glowing front ring.
+  // The camera rig: body, dark lens barrel, glowing accent ring.
   var rig = new T.Group();
-  var body = new T.Mesh(new T.BoxGeometry(0.5, 0.3, 0.5), matOpts(ctx.tokens.line, { roughness: 0.4, metalness: 0.5 }));
-  rig.add(body);
-  var lens = new T.Mesh(new T.CylinderGeometry(0.12, 0.16, 0.28, 20), matOpts('#101820', { roughness: 0.35 }));
+  rig.add(new T.Mesh(new T.BoxGeometry(0.5, 0.3, 0.5),
+    new T.MeshStandardMaterial({ color: new T.Color(ctx.tokens.line), roughness: 0.4, metalness: 0.5 })));
+  var lens = new T.Mesh(new T.CylinderGeometry(0.12, 0.16, 0.28, 20),
+    new T.MeshStandardMaterial({ color: new T.Color(ctx.tokens.surface), roughness: 0.3, metalness: 0.4 }));
   lens.position.y = -0.28;
   rig.add(lens);
-  var ringMat = new T.MeshBasicMaterial({ color: new T.Color(ctx.tokens.accent) });
-  var ring = new T.Mesh(new T.TorusGeometry(0.13, 0.022, 10, 28), ringMat);
+  var ring = new T.Mesh(new T.TorusGeometry(0.13, 0.022, 10, 28),
+    new T.MeshBasicMaterial({ color: new T.Color(ctx.tokens.accent) }));
   ring.rotation.x = Math.PI / 2;
   ring.position.y = -0.42;
   rig.add(ring);
   rig.position.y = 1.15;
   scene.add(rig);
 
-  // The scan line sweeping the panel under the rig.
-  var scanMat = new T.MeshBasicMaterial({
-    color: new T.Color(ctx.tokens.accent), transparent: true, opacity: 0.5
-  });
-  var scan = new T.Mesh(new T.PlaneGeometry(0.07, 1.7), scanMat);
+  // The scan band with its fading trail.
+  var scan = new T.Mesh(new T.PlaneGeometry(0.07, 1.7),
+    new T.MeshBasicMaterial({ color: new T.Color(ctx.tokens.bright), transparent: true, opacity: 0.85 }));
   scan.rotation.x = -Math.PI / 2;
   scan.position.y = 0.015;
   scene.add(scan);
+  var trail = new T.Mesh(new T.PlaneGeometry(0.5, 1.7),
+    new T.MeshBasicMaterial({ color: new T.Color(ctx.tokens.accent), transparent: true, opacity: 0.18 }));
+  trail.rotation.x = -Math.PI / 2;
+  trail.position.y = 0.012;
+  scene.add(trail);
 
   // The defect: one small dot that flashes as the scan passes.
-  var defectMat = matOpts(ctx.tokens.danger, { emissive: new T.Color(ctx.tokens.danger), emissiveIntensity: 0.25 });
+  var defectMat = new T.MeshStandardMaterial({ color: new T.Color(ctx.tokens.danger),
+    emissive: new T.Color(ctx.tokens.danger), emissiveIntensity: 0.25, roughness: 0.5 });
   var defect = new T.Mesh(new T.SphereGeometry(0.05, 14, 12), defectMat);
   defect.position.set(0.55, 0.03, 0.2);
   scene.add(defect);
@@ -82,12 +90,19 @@ window.MRT.scene3d.register('aoi', function create(ctx) {
     update: function (dt, t) {
       var p = ((t % LOOP) + LOOP) % LOOP / LOOP;
       var tri = p < 0.5 ? p * 2 : 2 - p * 2;   // glide there and back, calm
+      var dir = p < 0.5 ? 1 : -1;
       var x = -1.1 + 2.2 * smooth(tri);
       rig.position.x = x;
       rig.position.y = 1.15 + 0.03 * Math.sin(t * 1.4);
       scan.position.x = x;
+      trail.position.x = x - dir * 0.28;       // the trail follows behind
+      var i;
+      for (i = 0; i < traces.length; i++) {
+        var near = Math.exp(-Math.pow((x - traces[i].x) / 0.35, 2));
+        traces[i].mat.emissiveIntensity = 1.1 * near;
+      }
       var d = (p - 0.55) / 0.045;              // one red flash per loop
-      defectMat.emissiveIntensity = 0.25 + 2.2 * Math.exp(-d * d);
+      defectMat.emissiveIntensity = 0.25 + 2.4 * Math.exp(-d * d);
     },
     dispose: function () {
       while (scene.children.length) scene.remove(scene.children[0]);
