@@ -12,7 +12,7 @@
 const vm = require('vm'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 
-const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'brandVer', 'saveLed', 'undoBtn', 'searchIcon', 'search',
+const IDS = ['gate', 'gateCard', 'shell', 'brandMark', 'saveLed', 'undoBtn', 'searchIcon', 'search',
   'bellBtn', 'bellIcon', 'bellCount', 'themeBtn', 'newBtn', 'userBtn', 'userAvatar', 'userName', 'userCaret', 'alertBanner', 'conflictBanner',
   'navItems', 'navFolder', 'navRev', 'navCollapse', 'main', 'toasts', 'dialogHost'];
 const { win, doc, flush, tick, storage, El } = require('./fake-dom')({ ids: IDS, url: 'file:///Z:/Lab/MRT/index.html?who=ATS%5CPKhurana' });
@@ -86,7 +86,7 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   check('one user, an Admin', MRT.store.data().users.length === 1 && MRT.store.currentUser().roles[0] === 'admin');
   check('the file was saved', JSON.parse(folder.files['mrt_data.json']).revision === 1);
   check('the top bar shows the name', text('userName') === 'Prince Khurana');
-  check('milestone tag M1', text('brandVer') === 'M1');
+  check('top bar has the mark, no milestone pill', !doc.getElementById('brandVer') && !!doc.getElementById('brandMark').querySelector('svg'));
 
   // --- the side menu (M1-6, grouped in Step 3)
   const items = doc.getElementById('navItems').querySelectorAll('.nav-item');
@@ -141,7 +141,7 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   // --- user menu, shortcuts, collapsing the menu
   doc.getElementById('userBtn').click(); await settle();
   const menu = doc.body.querySelector('.menu');
-  check('the user menu opens with theme, start page and Change user', !!menu && /Theme/.test(menu.textContent) && /Start page/.test(menu.textContent) && /Change user/.test(menu.textContent));
+  check('the user menu opens with theme, start page, Help and Sign out', !!menu && /Theme/.test(menu.textContent) && /Start page/.test(menu.textContent) && /Help/.test(menu.textContent) && /Sign out/.test(menu.textContent));
   check('...and shows the roles', !!menu && /Admin/.test(menu.textContent));
   buttonByText(menu, 'Theme: AT&S...').click(); await settle();
   const thDlg = doc.getElementById('dialogHost').querySelectorAll('dialog').filter(d => d.open).slice(-1)[0];
@@ -740,15 +740,21 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   const rackA = MRT.store.list('panel_locations').filter(x => x.name === 'Rack A')[0].id;
   const qL = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panel_location_id: rackA, new_location: null, panels: [6], priority_id: prioBy('P1'), priority_reason: 'line 2 down' }) });
   MRT.store.setCurrentUser(olga.id); win.setHash('#/lab'); await settle(); win.setHash('#/queue'); await settle();
-  check('the bell shows Olga what is new: her tool\'s requests (M4)', visible('bellCount') && +text('bellCount') >= 2);
+  check('the bell shows Olga a dot, the count in its label (M4)', visible('bellCount') && (function () {
+    var m = /Notifications, (\d+) new/.exec(doc.getElementById('bellBtn').getAttribute('aria-label') || '');
+    return !!m && +m[1] >= 2;
+  })());
   const qBadge = doc.getElementById('navItems').querySelectorAll('.nav-item').filter(a => a.dataset.route === 'queue')[0].querySelector('.nav-badge');
-  check('...her queue carries the waiting-on-me badge', !qBadge.hidden && +qBadge.textContent >= 1 && /waiting on me/.test(qBadge.title));
+  check('...her queue badge carries line stop + late on her tools', !qBadge.hidden && +qBadge.textContent >= 1 && /line stop or late/.test(qBadge.title));
   doc.getElementById('bellBtn').click(); await settle();
   const bellMenu = doc.body.querySelector('.menu');
-  check('...opening it lists them, with the new request from Prince', !!bellMenu && bellMenu.textContent.indexOf('New request ' + qL.request_no) !== -1);
+  check('...opening it lists them with the count inside, new request from Prince first', !!bellMenu && (function () {
+    var m = /(\d+) new/.exec(bellMenu.textContent);
+    return !!m && +m[1] >= 2;
+  })() && bellMenu.textContent.indexOf('New request ' + qL.request_no) !== -1);
   buttonByText(bellMenu, 'Mark all as read').click(); await settle();
-  check('..."Mark all as read" clears the count', !visible('bellCount'));
-  check('...and the nav badges clear with it', doc.getElementById('navItems').querySelectorAll('.nav-badge').every(b => b.hidden));
+  check('..."Mark all as read" clears the dot', !visible('bellCount'));
+  check('...the queue badge keeps its attention count', !qBadge.hidden && +qBadge.textContent >= 1);
   // --- Pure engineer: Edit, Cancel, Copy, Print (+ Answer only when asked)
   MRT.store.setCurrentUser(meP);
   const ed = await MRT.store.saveEntry('users', { fields: { name: 'Ed Engineer', roles: ['engineer'] } });
@@ -1050,18 +1056,30 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
         reqSheet.length === MRT.store.data().requests.filter(r => r.status !== 'draft').length + 1, wbOut && wbOut.name);
   delete win.XLSX;
 
-  // --- the alert strip (M1-2, built in the M3 audit)
+  // --- the line-stop banner (Part A): one slim line, dismissible per request
+  const lsReq = await MRT.store.submitRequest({ fields: Object.assign({}, base, { panel_location_id: rackA, new_location: null, panels: [9], priority_id: prioBy('P1'), priority_reason: 'banner smoke', needed_by: '2026-10-02' }) });
   win.setHash('#/lab'); await settle(); tick(); await settle();
-  const strip = doc.getElementById('alertBanner');
-  const cStrip = MRT.domain.stripCounts({ user: MRT.store.currentUser(), tools: MRT.store.list('tools'), requests: MRT.store.data().requests, now_ts: Date.now(),
-    cal: MRT.store.calendar(), levelOf: r => (MRT.store.byId('priorities', r.priority_id) || {}).level });
-  check('the strip shows on every page when something is open: counts only, same numbers as the rule', !strip.hidden &&
-        /Line stop/.test(strip.textContent) && /Late/.test(strip.textContent) && !/open/.test(strip.textContent));
-  const segs = strip.querySelectorAll('a').filter(a => a.classList.contains('strip-seg'));
-  check('...four counts, each a link into My queue or My requests', segs.length === 4 && segs.every(a => /^#\/(queue|requests)\//.test(a.getAttribute('href'))));
-  win.setHash(segs[1].getAttribute('href')); await settle();
-  check('..."Late" opens the list on that filter', /My queue|My requests/.test(mainText()) &&
-        (fieldIn(doc.getElementById('main'), 'Status') || { value: '' }).value === (cStrip.scope === 'tools' ? 'late' : 'open'));
+  const banner = doc.getElementById('alertBanner');
+  check('an open line stop shows one slim banner under the top bar', !banner.hidden &&
+        banner.textContent.indexOf('Line stop: ' + lsReq.request_no + ' · Open') !== -1);
+  banner.querySelectorAll('button').filter(b => /Dismiss line stop/.test(b.getAttribute('aria-label') || ''))[0].click(); await settle();
+  check('...dismiss drops it and shows the next undismissed one', banner.textContent.indexOf(lsReq.request_no) === -1 &&
+        /Line stop: /.test(banner.textContent));
+  for (let d = 0; d < 4 && !banner.hidden; d++) {
+    banner.querySelectorAll('button').filter(b => /Dismiss line stop/.test(b.getAttribute('aria-label') || ''))[0].click(); await settle();
+  }
+  check('...dismissing them all hides the banner', banner.hidden === true);
+  check('...remembered on this PC', (storage['mrt.lstop_off.' + MRT.store.currentUser().id] || '').indexOf(lsReq.id) !== -1);
+  win.setHash('#/queue'); await settle();
+  const countsLine = $('#main .queue-counts');
+  const countsLinks = countsLine.querySelectorAll('a');
+  check('...My queue opens with four plain filter links', !!countsLine &&
+        countsLinks.map(a => a.getAttribute('href')).join() === '#/queue/linestop,#/queue/late,#/queue/on_hold,#/queue/clarification');
+  check('...the line-stop number takes the late colour above zero', countsLinks[0].classList.contains('is-bad') &&
+        +countsLinks[0].querySelector('.num').textContent >= 1);
+  win.setHash(countsLinks[0].getAttribute('href')); await settle();
+  check('..."Line stop" opens the list on that filter', /My queue/.test(mainText()) &&
+        (fieldIn(doc.getElementById('main'), 'Status') || { value: '' }).value === 'linestop');
 
   // --- Hirata tools (H-1..H-3): read a panel, find a pattern
   win.setHash('#/hirata'); await settle();
