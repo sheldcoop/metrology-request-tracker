@@ -1940,8 +1940,6 @@ button.panel-hirata-item:focus-visible { outline: 2px solid var(--accent); outli
 @keyframes away-swap { 0% { transform: translateX(-4px); opacity: 0; } 60% { transform: translateX(2px); opacity: 1; } 100% { transform: none; } }
 #main.is-rewind { animation: rewind 420ms var(--ease-out); }
 @keyframes rewind { 0% { transform: translateX(10px); opacity: .55; } 100% { transform: none; opacity: 1; } }
-.save-led.is-pulse .led { animation: save-pulse 700ms var(--ease-out) 1; }
-@keyframes save-pulse { 0% { transform: scale(1); } 35% { transform: scale(1.6); } 100% { transform: scale(1); } }
 
 /* Board tool picker (Prince, 2026-09-25) */
 .tool-picks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
