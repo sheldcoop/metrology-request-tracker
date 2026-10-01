@@ -185,8 +185,8 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   check('...clicking the button again closes it', !doc.body.querySelector('.menu'));
   win.setHash('#/home'); await settle();
   const homeCards = doc.getElementById('main').querySelectorAll('.home-card').map(c => c.getAttribute('href'));
-  check('Home shows his doors (no queue/board/analytics without those roles; lots/settings stay sidebar-only)',
-        homeCards.join() === '#/new,#/requests,#/lab,#/help', homeCards.join());
+  check('Home shows his six doors (new, requests, lab, results, lots, help)',
+        homeCards.join() === '#/new,#/requests,#/lab,#/results,#/lots,#/help', homeCards.join());
   check('...each card has an icon and a line but no counts', homeCards.length > 0 && doc.getElementById('main').querySelectorAll('.home-card')
         .every(c => !!c.querySelector('svg') && !!c.querySelector('.home-d') && !c.querySelector('.home-n')));
   check('...the + New button links to New request', doc.getElementById('newBtn').getAttribute('href') === '#/new' && !doc.getElementById('newBtn').hidden);
@@ -318,8 +318,8 @@ async function closeMore() { if (doc.body.querySelector('.menu')) openMore(); aw
   check('New request is closed without the engineer role', /You don't have access, ask an admin/.test(mainText()));
   check('...and the + New button hides too', !!doc.getElementById('newBtn').hidden);
   win.setHash('#/home'); await settle();
-  check('Home shows only her doors (queue + board, no new/lots/settings)',
-        doc.getElementById('main').querySelectorAll('.home-card').map(c => c.getAttribute('href')).join() === '#/requests,#/queue,#/board,#/lab,#/help');
+  check('Home shows only her six doors (requests, queue, board, lab, results, help)',
+        doc.getElementById('main').querySelectorAll('.home-card').map(c => c.getAttribute('href')).join() === '#/requests,#/queue,#/board,#/lab,#/results,#/help');
   MRT.store.setCurrentUser(MRT.store.data().users.filter(u => u.name === 'Prince Khurana')[0].id); MRT.app.recheckUser();
   win.setHash('#/settings/tools'); await settle();
 
