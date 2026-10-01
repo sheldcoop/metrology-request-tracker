@@ -955,3 +955,14 @@ never the only signal - the text/label says the same thing.
   Home only. Vanilla `setTimeout` driver (`tagNext`, pure and unit-tested:
   settled state is a fixed point, no timer scheduled on settle); hidden tab
   pauses. Reduced motion shows only the final line, no cursor.
+- **HOME-3** (home-final, Step 3: sign-in slot) The Who-are-you forms
+  (`showAskId`, `showWhoAreYou`, `showIsThisYou`) render in a `home-slot`
+  box on Home instead of the gate overlay: hero and sentence above, form
+  where the cards would be, zero cards until identity is known. Same
+  forms, same behaviour (moved, not duplicated); first input focused.
+  Signing in clears the slot and the role's cards render on the same page
+  (the existing `page-enter` fade; instant under reduced motion). Folder
+  connect, first-run and account-off stay in the overlay. REAL LOGIN IS
+  NOT BUILT HERE: no PIN, accounts, password, guest mode or schema change
+  (see OPEN_QUESTIONS #9) - the server login will drop into this slot
+  with no layout change.
