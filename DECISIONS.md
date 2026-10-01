@@ -191,7 +191,7 @@ Rules in `CLAUDE.md`, decisions here, parked items in `OPEN_QUESTIONS.md`.
 
 - **M1-10** All starting data lives in `js/seed.js` (in the repo, fake entries marked
   `sample: true`); `store.js` only turns it into records. Real values replace the sample ones
-  there later; an existing data file is fixed in Settings. Checklist: OFFICE_SETUP.md.
+  there later; an existing data file is fixed in Settings. Checklist: docs/OFFICE_SETUP.md.
 - **M1-11** The office checklist also lives in the app so Prince does not have to remember it:
   Help gets an "Admin: setting up the office" guide (step 5), and Settings > Health shows a live
   "still to do" list - sample entries, tools without operators or results root, no closing
@@ -429,7 +429,7 @@ after testing". So M3-9 onwards are the planning recommendations, to be revisite
 - **A-9** M3-9 .. M3-12 (who does what, My queue, My requests, start page by role) were
   recommendations - **confirmed as built**.
 - **A-10** R1: Prince tests everything built (M1-M4, Hirata tools, the audit fixes) from
-  `TEST_RUN.md`; the M4 audit is covered by that run. M5 is planned and built meanwhile
+  `docs/TEST_RUN.md`; the M4 audit is covered by that run. M5 is planned and built meanwhile
   (Prince, 2026-09-25: "I will test tomorrow, you build M5 today").
 
 ## M5 analytics and exports (2026-09-25, Prince: plan A, build today)
@@ -704,7 +704,7 @@ never the only signal - the text/label says the same thing.
   Queue (shift) > Request detail (command strip, rail pulse, timeline thread) >
   Lab (engraved plates, attention washes) > My requests (strip) > New request
   (rail numerals, open-step edge). Lots/Hirata/slip unchanged (utility/print).
-- **A-1** (2026-09-28, Prince: "report only") Holistic audit `AUDIT.md`: 56
+- **A-1** (2026-09-28, Prince: "report only") Holistic audit `docs/AUDIT.md`: 56
   items, EXISTS/PARTIAL/MISSING with file refs; severity summary in chat.
   Fixes tracked as the "fix all" goal (2026-09-29).
 - **F-7** (2026-09-29, Prince: one lot is one project + one part number) Revises
@@ -834,7 +834,7 @@ never the only signal - the text/label says the same thing.
   Stamp; LEDs-as-text, OK circles and board initials removed), Lucide-style
   icons at 1.5px round caps (16 rows/nav, 18 filters), short value-first
   subtitles, one empty-state pattern, transform/opacity motion only.
-  Rules live in `DESIGN_RULES.md`.
+  Rules live in `docs/DESIGN_RULES.md`.
 - **DASH-8** (dashboard-front-page, redesign Step 3: frame) Top bar left to
   right: search, "+ New" (primary, was plain), bell, save lamp (+ Undo),
   theme button, user menu. The help and shortcuts icon buttons are gone:

@@ -8,8 +8,8 @@ No server, no build step, no internet.
 
 > Everything is built and audited: requests, lab flow, board, analytics,
 > Hirata tools and the PRF report page. Live use: the R1 test run
-> (`TEST_RUN.md`). What's left is on the real share, not in code
-> (`ROADMAP.md`).
+> (`docs/TEST_RUN.md`). What's left is on the real share, not in code
+> (`docs/ROADMAP.md`).
 
 ## What the pages do (M1)
 
@@ -223,16 +223,16 @@ copied without changing anything.
 
 ## Docs and branches
 
-- `MAP.md` - every file: one line on what it does and which layer owns it.
-  New here (human or agent): read this file and `MAP.md` first.
+- `docs/MAP.md` - every file: one line on what it does and which layer owns it.
+  New here (human or agent): read this file and `docs/MAP.md` first.
 - `CLAUDE.md` - the working agreement: small steps, gate before push, no
   browser runs. Agents: follow it.
 - `DECISIONS.md` - every agreed decision, numbered. `OPEN_QUESTIONS.md` -
-  parked items. `OFFICE_SETUP.md` - reference-data changelog. `ROADMAP.md` -
-  what is built, what is left. `CONTRIBUTING.md` - rules for changing code.
-  `DESIGN_RULES.md` - shape, type, spacing. `AUDIT.md`, `TEST_RUN.md` -
-  audits and the office test checklist. `docs/archive/` - finished milestone
-  notes, history only.
+  parked items. `docs/OFFICE_SETUP.md` - reference-data changelog.
+  `docs/ROADMAP.md` - what is built, what is left. `docs/CONTRIBUTING.md` -
+  rules for changing code. `docs/DESIGN_RULES.md` - shape, type, spacing.
+  `docs/AUDIT.md`, `docs/TEST_RUN.md` - audits and the office test
+  checklist. `docs/archive/` - finished milestone notes, history only.
 - Branch **`server-sqlite`** (not merged): the data layer on SQLite behind
   the storage adapter. `main` stays JSON file + `file://`, untouched.
 - Office companions at the root (kept, not the app): `PRF_Insight.py` +
@@ -240,5 +240,5 @@ copied without changing anything.
   `HRM-settings_v3.yaml`, sample report files.
 - **`tests/preview.html`** - the real app on demo data in memory (nothing is
   saved); `?audit=1` runs the accessibility audit, `?perf=1` times the pages.
-  Details and the rules for changing code: `CONTRIBUTING.md`.
+  Details and the rules for changing code: `docs/CONTRIBUTING.md`.
 

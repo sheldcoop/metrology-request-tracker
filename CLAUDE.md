@@ -33,7 +33,7 @@ Sister project for reference: `../abf-tracker` (same author, same philosophy). R
 - **Reference data the office needs goes into `js/seed.js`** (the first-run data),
   so a fresh clone starts with it: tools, measurement types, BKMs, extra fields, projects,
   build-ups, priorities, lab calendar, closing days. When Prince gives real values, they replace
-  the sample ones there (and `sample: true` goes). Record each change in OFFICE_SETUP.md.
+  the sample ones there (and `sample: true` goes). Record each change in docs/OFFICE_SETUP.md.
 - **People are not seeded** (names, Windows IDs, emails): they add themselves or an admin adds
   them, so no colleague's personal data sits on GitHub.
 
