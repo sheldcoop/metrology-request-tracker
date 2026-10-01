@@ -866,3 +866,21 @@ never the only signal - the text/label says the same thing.
   moved from the filter list to a History filter. "To analyze" left its
   bottom panel and is its own tab (`#/requests/toanalyze`). Drafts carry on
   from their box (Carry on + delete). No countdown clocks here either.
+- **DASH-11** (dashboard-front-page, redesign Step 6b: board) Numbered
+  columns kept, their coloured top borders and numeral colours gone. The
+  TOOL column is gone: one slim sticky lane header per tool (glyph, code,
+  open count; the glyph still shows Down/Maintenance); empty lanes are a
+  thin strip. Completed + Analyzed are OFF by default (remembered).
+  Cards are rebuilt, not mini travellers: stripe for Line stop/Hot only
+  (plain otherwise), the tiny priority word for those two, truncated mono
+  ID with the full number in the tooltip, lot + build-up, the needed-by
+  clock (text only) and one status/Late chip - plus Stuck past 2 lab days
+  on hold. No gauges, initials, dates or red card borders; the drawer keeps
+  the traveller, the actions and an explicit "Open page" link (renamed from
+  "Open full page"). Filter row: Scope All/Mine + tool dropdown with counts,
+  Show, Done toggle, search. Stuck uses the same rule as Health now: both
+  count lab days (`domain.holdLabDays`, 2 by `STUCK_HOLD_LAB_DAYS`); the old
+  7-calendar-day Health rule is replaced. Width budget: 5 columns take
+  774 px, 7 take 1086 px (150 px columns + 6 px gaps) - both fit 1440 px
+  with the nav open. Lane headers slide under the sticky stations instead
+  of a second brittle sticky offset.
