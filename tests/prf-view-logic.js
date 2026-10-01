@@ -126,6 +126,23 @@ function fakeSettings(result) {
   ok('a typed lot number processes only that lot (py lot_number forces one lot)', out3.rough.every(r => r.Lot_Number === '12345'));
 }
 
+/* ---------------- Run: what blocks it (Lot name is optional, 2026-10-01) ---------------- */
+
+{
+  const result = fakeResult();
+  view._state.result = result;
+  view._state.settings = fakeSettings(result);
+  view._state.settings.lotName = '';
+  view._state.outputConnected = true;
+  eq('an empty Lot name does NOT block Run', T.runBlockers(), []);
+  eq('...and the rows just carry an empty Lot name', T.runAll().rough[0].Lot_Name, '');
+  view._state.outputConnected = false;
+  eq('no output folder blocks Run, and says so', T.runBlockers(), ['pick an output folder']);
+  view._state.settings.panelsOn = [];
+  view._state.settings.sides.Front.enabled = false;
+  eq('every reason is listed', T.runBlockers(), ['tick at least one panel', 'tick Front or Back', 'pick an output folder']);
+}
+
 /* ---------------- picked BU-01 + the pasted full path (Prince's case) ---------------- */
 
 {

@@ -393,7 +393,7 @@ window.MRT.views.prf = (function () {
       body.push(ui.el('p', {}, ui.el('a', { href: '#', class: 'link', text: 'Back to automatic',
         onclick: function (e) { e.preventDefault(); s.metaAuto = true; draw(); } })));
     }
-    var lotName = ui.field({ label: 'Lot name', required: true, value: s.lotName, hint: 'Required - typed, not read from the folder.' });
+    var lotName = ui.field({ label: 'Lot name (optional)', value: s.lotName, hint: 'Typed, not read from the folder. Goes into the Lot name column; may stay empty.' });
     lotName.input.addEventListener('input', function () { s.lotName = lotName.input.value; });
     body.push(lotName.node);
     body.push(ui.el('p', { class: 'ifield-msg', text: 'Process: ' + s.process + ' (change under Advanced)' }));
@@ -408,6 +408,7 @@ window.MRT.views.prf = (function () {
           var i = s.panelsOn.indexOf(p);
           if (on && i === -1) s.panelsOn.push(p);
           if (!on && i !== -1) s.panelsOn.splice(i, 1);
+          refreshRun();
         } });
       return t.node;
     });
@@ -834,30 +835,37 @@ window.MRT.views.prf = (function () {
     ]);
   }
 
-  function canRun() {
-    var s = state.settings;
-    if (!s) return false;
-    if (!s.lotName.trim()) return false;
-    if (!s.panelsOn.length) return false;
-    if (!state.outputConnected) return false;
-    return s.sides.Front.enabled || s.sides.Back.enabled;
-  }
-
-  function runPanel() {
-    if (!state.result || !state.settings) return null;
-    var s = state.settings;
-    var reasons = [];
-    if (!s.lotName.trim()) reasons.push('type a Lot name');
+  /** What still stops Run, in plain words ([] = ready). Lot name is optional (Prince, 2026-10-01). */
+  function runBlockers() {
+    var s = state.settings, reasons = [];
+    if (!s) return ['scan a folder first'];
     if (!s.panelsOn.length) reasons.push('tick at least one panel');
     if (!(s.sides.Front.enabled || s.sides.Back.enabled)) reasons.push('tick Front or Back');
     if (!state.outputConnected) reasons.push('pick an output folder');
-    var body = [
-      ui.button('Run', { kind: 'primary', icon: 'save', disabled: !canRun() || state.running, onClick: runReport }),
-      state.running ? ui.el('p', { class: 'muted' }, 'Working...') : null,
-      !canRun() && reasons.length ? ui.el('p', { class: 'ifield-msg', text: 'Before Run: ' + reasons.join(', ') + '.' }) : null
-    ];
-    return ui.panel({ title: '8. Run', icon: 'save', body: body }).node;
+    return reasons;
   }
+
+  function canRun() { return !runBlockers().length; }
+
+  var runHost = null;   // the Run panel's slot, refreshed alone on every change (refreshRun)
+
+  function runPanelBody() {
+    var reasons = runBlockers();
+    return ui.panel({ title: '8. Run', icon: 'save', body: [
+      ui.button('Run', { kind: 'primary', icon: 'save', disabled: !!reasons.length || state.running, onClick: runReport }),
+      state.running ? ui.el('p', { class: 'muted' }, 'Working...') : null,
+      reasons.length ? ui.el('p', { class: 'ifield-msg', text: 'Before Run: ' + reasons.join(', ') + '.' }) : null
+    ] }).node;
+  }
+
+  function runPanel() {
+    if (!state.result || !state.settings) { runHost = null; return null; }
+    runHost = ui.el('div', {}, runPanelBody());
+    return runHost;
+  }
+
+  /** Re-paint only the Run panel: typing or ticking must not rebuild the page (focus would jump). */
+  function refreshRun() { if (runHost) ui.mount(runHost, runPanelBody()); }
 
   function statTable(rows, cols, title) {
     if (!rows.length) return null;
@@ -923,7 +931,7 @@ window.MRT.views.prf = (function () {
     // exposed for tests/prf-view-logic.js only (same pattern as store.js's
     // _pure): pure-enough functions that touch no DOM, so the aggregation
     // and the sheet layout can be checked without a real browser/adapter.
-    _test: { resolveSideConfig: resolveSideConfig, runAll: runAll, buildResult: buildResult, applyPath: applyPath, sheetRows: sheetRows, buildSheets: buildSheets,
+    _test: { resolveSideConfig: resolveSideConfig, runAll: runAll, buildResult: buildResult, applyPath: applyPath, runBlockers: runBlockers, sheetRows: sheetRows, buildSheets: buildSheets,
              defaultSettings: defaultSettings, SHEET_COLS: SHEET_COLS, VIA_SPLIT: VIA_SPLIT }
   };
 })();
